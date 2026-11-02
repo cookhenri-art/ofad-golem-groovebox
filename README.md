@@ -40,7 +40,10 @@ connaissent (du type MPC One, Force ou Maschine) : on choisit un instrument par 
 16 pads, on écrit des patterns, on les lance comme des clips, on enchaîne les scènes au crossfader, on
 construit le morceau, puis on le retravaille en audio et on l'exporte.
 
-Les instruments et les effets reprennent l'**architecture** des machines qui ont fait ces musiques :
+L'idée : réunir dans un seul outil **tout ce qui a fait ses preuves** sur les machines qu'on aime. Les
+**séquenceurs qu'on connaît tous** — pas à pas, verrous de réglages sur chaque pas, séquenceur acide (note,
+octave, accent, glissé), conditions (A:B, Fill…), répétitions, Fill et Break en direct — et les
+instruments et les effets, qui reprennent l'**architecture** des machines qui ont fait ces musiques :
 boîtes à rythmes analogiques des années 80 et 90, basse acide à séquenceur, synthés analogiques
 monophoniques et polyphoniques à filtres en échelle ou qui crient, synthés FM, tables d'ondes, drones,
 vocodeurs, sampler de performance, échos à bande, réverbérations, compresseurs de studio… Chacun est
