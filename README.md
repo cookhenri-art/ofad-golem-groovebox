@@ -32,15 +32,29 @@
 
 ## ✨ Présentation
 
-**OFAD GOLEM** est une groovebox logicielle dans l'esprit des stations de production autonomes à pads :
-on choisit un instrument par piste, on joue sur les 16 pads, on écrit des patterns, on les lance
-comme des clips, on enchaîne les scènes au crossfader, on construit le morceau, puis on le
-retravaille en audio et on l'exporte.
+**OFAD GOLEM** est une groovebox logicielle pensée pour **toutes les musiques électroniques** : techno,
+house, acid, hardtek et tribe, hardcore, drum & bass, électro, ambient, beatmaking…
+
+Le flux de travail reprend celui des **stations de production autonomes à pads** que les beatmakers
+connaissent (du type MPC One, Force ou Maschine) : on choisit un instrument par piste, on joue sur les
+16 pads, on écrit des patterns, on les lance comme des clips, on enchaîne les scènes au crossfader, on
+construit le morceau, puis on le retravaille en audio et on l'exporte.
+
+Les instruments et les effets reprennent l'**architecture** des machines qui ont fait ces musiques :
+boîtes à rythmes analogiques des années 80 et 90, basse acide à séquenceur, synthés analogiques
+monophoniques et polyphoniques à filtres en échelle ou qui crient, synthés FM, tables d'ondes, drones,
+vocodeurs, sampler de performance, échos à bande, réverbérations, compresseurs de studio… Chacun est
+**recréé de zéro** : son propre nom, sa propre façade, ses propres sons d'usine.
 
 - **Application Windows** (autonome), **plugin VST3** pour les logiciels de musique, **application Android** pour tablette.
-- **34 instruments** et **1249 sons d'usine**, **38 effets** : chaque module reprend le *principe* d'une famille de
-  machines connues, sur une architecture propre — jamais leur nom, leur façade ni leurs sons.
+- **34 instruments**, **1249 sons d'usine**, **38 effets**, 16 pistes, 8 patterns par piste, 32 scènes.
 - Logiciel **libre** (AGPL-3.0) : les sources de chaque version sont fournies avec elle.
+
+### 🤝 Un projet qui évolue avec vous
+
+OFAD GOLEM n'est pas figé : c'est la groovebox idéale que l'on construit ensemble. Une machine qui vous
+manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l'onglet
+**[Issues](../../issues)** : les idées des utilisateurs font les prochaines versions.
 
 ---
 
@@ -426,6 +440,10 @@ GROOVEBOX/
 - **LAME** — encodage MP3.
 - **React** et **Vite** — interface.
 - **Inter** — police de l'interface.
+
+> Les noms de marques et de produits cités (MPC, Force, Maschine…) appartiennent à leurs propriétaires
+> respectifs. Ils servent seulement à décrire le style de jeu. OFAD GOLEM est un projet indépendant, sans
+> lien avec ces fabricants ; aucun de leurs noms, façades, sons ou logiciels n'est repris.
 
 ---
 
