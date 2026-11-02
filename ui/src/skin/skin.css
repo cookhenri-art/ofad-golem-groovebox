@@ -1,0 +1,406 @@
+/* Groovebox — OFAD — AGPL-3.0-or-later
+   Habillage réaliste (v0.35.1) : couche posée après styles.css. Images fixes précalculées (lumière en
+   haut à gauche) ; seul le repère des boutons tourne (--rot, posé par l'encodeur). Les variables
+   --sk-* viennent de skin/skins.ts. Les façades gardent leurs cadres, titres et inscriptions d'origine :
+   seules la matière, les boutons, les curseurs, les molettes, les vis et les joues changent. */
+
+@font-face { font-family: "Sk Bebas"; src: url("./fonts/bebas-neue-latin-400-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Sk Barlow"; font-weight: 600; src: url("./fonts/barlow-condensed-latin-600-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Sk Barlow"; font-weight: 700; src: url("./fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Sk Seg"; src: url("./fonts/DSEG7Classic-Bold.woff2") format("woff2"); font-display: swap; }
+
+/* ============================================================ Matière des façades */
+/* matière en carreaux sans raccord, à sa taille réelle ; teinte d'origine posée par multiplication */
+.face.face--skin {
+  background:
+    var(--sk-vis) left var(--sk-vx, 12px) top 12px / 14px 14px no-repeat,
+    var(--sk-vis) right var(--sk-vx, 12px) top 12px / 14px 14px no-repeat,
+    var(--sk-vis) left var(--sk-vx, 12px) bottom 12px / 14px 14px no-repeat,
+    var(--sk-vis) right var(--sk-vx, 12px) bottom 12px / 14px 14px no-repeat,
+    linear-gradient(165deg, oklch(1 0 0 / 0.07), transparent 35%, transparent 70%, oklch(0 0 0 / 0.18)),
+    var(--sk-panel) left top / var(--sk-panel-size) repeat;
+  background-color: var(--sk-panel-tint);
+  background-blend-mode: normal, normal, normal, normal, normal, multiply;
+  box-shadow: 0 24px 60px oklch(0 0 0 / 0.7), inset 0 1px 0 oklch(1 0 0 / 0.22), inset 0 -3px 0 oklch(0 0 0 / 0.35);
+}
+.face.face--skin.face--cheeks { padding-left: 44px; padding-right: 44px; --sk-vx: 42px; }
+.face.face--skin.face--cheeks::before, .face.face--skin.face--cheeks::after {
+  width: 32px;
+  background: linear-gradient(90deg, oklch(0 0 0 / 0.38), oklch(1 0 0 / 0.07) 22%, transparent 45%, transparent 75%, oklch(0 0 0 / 0.42)),
+              var(--sk-cheek) left top / var(--sk-cheek-size) repeat;
+  box-shadow: inset 0 0 0 1px oklch(0 0 0 / 0.45), inset 1px 1px 1px oklch(1 0.05 70 / 0.22);
+}
+
+/* ============================================================ Boutons (façades, pédales, racks) */
+/* corps fixe, repère qui tourne autour de l'axe du dessus du bouton, graduations imprimées */
+.sk-knobs .encoder--knob .encoder-cap, .face--skin .encoder--knob .encoder-cap {
+  transform: none !important; inset: auto !important; top: 13px !important; left: 6px !important; width: 54px !important; height: 54px !important;
+  border-radius: 0 !important; box-shadow: none !important; background: var(--sk-knob) center / contain no-repeat !important;
+  overflow: hidden; /* le repère tourné ne déborde pas (la page se croirait trop large et se réduirait) */
+}
+.sk-knobs .encoder--knob .encoder-cap::before, .face--skin .encoder--knob .encoder-cap::before { display: none !important; }
+.sk-knobs .encoder--knob .encoder-mark, .face--skin .encoder--knob .encoder-mark {
+  position: absolute; inset: auto !important; margin: 0 !important; border-radius: 0 !important;
+  left: calc(var(--sk-ax) - 50%) !important; top: calc(var(--sk-ay) - 50%) !important; width: 100% !important; height: 100% !important;
+  background: var(--sk-mark) center / contain no-repeat !important;
+  transform: rotate(var(--rot, 0deg)) scale(var(--sk-ms, 1)); transform-origin: 50% 50%;
+}
+.sk-knobs .encoder--knob .knob-track, .sk-knobs .encoder--knob .knob-arc,
+.face--skin .encoder--knob .knob-track, .face--skin .encoder--knob .knob-arc { display: none; }
+.face--skin .encoder--knob .encoder-ring {
+  background: var(--sk-grad) center / contain no-repeat; opacity: 0.5; top: 8px !important; left: 3px !important; width: 60px !important; height: 60px !important;
+}
+.sk-knobs .encoder--knob.encoder--assign .encoder-cap, .face--skin .encoder--knob.encoder--assign .encoder-cap { box-shadow: 0 0 0 2px var(--assign), 0 0 14px var(--assign) !important; border-radius: 50% !important; }
+.sk-knobs .encoder--idle .encoder-cap, .face--skin .encoder--idle .encoder-cap { opacity: 0.6; }
+
+/* curseurs : manette précalculée dans une fente sombre ; molettes : tambour strié */
+.face--skin .fc-fader-cap { left: -6px; width: 38px; height: 38px; margin-bottom: -12px; border-radius: 0; box-shadow: none; background: var(--sk-fader) center / contain no-repeat; }
+.face--skin .fc-fader-track { background-image: linear-gradient(90deg, transparent 10px, oklch(0.04 0 0) 10px 16px, transparent 16px), repeating-linear-gradient(180deg, transparent 0 10px, var(--sk-line) 10px 11px); }
+.face--skin .wheel-slot { background: oklch(0.06 0 0); box-shadow: inset 0 1px 3px oklch(0 0 0 / 0.8), 0 1px 0 oklch(1 0 0 / 0.15); }
+.face--skin .wheel-drum { background: var(--sk-molette) center / 100% auto repeat-y !important; box-shadow: inset 0 6px 8px oklch(0 0 0 / 0.55), inset 0 -6px 8px oklch(0 0 0 / 0.55); }
+
+/* ============================================================ Pédalier */
+.pedalboard .pb-board { align-items: flex-start; justify-content: safe center; flex-wrap: wrap; overflow: visible; padding-top: 10px; gap: 22px; }
+.pedalboard .pb-jack { align-self: center; }
+.pd-wrap:has(.pd--skin), .pd-wrap:has(.rk) { flex: none; min-width: 0; }
+
+/* --- pédale : disposition des boîtiers du pack (325 × 500, haut 325 × 620) --- */
+.pd.pd--skin {
+  position: relative; flex: none; width: 325px; height: 500px; padding: 0; border: 0; border-radius: 0; gap: 0; display: block;
+  background: var(--pd-bg) center / 100% 100% no-repeat; box-shadow: none; filter: drop-shadow(0 16px 14px oklch(0 0 0 / 0.55));
+  color: var(--sk-ink);
+}
+.pd.pd--skin.pd--tall { height: 620px; }
+.pd--skin .pd-screw { position: absolute; width: 11px; height: 11px; background: var(--sk-vis) center / contain no-repeat; }
+.pd--skin .pd-screw--tl { left: 29px; top: 27px; } .pd--skin .pd-screw--tr { right: 29px; top: 27px; }
+.pd--skin .pd-screw--bl { left: 29px; bottom: 27px; } .pd--skin .pd-screw--br { right: 29px; bottom: 27px; }
+.pd--skin .pd-led { position: absolute; left: 50%; top: 17px; width: 8px; height: 8px; margin-left: -4px; }
+.pd--skin .pd-n { position: absolute; left: 46px; top: 22px; font: 700 10px "Sk Barlow", "Inter Variable", system-ui, sans-serif; color: var(--sk-ink); opacity: 0.7; }
+.pd--skin .pd-swap { position: absolute; right: 44px; top: 19px; width: 22px; height: 18px; font-size: 11px; padding: 0; border-radius: 4px; border: 0; cursor: pointer; background: oklch(0 0 0 / 0.38); color: oklch(0.95 0.01 85); }
+/* nom dans le bandeau du haut (y 24 → 60) */
+.pd--skin .pd-name { position: absolute; top: 28px; left: 40px; right: 40px; height: 34px; margin: 0; display: flex; flex-direction: column; align-items: center; text-align: center; overflow: hidden; }
+.pd--skin .pd-name b { font: 700 21px/1 "Sk Barlow", "Inter Variable", system-ui, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sk-ink); text-shadow: 0 1px 1px oklch(0 0 0 / 0.3); white-space: nowrap; }
+.pd--skin .pd-name span { display: block; max-width: 100%; margin-top: 2px; font: 600 8.5px/1.1 "Sk Barlow", "Inter Variable", system-ui, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sk-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 6 boutons : 2 colonnes (x 100 / 225), 3 rangées (y 98 / 166 / 234) */
+.pd--skin .pd-knobs { position: absolute; top: 64px; left: 37px; width: 251px; display: grid; grid-template-columns: 125px 125px; grid-auto-rows: 68px; }
+.pd--skin .pd-switches { position: absolute; top: 284px; left: 37px; width: 251px; display: grid; grid-template-columns: 125px 125px; }
+
+/* bouton réel : gros bouton, nom dessous, valeur au survol */
+.pd-knob { position: relative; display: flex; flex-direction: column; align-items: center; }
+.pd-knob .encoder--knob { width: 70px !important; height: 52px !important; zoom: 1 !important; }
+.pd-knob .encoder--knob .encoder-cap { top: -6px !important; left: 3px !important; width: 64px !important; height: 64px !important; }
+.pd-knob .encoder--knob .encoder-ring { display: none; }
+.pd-knob .encoder--knob .knob-label { display: none; }
+.pd-knob .encoder--knob .knob-value {
+  position: absolute; top: -20px; bottom: auto; left: 50%; right: auto; transform: translateX(-50%); width: auto; z-index: 3;
+  padding: 1px 6px; border-radius: 3px; font-size: 10px; line-height: 14px; color: oklch(0.92 0.12 80) !important; background: oklch(0.1 0.004 60 / 0.88);
+  opacity: 0; pointer-events: none; transition: opacity 120ms;
+}
+.pd-knob:hover .knob-value, .pd-knob:focus-within .knob-value, .pd-knob:active .knob-value { opacity: 1; }
+.pd-knob .mod-depth { right: 0; top: 30px; }
+.pd-lab { margin-top: 1px; font: 700 10.5px/1.1 "Sk Barlow", "Inter Variable", system-ui, sans-serif; letter-spacing: 0.07em; text-transform: uppercase; color: var(--sk-ink);
+  text-shadow: 0 1px 1px oklch(0 0 0 / 0.25); white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.pd-pos { font: 600 9.5px/1.1 "Sk Barlow", "Inter Variable", system-ui, sans-serif; letter-spacing: 0.04em; color: var(--sk-dim); white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+/* sélecteur à crans : petit bouton, position écrite sous le nom */
+.pd-knob--small .encoder--knob { width: 50px !important; height: 38px !important; }
+.pd-knob--small .encoder--knob .encoder-cap { top: -4px !important; left: 2px !important; width: 46px !important; height: 46px !important; }
+.pd-knob--off { opacity: 0.55; } /* v0.46 : effet éteint (Sculptor) : touchez pour l'allumer */
+.pd-knob--small .pd-lab { font-size: 9.5px; }
+
+/* contacteur au pied (v0.36 : remonté, il ne dépasse plus du bord bas du boîtier) */
+.pd--skin .pd-foot {
+  position: absolute; left: 50%; top: 376px; width: 62px; height: 62px; margin-left: -31px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--sk-foot) center / contain no-repeat; box-shadow: none; cursor: pointer;
+}
+.pd--tall .pd-foot { top: 482px; }
+.pd--skin .pd-foot:active { transform: translateY(2px) scale(0.98); }
+.pd--skin.pd--off { filter: drop-shadow(0 16px 14px oklch(0 0 0 / 0.55)) saturate(0.8) brightness(0.92); }
+/* boucleur : état et touches au-dessus du contacteur */
+.pd--looper.pd--skin .pd-loop-state { position: absolute; top: 326px; left: 46px; right: 46px; width: auto; display: flex; gap: 6px; align-items: center; padding: 3px 7px; border-radius: 3px;
+  font: 600 10px "Sk Barlow", "Inter Variable", system-ui, sans-serif; color: oklch(0.9 0.12 80); background: oklch(0.08 0.004 60 / 0.82); box-shadow: inset 0 1px 2px oklch(0 0 0 / 0.6); }
+.pd--looper.pd--skin .pd-loop-keys { position: absolute; top: 352px; left: 30px; right: 30px; display: flex; justify-content: center; gap: 5px; width: auto; }
+.pd--looper.pd--skin .pd-loop-key { flex: none; width: 48px; padding: 4px 0; font: 700 8.5px "Sk Barlow", "Inter Variable", system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 4px;
+  color: oklch(0.95 0.01 85); background: linear-gradient(180deg, oklch(0.36 0.004 60), oklch(0.18 0.004 60)); box-shadow: 0 2px 0 oklch(0 0 0 / 0.55), inset 0 1px 0 oklch(1 0 0 / 0.18); }
+.pd--looper.pd--skin .pd-loop-key.on { background: linear-gradient(180deg, oklch(0.62 0.2 28), oklch(0.45 0.18 28)); }
+
+/* --- rack 19 pouces (oreilles vissées, façade ; 660 × 210) --- */
+.rk { position: relative; flex: none; display: grid; grid-template-columns: 30px 1fr 30px; width: 660px; height: 210px; color: var(--sk-ink);
+  filter: drop-shadow(0 14px 16px oklch(0 0 0 / 0.55)); }
+.rk-ear { position: relative; background: linear-gradient(90deg, oklch(0 0 0 / 0.45), oklch(1 0 0 / 0.06) 30%, transparent 60%, oklch(0 0 0 / 0.5)), var(--sk-ear) left top / var(--sk-ear-size) repeat;
+  box-shadow: inset 0 0 0 1px oklch(0 0 0 / 0.5); }
+.rk-ear--l { border-radius: 4px 0 0 4px; } .rk-ear--r { border-radius: 0 4px 4px 0; }
+.rk-ear i { position: absolute; left: 50%; width: 14px; height: 14px; margin-left: -7px; background: var(--sk-vis) center / contain no-repeat; }
+.rk-ear i:first-child { top: 24px; } .rk-ear i:last-child { bottom: 24px; }
+.rk-face { position: relative; overflow: hidden;
+  background: linear-gradient(170deg, oklch(1 0 0 / 0.1), transparent 30%, transparent 75%, oklch(0 0 0 / 0.22)), var(--sk-panel) left top / var(--sk-panel-size) repeat;
+  background-color: var(--sk-panel-tint); background-blend-mode: normal, multiply;
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.35), inset 0 -2px 0 oklch(0 0 0 / 0.45), inset 0 0 0 1px oklch(0 0 0 / 0.45); }
+.rk-n { position: absolute; left: 12px; top: 8px; font: 700 10px "Sk Barlow", "Inter Variable", system-ui, sans-serif; color: var(--sk-ink); opacity: 0.6; }
+.rk-swap { position: absolute; right: 10px; top: 8px; width: 22px; height: 18px; font-size: 11px; padding: 0; border-radius: 4px; border: 0; cursor: pointer; background: oklch(0 0 0 / 0.38); color: oklch(0.95 0.01 85); }
+.rk-controls { position: absolute; left: 18px; right: 18px; top: 22px; bottom: 44px; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.rk-big { display: flex; gap: 6px; }
+.rk-big .pd-knob .encoder--knob { width: 96px !important; height: 82px !important; }
+.rk-big .pd-knob .encoder--knob .encoder-cap { top: -6px !important; left: 2px !important; width: 92px !important; height: 92px !important; }
+.rk-big .pd-lab { font-size: 12px; margin-top: 4px; }
+.rk-small { display: grid; grid-template-columns: repeat(var(--cols, 3), 64px); grid-auto-rows: 64px; gap: 0 2px; }
+.rk-small[data-n="4"], .rk-small[data-n="2"], .rk-small[data-n="1"] { --cols: 2; }
+.rk-small .pd-knob .encoder--knob { width: 50px !important; height: 40px !important; }
+.rk-small .pd-knob .encoder--knob .encoder-cap { top: -4px !important; left: 2px !important; width: 46px !important; height: 46px !important; }
+.rk-small .pd-lab, .rk-sel .pd-lab { font-size: 9.5px; max-width: 64px; }
+.rk-sel { display: grid; grid-template-columns: repeat(var(--scols, 2), 66px); grid-auto-rows: 66px; }
+.rk-sel:has(> :nth-child(2):last-child), .rk-sel:has(> :only-child) { --scols: 1; }
+.rk-sel .pd-knob--small .encoder--knob { width: 40px !important; height: 32px !important; }
+.rk-sel .pd-knob--small .encoder--knob .encoder-cap { top: -3px !important; left: 2px !important; width: 36px !important; height: 36px !important; }
+.rk-sel .pd-pos { max-width: 64px; font-size: 9px; }
+/* nom sérigraphié en bas à gauche, interrupteur en bas à droite */
+.rk-name { position: absolute; left: 16px; bottom: 9px; display: flex; align-items: baseline; gap: 10px; }
+.rk-name b { font: 400 27px/1 "Sk Bebas", "Inter Variable", system-ui, sans-serif; letter-spacing: 0.1em; color: var(--sk-ink); text-shadow: 0 1px 0 oklch(0 0 0 / 0.2); }
+.rk-name span { font: 600 10px "Sk Barlow", "Inter Variable", system-ui, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sk-dim); }
+.rk-power { position: absolute; right: 14px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 7px; border: 0; border-radius: 4px; cursor: pointer;
+  font: 700 9.5px "Sk Barlow", "Inter Variable", system-ui, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.92 0.01 85);
+  background: linear-gradient(180deg, oklch(0.34 0.004 60), oklch(0.16 0.004 60)); box-shadow: 0 2px 0 oklch(0 0 0 / 0.55), inset 0 1px 0 oklch(1 0 0 / 0.18); }
+.rk-power:active { transform: translateY(1px); }
+.rk-lamp { width: 8px; height: 8px; border-radius: 50%; background: oklch(0.3 0.05 28); box-shadow: inset 0 1px 1px oklch(0 0 0 / 0.5); }
+.rk-power.on .rk-lamp { background: oklch(0.72 0.21 28); box-shadow: 0 0 8px oklch(0.7 0.22 28); }
+.rk--off .rk-face { filter: brightness(0.9) saturate(0.85); }
+/* vumètre à aiguille (fond crème, vitre) */
+.rk-vu { position: relative; flex: none; width: 150px; height: 104px; border-radius: 4px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 90%, oklch(0.93 0.05 85), oklch(0.86 0.06 80)); border: 4px solid oklch(0.14 0.004 60);
+  box-shadow: inset 0 8px 12px -4px oklch(0.3 0.05 60 / 0.6), 0 1px 0 oklch(1 0 0 / 0.25); }
+.rk-vu svg { position: absolute; inset: 4px 0 0; width: 100%; height: auto; }
+.rk-vu::after { content: ""; position: absolute; inset: 0; background: linear-gradient(155deg, oklch(1 0 0 / 0.32), transparent 38%, transparent 75%, oklch(0 0 0 / 0.08)); pointer-events: none; }
+.rk-needle { position: absolute; left: 50%; bottom: 6px; width: 1.5px; height: 72px; margin-left: -0.75px; background: oklch(0.15 0.01 60); transform-origin: 50% 100%; transition: transform 90ms linear; }
+.rk-pivot { position: absolute; left: 50%; bottom: -12px; width: 30px; height: 24px; margin-left: -15px; border-radius: 50% 50% 0 0; background: oklch(0.18 0.004 60); }
+/* afficheur à 7 segments */
+.rk-lcd { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.rk-lcd span { min-width: 120px; padding: 6px 10px; border-radius: 4px; text-align: center; font: 26px/1 "Sk Seg", var(--mono, monospace); color: oklch(0.82 0.17 65);
+  text-shadow: 0 0 8px oklch(0.75 0.19 55 / 0.7); background: linear-gradient(180deg, oklch(0.12 0.03 30), oklch(0.08 0.02 30)); border: 3px solid oklch(0.2 0.03 50);
+  box-shadow: inset 0 3px 8px oklch(0 0 0 / 0.85), 0 1px 0 oklch(1 0.05 60 / 0.25); white-space: nowrap; }
+.rk-lcd small { font: 700 9.5px "Sk Barlow", "Inter Variable", system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sk-ink); }
+/* grille de pas (effets à pas) */
+.rk.rk--stepfx { height: 262px; }
+.rk-steps { position: absolute; left: 18px; right: 18px; bottom: 42px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; }
+.rk--stepfx .rk-controls { bottom: 92px; }
+
+/* ============================================================ EFFETS : choix d'un effet présenté comme PISTES */
+.fx-role { font-size: 0.82em; font-weight: 500; opacity: 0.68; letter-spacing: 0; text-transform: none; }
+.fx-browser { min-height: 0; flex: 1; }
+.fx-browser .browser-body { grid-template-columns: minmax(0, 1fr) 230px; min-height: 0; max-height: 100%; }
+.fx-browser .browser-tabs button { font-size: 11px; padding: 5px 8px; }
+.fx-browser .browser-list .bi-principle { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fx-browser .browser-list .fx-role, .fx-slot-name .fx-role { display: block; }
+.fx-browser .browser-detail p { font-size: 11.5px; }
+.fx-browser-thumb { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; border-radius: 5px; background: oklch(0.08 0.004 250); }
+.fx-preset-name { display: block; font-size: 11px; padding: 3px 6px; border-radius: 4px; background: oklch(1 0 0 / 0.04); color: var(--scr-muted); }
+
+/* Bignappe One : aluminium bleu du pack ; ses sections en bleu nuit translucide (plus de vert sur le bleu) */
+.face--skin.face--t-nappe { --fp-line: oklch(0.7 0.04 240 / 0.35); --fp-led-off: oklch(0.3 0.03 240); }
+.face--skin.face--t-nappe .fp { background: linear-gradient(180deg, oklch(0.28 0.045 245 / 0.62), oklch(0.18 0.04 245 / 0.62)); }
+.face--skin.face--t-nappe .fp-title { color: oklch(0.93 0.02 235); }
+.face--skin.face--t-nappe .fc-toggle { background: linear-gradient(180deg, oklch(0.36 0.04 245), oklch(0.24 0.04 245)); }
+.pd--skin .pd-knobs .pd-knob--center { grid-column: 1 / -1; }
+.pd--skin .pd-knobs .pd-knob--small { margin-top: 4px; }
+
+/* ——— Modules (v0.35.2) : interface dédiée, sur le modèle des blocs du pack (Broyeur, Mastering) ——— */
+.fx-form--module { color: oklch(0.86 0.12 85); background: oklch(0.86 0.12 85 / 0.15); }
+.fx-open { margin-left: auto; }
+.mp-overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; overflow: auto;
+  background: radial-gradient(ellipse at 50% 40%, oklch(0.2 0.006 250 / 0.82), oklch(0.08 0.004 250 / 0.94)); }
+.mp { --B: "Sk Barlow", "Inter Variable", system-ui, sans-serif; position: relative; flex: none; width: 1480px; margin: auto; padding: 24px 30px 30px; border-radius: 9px;
+  display: flex; flex-direction: column; gap: 16px; color: oklch(0.93 0.008 85); user-select: none;
+  background: linear-gradient(160deg, oklch(1 0 0 / 0.07), transparent 35%, oklch(0 0 0 / 0.22)), var(--sk-panel) left top / var(--sk-panel-size) repeat;
+  background-color: var(--sk-panel-tint); background-blend-mode: normal, multiply;
+  border: 1px solid oklch(0.38 0.006 200); box-shadow: 0 30px 60px oklch(0 0 0 / 0.65), inset 0 1px 0 oklch(1 0 0 / 0.22), inset 0 -2px 0 oklch(0 0 0 / 0.5); }
+.mp::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; border-radius: 9px 9px 0 0;
+  background: linear-gradient(90deg, var(--mp-acc), color-mix(in oklab, var(--mp-acc) 45%, black)); opacity: 0.95; }
+.mp .pd-screw { position: absolute; width: 13px; height: 13px; background: var(--sk-vis) center / contain no-repeat; }
+.mp .pd-screw--tl { left: 9px; top: 12px; } .mp .pd-screw--tr { right: 9px; top: 12px; }
+.mp .pd-screw--bl { left: 9px; bottom: 9px; } .mp .pd-screw--br { right: 9px; bottom: 9px; }
+.mp--off > :not(.mp-head):not(.pd-screw) { filter: saturate(0.55) brightness(0.82); }
+/* bandeau */
+.mp-head { display: flex; align-items: center; gap: 18px; padding: 2px 4px 14px; border-bottom: 1px solid oklch(1 0 0 / 0.1); }
+.mp-logo { font: 400 46px/1 "Sk Bebas", var(--B); letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.95 0.008 85); text-shadow: 0 2px 0 oklch(0 0 0 / 0.45); }
+.mp-role { margin-left: auto; font: 600 13px/1 var(--B); letter-spacing: 0.3em; text-transform: uppercase; color: oklch(0.93 0.008 85 / 0.66); }
+.mp-tools { display: flex; gap: 8px; }
+.mp-close { width: 34px; height: 34px; border-radius: 4px; border: 1px solid oklch(0 0 0 / 0.6); cursor: pointer; font-size: 15px; color: oklch(0.9 0.01 85);
+  background: linear-gradient(oklch(0.3 0.004 250), oklch(0.2 0.004 250)); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.15); }
+/* boutons à diode */
+.mp-lb { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 28px; padding: 0 11px; border-radius: 3px; cursor: pointer; white-space: nowrap;
+  font: 700 12px/1 var(--B); letter-spacing: 0.1em; text-transform: uppercase; color: oklch(0.86 0.008 85);
+  border: 1px solid oklch(0 0 0 / 0.65); background: linear-gradient(oklch(0.31 0.004 250), oklch(0.21 0.004 250));
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.16), 0 2px 3px oklch(0 0 0 / 0.45); }
+.mp-lb:active { transform: translateY(1px); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.08); }
+.mp-lb i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: oklch(0.22 0.03 30); box-shadow: inset 0 1px 1px oklch(0 0 0 / 0.8); }
+.mp-lb.on { color: #fff; }
+.mp-lb.on i { background: radial-gradient(circle at 40% 35%, white, var(--mp-acc) 58%); box-shadow: 0 0 6px 2px color-mix(in oklab, var(--mp-acc) 55%, transparent); }
+.mp-lb--dot { width: 28px; padding: 0; }
+.mp-power { margin-left: 4px; }
+/* afficheur à sélecteur */
+.mp-lcd { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+.mp-lcd-lab { font: 700 11px/1 var(--B); letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.88 0.008 85 / 0.8); }
+.mp-lcd-box { display: flex; align-items: center; width: 100%; height: 34px; border-radius: 4px; background: oklch(0.1 0.005 250); border: 1px solid oklch(0.06 0 0);
+  box-shadow: inset 0 3px 8px oklch(0 0 0 / 0.85), 0 1px 0 oklch(1 0 0 / 0.1); color: var(--mp-acc); text-shadow: 0 0 8px color-mix(in oklab, var(--mp-acc) 60%, transparent); }
+.mp-lcd-box span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font: 700 14.5px/34px var(--B); letter-spacing: 0.12em; text-transform: uppercase; }
+.mp-lcd-box button { flex: none; width: 30px; height: 100%; border: 0; background: none; cursor: pointer; color: inherit; font-size: 13px; }
+.mp-lcd-box button:hover { background: oklch(1 0 0 / 0.05); }
+.mp-lcd--wide { width: 330px; }
+.mp-lcd-box--text span { padding: 0 12px; }
+.mp-sels .mp-lcd { width: 100%; }
+/* rangées, écran, sous-panneaux */
+.mp-row { display: flex; gap: 14px; align-items: stretch; }
+.mp-side { flex: none; display: flex; flex-direction: column; gap: 14px; }
+.mp-side .mp-sub { flex: 1; }
+.mp-screen { position: relative; flex: 1; min-width: 0; border-radius: 6px; overflow: hidden; border: 1px solid oklch(0.06 0 0);
+  background: linear-gradient(160deg, color-mix(in oklab, var(--mp-acc) 9%, oklch(0.15 0.01 200)), oklch(0.07 0.006 220));
+  box-shadow: inset 0 4px 10px oklch(0 0 0 / 0.75), 0 1px 0 oklch(1 0 0 / 0.1); }
+.mp-screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(165deg, oklch(1 0 0 / 0.06), transparent 35%); }
+.mp-screen--mini { flex: none; height: 104px; margin-bottom: 4px; }
+.mp-sub { position: relative; flex: none; display: flex; flex-direction: column; gap: 12px; padding: 12px 14px 14px; border-radius: 6px;
+  background: linear-gradient(oklch(0 0 0 / 0.3), oklch(0 0 0 / 0.14)); box-shadow: inset 0 2px 4px oklch(0 0 0 / 0.6), 0 1px 0 oklch(1 0 0 / 0.12); }
+.mp-sub--grow { flex: 1; min-width: 0; }
+.mp-sub.sel { box-shadow: inset 0 2px 4px oklch(0 0 0 / 0.6), 0 1px 0 oklch(1 0 0 / 0.12), inset 0 0 0 1.5px color-mix(in oklab, var(--mp-acc) 65%, transparent);
+  background: linear-gradient(color-mix(in oklab, var(--mp-acc) 9%, oklch(0 0 0 / 0.3)), oklch(0 0 0 / 0.16)); }
+.mp-sub h4 { display: flex; align-items: center; gap: 8px; min-height: 26px; margin: 0; font: 700 12.5px/1 var(--B); letter-spacing: 0.2em; text-transform: uppercase; color: oklch(0.9 0.008 85); }
+.mp-sub h4 .mp-lb { height: 24px; font-size: 11px; padding: 0 8px; }
+.mp-sub h4 .mp-lb--dot { width: 24px; padding: 0; }
+.mp-sub-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-sub-head { margin-left: auto; display: flex; gap: 4px; }
+.mp-sub-head .mp-seg { gap: 3px; }
+.mp-sels { display: flex; flex-direction: column; gap: 8px; }
+.mp-grid { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 10px 6px; justify-items: center; align-items: start; }
+.mp-colhead { font: 700 12.5px/1 var(--B); letter-spacing: 0.18em; text-transform: uppercase; color: var(--mp-acc); }
+.mp-leds { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.mp-seg { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; }
+.mp-seg .mp-lb { padding: 0 8px; }
+.mp-seg-lab { width: 100%; text-align: center; font: 700 11px/1 var(--B); letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.88 0.008 85 / 0.8); }
+.mp-dim { opacity: 0.32; }
+/* boutons : tailles (corps de la matière du module) */
+.mp .mp-knob { --kz: 54px; }
+.mp .mp-k--xl { --kz: 96px; } .mp .mp-k--lg { --kz: 66px; } .mp .mp-k--sm { --kz: 44px; }
+.mp .mp-knob .encoder--knob { width: calc(var(--kz) + 6px) !important; height: calc(var(--kz) * 0.84) !important; }
+.mp .mp-knob .encoder--knob .encoder-cap { top: calc(var(--kz) * -0.08) !important; left: 3px !important; width: var(--kz) !important; height: var(--kz) !important; }
+.mp .mp-knob .pd-lab { margin-top: 5px; font-size: 12px; letter-spacing: 0.08em; color: oklch(0.92 0.008 85); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp .mp-k--sm .pd-lab { font-size: 11px; }
+.mp .mp-k--xl .pd-lab { font-size: 13.5px; }
+.mp .mp-knob .knob-value { font-size: 11px; }
+/* écrans */
+.mp-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mp-svg--mini { position: static; display: block; height: 104px; }
+.mp-screen-in { position: absolute; inset: 0; }
+.mp-gridlines line { stroke: oklch(1 0 0 / 0.07); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.mp-gridlines line.zero { stroke: oklch(1 0 0 / 0.16); }
+.mp-gridlines text { fill: oklch(1 0 0 / 0.38); font: 600 12px var(--B); }
+.mp-curve { fill: none; stroke: color-mix(in oklab, var(--mp-acc) 80%, white); stroke-width: 2.2; vector-effect: non-scaling-stroke; }
+.mp-fill { fill: color-mix(in oklab, var(--mp-acc) 26%, transparent); }
+.mp-spectrum { fill: oklch(1 0 0 / 0.07); }
+.mp-node circle { fill: oklch(0.12 0.01 220); stroke: var(--mp-acc); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.mp-node text { fill: oklch(0.95 0.01 85); font: 700 13px var(--B); text-anchor: middle; pointer-events: none; }
+.mp-node.on circle { fill: var(--mp-acc); } .mp-node.on text { fill: oklch(0.12 0.01 220); }
+.mp-node.off { opacity: 0.35; }
+.mp-gr { fill: color-mix(in oklab, var(--mp-acc) 45%, transparent); }
+.mp-big-t { fill: oklch(0.96 0.01 85); font: 400 34px "Sk Bebas", var(--B); text-anchor: middle; letter-spacing: 0.05em; }
+.mp-small-t { fill: oklch(1 0 0 / 0.55); font: 600 12px var(--B); text-anchor: middle; letter-spacing: 0.1em; text-transform: uppercase; }
+.mp-xover { stroke: color-mix(in oklab, var(--mp-acc) 60%, white); stroke-width: 1.5; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.mp-xdot { fill: color-mix(in oklab, var(--mp-acc) 40%, white); }
+.mp-float line { stroke: oklch(0.85 0.1 200); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.mp-float text { fill: oklch(0.85 0.1 200); font: 700 12px var(--B); letter-spacing: 0.08em; }
+.mp-bands { position: absolute; left: 0; right: 0; bottom: 0; display: flex; height: 30px; }
+.mp-bands span { flex: 1; font: 700 12px/30px var(--B); letter-spacing: 0.12em; text-align: center; text-transform: uppercase; color: color-mix(in oklab, var(--mp-acc) 60%, white);
+  border-top: 1px solid color-mix(in oklab, var(--mp-acc) 35%, transparent); border-right: 1px solid color-mix(in oklab, var(--mp-acc) 20%, transparent); }
+.mp-pre { fill: oklch(1 0 0 / 0.04); }
+.mp-er { stroke: color-mix(in oklab, var(--mp-acc) 70%, white); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.mp-atmos-tag { position: absolute; left: 16px; top: 12px; font: 600 13px/1 var(--B); letter-spacing: 0.16em; text-transform: uppercase; color: oklch(1 0 0 / 0.6); }
+.mp-atmos-tag b { color: var(--mp-acc); font-weight: 700; }
+.mp-seg7 { position: absolute; right: 16px; top: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding: 8px 12px; border-radius: 4px;
+  background: oklch(0.06 0.004 250 / 0.85); box-shadow: inset 0 2px 6px oklch(0 0 0 / 0.8); }
+.mp-seg7 span { font: 34px/1 "Sk Seg", monospace; color: var(--mp-acc); text-shadow: 0 0 10px color-mix(in oklab, var(--mp-acc) 55%, transparent); }
+.mp-seg7 small { font: 700 10.5px/1 var(--B); letter-spacing: 0.16em; text-transform: uppercase; color: color-mix(in oklab, var(--mp-acc) 70%, white); }
+.mp-seg7--in { position: static; align-items: center; }
+.mp-dist { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr 220px; gap: 14px; padding: 14px; }
+.mp-dist-eng { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mp-dist-eng.off { opacity: 0.4; }
+.mp-dist-t { font: 700 14px/1 var(--B); letter-spacing: 0.12em; text-transform: uppercase; color: color-mix(in oklab, var(--mp-acc) 65%, white); display: flex; align-items: baseline; gap: 8px; }
+.mp-dist-t b { font: 400 26px/1 "Sk Bebas", var(--B); color: var(--mp-acc); }
+.mp-dist-t small { margin-left: auto; font-size: 11.5px; color: oklch(1 0 0 / 0.5); }
+.mp-dist-eng .dist-curve { flex: 1; width: 100%; height: auto; min-height: 0; border-radius: 4px; background: oklch(0 0 0 / 0.25); }
+.mp-dist-eng .dist-curve .curve { stroke: var(--mp-acc); stroke-width: 2.4; fill: none; vector-effect: non-scaling-stroke; }
+.mp-dist-eng .dist-curve .grid, .mp-dist-eng .dist-curve .unity { stroke: oklch(1 0 0 / 0.12); vector-effect: non-scaling-stroke; }
+.mp-dist-route { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; border-left: 1px solid oklch(1 0 0 / 0.08); }
+.mp-dist-route small { font: 700 11px/1 var(--B); letter-spacing: 0.16em; text-transform: uppercase; color: oklch(1 0 0 / 0.5); }
+.mp-dist-route b { font: 400 30px/1 "Sk Bebas", var(--B); letter-spacing: 0.08em; color: var(--mp-acc); }
+.mp-dist-bal { position: relative; width: 160px; height: 6px; border-radius: 3px; background: oklch(1 0 0 / 0.12); box-shadow: inset 0 1px 2px oklch(0 0 0 / 0.6); }
+.mp-dist-bal i { position: absolute; top: -4px; width: 4px; height: 14px; margin-left: -2px; border-radius: 2px; background: var(--mp-acc); }
+.mp-mmeters { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.mp-vbars { display: flex; gap: 10px; height: 150px; }
+.mp-vbar { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.mp-vbar-t { position: relative; flex: 1; width: 12px; border-radius: 2px; background: repeating-linear-gradient(oklch(0.16 0.01 140) 0 4px, oklch(0.08 0 0) 4px 6px); overflow: hidden; }
+.mp-vbar-t i { position: absolute; left: 0; right: 0; top: 0; background: repeating-linear-gradient(var(--mp-acc) 0 4px, transparent 4px 6px); }
+.mp-vbar small, .mp-vbars-cap { font: 700 10.5px/1 var(--B); letter-spacing: 0.1em; text-transform: uppercase; color: oklch(1 0 0 / 0.6); }
+.mp-steps { position: absolute; inset: 14px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 6px; }
+.mp .pd-step.mp-step { height: 100%; padding: 10px 0; gap: 8px; justify-content: space-between; border-radius: 5px;
+  background: linear-gradient(color-mix(in oklab, var(--sc) 70%, oklch(0.25 0.004 250)), color-mix(in oklab, var(--sc) 45%, oklch(0.14 0.004 250)));
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.14), 0 2px 4px oklch(0 0 0 / 0.5); color: oklch(0.97 0.01 85); }
+.mp .pd-step.mp-step span { font: 400 22px/1 "Sk Bebas", var(--B); opacity: 0.8; }
+.mp .pd-step.mp-step b { font: 700 11px/1.1 var(--B); letter-spacing: 0.04em; text-transform: uppercase; height: auto; writing-mode: vertical-rl; transform: rotate(180deg); }
+.mp .pd-step.mp-step--out { opacity: 0.3; }
+.mp-legend { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mp-legend .mp-lb { height: 30px; }
+.mp-legend .mp-lb i { width: 10px; height: 10px; border-radius: 2px; }
+.mp-legend .mp-lb.on { outline: 2px solid var(--mp-acc); outline-offset: 1px; }
+.mp-legend small { width: 100%; font: 600 12px/1.3 var(--B); letter-spacing: 0.04em; color: oklch(1 0 0 / 0.6); }
+/* unité compacte dans le pédalier */
+.rk--module .rk-face::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: linear-gradient(90deg, var(--mp-acc), color-mix(in oklab, var(--mp-acc) 45%, black)); }
+.rk--module .rk-small[data-n="8"] { --cols: 4; grid-auto-rows: 56px; }
+.rk-open { flex: none; width: 112px; height: 74px; border-radius: 5px; cursor: pointer; font: 700 13px/1.25 "Sk Barlow", "Inter Variable", system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase;
+  color: oklch(0.12 0.01 60); border: 1px solid oklch(0 0 0 / 0.6);
+  background: linear-gradient(color-mix(in oklab, var(--mp-acc) 85%, white), var(--mp-acc)); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.5), 0 3px 6px oklch(0 0 0 / 0.5); }
+.rk-open:active { transform: translateY(1px); }
+.rk-open span { font-size: 15px; }
+.mp-sels { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px 12px; }
+.mp-sub .mp-sels .mp-lcd-box span { font-size: 13px; letter-spacing: 0.06em; }
+.mp-sub .mp-sels .mp-lcd-box button { width: 22px; }
+.mp-lcd-box span small { font-size: 11px; opacity: 0.7; letter-spacing: 0.14em; }
+.mp-sub h4 .mp-seg .mp-lb { padding: 0 7px; gap: 5px; }
+.mp-sub[style*="width: 165px"] .mp-sels, .mp-sub[style*="width: 224px"] .mp-sels { grid-template-columns: 1fr; }
+.mp-dyn line { stroke: color-mix(in oklab, var(--mp-acc) 70%, white); stroke-width: 2; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.mp-dyn circle { fill: color-mix(in oklab, var(--mp-acc) 40%, white); }
+/* v0.36 : inscriptions lisibles sur les fonds illustrés (halo de la couleur opposée) */
+.pd--skin .pd-lab, .pd--skin .pd-pos { text-shadow: 0 0 3px var(--sk-halo), 0 0 6px var(--sk-halo), 0 1px 1px var(--sk-halo); }
+.rk--delay .rk-small { --cols: 1; }
+/* modulateurs internes en direct (v0.36) */
+.mp-modbars { display: flex; flex-direction: column; gap: 5px; width: 100%; margin-top: 10px; }
+.mp-modbars > span { display: grid; grid-template-columns: 26px 1fr; grid-template-rows: auto auto; column-gap: 6px; align-items: center; opacity: 0.4; }
+.mp-modbars > span.on { opacity: 1; }
+.mp-modbars b { grid-row: 1 / 3; font: 700 11px/1 var(--B); color: var(--mp-acc); }
+.mp-modbars i { position: relative; height: 6px; border-radius: 3px; background: oklch(1 0 0 / 0.1); }
+.mp-modbars em { position: absolute; top: -3px; width: 4px; height: 12px; margin-left: -2px; border-radius: 2px; background: var(--mp-acc); box-shadow: 0 0 6px var(--mp-acc); }
+.mp-modbars small { font: 600 10px/1.2 var(--B); letter-spacing: 0.06em; text-transform: uppercase; color: oklch(1 0 0 / 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-modbars-float { position: absolute; right: 12px; top: 10px; width: 170px; padding: 6px 8px 8px; border-radius: 4px; background: oklch(0 0 0 / 0.45); }
+.mp-modbars-float .mp-modbars { margin-top: 0; }
+.mp--grinder .mp-big-t { font-size: 24px; }
+.rk--distcomp .rk-small { --cols: 1; }
+.mp-shaper-live { position: absolute; right: 12px; top: 10px; display: flex; gap: 6px; padding: 6px 8px; border-radius: 4px; background: oklch(0 0 0 / 0.45); }
+.mp-shaper-live span { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.mp-shaper-live i { position: relative; display: block; width: 8px; height: 46px; border-radius: 2px; background: oklch(1 0 0 / 0.1); overflow: hidden; }
+.mp-shaper-live b { position: absolute; left: 0; right: 0; bottom: 0; background: var(--c); }
+.mp-shaper-live small { font: 700 9px/1 var(--B); text-transform: uppercase; color: oklch(1 0 0 / 0.6); }
+/* Hopscotch v0.39 : 4 rangées de 16 pas, palette par effet, réglages perso */
+.mp-steps64 { gap: 5px 5px; }
+.mp-steps64 .pd-step.mp-step { padding: 5px 2px; gap: 3px; justify-content: flex-start; min-height: 0; overflow: hidden; touch-action: none; }
+.mp-steps64 .pd-step.mp-step span { font-size: 15px; }
+.mp-steps64 .pd-step.mp-step b { writing-mode: horizontal-tb; transform: none; font: 700 10px/1.15 var(--B); letter-spacing: 0.02em; text-transform: none; text-align: center;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.mp-steps64 .pd-step.mp-step--beat { box-shadow: inset 2px 0 0 oklch(1 0 0 / 0.35), inset 0 1px 0 oklch(1 0 0 / 0.14), 0 2px 4px oklch(0 0 0 / 0.5); }
+.mp .pd-step.mp-step--play { outline: 2px solid oklch(0.97 0.02 90); outline-offset: -2px; filter: brightness(1.35); }
+.mp-palette { flex-direction: column; align-items: stretch; gap: 8px; }
+.mp-pal-types, .mp-pal-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.mp-chip { appearance: none; border: 0; cursor: pointer; height: 28px; padding: 0 10px; border-radius: 14px; font: 700 11.5px/1 var(--B); letter-spacing: 0.02em;
+  color: oklch(0.97 0.01 85); background: color-mix(in oklab, var(--sc) 45%, oklch(0.2 0.005 250)); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--sc) 70%, transparent); }
+.mp-chip.on { background: color-mix(in oklab, var(--sc) 85%, oklch(0.25 0.005 250)); color: oklch(0.15 0.01 250); box-shadow: 0 0 0 2px var(--mp-acc); }
+.mp-perso { display: flex; flex-direction: column; gap: 8px; }
+.mp-perso-tabs .mp-lb i { border-radius: 2px; }
+.mp-perso-k { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.mp-perso-k small { font: 700 11px/1.2 var(--B); color: var(--mp-acc); min-height: 13px; text-align: center; }
+.mp-steptools { display: flex; flex-direction: column; gap: 8px; }
+.mp-steptools .mp-seg { display: flex; flex-wrap: wrap; gap: 5px; }
+.mp-steptools .mp-lb:disabled { opacity: 0.4; cursor: default; }

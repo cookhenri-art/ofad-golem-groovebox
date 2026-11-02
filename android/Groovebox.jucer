@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Groovebox — OFAD — AGPL-3.0-or-later
+     Projet Android (tablette) : application autonome, même code que le VST3 et l'application Windows.
+     Régénérer le projet Android Studio après un changement : Projucer &#45;&#45;resave android/Groovebox.jucer
+     JUCE attendu dans ../JUCE/juce-8.0.12-windows/JUCE à côté du dossier GROOVEBOX (comme pour Windows). -->
+
+<JUCERPROJECT id="GrvbAn" name="Groovebox" projectType="audioplug" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" companyName="One For All Distribution"
+              bundleIdentifier="ofad.groovebox" version="0.12.0" cppLanguageStandard="20"
+              pluginFormats="buildStandalone" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn,pluginEditorRequiresKeys"
+              pluginName="Groovebox" pluginDesc="Groovebox" pluginManufacturer="One For All Distribution"
+              pluginManufacturerCode="Ofad" pluginCode="Grvb" pluginChannelConfigs=""
+              defines="GROOVEBOX_ANDROID=1" displaySplashScreen="0" reportAppUsage="0"
+              companyCopyright="One For All Distribution" companyWebsite="" companyEmail=""
+              aaxIdentifier="ofad.groovebox" araFactoryID="ofad.groovebox.factory" araDocumentArchiveID="ofad.groovebox.archive">
+  <MAINGROUP id="GrvbMg" name="Groovebox">
+      <GROUP id="GrvbIc" name="Ressources">
+        <FILE id="GrvIcn" name="icon.png" compile="0" resource="0" file="icon.png"/>
+      </GROUP>
+      <GROUP id="ujzPde" name="Source">
+        <FILE id="IgxLdG" name="PluginEditor.cpp" compile="1" resource="0" file="../src/PluginEditor.cpp"/>
+        <FILE id="ncfBAe" name="PluginEditor.h" compile="0" resource="0" file="../src/PluginEditor.h"/>
+        <FILE id="pfJBdK" name="PluginProcessor.cpp" compile="1" resource="0" file="../src/PluginProcessor.cpp"/>
+        <FILE id="hoOOLd" name="PluginProcessor.h" compile="0" resource="0" file="../src/PluginProcessor.h"/>
+        <FILE id="UsrPrC" name="UserPresets.cpp" compile="1" resource="0" file="../src/UserPresets.cpp"/>
+        <FILE id="UsrPrH" name="UserPresets.h" compile="0" resource="0" file="../src/UserPresets.h"/>
+        <FILE id="FldrsC" name="Folders.cpp" compile="1" resource="0" file="../src/Folders.cpp"/>
+        <FILE id="FldrsH" name="Folders.h" compile="0" resource="0" file="../src/Folders.h"/>
+        <FILE id="PerfSC" name="PerfStats.cpp" compile="1" resource="0" file="../src/PerfStats.cpp"/>
+        <FILE id="PerfSH" name="PerfStats.h" compile="0" resource="0" file="../src/PerfStats.h"/>
+        <FILE id="RecrdC" name="Recorder.cpp" compile="1" resource="0" file="../src/Recorder.cpp"/>
+        <FILE id="MontgC" name="Montage.cpp" compile="1" resource="0" file="../src/Montage.cpp"/>
+        <FILE id="MontgH" name="Montage.h" compile="0" resource="0" file="../src/Montage.h"/>
+        <FILE id="RecrdH" name="Recorder.h" compile="0" resource="0" file="../src/Recorder.h"/>
+        <FILE id="StdHkC" name="StandaloneHook.cpp" compile="1" resource="0" file="../src/StandaloneHook.cpp"/>
+        <FILE id="StdInH" name="StandaloneInput.h" compile="0" resource="0" file="../src/StandaloneInput.h"/>
+      </GROUP>
+      <GROUP id="KLzdoc" name="Moteur">
+        <FILE id="JisAjI" name="Bridge.cpp" compile="1" resource="0" file="../src/engine/Bridge.cpp"/>
+        <FILE id="hKtJRl" name="Bridge.h" compile="0" resource="0" file="../src/engine/Bridge.h"/>
+        <FILE id="gLKOmx" name="Catalog.cpp" compile="1" resource="0" file="../src/engine/Catalog.cpp"/>
+        <FILE id="gJTeKd" name="Catalog.h" compile="0" resource="0" file="../src/engine/Catalog.h"/>
+        <FILE id="NnFRIB" name="Engine.cpp" compile="1" resource="0" file="../src/engine/Engine.cpp"/>
+        <FILE id="XuDLDx" name="Engine.h" compile="0" resource="0" file="../src/engine/Engine.h"/>
+        <FILE id="tpYlSX" name="ModSources.h" compile="0" resource="0" file="../src/engine/ModSources.h"/>
+        <FILE id="pfKtHF" name="Module.h" compile="0" resource="0" file="../src/engine/Module.h"/>
+        <FILE id="vUCsMe" name="Params.h" compile="0" resource="0" file="../src/engine/Params.h"/>
+        <FILE id="hGAkWv" name="Published.h" compile="0" resource="0" file="../src/engine/Published.h"/>
+        <FILE id="jFAcQe" name="Sequencer.h" compile="0" resource="0" file="../src/engine/Sequencer.h"/>
+      </GROUP>
+      <GROUP id="WJKYuv" name="DSP">
+        <FILE id="SwMFLZ" name="Common.h" compile="0" resource="0" file="../src/dsp/Common.h"/>
+        <FILE id="DefrES" name="DrumVoices.h" compile="0" resource="0" file="../src/dsp/DrumVoices.h"/>
+        <FILE id="AnlFlt" name="AnalogFilter.h" compile="0" resource="0" file="../src/dsp/AnalogFilter.h"/>
+        <FILE id="QedUSt" name="EqFilters.h" compile="0" resource="0" file="../src/dsp/EqFilters.h"/>
+        <FILE id="PKRCsT" name="KickVoice.h" compile="0" resource="0" file="../src/dsp/KickVoice.h"/>
+        <FILE id="yQwbDw" name="Loudness.h" compile="0" resource="0" file="../src/dsp/Loudness.h"/>
+        <FILE id="kNhFdn" name="Oversampler.h" compile="0" resource="0" file="../src/dsp/Oversampler.h"/>
+      </GROUP>
+      <GROUP id="LameMp" name="LAME (encodeur MP3, LGPL)">
+        <FILE id="Lm0000" name="lame_VbrTag.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_VbrTag.c"/>
+        <FILE id="Lm0001" name="lame_bitstream.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_bitstream.c"/>
+        <FILE id="Lm0002" name="lame_encoder.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_encoder.c"/>
+        <FILE id="Lm0003" name="lame_fft.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_fft.c"/>
+        <FILE id="Lm0004" name="lame_gain_analysis.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_gain_analysis.c"/>
+        <FILE id="Lm0005" name="lame_id3tag.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_id3tag.c"/>
+        <FILE id="Lm0006" name="lame_lame.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_lame.c"/>
+        <FILE id="Lm0007" name="lame_newmdct.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_newmdct.c"/>
+        <FILE id="Lm0008" name="lame_presets.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_presets.c"/>
+        <FILE id="Lm0009" name="lame_psymodel.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_psymodel.c"/>
+        <FILE id="Lm0010" name="lame_quantize.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_quantize.c"/>
+        <FILE id="Lm0011" name="lame_quantize_pvt.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_quantize_pvt.c"/>
+        <FILE id="Lm0012" name="lame_reservoir.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_reservoir.c"/>
+        <FILE id="Lm0013" name="lame_set_get.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_set_get.c"/>
+        <FILE id="Lm0014" name="lame_tables.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_tables.c"/>
+        <FILE id="Lm0015" name="lame_takehiro.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_takehiro.c"/>
+        <FILE id="Lm0016" name="lame_util.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_util.c"/>
+        <FILE id="Lm0017" name="lame_vbrquantize.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_vbrquantize.c"/>
+        <FILE id="Lm0018" name="lame_version.c" compile="1" resource="0" file="../src/third_party/lame/unites/lame_version.c"/>
+      </GROUP>
+      <GROUP id="XsiVpz" name="Synthese">
+        <FILE id="zFfkCz" name="SamplePlayer.h" compile="0" resource="0" file="../src/synth/SamplePlayer.h"/>
+        <FILE id="JriBJr" name="SynthBase.h" compile="0" resource="0" file="../src/synth/SynthBase.h"/>
+        <FILE id="TAwRyo" name="SynthCore.h" compile="0" resource="0" file="../src/synth/SynthCore.h"/>
+        <FILE id="jfljoQ" name="Wavetable.h" compile="0" resource="0" file="../src/synth/Wavetable.h"/>
+      </GROUP>
+      <GROUP id="oaFLlq" name="Instruments">
+        <FILE id="sajAIx" name="AcidBass.h" compile="0" resource="0" file="../src/instruments/AcidBass.h"/>
+        <FILE id="NKuiSG" name="DrumKit.h" compile="0" resource="0" file="../src/instruments/DrumKit.h"/>
+        <FILE id="NPRVdD" name="HybridPoly.h" compile="0" resource="0" file="../src/instruments/HybridPoly.h"/>
+        <FILE id="XRZJzz" name="MonoBass.h" compile="0" resource="0" file="../src/instruments/MonoBass.h"/>
+        <FILE id="zzgEOz" name="Pads.h" compile="0" resource="0" file="../src/instruments/Pads.h"/>
+        <FILE id="dmenCk" name="Poly5.h" compile="0" resource="0" file="../src/instruments/Poly5.h"/>
+        <FILE id="hvMdga" name="PolyChorus.h" compile="0" resource="0" file="../src/instruments/PolyChorus.h"/>
+        <FILE id="KjIgxN" name="Sampler.h" compile="0" resource="0" file="../src/instruments/Sampler.h"/>
+        <FILE id="benNyj" name="WaveMorph.h" compile="0" resource="0" file="../src/instruments/WaveMorph.h"/>
+      </GROUP>
+      <GROUP id="OqwMxE" name="Effets">
+        <FILE id="hhFDEE" name="Delay.h" compile="0" resource="0" file="../src/effects/Delay.h"/>
+        <FILE id="tfjgVv" name="Distortion.h" compile="0" resource="0" file="../src/effects/Distortion.h"/>
+        <FILE id="VqESkH" name="Dynamics.h" compile="0" resource="0" file="../src/effects/Dynamics.h"/>
+        <FILE id="GtDsR8" name="Gate.h" compile="0" resource="0" file="../src/effects/Gate.h"/>
+        <FILE id="bnHxjS" name="Eq.h" compile="0" resource="0" file="../src/effects/Eq.h"/>
+        <FILE id="IbWHtP" name="ModFx.h" compile="0" resource="0" file="../src/effects/ModFx.h"/>
+        <FILE id="Mf36Hd" name="ModFx36.h" compile="0" resource="0" file="../src/effects/ModFx36.h"/>
+        <FILE id="FxMdHd" name="FxMod.h" compile="0" resource="0" file="../src/effects/FxMod.h"/>
+        <FILE id="GrndHd" name="Grinder.h" compile="0" resource="0" file="../src/effects/Grinder.h"/>
+        <FILE id="ScupHd" name="Sculptor.h" compile="0" resource="0" file="../src/effects/Sculptor.h"/>
+        <FILE id="Fx38Hd" name="Fx38.h" compile="0" resource="0" file="../src/effects/Fx38.h"/>
+        <FILE id="fSqHxk" name="Reverb.h" compile="0" resource="0" file="../src/effects/Reverb.h"/>
+      </GROUP>
+      <GROUP id="wXoIIX" name="Interface">
+        <FILE id="GvOoNZ" name="UiData.cpp" compile="1" resource="0" file="generated/UiData.cpp"/>
+        <FILE id="YWmZpz" name="UiData.h" compile="0" resource="0" file="generated/UiData.h"/>
+      </GROUP>
+  </MAINGROUP>
+  <JUCEOPTIONS JUCE_WEB_BROWSER="1" JUCE_USE_CURL="0" JUCE_VST3_CAN_REPLACE_VST2="0" JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_processors_headless" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+  </MODULES>
+  <EXPORTFORMATS>
+    <ANDROIDSTUDIO targetFolder="Builds/Android" bigIcon="GrvIcn" smallIcon="GrvIcn" androidMinimumSDK="26" androidTargetSDK="35"
+                   androidScreenOrientation="landscape" androidTheme="@android:style/Theme.NoTitleBar.Fullscreen"
+                   androidInternetNeeded="0" microphonePermissionNeeded="1" androidReadMediaAudioPermission="0"
+                   androidReadMediaImagesPermission="0" androidReadMediaVideoPermission="0" androidExternalWriteNeeded="0"
+                   androidPushNotifications="0" androidEnableRemoteNotifications="0" androidVersionCode="12"
+                   extraDefs="GROOVEBOX_ANDROID=1">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" androidArchitectures="arm64-v8a" headerPath="../../generated&#10;../../../src/third_party/lame/include"/>
+        <CONFIGURATION isDebug="0" name="Release" optimisation="3" androidArchitectures="arm64-v8a armeabi-v7a" headerPath="../../generated&#10;../../../src/third_party/lame/include"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>
+      </MODULEPATHS>
+    </ANDROIDSTUDIO>
+  </EXPORTFORMATS>
+</JUCERPROJECT>

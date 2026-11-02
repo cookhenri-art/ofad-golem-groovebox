@@ -1,0 +1,43 @@
+﻿Groovebox — One For All Distribution
+=====================================
+
+Ce qui est installé
+-------------------
+- L'application Groovebox : menu Démarrer > Groovebox (et sur le Bureau si vous l'avez choisi).
+- Le plugin VST3, si vous l'avez choisi : C:\Program Files\Common Files\VST3\Groovebox.vst3
+  Dans votre logiciel de musique, relancez une recherche des plugins : il apparaît sous
+  « One For All Distribution > Groovebox ».
+
+Notice et raccourcis
+--------------------
+Menu Démarrer > Groovebox > « Notice et raccourcis » : les bases de l'édition, en images, et
+tous les raccourcis clavier écran par écran. Le catalogue des instruments et des effets est à côté.
+
+Premier lancement
+-----------------
+Windows peut afficher « Windows a protégé votre ordinateur » : le programme n'est pas
+encore signé par un certificat payant. Cliquez sur « Informations complémentaires » puis
+« Exécuter quand même ».
+
+Dans Groovebox, réglez la carte son dans Options (en haut à gauche) > Audio/MIDI Settings.
+Pour la latence la plus faible : pilote ASIO de votre carte son, ou « Windows Audio
+(Low Latency Mode) », tampon de 128 à 256 échantillons. Le Bluetooth ajoute beaucoup de
+retard : préférez un casque ou des enceintes branchés.
+
+Où sont vos fichiers
+--------------------
+- Projets, échantillons, préréglages : Documents\Groovebox (dossiers réglables dans Réglages).
+- Enregistrements audio et exports du montage : Documents\Groovebox\Enregistrements.
+- Montage audio (Lancement > Audio) : les prises d'un projet enregistré sont rangées dans le
+  dossier « <nom du projet> - audio », à côté du fichier .gbx. Gardez-les ensemble si vous
+  déplacez ou envoyez le projet.
+
+Désinstaller
+------------
+Paramètres Windows > Applications > Groovebox > Désinstaller (vos projets et préréglages,
+rangés dans vos Documents, sont conservés).
+
+Licence
+-------
+Logiciel libre sous licence GNU AGPL version 3 ou ultérieure (fichier LICENSE).
+Les sources de cette version sont dans le dossier « Sources » de l'installation.

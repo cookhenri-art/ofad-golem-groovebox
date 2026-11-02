@@ -1,0 +1,12 @@
+build/
+ui/node_modules/
+ui/dist/
+*.user
+.vs/
+.vscode/
+android/generated/
+android/Builds/Android/.gradle/
+android/Builds/Android/app/build/
+android/Builds/Android/app/.cxx/
+android/Builds/Android/local.properties
+__pycache__/
