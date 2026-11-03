@@ -295,6 +295,16 @@ public:
     float getCpuPeak() const noexcept { return cpuPeak.load (std::memory_order_relaxed); }
     float getAudioPeriodMs() const noexcept { return audioPeriodMs.load (std::memory_order_relaxed); }
     int getAudioBlockSize() const noexcept { return audioBlockSize.load (std::memory_order_relaxed); }
+    /** v0.46 fix17 : état Android du fil audio : -1 hors Android ; sinon 100 si l'indice de performance
+        est actif, plus le nombre de grands cœurs où il est posé. */
+    int getAndroidAudioStatus() const noexcept
+    {
+       #if JUCE_ANDROID
+        return (perfHint.active() ? 100 : 0) + perfHint.fastCores();
+       #else
+        return -1;
+       #endif
+    }
 
     /** Pistes (v0.23) : déplacer une piste (tout la suit : instrument, effets, séquences, scènes,
         morceau, modulations, échantillons), ou insérer une piste libre avant une autre.
@@ -407,6 +417,7 @@ private:
     std::atomic<int> audioBlockSize { 0 };
    #if JUCE_ANDROID
     AndroidPerfHint perfHint; // v0.46 fix16 : garde le fil audio sur des cœurs rapides
+    int inputStartTicks = 0;  // v0.46 fix16 : fermeture du micro au démarrage (-1 : faite)
    #endif
 
     // déplacements de pistes dans l'historique (v0.23) : ce que la copie d'historique ne porte pas

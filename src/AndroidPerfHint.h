@@ -9,16 +9,20 @@
 // d'Oboe (que JUCE n'active pas) ; on l'appelle directement, sans modifier JUCE.
 //
 // Temps réel : le fil audio ne fait que lire un pointeur atomique et rapporter une durée.
+// v0.46 fix17 : en plus, le fil audio est posé sur les grands cœurs (affinité), lus une fois dans /sys.
 // Les sessions sont créées sur le fil de l'interface (service(), appelé par le minuteur) et ne
 // sont fermées qu'à la destruction, quand le son est arrêté. Sans la fonction (Android < 13),
 // rien ne se passe.
 
 #if JUCE_ANDROID
+ #include <algorithm>
  #include <atomic>
  #include <array>
  #include <cstdint>
  #include <dlfcn.h>
  #include <unistd.h>
+ #include <sched.h>
+ #include <cstdio>
 
 namespace grv
 {
@@ -37,6 +41,14 @@ public:
         const auto tid = (std::int32_t) gettid();
         audioTid.store (tid, std::memory_order_relaxed);
         audioPeriod.store (periodNs, std::memory_order_relaxed);
+        // v0.46 fix17 : le fil audio est posé sur les cœurs les plus rapides (une fois par fil)
+        if (const auto mask = fastMask.load (std::memory_order_acquire); mask != 0 && pinnedTid != tid)
+        {
+            pinnedTid = tid;
+            cpu_set_t set; CPU_ZERO (&set);
+            for (int c = 0; c < 64; ++c) if ((mask >> c) & 1u) CPU_SET (c, &set);
+            pinnedOk.store (sched_setaffinity (0, sizeof (set), &set) == 0, std::memory_order_relaxed);
+        }
         if (sessionTid.load (std::memory_order_acquire) != tid) return;
         if (auto* s = current.load (std::memory_order_acquire); s != nullptr && reportFn != nullptr)
             reportFn (s, usedNs);
@@ -45,6 +57,7 @@ public:
     // Fil de l'interface (minuteur) : crée la session du fil audio, suit la durée des blocs
     void service() noexcept
     {
+        if (! maskDone) { maskDone = true; fastMask.store (findFastCores(), std::memory_order_release); }
         const auto tid = audioTid.load (std::memory_order_relaxed);
         const auto period = audioPeriod.load (std::memory_order_relaxed);
         if (tid <= 0 || period <= 0 || ! load()) return;
@@ -67,6 +80,13 @@ public:
     }
 
     bool active() const noexcept { return current.load (std::memory_order_relaxed) != nullptr; }
+    /** Nombre de cœurs rapides où le fil audio est posé (0 : non posé). */
+    int fastCores() const noexcept
+    {
+        if (! pinnedOk.load (std::memory_order_relaxed)) return 0;
+        int n = 0; for (auto m = fastMask.load (std::memory_order_relaxed); m != 0; m >>= 1) n += (int) (m & 1u);
+        return n;
+    }
 
 private:
     struct Manager; struct Session;
@@ -93,6 +113,32 @@ private:
         return getManagerFn != nullptr;
     }
 
+    /** Cœurs dont la fréquence maximale est au moins 85 % de la plus haute (grands cœurs), lus dans
+        /sys ; 0 si rien n'est lisible ou si tous les cœurs se valent (rien à gagner). */
+    static std::uint64_t findFastCores() noexcept
+    {
+        long freq[64] {}; long top = 0; int n = 0;
+        for (int c = 0; c < 64; ++c)
+        {
+            char path[96];
+            std::snprintf (path, sizeof path, "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", c);
+            FILE* f = std::fopen (path, "r");
+            if (f == nullptr) { if (c >= 8) break; continue; }
+            long v = 0;
+            if (std::fscanf (f, "%ld", &v) == 1 && v > 0) { freq[c] = v; top = std::max (top, v); n = c + 1; }
+            std::fclose (f);
+        }
+        if (top <= 0) return 0;
+        std::uint64_t mask = 0; int fast = 0, all = 0;
+        for (int c = 0; c < n; ++c)
+            if (freq[c] > 0) { ++all; if (freq[c] * 100 >= top * 85) { mask |= (std::uint64_t) 1 << c; ++fast; } }
+        return fast > 0 && fast < all ? mask : 0;
+    }
+
+    bool maskDone = false;
+    std::atomic<std::uint64_t> fastMask { 0 };
+    std::int32_t pinnedTid = 0;            // fil audio seulement
+    std::atomic<bool> pinnedOk { false };
     bool loaded = false;
     GetManager getManagerFn = nullptr; Create createFn = nullptr; Update updateFn = nullptr;
     Report reportFn = nullptr; Close closeFn = nullptr;

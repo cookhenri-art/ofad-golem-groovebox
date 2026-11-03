@@ -3134,3 +3134,12 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .face-transport .ft-rec { color: oklch(0.66 0.2 25); }
 .face-transport .ft-rec.on { background: oklch(0.6 0.21 25); color: #fff; }
 .face-transport .ft-play.on { background: oklch(0.68 0.17 145); color: #0c140e; }
+
+/* v0.46 fix16 : téléphone — l'appareil défile s'il dépasse (au doigt, dans les deux sens) */
+.phone-scroll { position: absolute; inset: 0; overflow: auto; display: flex; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: thin; }
+.phone-box { position: relative; flex: none; margin: auto; }
+.phone-box > .device--phone { left: 0; top: 0; transform-origin: 0 0; }
+.perf-meter--compact { margin: 0 0 0 auto; padding: 3px 6px; }
+.perf-meter--compact .perf-bar { display: none; }
+.perf-meter--compact { gap: 4px; }
+.perf-meter--compact + .phone-tabs-play { margin-left: 6px; }

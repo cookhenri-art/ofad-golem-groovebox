@@ -1649,6 +1649,7 @@ void GrooveboxEditor::timerCallback()
     {
         perfAt = now;
         memMb = (double) processMemoryBytes() / (1024.0 * 1024.0);
+        if (totalMemMb <= 0.0) totalMemMb = (double) juce::SystemStats::getMemorySizeInMegabytes();
         double bytes = 0.0;
         for (int t = 0; t < numTracks; ++t)
             for (int i = 0; i < maxSamples; ++i)
@@ -1657,7 +1658,9 @@ void GrooveboxEditor::timerCallback()
         sampleMb = bytes / (1024.0 * 1024.0);
     }
     o += "],\"perf\":[" + num (processor.getCpuAverage() * 100.0f) + "," + num (processor.getCpuPeak() * 100.0f) + "," + num ((float) memMb) + "," + num ((float) sampleMb)
-       + "," + num ((float) processor.getSampleRate()) + "," + num ((float) processor.getAudioBlockSize()) + "," + num (processor.getAudioPeriodMs());
+       + "," + num ((float) processor.getSampleRate()) + "," + num ((float) processor.getAudioBlockSize()) + "," + num (processor.getAudioPeriodMs())
+       + "," + num ((float) totalMemMb) // v0.46 fix17 : mémoire de l'appareil (Mo), pour l'afficher en %
+       + "," + num ((float) processor.getAndroidAudioStatus());
     o += "],\"learn\":" + std::to_string (processor.getMidiLearn());
     dsp::LoudnessBlock lb;
     while (eng.popLoudness (lb)) loudness.add (lb);

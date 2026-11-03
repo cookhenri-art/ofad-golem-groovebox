@@ -23,8 +23,35 @@ const bool registered = []
     {
         auto* holder = juce::StandalonePluginHolder::getInstance();
         if (holder == nullptr) return -1;
+       #if JUCE_ANDROID
+        // v0.46 fix16 : sur Android, le micro n'est pas « coupé » mais FERMÉ : pas de flux d'entrée
+        // tant qu'on ne l'ouvre pas. Un flux d'entrée ouvert en même temps que la sortie (micro du
+        // téléphone) fait craquer certains appareils et la coupure de JUCE affiche un bandeau qui
+        // réduit la fenêtre. op 0 : ouvrir le micro ; 1 : le fermer ; 2 : état de départ (fermé).
+        auto& dm = holder->deviceManager;
+        const auto inputsOn = [&dm]
+        {
+            auto* d = dm.getCurrentAudioDevice();
+            return d != nullptr && d->getActiveInputChannels().countNumberOfSetBits() > 0;
+        };
+        if (op == 0 || op == 1 || op == 2)
+        {
+            holder->getMuteInputValue().setValue (false); // pas de bandeau : l'entrée est fermée à la place
+            const bool want = op == 0;
+            if (want != inputsOn())
+            {
+                auto setup = dm.getAudioDeviceSetup();
+                setup.useDefaultInputChannels = false;
+                setup.inputChannels.clear();
+                if (want) setup.inputChannels.setRange (0, 2, true);
+                dm.setAudioDeviceSetup (setup, true);
+            }
+        }
+        return inputsOn() ? 0 : 1;
+       #else
         if (op == 0 || op == 1) holder->getMuteInputValue().setValue (op == 1);
         return (bool) holder->getMuteInputValue().getValue() ? 1 : 0;
+       #endif
     };
     return true;
 }();

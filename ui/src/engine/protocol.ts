@@ -245,7 +245,7 @@ export interface Tick {
   ph?: number;               // piste choisie : position dans son pattern en pas, avec la fraction (-1 à l'arrêt)
   inst?: number[];           // état de l'instrument de la piste choisie (sampler de performance : enregistreur, position, boucle, machine)
   hist?: number[];           // [peut annuler, peut rétablir, photo prise] (1 / 0)
-  perf?: number[];           // v0.23 : [calcul audio moyen %, pointe %, mémoire de l'application (Mo), échantillons (Mo), fréquence (Hz), taille des blocs, temps mesuré entre deux blocs (ms) (v0.46 fix16)]
+  perf?: number[];           // v0.23 : [calcul audio moyen %, pointe %, mémoire de l'application (Mo), échantillons (Mo), fréquence (Hz), taille des blocs, temps mesuré entre deux blocs (ms) (v0.46 fix16), mémoire de l'appareil (Mo), état Android (-1 ; 100 = indice actif + grands cœurs) (fix17)]
   learn: number;             // apprentissage MIDI en cours
   midi: boolean;             // affectations MIDI changées
   loud: number[];            // [instantanée, courte, intégrée (LUFS), crête vraie, crête vraie max (dBTP), efficace (dB)]

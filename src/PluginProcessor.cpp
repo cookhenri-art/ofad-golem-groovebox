@@ -225,6 +225,12 @@ void GrooveboxProcessor::timerCallback()
     historyTick();
    #if JUCE_ANDROID
     perfHint.service();
+    // v0.46 fix16 : une seconde après le démarrage, le micro est fermé (pas de flux d'entrée)
+    if (inputStartTicks >= 0 && ++inputStartTicks >= 25)
+    {
+        inputStartTicks = -1;
+        if (const auto& hook = standaloneInputHook()) hook (2);
+    }
     if (++autosaveTicks >= 375) { autosaveTicks = 0; autosaveIfChanged(); } // 15 s
    #endif
 

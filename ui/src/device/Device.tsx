@@ -55,18 +55,32 @@ const PHONE_H = 530;
 export function isPhoneViewport(w: number, h: number) { return h <= 540 && w / h >= 1.55; }
 
 function useFitScale() {
-  const [fit, setFit] = useState({ scale: 1, phone: false, ghost: 1, ghostW: DESIGN_W });
+  const [fit, setFit] = useState({ scale: 1, phone: false, ghost: 1, ghostW: DESIGN_W, areaW: 0, areaH: 0 });
   useEffect(() => {
     const update = () => {
-      const w = window.innerWidth, h = window.innerHeight;
+      // v0.46 fix16 : la plus petite des tailles annoncées (fenêtre, zone visible, page) : certaines
+      // WebView Android annoncent une fenêtre plus grande que la partie réellement visible
+      const vv = window.visualViewport, de = document.documentElement;
+      const pick = (...v: (number | undefined)[]) => Math.min(...v.filter((x): x is number => !!x && x > 0));
+      let w = pick(window.innerWidth, vv?.width, de?.clientWidth), h = pick(window.innerHeight, vv?.height, de?.clientHeight);
+      // v0.46 fix17 : sur Android, la fenêtre de l'application peut être plus grande que l'écran
+      // (seul son coin en haut à gauche se voit) : on se limite à la taille de l'écran
+      let areaW = 0, areaH = 0;
+      if (/Android/i.test(navigator.userAgent) && window.screen?.width > 0 && window.screen?.height > 0) {
+        const big = Math.max(screen.width, screen.height), small = Math.min(screen.width, screen.height);
+        const sw = w >= h ? big : small, sh = w >= h ? small : big;
+        if (sw < w - 1 || sh < h - 1) { w = Math.min(w, sw); h = Math.min(h, sh); areaW = Math.floor(w); areaH = Math.floor(h); }
+      }
       const phone = isPhoneViewport(w, h);
       const tablet = Math.min(w / DESIGN_W, h / DESIGN_H);
       // fenêtres de tablette sur un téléphone : hauteur de dessin gardée, largeur étirée à celle de l'écran
-      setFit({ scale: phone ? Math.min(w / PHONE_W, h / PHONE_H) : tablet, phone, ghost: h / DESIGN_H, ghostW: Math.round(DESIGN_H * w / h) });
+      setFit({ scale: (phone ? Math.min(w / PHONE_W, h / PHONE_H) : tablet) * 0.995, phone, ghost: h / DESIGN_H, ghostW: Math.round(DESIGN_H * w / h), areaW, areaH });
     };
     update();
     window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => { window.removeEventListener("resize", update); window.removeEventListener("orientationchange", update); window.visualViewport?.removeEventListener("resize", update); };
   }, []);
   return fit;
 }
@@ -191,10 +205,15 @@ function HistoryButtons() {
 
 /** Témoin de charge (v0.23) : calcul audio (moyenne et pointe, en % du temps disponible ; au-delà
     de 100 % le son craque) et mémoire de l'application, dont les échantillons chargés. */
-function PerfMeter() {
+function PerfMeter({ compact = false }: { compact?: boolean }) {
   const perf = useStore((s) => s.tick.perf);
   if (!perf || perf.length < 4) return null;
-  const [avg, peak, mem, smp, rate = 0, block = 0, periodMs = 0] = perf;
+  const [avg, peak, mem, smp, rate = 0, block = 0, periodMs = 0, total = 0, android = -1] = perf;
+  // v0.46 fix17 : Android — indice de performance et grands cœurs du fil audio
+  const androidText = android < 0 ? "" : `\nAndroid : indice de performance ${android >= 100 ? "actif" : "indisponible"}, ${android % 100 > 0 ? `son posé sur ${android % 100} grands cœurs` : "son non posé sur les grands cœurs"}.`;
+  // v0.46 fix17 : mémoire en % de celle de l'appareil (en Mo si le système ne la donne pas)
+  const memPct = total > 0 ? Math.min(100, (mem / total) * 100) : -1;
+  const memShown = memPct < 0 ? null : memPct < 1 ? "< 1 %" : `${Math.round(memPct)} %`;
   const level = peak >= 85 ? " is-hot" : peak >= 60 ? " is-warm" : "";
   const mo = (v: number) => (v >= 1024 ? `${(v / 1024).toFixed(1).replace(".", ",")} Go` : `${Math.round(v)} Mo`);
   // v0.46 fix16 : réglages du son réellement utilisés (utile pour comprendre un appareil qui craque)
@@ -202,15 +221,15 @@ function PerfMeter() {
   const audio = rate > 0 && block > 0
     ? `Son : ${Math.round(rate).toLocaleString("fr-FR")} Hz, blocs de ${Math.round(block)} échantillons (${ms((block / rate) * 1000)} ms), un bloc toutes les ${ms(periodMs)} ms en moyenne.`
     : "Son : pas encore de bloc calculé.";
-  const details = `Calcul audio : ${Math.round(avg)} % en moyenne, ${Math.round(peak)} % en pointe (au-delà de 100 % le son craque).\n${audio}\nMémoire de l'application : ${mo(mem)}, dont ${mo(smp)} d'échantillons.`;
+  const details = `Calcul audio : ${Math.round(avg)} % en moyenne, ${Math.round(peak)} % en pointe (au-delà de 100 % le son craque).\n${audio}\nMémoire de l'application : ${mo(mem)}${total > 0 ? ` sur ${mo(total)} (${memShown})` : ""}, dont ${mo(smp)} d'échantillons.${androidText}`;
   return (
-    <div className={`perf-meter${level}`} role="status" title={details}
+    <div className={`perf-meter${level}${compact ? " perf-meter--compact" : ""}`} role="status" title={details}
       onClick={() => showMessage(details.replace(/\n/g, " · "))}>
       <span className="perf-label">CPU</span>
       <span className="perf-bar" aria-hidden><span style={{ width: `${Math.min(100, avg)}%` }} /><i style={{ left: `${Math.min(100, peak)}%` }} /></span>
       <span className="perf-val perf-val--cpu tabular">{Math.round(avg)} %</span>
       <span className="perf-sep" aria-hidden>·</span>
-      <span className="perf-val perf-val--mem tabular">{mo(mem)}</span>
+      <span className="perf-val perf-val--mem tabular">{memShown !== null ? <><small className="perf-label">MÉM</small> {memShown}</> : mo(mem)}</span>
     </div>
   );
 }
@@ -287,8 +306,9 @@ function TrackMuteRow() {
 
 export function Device() {
   const fit = useFitScale();
-  if (fit.phone) return <PhoneDevice scale={fit.scale} ghost={fit.ghost} ghostW={fit.ghostW} />;
-  return <TabletDevice scale={fit.scale} />;
+  const area = fit.areaW > 0 ? { width: fit.areaW, height: fit.areaH, right: "auto", bottom: "auto" } as React.CSSProperties : undefined;
+  if (fit.phone) return <PhoneDevice scale={fit.scale} ghost={fit.ghost} ghostW={fit.ghostW} area={area} />;
+  return <TabletDevice scale={fit.scale} area={area} />;
 }
 
 /** Les boutons d'écran, ceux du transport et du jeu, l'octave : partagés par la tablette et le téléphone. */
@@ -366,14 +386,17 @@ function SceneBankButtons() {
     hauteur) ; à côté, deux onglets : Commandes (écrans, 8 encodeurs, transport, jeu, crossfader) et
     Pads (rôle des pads, 16 pads, banque de scènes). Les grandes fenêtres (façade, pédalier, accueil)
     gardent leur dessin de tablette, posées sur toute la fenêtre. */
-function PhoneDevice({ scale, ghost, ghostW }: { scale: number; ghost: number; ghostW: number }) {
+function PhoneDevice({ scale, ghost, ghostW, area }: { scale: number; ghost: number; ghostW: number; area?: React.CSSProperties }) {
   const [encoderRow, setEncoderRow] = useState<HTMLElement | null>(null);
   const [tab, setTabState] = useState<"ctrl" | "pads">(() => { try { return localStorage.getItem("grv.phoneTab") === "pads" ? "pads" : "ctrl"; } catch { return "ctrl"; } });
   const setTab = (v: "ctrl" | "pads") => { setTabState(v); try { localStorage.setItem("grv.phoneTab", v); } catch { /* stockage indisponible */ } };
-  const t = useStore((s) => s.tick.t);
   return (
-    <div className="stage">
-      <div className="device device--phone" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
+    <div className="stage" style={area}>
+      {/* v0.46 fix16 : l'appareil est posé dans une zone qui défile ; s'il ne tient pas en entier
+          (bandeau du système, encoche, taille annoncée fausse), on le fait glisser au doigt. */}
+      <div className="phone-scroll">
+      <div className="phone-box" style={{ width: Math.ceil(PHONE_W * scale), height: Math.ceil(PHONE_H * scale) }}>
+      <div className="device device--phone" style={{ transform: `scale(${scale})` }}>
         <div className="bezel">
           <div className="screen">
             <EncoderRowContext.Provider value={encoderRow}>
@@ -394,10 +417,8 @@ function PhoneDevice({ scale, ghost, ghostW }: { scale: number; ghost: number; g
           <div className="phone-tabs" role="tablist" aria-label="Panneau">
             <button type="button" role="tab" aria-selected={tab === "ctrl"} className={tab === "ctrl" ? "on" : ""} onClick={() => setTab("ctrl")}>Commandes</button>
             <button type="button" role="tab" aria-selected={tab === "pads"} className={tab === "pads" ? "on" : ""} onClick={() => setTab("pads")}>Pads</button>
-            <span className="phone-tabs-play">
-              <HwButton size="sm" led="green" active={t.playing} onPress={actions.play} ariaLabel="Lecture" label={<IconPlay />} />
-              <HwButton size="sm" led="none" onPress={actions.stop} ariaLabel="Arrêt" label={<IconStop />} />
-            </span>
+            {/* v0.46 fix19 : petits ▶ ■ retirés (ils débordaient) ; le transport est dans Commandes */}
+            <PerfMeter compact />
           </div>
           {tab === "ctrl" ? (
             <div className="phone-panel phone-panel--ctrl">
@@ -416,6 +437,8 @@ function PhoneDevice({ scale, ghost, ghostW }: { scale: number; ghost: number; g
           )}
         </div>
       </div>
+      </div>
+      </div>
       <div className="device device--ghost" style={{ width: ghostW, transform: `translate(-50%, -50%) scale(${ghost})` }}>
         <InstrumentFace />
         <MidiConflict />
@@ -426,7 +449,7 @@ function PhoneDevice({ scale, ghost, ghostW }: { scale: number; ghost: number; g
   );
 }
 
-function TabletDevice({ scale }: { scale: number }) {
+function TabletDevice({ scale, area }: { scale: number; area?: React.CSSProperties }) {
   const [encoderRow, setEncoderRow] = useState<HTMLElement | null>(null);
   const screen = useStore((s) => s.ui.screen);
   const shift = useStore((s) => s.ui.shift);
@@ -443,7 +466,7 @@ function TabletDevice({ scale }: { scale: number }) {
   const lane = useStore((s) => s.ui.lane);
 
   return (
-    <div className="stage">
+    <div className="stage" style={area}>
       <div className="device" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
         <InstrumentFace />
         <MidiConflict />
