@@ -224,6 +224,7 @@ void GrooveboxProcessor::timerCallback()
     montageTick();       // v0.46 fix8 : prise du montage rangée, export terminé
     historyTick();
    #if JUCE_ANDROID
+    perfHint.service();
     if (++autosaveTicks >= 375) { autosaveTicks = 0; autosaveIfChanged(); } // 15 s
    #endif
 
@@ -1207,18 +1208,40 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     juce::ScopedNoDenormals noDenormals;
     const auto n = buffer.getNumSamples();
     if (n <= 0) return;
-    // charge du calcul : temps passé / durée du bloc (mesuré à la sortie de la fonction)
+    // Charge du calcul (v0.46 fix16) : temps passé dans cette fonction / temps réellement écoulé
+    // entre deux appels, compté par fenêtres d'un quart de seconde. Mesurer contre l'horloge
+    // (et non contre « échantillons / fréquence ») donne la vraie part du fil audio occupée,
+    // même si la fréquence annoncée ou la taille des blocs varie d'un appareil à l'autre.
     struct CpuMeter
     {
-        std::atomic<float>& avg; std::atomic<float>& peak; double blockSeconds; juce::int64 t0 = juce::Time::getHighResolutionTicks();
+        GrooveboxProcessor& p; int frames; double blockSeconds; juce::int64 t0 = juce::Time::getHighResolutionTicks();
         ~CpuMeter()
         {
             const auto used = juce::Time::highResolutionTicksToSeconds (juce::Time::getHighResolutionTicks() - t0);
-            const auto load = (float) (used / std::max (1.0e-6, blockSeconds));
-            avg.store (avg.load (std::memory_order_relaxed) * 0.95f + load * 0.05f, std::memory_order_relaxed);
-            peak.store (std::max (load, peak.load (std::memory_order_relaxed) * 0.995f), std::memory_order_relaxed);
+            auto& m = p.loadMeter;
+            if (m.last != 0)
+            {
+                const auto gap = juce::Time::highResolutionTicksToSeconds (t0 - m.last);
+                if (gap > 0.5 || gap <= 0.0) m = {}; // son arrêté ou appareil changé : on repart à zéro
+                else { m.used += used; m.wall += gap; m.maxUsed = std::max (m.maxUsed, used); ++m.count; }
+            }
+            m.last = t0;
+            if (m.wall >= 0.25 && m.count > 0)
+            {
+                const auto period = m.wall / m.count;
+                p.cpuAvg.store ((float) (m.used / m.wall), std::memory_order_relaxed);
+                p.cpuPeak.store (std::max ((float) (m.maxUsed / period), p.cpuPeak.load (std::memory_order_relaxed) * 0.6f), std::memory_order_relaxed);
+                p.audioPeriodMs.store ((float) (period * 1000.0), std::memory_order_relaxed);
+                p.audioBlockSize.store (frames, std::memory_order_relaxed);
+                m.used = m.wall = m.maxUsed = 0.0; m.count = 0;
+            }
+           #if JUCE_ANDROID
+            p.perfHint.report ((std::int64_t) (used * 1.0e9), (std::int64_t) (blockSeconds * 1.0e9));
+           #else
+            juce::ignoreUnused (blockSeconds);
+           #endif
         }
-    } cpuMeter { cpuAvg, cpuPeak, (double) n / std::max (1.0, getSampleRate()) };
+    } cpuMeter { *this, n, (double) n / std::max (1.0, getSampleRate()) };
 
     // Macros : une macro automatisée par le logiciel hôte écrit dans les réglages qui lui sont
     // attribués, chacun sur sa plage

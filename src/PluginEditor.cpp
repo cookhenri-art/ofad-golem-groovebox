@@ -591,6 +591,15 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         eng.clearPatternExtras (t, p, nowMs());
         eng.clearPatternLanes (t, p, nowMs());
     });
+    // v0.46 fix16 : décaler l'écriture du pattern édité d'un pas (dir -1 / +1), toutes les lignes (-1) ou une seule
+    patternFn ("seqShift", [&seq, &eng, L] (const Args& a, int t)
+    {
+        const auto dir = intArg (a, 1, -1, 1, 0), lane = intArg (a, 2, -1, L, -1);
+        if (dir == 0) return;
+        const auto p = seq.getEditing (t);
+        seq.shiftPattern (t, p, lane, dir);
+        eng.shiftPatternExtras (t, p, lane, dir, nowMs());
+    });
     patternFn ("seqRecQuant", [&seq] (const Args& a, int) { seq.setRecordQuantize (intArg (a, 1, 0, 100, 100)); });
     // Fonctions de pas (accent, glissé), longueur par ligne, force de l'accent
     patternFn ("seqStepFlags", [&seq, S] (const Args& a, int t) { seq.setStepFlags (t, intArg (a, 1, 0, S, 0), intArg (a, 2, 0, 15, 0)); });
@@ -1647,7 +1656,8 @@ void GrooveboxEditor::timerCallback()
                     bytes += (double) (s->data.size() + s->right.size()) * sizeof (float) + (s->original != nullptr ? (double) s->original->size() : 0.0);
         sampleMb = bytes / (1024.0 * 1024.0);
     }
-    o += "],\"perf\":[" + num (processor.getCpuAverage() * 100.0f) + "," + num (processor.getCpuPeak() * 100.0f) + "," + num ((float) memMb) + "," + num ((float) sampleMb);
+    o += "],\"perf\":[" + num (processor.getCpuAverage() * 100.0f) + "," + num (processor.getCpuPeak() * 100.0f) + "," + num ((float) memMb) + "," + num ((float) sampleMb)
+       + "," + num ((float) processor.getSampleRate()) + "," + num ((float) processor.getAudioBlockSize()) + "," + num (processor.getAudioPeriodMs());
     o += "],\"learn\":" + std::to_string (processor.getMidiLearn());
     dsp::LoudnessBlock lb;
     while (eng.popLoudness (lb)) loudness.add (lb);

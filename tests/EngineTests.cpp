@@ -301,6 +301,32 @@ static void testInserts()
     }
 }
 
+// v0.46 fix16 : décaler l'écriture d'un pas, en boucle ; fonctions des pas, conditions et verrous suivent
+static void testShiftPattern()
+{
+    Engine e;
+    e.prepare (48000.0, 256);
+    e.setInstrument (0, "drumA", 0.0);
+    auto& s = e.sequencer();
+    const auto tone = e.findParam (0, "inst", "p01_tone");
+    s.setStep (0, 0, 0, 100); s.setStep (0, 0, 15, 90); s.setNote (0, 0, 15, 64);
+    s.setStepFlags (0, 15, stepAccent);
+    e.setStepLock (0, 0, 15, tone, 0.7f, 0.0);
+    s.setStep (0, 1, 3, 80);
+    s.setLaneLength (0, 1, 4); // ligne 2 sur 4 pas
+    s.shiftPattern (0, s.getEditing (0), -1, 1);
+    e.shiftPatternExtras (0, s.getEditing (0), -1, 1, 0.0);
+    CHECK (s.getStep (0, 0, 1) == 100 && s.getStep (0, 0, 0) == 90 && s.getNote (0, 0, 0) == 64);
+    CHECK (s.getStepFlags (0, 0) == stepAccent && s.getStepFlags (0, 15) == 0);
+    CHECK (e.getExtras().find (0, 0, 0, 0) != nullptr && e.getExtras().find (0, 0, 0, 15) == nullptr);
+    CHECK (s.getStep (0, 1, 0) == 80 && s.getStep (0, 1, 3) == 0 && s.getStep (0, 1, 4) == 0); // ligne de 4 pas : 3 → 0
+    // une seule ligne, vers la gauche : la ligne 1 bouge, pas les fonctions des pas
+    s.shiftPattern (0, s.getEditing (0), 0, -1);
+    e.shiftPatternExtras (0, s.getEditing (0), 0, -1, 0.0);
+    CHECK (s.getStep (0, 0, 0) == 100 && s.getStep (0, 0, 15) == 90 && s.getStepFlags (0, 0) == stepAccent);
+    CHECK (e.getExtras().find (0, 0, 0, 15) != nullptr && s.getStep (0, 1, 0) == 80);
+}
+
 static void testCpu()
 {
     // 16 pistes chargées, sequence dense : mesure du temps de calcul
@@ -2008,6 +2034,7 @@ int main()
     testPadSendsAndPreFader();
     testPadFx();
     testPatternsInEngine();
+    testShiftPattern();
     testChains();
     testModSourceDefaults();
     testArpeggiator();

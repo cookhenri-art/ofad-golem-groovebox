@@ -1048,6 +1048,31 @@ void Engine::copyStepRangeExtras (int track, int pattern, int from, int to, int 
     publishExtras (std::move (e), nowMs);
 }
 
+void Engine::shiftPatternExtras (int track, int pattern, int lane, int dir, double nowMs)
+{
+    if (track < 0 || track >= numTracks || dir == 0) return;
+    const auto& sq = sequencer();
+    const int length = std::clamp (sq.getPatternLength (track, pattern), 1, Sequencer::maxSteps);
+    auto e = std::make_unique<PatternExtras> (*extras.editable());
+    std::vector<std::pair<std::uint32_t, StepExtra>> moved;
+    for (auto it = e->steps.begin(); it != e->steps.end();)
+    {
+        const auto k = it->first;
+        const auto l = PatternExtras::keyLane (k), st = PatternExtras::keyStep (k);
+        const auto own = sq.getLaneLengthP (track, pattern, l);
+        const int n = own > 0 ? std::min (own, Sequencer::maxSteps) : length;
+        if (PatternExtras::keyTrack (k) == track && PatternExtras::keyPattern (k) == pattern && (lane < 0 || l == lane) && st < n)
+        {
+            const int to = (st + ((dir % n) + n) % n) % n;
+            moved.push_back ({ PatternExtras::key (track, pattern, l, to), std::move (it->second) });
+            it = e->steps.erase (it);
+        }
+        else ++it;
+    }
+    for (auto& m : moved) e->steps[m.first] = std::move (m.second);
+    publishExtras (std::move (e), nowMs);
+}
+
 void Engine::copyPatternExtras (int srcTrack, int from, int track, int to, double nowMs)
 {
     if ((srcTrack == track && from == to) || srcTrack < 0 || srcTrack >= numTracks || track < 0 || track >= numTracks) return;

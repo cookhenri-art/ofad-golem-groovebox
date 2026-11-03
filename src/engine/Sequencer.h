@@ -333,6 +333,34 @@ public:
         bump();
     }
     void clearAll() noexcept { for (int t = 0; t < numTracks; ++t) for (int p = 0; p < numPatterns; ++p) clearPattern (t, p); }
+    /** v0.46 fix16 : décale l'écriture d'un pas vers la droite (dir > 0) ou vers la gauche (dir < 0),
+        en boucle sur la longueur de chaque ligne : le pas qui sort d'un côté revient de l'autre.
+        Notes, hauteurs, durées et décalages suivent ; lane = -1 : toutes les lignes, et aussi les
+        fonctions des pas (accent, glissé, enregistrement, sans déclenchement). */
+    void shiftPattern (int t, int p, int lane, int dir) noexcept
+    {
+        if (! validT (t) || ! validP (p) || dir == 0 || lane >= numLanes) return;
+        auto& pt = pat (t, p);
+        const int length = std::clamp (pt.length.load (std::memory_order_relaxed), 1, maxSteps);
+        const auto rotate = [dir] (auto& cells, int n)
+        {
+            if (n < 2) return;
+            using V = decltype (cells[0].load());
+            std::array<V, maxSteps> tmp {};
+            const int d = ((dir % n) + n) % n;
+            for (int i = 0; i < n; ++i) tmp[(size_t) i] = cells[(size_t) i].load (std::memory_order_relaxed);
+            for (int i = 0; i < n; ++i) cells[(size_t) ((i + d) % n)].store (tmp[(size_t) i], std::memory_order_relaxed);
+        };
+        for (int l = (lane < 0 ? 0 : lane); l < (lane < 0 ? numLanes : lane + 1); ++l)
+        {
+            const auto own = pt.laneLen[(size_t) l].load (std::memory_order_relaxed);
+            const int n = own > 0 ? std::min (own, maxSteps) : length;
+            rotate (pt.vel[(size_t) l], n); rotate (pt.note[(size_t) l], n);
+            rotate (pt.len[(size_t) l], n); rotate (pt.micro[(size_t) l], n);
+        }
+        if (lane < 0) rotate (pt.flags, length);
+        bump();
+    }
 
     /** Copie un pattern entier (notes, longueur, vitesse) d'un emplacement à un autre de la même piste. */
     /** v0.26 : pistes déplacées (fil de l'interface) — la piste t passe en newIndex[t] avec ses

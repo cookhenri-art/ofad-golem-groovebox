@@ -243,6 +243,18 @@ effets…), en plus de sa note.
    ce pas** seulement. Un bandeau le rappelle ; Échap ou « Terminer » en sort.
 5. **Copier / Coller / Effacer** les verrous du pas choisi (« Sans verrous » : tous ceux de la ligne).
 
+Sur les synthés, la rangée à verrous écrit **la dernière note jouée** (pads, clavier de la façade, ou
+clavier MIDI à l'arrêt) : elle est affichée (« **Note** Fa1 ») et chaque pas posé montre sa note à la
+place de son numéro. Un pas choisi (appui long) prend la note de la touche jouée ensuite.
+
+**Décaler ◀ ▶** : toute l'écriture glisse d'un pas à gauche ou à droite, en boucle (le pas qui sort
+revient de l'autre côté) ; notes, accents, glissés, conditions et verrous suivent. Sur la façade : à
+droite de « Écriture » (batteries : **Tout** ou le **Pad** choisi seul), ou dans la rangée à verrous
+(la ligne seule) ; dans l'écran SÉQUENCE : ◀ ▶ après « Effacer pattern » (**Maj** : la ligne choisie seule).
+
+**Transport de la façade** : en haut de chaque façade, **●** enregistrer, **▶** lecture (**❚❚** pour
+arrêter), **■** arrêt — sans quitter l'instrument.
+
 Dans l'écran SÉQUENCE, le clic droit sur un pas ouvre les mêmes réglages : vélocité, durée, décalage,
 **note**, condition (probabilité, A:B, Fill…), répétitions, flam, et le bouton **Verrous**.
 
@@ -279,7 +291,7 @@ choisi, les encodeurs règlent **ce pas seulement** :
 3. Le **pas choisi**.
 4. Les lignes **Accent** (ici « Accent total » : tous les sons du pas plus forts) et **Verrous seuls**.
 5. Les **outils** : Sélection, Pinceau, Tout sélect., patterns A à H (clic droit : le lancer), Dupliquer ×2,
-   Effacer ligne, Effacer pattern ; pour le pas choisi : « Verrouiller des réglages sur ce pas », « Fermer
+   Effacer ligne, Effacer pattern, ◀ ▶ Décaler ; pour le pas choisi : « Verrouiller des réglages sur ce pas », « Fermer
    le pas », « Retirer condition et verrous ».
 6. Les **réglages du pas** :
 

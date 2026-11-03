@@ -5,6 +5,7 @@
 import { useSyncExternalStore, type ReactNode } from "react";
 import { useStore } from "../../engine/store";
 import { LockSteps } from "./OctaPanel";
+import { ShiftButtons } from "./ShiftButtons";
 
 type Kind = "synth" | "drum";
 const KEY = (k: Kind) => `grv.stepView.${k}`;
@@ -28,7 +29,7 @@ export function useStepView(k: Kind) {
 export function StepsDock() {
   const view = useStepView("synth");
   if (view !== "locks") return null;
-  return <div className="steps-dock"><LockSteps T={0} name="Ligne 1" /></div>;
+  return <div className="steps-dock"><LockSteps T={0} name="Ligne 1" shift="all" melodic /></div>;
 }
 
 export function StepsChoice({ kind, children }: { kind: Kind; children: ReactNode }) {
@@ -48,8 +49,12 @@ export function StepsChoice({ kind, children }: { kind: Kind; children: ReactNod
           title="Séquenceur à verrous : pages de 16 pas, mesures, et réglages verrouillés pas par pas (appui long ou mode Verrous)">
           À verrous
         </button>
+        <span className="steps-choice-shift">
+          {kind === "drum" && <ShiftButtons lane={lane} label={`Pad ${lane + 1}`} what={`le pad ${lane + 1}`} />}
+          <ShiftButtons label={kind === "drum" ? "Tout" : "Décaler"} what={kind === "drum" ? "tous les pads" : "la séquence"} />
+        </span>
       </div>
-      {view === "classic" ? children : <LockSteps T={T} name={kind === "synth" ? "Ligne 1" : `Pad ${lane + 1}`} />}
+      {view === "classic" ? children : <LockSteps T={T} name={kind === "synth" ? "Ligne 1" : `Pad ${lane + 1}`} shift="none" melodic={kind === "synth"} />}
     </div>
   );
 }

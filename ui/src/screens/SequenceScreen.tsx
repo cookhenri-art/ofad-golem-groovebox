@@ -655,6 +655,11 @@ export function SequenceScreen() {
           }}>Dupliquer ×2</button>
           <button type="button" className="touch touch--quiet" onClick={() => void actions.seq("seqClearLane", lane)}>Effacer ligne</button>
           <button type="button" className="touch touch--quiet" onClick={() => void actions.clearPattern(t, pattern.pattern)}>Effacer pattern</button>
+          {/* v0.46 fix16 : décaler toute l'écriture d'un pas (Maj : seulement la ligne choisie), en boucle */}
+          <button type="button" className="touch touch--quiet seq-shift" onClick={(e) => void actions.shiftPattern(t, -1, e.shiftKey ? lane : -1)}
+            aria-label="Décaler à gauche" title="Décaler tout le pattern d'un pas vers la gauche : le premier pas revient à la fin ; accents, conditions et verrous suivent (Maj : seulement la ligne choisie)">◀</button>
+          <button type="button" className="touch touch--quiet seq-shift" onClick={(e) => void actions.shiftPattern(t, 1, e.shiftKey ? lane : -1)}
+            aria-label="Décaler à droite" title="Décaler tout le pattern d'un pas vers la droite : le dernier pas revient au début ; accents, conditions et verrous suivent (Maj : seulement la ligne choisie)">▶</button>
           {stepOn && <button type="button" className={`touch${ui.stepEdit ? " touch--on" : " touch--quiet"}`} onClick={() => setUi({ stepEdit: !ui.stepEdit })}>
             {ui.stepEdit ? "Verrous : tournez les encodeurs (SON, EFFETS)" : "Verrouiller des réglages sur ce pas"}</button>}
           {stepOn && extra && <button type="button" className="touch touch--quiet" onClick={() => void actions.extras("stepClear", lane, step!)}>Retirer condition et verrous</button>}

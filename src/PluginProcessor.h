@@ -20,6 +20,7 @@
 #include "engine/Engine.h"
 #include "Recorder.h"
 #include "Montage.h"
+#include "AndroidPerfHint.h"
 
 #include <algorithm>
 #include <vector>
@@ -292,6 +293,8 @@ public:
         lissée et pointe récente (1 = 100 %, la limite avant les craquements). */
     float getCpuAverage() const noexcept { return cpuAvg.load (std::memory_order_relaxed); }
     float getCpuPeak() const noexcept { return cpuPeak.load (std::memory_order_relaxed); }
+    float getAudioPeriodMs() const noexcept { return audioPeriodMs.load (std::memory_order_relaxed); }
+    int getAudioBlockSize() const noexcept { return audioBlockSize.load (std::memory_order_relaxed); }
 
     /** Pistes (v0.23) : déplacer une piste (tout la suit : instrument, effets, séquences, scènes,
         morceau, modulations, échantillons), ou insérer une piste libre avant une autre.
@@ -399,6 +402,12 @@ private:
     std::atomic<double> currentBpm { 120.0 };
     std::atomic<std::uint32_t> projectVersion { 0 };
     std::atomic<float> cpuAvg { 0.0f }, cpuPeak { 0.0f };
+    struct LoadMeter { juce::int64 last = 0; double used = 0.0, wall = 0.0, maxUsed = 0.0; int count = 0; } loadMeter; // fil audio seulement
+    std::atomic<float> audioPeriodMs { 0.0f };  // temps mesuré entre deux blocs
+    std::atomic<int> audioBlockSize { 0 };
+   #if JUCE_ANDROID
+    AndroidPerfHint perfHint; // v0.46 fix16 : garde le fil audio sur des cœurs rapides
+   #endif
 
     // déplacements de pistes dans l'historique (v0.23) : ce que la copie d'historique ne porte pas
     // (patterns joués, photo, commandes MIDI) est renuméroté en défaisant ou refaisant l'étape

@@ -283,6 +283,16 @@ export function installMockBackend() {
     seqDivision: (t: number, d: number) => { if (divs[t]) divs[t][trackSeq[t].editing] = d; return patternJson(t); },
     seqClearLane: pattern((p, [l]) => { p.lanes[l].vel.fill(0); }),
     seqClearTrack: pattern((p) => { p.lanes.forEach((l) => l.vel.fill(0)); }),
+    // v0.46 fix16 : décalage d'un pas, en boucle sur la longueur de chaque ligne
+    seqShift: pattern((p, [dir, lane]) => {
+      const rot = (a: number[], n: number) => { if (n < 2) return; const d = ((dir % n) + n) % n; const tmp = a.slice(0, n); for (let i = 0; i < n; ++i) a[(i + d) % n] = tmp[i]; };
+      p.lanes.forEach((l, k) => {
+        if (lane >= 0 && k !== lane) return;
+        const n = (l as { length?: number }).length || p.length;
+        rot(l.vel, n); rot(l.note, n); rot(l.len, n); rot(l.micro, n);
+      });
+      if (lane < 0) rot(p.flags, p.length);
+    }),
     seqCopyPage: pattern((p, [from, to, n]) => { p.lanes.forEach((l) => { for (let k = 0; k < n; ++k) { l.vel[to + k] = l.vel[from + k]; l.note[to + k] = l.note[from + k]; l.len[to + k] = l.len[from + k]; l.micro[to + k] = l.micro[from + k]; } }); for (let k = 0; k < n; ++k) p.flags[to + k] = p.flags[from + k]; }),
     seqEditCells: (t: number, json: string) => {
       const v = JSON.parse(json) as { clear: [number, number][]; set: number[][]; ex: [number, number, number, number, number, number, [number, number][], number?, number?, number?][] };
@@ -595,7 +605,7 @@ const histMock = { undo: 3, redo: 0, photo: false };
     spec: specOn ? [...Array.from({ length: 96 }, (_, b) => Math.round(10 * (-18 - b * 0.42 + 6 * Math.sin(b / 7 + transport.ppq) + (b < 12 ? 8 : 0) + Math.random() * 3 - (transport.playing ? 0 : 50)))),
       ...Array.from({ length: 96 }, (_, b) => Math.round(10 * (-40 - b * 0.3 + Math.random() * 4 - (transport.playing ? 0 : 50))))] : undefined,
     loud: transport.playing ? [-11 + Math.random(), -11.5, -12.1, -1.4 + Math.random() * 0.4, -0.9, -14 + Math.random()] : [-100, -100, -100, -100, -100, -100],
-    perf: [transport.playing ? 14 + Math.random() * 3 : 3, transport.playing ? 22 + Math.random() * 4 : 5, 286, 41],
+    perf: [transport.playing ? 14 + Math.random() * 3 : 3, transport.playing ? 22 + Math.random() * 4 : 5, 286, 41, 48000, 192, 4],
     project: false, seq: false, structure: false,
     song: [songRowAt(transport.ppq), transport.playing ? transport.ppq : -1, song.version, song.recPlay ? 1 : 0, song.recMoves ? 1 : 0],
   });

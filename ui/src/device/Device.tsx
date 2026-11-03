@@ -48,15 +48,27 @@ const PAD_MODES: { id: PadMode; label: string; led: "amber" | "red" | "blue" }[]
   { id: "erase", label: "Effacer", led: "red" },
 ];
 
+/** v0.47 : téléphone en paysage (fenêtre large et basse) : disposition propre, l'écran sur toute la
+    hauteur et un panneau à onglets à côté ; tout est ~50 % plus grand qu'avec l'appareil de tablette. */
+const PHONE_W = 1177;
+const PHONE_H = 530;
+export function isPhoneViewport(w: number, h: number) { return h <= 540 && w / h >= 1.55; }
+
 function useFitScale() {
-  const [scale, setScale] = useState(1);
+  const [fit, setFit] = useState({ scale: 1, phone: false, ghost: 1, ghostW: DESIGN_W });
   useEffect(() => {
-    const update = () => setScale(Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H));
+    const update = () => {
+      const w = window.innerWidth, h = window.innerHeight;
+      const phone = isPhoneViewport(w, h);
+      const tablet = Math.min(w / DESIGN_W, h / DESIGN_H);
+      // fenêtres de tablette sur un téléphone : hauteur de dessin gardée, largeur étirée à celle de l'écran
+      setFit({ scale: phone ? Math.min(w / PHONE_W, h / PHONE_H) : tablet, phone, ghost: h / DESIGN_H, ghostW: Math.round(DESIGN_H * w / h) });
+    };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
-  return scale;
+  return fit;
 }
 
 function Crossfader() {
@@ -127,7 +139,7 @@ function ScreenSwitch() {
 }
 
 /** Plein écran (touche F11 aussi) : toute la surface de l'écran, puis retour en fenêtre. */
-function FullscreenButton() {
+function FullscreenButton({ compact = false }: { compact?: boolean }) {
   const on = useStore((s) => s.ui.fullscreen);
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === "F11") { e.preventDefault(); void actions.toggleFullscreen(); } };
@@ -137,7 +149,7 @@ function FullscreenButton() {
   return (
     <button type="button" className="top-full" aria-pressed={on} onClick={() => void actions.toggleFullscreen()}
       title={on ? "Revenir en fenêtre (F11)" : "Plein écran : l'application prend tout l'écran (F11)"}>
-      {on ? "Quitter le plein écran" : "Plein écran"}
+      {compact ? "⛶" : on ? "Quitter le plein écran" : "Plein écran"}
     </button>
   );
 }
@@ -182,12 +194,18 @@ function HistoryButtons() {
 function PerfMeter() {
   const perf = useStore((s) => s.tick.perf);
   if (!perf || perf.length < 4) return null;
-  const [avg, peak, mem, smp] = perf;
+  const [avg, peak, mem, smp, rate = 0, block = 0, periodMs = 0] = perf;
   const level = peak >= 85 ? " is-hot" : peak >= 60 ? " is-warm" : "";
   const mo = (v: number) => (v >= 1024 ? `${(v / 1024).toFixed(1).replace(".", ",")} Go` : `${Math.round(v)} Mo`);
+  // v0.46 fix16 : réglages du son réellement utilisés (utile pour comprendre un appareil qui craque)
+  const ms = (v: number) => v.toFixed(1).replace(".", ",");
+  const audio = rate > 0 && block > 0
+    ? `Son : ${Math.round(rate).toLocaleString("fr-FR")} Hz, blocs de ${Math.round(block)} échantillons (${ms((block / rate) * 1000)} ms), un bloc toutes les ${ms(periodMs)} ms en moyenne.`
+    : "Son : pas encore de bloc calculé.";
+  const details = `Calcul audio : ${Math.round(avg)} % en moyenne, ${Math.round(peak)} % en pointe (au-delà de 100 % le son craque).\n${audio}\nMémoire de l'application : ${mo(mem)}, dont ${mo(smp)} d'échantillons.`;
   return (
-    <div className={`perf-meter${level}`} role="status"
-      title={`Calcul audio : ${Math.round(avg)} % en moyenne, ${Math.round(peak)} % en pointe (au-delà de 100 % le son craque).\nMémoire de l'application : ${mo(mem)}, dont ${mo(smp)} d'échantillons.`}>
+    <div className={`perf-meter${level}`} role="status" title={details}
+      onClick={() => showMessage(details.replace(/\n/g, " · "))}>
       <span className="perf-label">CPU</span>
       <span className="perf-bar" aria-hidden><span style={{ width: `${Math.min(100, avg)}%` }} /><i style={{ left: `${Math.min(100, peak)}%` }} /></span>
       <span className="perf-val perf-val--cpu tabular">{Math.round(avg)} %</span>
@@ -268,7 +286,147 @@ function TrackMuteRow() {
 }
 
 export function Device() {
-  const scale = useFitScale();
+  const fit = useFitScale();
+  if (fit.phone) return <PhoneDevice scale={fit.scale} ghost={fit.ghost} ghostW={fit.ghostW} />;
+  return <TabletDevice scale={fit.scale} />;
+}
+
+/** Les boutons d'écran, ceux du transport et du jeu, l'octave : partagés par la tablette et le téléphone. */
+function TransportButtons() {
+  const t = useStore((s) => s.tick.t);
+  return (
+    <>
+      <Learn target={MIDI_RECORD} what="Enregistrement"><HwButton size="lg" led="red" active={t.rec} onPress={actions.toggleRecord} ariaLabel="Enregistrer" label={<><IconRec /><span>Enr.</span></>} /></Learn>
+      <Learn target={MIDI_START} what="Lecture"><HwButton size="lg" led="green" active={t.playing} onPress={actions.play} ariaLabel="Lecture" label={<><IconPlay /><span>Lecture</span></>} /></Learn>
+      <Learn target={MIDI_STOP} what="Arrêt"><HwButton size="lg" led="none" onPress={actions.stop} ariaLabel="Arrêt" label={<><IconStop /><span>Arrêt</span></>} /></Learn>
+    </>
+  );
+}
+function PlayButtons() {
+  const t = useStore((s) => s.tick.t);
+  const shift = useStore((s) => s.ui.shift);
+  return (
+    <>
+      <Learn target={MIDI_FILL} what="Fill"><HoldButton label="Fill" led="amber" active={t.fill && !t.brk} onChange={actions.fill} /></Learn>
+      <Learn target={MIDI_BREAK} what="Break"><HoldButton label="Break" led="magenta" active={t.brk} onChange={actions.breakKey} /></Learn>
+      <TimedBreak />
+      <HwButton size="md" active={shift} onPress={() => setUi({ shift: !shift })} label="Maj"
+        title="Maj verrouillée : accent sur les notes posées, scène envoyée de l'autre côté du fader, Fill / Break verrouillés" />
+    </>
+  );
+}
+function OctaveButtons() {
+  const screen = useStore((s) => s.ui.screen);
+  const shift = useStore((s) => s.ui.shift);
+  const page = useStore((s) => s.ui.page);
+  const octave = useStore((s) => s.ui.octave);
+  const length = useStore((s) => s.pattern?.length ?? 16);
+  const pages = Math.max(1, Math.ceil(length / 16));
+  return (
+    <>
+      <HwButton size="md" led="none" onPress={() => (screen === "sequence" && shift ? setUi({ page: Math.max(0, page - 1) }) : setPadOctave(octave - 1))} ariaLabel="Octave plus bas (Maj : page précédente au séquenceur)" label={<IconPrev />} />
+      <HwButton size="md" led="none" onPress={() => (screen === "sequence" && shift ? setUi({ page: Math.min(pages - 1, page + 1) }) : setPadOctave(octave + 1))} ariaLabel="Octave plus haut (Maj : page suivante au séquenceur)" label={<IconNext />} />
+    </>
+  );
+}
+function ScreenButtons() {
+  const screen = useStore((s) => s.ui.screen);
+  return (
+    <div className="button-row button-row--screens">
+      {SCREENS.map((s) => (
+        <HwButton key={s.id} label={s.label} active={screen === s.id} onPress={() => setUi({ screen: s.id })} />
+      ))}
+    </div>
+  );
+}
+function PadModeButtons() {
+  const padMode = useStore((s) => s.ui.padMode);
+  return (
+    <div className="button-row button-row--padmodes">
+      {PAD_MODES.map((m) => (
+        <HwButton key={m.id} label={m.label} led={m.led} active={padMode === m.id} onPress={() => setUi({ padMode: m.id })} />
+      ))}
+    </div>
+  );
+}
+function SceneBankButtons() {
+  const bank = useStore((s) => s.ui.sceneBank);
+  const editSlot = useStore((s) => s.ui.editSlot);
+  return (
+    <div className="button-row">
+      <HwButton size="sm" label="1 – 16" led="blue" active={bank === 0} onPress={() => setUi({ sceneBank: 0 })} />
+      <HwButton size="sm" label="17 – 32" led="blue" active={bank === 1} onPress={() => setUi({ sceneBank: 1 })} />
+      <HwButton size="sm" label="Éditer A" led="blue" active={editSlot === "A"} onPress={() => setUi({ editSlot: editSlot === "A" ? null : "A", editBreak: false })} />
+      <HwButton size="sm" label="Éditer B" led="magenta" active={editSlot === "B"} onPress={() => setUi({ editSlot: editSlot === "B" ? null : "B", editBreak: false })} />
+    </div>
+  );
+}
+
+/** v0.47 : l'appareil sur un téléphone en paysage. L'écran garde sa taille de dessin (toute la
+    hauteur) ; à côté, deux onglets : Commandes (écrans, 8 encodeurs, transport, jeu, crossfader) et
+    Pads (rôle des pads, 16 pads, banque de scènes). Les grandes fenêtres (façade, pédalier, accueil)
+    gardent leur dessin de tablette, posées sur toute la fenêtre. */
+function PhoneDevice({ scale, ghost, ghostW }: { scale: number; ghost: number; ghostW: number }) {
+  const [encoderRow, setEncoderRow] = useState<HTMLElement | null>(null);
+  const [tab, setTabState] = useState<"ctrl" | "pads">(() => { try { return localStorage.getItem("grv.phoneTab") === "pads" ? "pads" : "ctrl"; } catch { return "ctrl"; } });
+  const setTab = (v: "ctrl" | "pads") => { setTabState(v); try { localStorage.setItem("grv.phoneTab", v); } catch { /* stockage indisponible */ } };
+  const t = useStore((s) => s.tick.t);
+  return (
+    <div className="stage">
+      <div className="device device--phone" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
+        <div className="bezel">
+          <div className="screen">
+            <EncoderRowContext.Provider value={encoderRow}>
+              <ScreenSwitch />
+            </EncoderRowContext.Provider>
+          </div>
+        </div>
+        <div className="phone-side">
+          <header className="phone-top">
+            <img className="top-golem" src="golem/golem-128.png" alt="" draggable={false} />
+            <button type="button" className="top-synth" onClick={() => setUi({ face: true })}
+              title="Ouvrir l'instrument de la piste choisie en grand (Échap ou ✕ pour refermer)">Synthé ↗</button>
+            <span className="device-spacer" />
+            <HistoryButtons />
+            <AudioRecorder />
+            <FullscreenButton compact />
+          </header>
+          <div className="phone-tabs" role="tablist" aria-label="Panneau">
+            <button type="button" role="tab" aria-selected={tab === "ctrl"} className={tab === "ctrl" ? "on" : ""} onClick={() => setTab("ctrl")}>Commandes</button>
+            <button type="button" role="tab" aria-selected={tab === "pads"} className={tab === "pads" ? "on" : ""} onClick={() => setTab("pads")}>Pads</button>
+            <span className="phone-tabs-play">
+              <HwButton size="sm" led="green" active={t.playing} onPress={actions.play} ariaLabel="Lecture" label={<IconPlay />} />
+              <HwButton size="sm" led="none" onPress={actions.stop} ariaLabel="Arrêt" label={<IconStop />} />
+            </span>
+          </div>
+          {tab === "ctrl" ? (
+            <div className="phone-panel phone-panel--ctrl">
+              <ScreenButtons />
+              <div className="encoder-row" ref={setEncoderRow} />
+              <div className="phone-row"><TransportButtons /></div>
+              <div className="phone-row"><PlayButtons /></div>
+              <div className="phone-row phone-row--xf"><OctaveButtons /><Learn target={MIDI_XFADE} what="Crossfader"><Crossfader /></Learn></div>
+            </div>
+          ) : (
+            <div className="phone-panel phone-panel--pads">
+              <PadModeButtons />
+              <PadGrid />
+              <SceneBankButtons />
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="device device--ghost" style={{ width: ghostW, transform: `translate(-50%, -50%) scale(${ghost})` }}>
+        <InstrumentFace />
+        <MidiConflict />
+        <Pedalboard />
+        <Welcome />
+      </div>
+    </div>
+  );
+}
+
+function TabletDevice({ scale }: { scale: number }) {
   const [encoderRow, setEncoderRow] = useState<HTMLElement | null>(null);
   const screen = useStore((s) => s.ui.screen);
   const shift = useStore((s) => s.ui.shift);

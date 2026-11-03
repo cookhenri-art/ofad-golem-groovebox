@@ -98,6 +98,7 @@ export interface AppState {
   litLanes: number[];                    // allumage des pads de la piste choisie
   litTracks: number[];                   // allumage par piste
   litNotes: number[];                    // notes exactes de la piste choisie (0..127) : tenues ou jouées à l'instant
+  played: { note: number; n: number };   // v0.46 fix16 : dernière note jouée à la main sur la piste choisie (−1 : aucune), n compte les frappes
   waves: Record<string, WaveData | null>; // formes d'onde (piste:index)
   launch: LaunchData | null;             // lancement des patterns
   midi: MidiData;                        // apprentissage MIDI
@@ -132,6 +133,7 @@ let state: AppState = {
   litLanes: new Array(16).fill(0),
   litTracks: new Array(16).fill(0),
   litNotes: new Array(128).fill(0),
+  played: { note: -1, n: 0 },
   waves: {},
   launch: null,
   midi: { learn: -1, maps: [] },
@@ -373,6 +375,9 @@ function updateLitNotes() {
 }
 function noteTick(kn: number[] | undefined, kh: number[] | undefined) {
   heldNotesNow = kn ?? [];
+  // v0.46 fix16 : à l'arrêt, une note du clavier MIDI devient aussi la note écrite par les rangées de pas
+  const hits = (kh ?? []).filter((n) => n >= 0 && n < 128);
+  if (hits.length && !state.tick.t.playing) set({ played: { note: hits[hits.length - 1], n: state.played.n + 1 } });
   for (const n of kh ?? []) {
     if (n < 0 || n > 127) continue;
     noteFlash[n] += 1;
@@ -642,7 +647,10 @@ export const actions = {
   },
 
   // Notes ---------------------------------------------------------------------------
-  noteOn(track: number, note: number, velocity: number) { void call("noteOn", track, note, velocity); },
+  noteOn(track: number, note: number, velocity: number) {
+    void call("noteOn", track, note, velocity);
+    if (track === focusTrack()) set({ played: { note, n: state.played.n + 1 } }); // note écrite par les rangées de pas
+  },
   noteOff(track: number, note: number) { void call("noteOff", track, note); },
   /** Expression jouée à l'écran : 0 = pitch bend (-1..1), 1 = molette, 2 = pression, 3 = pédale. */
   expression(track: number, kind: 0 | 1 | 2 | 3, value: number) { void call("expression", track, kind, value); },
@@ -912,6 +920,12 @@ export const actions = {
     const p = await callJson<RawPattern>("seqCopyPattern", track, from, to);
     if (track === focusTrack()) set({ pattern: decodePattern(p) });
     await refreshLaunch();
+  },
+  /** v0.46 fix16 : décale l'écriture du pattern édité d'un pas (−1 : gauche, +1 : droite), en boucle ;
+      lane −1 : toutes les lignes et les fonctions des pas. Conditions et verrous suivent. */
+  async shiftPattern(track: number, dir: -1 | 1, lane = -1) {
+    const p = await callJson<RawPattern>("seqShift", track, dir, lane);
+    if (track === focusTrack()) { set({ pattern: decodePattern(p) }); set({ extras: await callJson<StepExtra[]>("getExtras", track) }); }
   },
   async clearPattern(track: number, pattern: number) {
     const p = await callJson<RawPattern>("seqClearPattern", track, pattern);

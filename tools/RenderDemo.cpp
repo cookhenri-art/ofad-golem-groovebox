@@ -71,6 +71,38 @@ int main (int argc, char* argv[])
     }
 
     // v0.46 : --project <fichier.gbx> [secondes] : relit un projet et le joue (projet de démonstration)
+    // v0.47 : --bench <projet.gbx> [bloc] : coût du rendu en temps réel (pourcentage d'un cœur) par taille de bloc
+    if (argc > 2 && juce::String (argv[1]) == "--bench")
+    {
+        juce::FileInputStream in (juce::File::getCurrentWorkingDirectory().getChildFile (argv[2]));
+        for (const int block : { 96, 192, 256, 512, 1024 })
+        {
+            if (argc > 3 && juce::String (argv[3]).getIntValue() != block) continue;
+            grv::GrooveboxProcessor pp;
+            pp.setPlayConfigDetails (2, 2, 48000.0, block);
+            pp.prepareToPlay (48000.0, block);
+            in.setPosition (0);
+            if (pp.readProjectFile (in).isNotEmpty()) { std::printf ("Projet illisible\n"); return 2; }
+            pp.getEngine().sequencer().requestPlay();
+            juce::AudioBuffer<float> b (2, block);
+            juce::MidiBuffer m;
+            const int n = (int) (20.0 * 48000.0 / block);
+            double worst = 0.0;
+            const auto t0 = juce::Time::getHighResolutionTicks();
+            for (int i = 0; i < n; ++i)
+            {
+                const auto a = juce::Time::getHighResolutionTicks();
+                b.clear(); pp.processBlock (b, m);
+                const auto dt = juce::Time::highResolutionTicksToSeconds (juce::Time::getHighResolutionTicks() - a);
+                worst = std::max (worst, dt);
+                if (std::getenv ("GRV_BENCH_SPIKES") != nullptr && dt > 0.5 * block / 48000.0)
+                    std::printf ("  pic a %.3f s : %.0f %%\n", i * block / 48000.0, dt / (block / 48000.0) * 100.0);
+            }
+            const auto secs = juce::Time::highResolutionTicksToSeconds (juce::Time::getHighResolutionTicks() - t0);
+            std::printf ("bloc %4d : %5.1f %% d'un coeur en moyenne, pire bloc %5.0f %% de sa duree\n", block, secs / 20.0 * 100.0, worst / (block / 48000.0) * 100.0);
+        }
+        return 0;
+    }
     if (argc > 2 && juce::String (argv[1]) == "--project")
     {
         grv::GrooveboxProcessor pp;

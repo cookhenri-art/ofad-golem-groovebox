@@ -15,13 +15,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ModuleDesc } from "../../engine/protocol";
-import { actions, setUi, showMessage, useStore } from "../../engine/store";
+import { actions, getState, setUi, showMessage, useStore } from "../../engine/store";
 import { paramAddress, useParam, useWriteTarget, writeParam } from "../../controls/bindings";
 import { getLockClip } from "../../engine/selection";
 import { Encoder } from "../../controls/Encoder";
 import { toNorm, toPlain, trackColor } from "../../engine/params";
 import { SampleView } from "../Visuals";
 import { StepsEditor } from "./MatrixPanel";
+import { ShiftButtons } from "./ShiftButtons";
 
 const MACHINES = ["Flex", "Pickup"];
 const MACHINE_HINTS = [
@@ -395,7 +396,7 @@ function OtZones({ channel, module: m, T }: { channel: number; module: ModuleDes
     verrous. Longueur de la ligne de T : 1 à 4 mesures (les autres T gardent la leur). */
 /** Rangée de pas à verrous (principe des séquenceurs à verrous) : pages de 16, Suivre, Mesures, Verrous.
     v0.45.2 : aussi dans l'onglet Pas des synthés (ligne 1) et des boîtes à rythmes (pad choisi). */
-export function LockSteps({ T, slotAddr = -1, slotName, name }: { T: number; slotAddr?: number; slotName?: (norm: number) => string; name?: string }) {
+export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", melodic = false }: { T: number; slotAddr?: number; slotName?: (norm: number) => string; name?: string; shift?: "lane" | "all" | "none"; melodic?: boolean }) {
   const nm = name ?? `T${T + 1}`;
   const pattern = useStore((s) => s.pattern);
   const extras = useStore((s) => s.extras);
@@ -408,6 +409,17 @@ export function LockSteps({ T, slotAddr = -1, slotName, name }: { T: number; slo
   const [lockMode, setLockMode] = useState(false);
   const [follow, setFollow] = useState(true);
   const press = useRef<{ step: number; timer: number; long: boolean } | null>(null);
+  // v0.46 fix16 (synthés) : la dernière touche jouée (pads, clavier, clavier MIDI à l'arrêt) est la
+  // note écrite par les pas posés ; jouée pendant qu'un pas posé est choisi, elle devient sa note.
+  const played = useStore((s) => s.played);
+  const lastPlayed = useRef(played.n);
+  useEffect(() => {
+    if (played.n === lastPlayed.current) return;
+    lastPlayed.current = played.n;
+    if (!melodic || sel === null || played.note < 0) return;
+    const l = getState().pattern?.lanes[T];
+    if ((l?.vel[sel] ?? 0) > 0 && l?.note[sel] !== played.note) void actions.seq("seqSetNote", T, sel, played.note);
+  }, [played, melodic, sel, T]);
   const ln = pattern?.lanes[T];
   const patLen = pattern?.length ?? 16;
   const len = ln && ln.length > 0 ? ln.length : patLen;
@@ -433,7 +445,7 @@ export function LockSteps({ T, slotAddr = -1, slotName, name }: { T: number; slo
     window.clearTimeout(p.timer);
     if (p.long) return;
     if (lockMode) choose(step);
-    else { actions.toggleStep(T, step); if (sel === step) setUi({ step: null, stepEdit: false }); }
+    else { actions.toggleStep(T, step, melodic && played.note >= 0 ? played.note : undefined); if (sel === step) setUi({ step: null, stepEdit: false }); }
   };
   // longueur de la ligne de T en mesures ; le pattern s'allonge si besoin, sans changer les autres T
   const setBars = async (b: number) => {
@@ -460,6 +472,12 @@ export function LockSteps({ T, slotAddr = -1, slotName, name }: { T: number; slo
           ))}
         </span>
         <button type="button" className={`ot-steps-opt${follow ? " on" : ""}`} aria-pressed={follow} onClick={() => setFollow(!follow)} title="La page suit la lecture">Suivre</button>
+        {melodic && (
+          <span className={`ot-steps-note${played.note < 0 ? " none" : ""}`} title="Note écrite par les pas que vous posez : jouez une touche (pads, clavier) pour la changer. Un pas choisi (appui long) prend la touche jouée.">
+            Note <b>{played.note >= 0 ? noteName(played.note) : "—"}</b>
+          </span>
+        )}
+        {shift !== "none" && <ShiftButtons lane={shift === "lane" ? T : -1} label="Décaler" what={shift === "lane" ? `les pas de ${nm}` : "la séquence"} />}
         <span className="ot-steps-bars" role="group" aria-label="Longueur de la ligne">
           <small>Mesures</small>
           {[1, 2, 3, 4].map((b) => (
@@ -503,8 +521,8 @@ export function LockSteps({ T, slotAddr = -1, slotName, name }: { T: number; slo
           return (
             <button key={k} type="button" className={cls.join(" ")} disabled={out}
               onPointerDown={() => down(s)} onPointerUp={() => up(s)} onPointerLeave={() => { if (press.current?.step === s) { window.clearTimeout(press.current.timer); press.current = null; } }}
-              title={`Pas ${s + 1}${on ? " (posé)" : ""}${ex && ex.locks.length ? ` · ${ex.locks.length} verrou${ex.locks.length > 1 ? "s" : ""}` : ""} — toucher : poser / retirer ; appui long : verrous`}>
-              <span className="fc-led" aria-hidden /><i>{s + 1}</i>
+              title={`Pas ${s + 1}${on ? ` (posé${melodic ? `, ${noteName(ln.note[s] ?? 60)}` : ""})` : ""}${ex && ex.locks.length ? ` · ${ex.locks.length} verrou${ex.locks.length > 1 ? "s" : ""}` : ""} — toucher : poser / retirer ; appui long : verrous`}>
+              <span className="fc-led" aria-hidden /><i>{melodic && on ? noteName(ln.note[s] ?? 60) : s + 1}</i>
               {slotLock !== undefined && slotName && <em className="ot-step-slot" title="Emplacement joué sur ce pas">{slotName(slotLock)}</em>}
             </button>
           );

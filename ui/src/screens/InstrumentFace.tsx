@@ -297,6 +297,18 @@ function FitScale({ children, fitKey }: { children: React.ReactNode; fitKey: str
   );
 }
 
+/** v0.46 fix16 : petit transport dans la façade (enregistrer, lancer, arrêter) sans la quitter. */
+function FaceTransport() {
+  const t = useStore((s) => s.tick.t);
+  return (
+    <span className="face-transport" role="group" aria-label="Transport">
+      <button type="button" className={`ft-rec${t.rec ? " on" : ""}`} aria-pressed={t.rec} onClick={actions.toggleRecord} title="Enregistrer (ENR.) : notes et mouvements dans le pattern">●</button>
+      <button type="button" className={`ft-play${t.playing ? " on" : ""}`} aria-pressed={t.playing} onClick={() => (t.playing ? actions.stop() : actions.play())} title={t.playing ? "Arrêter la lecture" : "Lecture"}>{t.playing ? "❚❚" : "▶"}</button>
+      <button type="button" className="ft-stop" onClick={actions.stop} title="Arrêt">■</button>
+    </span>
+  );
+}
+
 export function InstrumentFace() {
   const open = useStore((s) => s.ui.face);
   const focus = useStore((s) => s.focus);
@@ -365,6 +377,7 @@ export function InstrumentFace() {
             <button key={p.id} type="button" role="tab" aria-selected={current === p.id} className={current === p.id ? "on" : ""} onClick={() => setPage(p.id)}>{p.label}</button>
           ))}
         </div>
+        <FaceTransport />
         <span className="face-spacer" />
         {takesSamples && (
           <span className="face-sample">

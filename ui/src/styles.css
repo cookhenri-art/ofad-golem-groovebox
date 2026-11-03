@@ -2190,7 +2190,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .face-head > .face-spacer { flex: 1 1 0; min-width: 0; }
 
 /* v0.23 : témoin de charge (calcul audio et mémoire) dans la barre du haut */
-.perf-meter { display: flex; flex: none; white-space: nowrap; align-items: center; gap: 5px; margin-right: 8px; padding: 3px 7px; border-radius: 6px; background: rgba(0, 0, 0, 0.28); font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--silk, #9aa3ad); }
+.perf-meter { display: flex; flex: none; white-space: nowrap; align-items: center; gap: 5px; margin-right: 8px; padding: 3px 7px; border-radius: 6px; background: rgba(0, 0, 0, 0.28); font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--silk, #9aa3ad); cursor: pointer; }
 .perf-label { opacity: 0.75; }
 .perf-val { color: #d9dee4; }
 .perf-sep { opacity: 0.5; }
@@ -3057,3 +3057,80 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .mt-menu button:disabled { opacity: 0.4; cursor: default; }
 .mt-menu button.danger { color: var(--led-red); }
 .mt-menu kbd { font: inherit; font-size: 11px; color: var(--scr-subtle); }
+
+/* ============================================================ v0.47 : téléphone en paysage
+   L'écran garde sa taille de dessin (756 × 498) sur toute la hauteur ; à droite, un panneau à
+   onglets (Commandes / Pads). Les grandes fenêtres restent dans un appareil « fantôme » de tablette. */
+.device--phone {
+  width: 1177px; height: 530px;
+  grid-template-columns: 768px minmax(0, 1fr); grid-template-rows: 1fr;
+  column-gap: 12px; row-gap: 0; padding: 10px 12px 10px 10px; border-radius: 18px;
+}
+.device--phone .bezel { height: 510px; padding: 6px; border-radius: 12px; }
+.phone-side { display: flex; flex-direction: column; gap: 7px; min-width: 0; min-height: 0; }
+.phone-top { display: flex; align-items: center; gap: 6px; height: 34px; flex: none; }
+.phone-top .top-golem { height: 34px; width: auto; margin: -2px -2px 0 -4px; }
+.phone-top .top-synth { padding: 0 9px; height: 28px; font-size: 11px; }
+.phone-top .top-photo { display: none; } /* Photo / Rappel : sur la tablette et le PC */
+.phone-top .top-rec { padding: 0 8px; }
+.phone-tabs { display: flex; align-items: center; gap: 4px; flex: none; }
+.phone-tabs > button {
+  appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 750; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 0 14px; height: 32px; border-radius: 7px;
+  color: var(--silk); background: oklch(0.2 0.005 250); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.06);
+}
+.phone-tabs > button.on { color: oklch(0.15 0.01 60); background: var(--led-amber); box-shadow: 0 0 10px oklch(0.83 0.16 75 / 0.45); }
+.phone-tabs-play { margin-left: auto; display: flex; gap: 5px; }
+.phone-tabs-play .hw { min-width: 46px; height: 32px; }
+.phone-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.device--phone .button-row { gap: 6px; }
+.device--phone .button-row--screens .hw { height: 36px; font-size: 10px; min-width: 0; }
+.device--phone .encoder-row { height: 60px; padding: 0; flex: none; }
+.device--phone .encoder { zoom: 0.63; }
+.phone-row { display: flex; gap: 5px; flex: none; }
+.phone-row > * { flex: 1 1 0; min-width: 0; display: flex; } /* boutons, Fill / Break (à tenir) et Learn */
+.phone-row .hw { flex: 1; width: 100%; min-width: 0; height: 46px; }
+.phone-row > * > * { flex: 1; display: flex; min-width: 0; }
+.phone-row--xf > .hw { flex: 0 0 48px; }
+.phone-row--xf > :last-child { flex: 1 1 auto; }
+.phone-row--xf .hw-xfade .hw { flex: 0 0 auto; width: auto; height: 34px; }
+.device--phone .hw-xfade { min-width: 0; gap: 4px; }
+.device--phone .hw-xfade .silk { display: none; }
+.phone-panel--pads { gap: 7px; }
+.phone-panel--pads .button-row--padmodes { grid-template-columns: repeat(5, 1fr); }
+.phone-panel--pads .button-row--padmodes .hw { height: 34px; min-width: 0; font-size: 9.5px; }
+.device--phone .padgrid { width: 332px; height: 332px; margin: 0 auto; gap: 7px; flex: none; }
+.device--phone .pad-key { display: none; } /* lettres du clavier de l'ordinateur : inutiles au doigt */
+.device--phone .button-row .hw--sm { min-width: 0; }
+/* l'appareil fantôme ne montre que ses fenêtres (façade, pédalier, accueil, conflit MIDI) */
+.device--ghost { background: none; box-shadow: none; padding: 0; pointer-events: none; display: block; z-index: 50; }
+.device--ghost::before { display: none; }
+.device--ghost > * { pointer-events: auto; }
+.device--ghost .face, .device--ghost .pedalboard { inset: 8px; }
+.phone-top .top-full { padding: 0 8px; height: 28px; font-size: 15px; }
+
+/* v0.46 fix16 : décaler l'écriture d'un pas (rangées de pas des façades) */
+.steps-choice-shift { display: inline-flex; gap: 10px; margin-left: auto; }
+.steps-shift { display: inline-flex; align-items: center; gap: 3px; }
+.steps-shift small { opacity: 0.7; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-right: 2px; }
+.steps-choice-head .steps-shift button, .ot-steps-head .steps-shift button { padding: 3px 8px; border-radius: 5px; border: 1px solid oklch(1 0 0 / 0.14); background: oklch(0 0 0 / 0.25); color: inherit; font-size: 11px; line-height: 1; cursor: pointer; }
+.steps-shift button:active { background: var(--fp-led, var(--accent)); color: #111; }
+/* v0.46 fix16 : note écrite par la rangée à verrous des synthés, et note de chaque pas posé */
+.ot-steps-note { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 5px; background: oklch(0 0 0 / 0.3); font-size: 10.5px; opacity: 0.9; }
+.ot-steps-note b { color: var(--fp-led, var(--accent)); font-variant-numeric: tabular-nums; min-width: 2.4em; }
+.ot-steps-note.none b { opacity: 0.5; }
+/* v0.46 fix16 : flèches Décaler de l'écran Séquence, sur la même ligne que les autres outils */
+.seq-tools:not(.seq-tools--sel) { gap: 4px; }
+.seq-tools:not(.seq-tools--sel) .touch { padding: 4px 7px; }
+.seq-tools:not(.seq-tools--sel) .touch.seq-shift { padding: 4px 6px; min-width: 0; }
+.seq-tools:not(.seq-tools--sel) { gap: 3px; }
+.seq-tools .pattern-chips button { padding-left: 5px; padding-right: 5px; }
+.seq-tools:not(.seq-tools--sel) .touch { padding: 4px 6px; font-size: 10.5px; }
+
+/* v0.46 fix16 : transport dans la façade */
+.face-transport { display: inline-flex; gap: 4px; flex: none; padding: 3px; border-radius: 9px; background: oklch(0 0 0 / 0.28); }
+.face-transport button { appearance: none; border: 0; cursor: pointer; width: 30px; height: 28px; border-radius: 6px; font-size: 12px; line-height: 1; color: oklch(0.88 0.01 250); background: oklch(1 0 0 / 0.08); }
+.face-transport button:hover { background: oklch(1 0 0 / 0.16); }
+.face-transport .ft-rec { color: oklch(0.66 0.2 25); }
+.face-transport .ft-rec.on { background: oklch(0.6 0.21 25); color: #fff; }
+.face-transport .ft-play.on { background: oklch(0.68 0.17 145); color: #0c140e; }

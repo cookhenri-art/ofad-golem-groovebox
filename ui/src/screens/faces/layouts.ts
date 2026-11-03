@@ -521,14 +521,13 @@ const pads: FaceLayout = {
   ],
 };
 
-/** Sampler de performance : machine, écran, six boutons A à F par page, enregistreur ; les
-    routages des LFO en 2e page. */
+/** Sampler de performance : machine, écran, six boutons A à F par page, enregistreur.
+    v0.46 fix16 : page « Routages » retirée (vide : les LFO se règlent dans la page de la piste). */
 const octa: FaceLayout = {
   theme: "pieuvre",
   wheels: true,
   pages: [
     { id: "sound", label: "Son", rows: [[{ title: "Piste", ctl: [], custom: "octa" }]] },
-    { id: "matrix", label: "Routages", rows: [[{ title: "Routages · les 3 premiers partent des LFO 1 à 3", ctl: [], custom: "matrix", grow: 2 }]] },
   ],
 };
 
@@ -1320,7 +1319,9 @@ const drumNrv: FaceLayout = {
 };
 
 /** Percussion à séquenceur (v0.26) : panneau noir à joues de bois — rangée des oscillateurs et du
-    mélangeur, rangée filtre et ampli, puis transport, séquenceur 8 pas et réglages de séquence. */
+    mélangeur, rangée filtre et ampli, puis séquenceur 8 pas et réglages de séquence.
+    v0.46 fix16 : bloc Transport (Déclencher, Marche / arrêt) retiré ; le petit transport de la
+    façade (●, ▶ / ❚❚, ■) le remplace, comme sur tous les instruments. */
 const dfam: FaceLayout = {
   theme: "kicker",
   pages: [{
@@ -1343,7 +1344,6 @@ const dfam: FaceLayout = {
         ] },
       ],
       [
-        { title: "Transport", ctl: [], custom: "dfamtransport", grow: 0.45 },
         { title: "Séquenceur 8 pas", ctl: [], custom: "dfamseq", grow: 3 },
         { title: "Séquence", cols: 2, grow: 0.85, ctl: [
           { id: "seqmode", k: "switch", label: "Mode", short: ["8 pas", "Note"] }, { id: "seqlen", label: "Longueur" },

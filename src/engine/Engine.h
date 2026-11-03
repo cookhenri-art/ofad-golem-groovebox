@@ -314,6 +314,9 @@ public:
     /** v0.31 : recopie conditions et verrous des pas from..from+count-1 vers to..to+count-1 du
         même pattern (toutes les lignes) ; les pas de destination sont remplacés. Une seule publication. */
     void copyStepRangeExtras (int track, int pattern, int from, int to, int count, double nowMs);
+    /** v0.46 fix16 : conditions, répétitions, flams et verrous suivent un décalage du pattern
+        (Sequencer::shiftPattern, mêmes règles : en boucle sur la longueur de chaque ligne). */
+    void shiftPatternExtras (int track, int pattern, int lane, int dir, double nowMs);
     void copyPatternExtras (int track, int from, int to, double nowMs) { copyPatternExtras (track, from, track, to, nowMs); }
     /** Vers une autre piste : les verrous des réglages de la piste source suivent sur la piste de
         destination quand le réglage y existe (même identifiant), sinon ils sont retirés. */
