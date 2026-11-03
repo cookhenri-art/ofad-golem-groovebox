@@ -74,6 +74,24 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
 
 <p align="center"><i>Les repères numérotés sont expliqués dans la <a href="docs/NOTICE.md">notice</a>.</i></p>
 
+### 🎹 Les 34 instruments
+
+<p align="center">
+  <img src="docs/img/galerie/instruments-1.jpg" alt="Instruments : batteries et basses">
+  <img src="docs/img/galerie/instruments-2.jpg" alt="Instruments : polys, nappes, sampler">
+  <img src="docs/img/galerie/instruments-3.jpg" alt="Instruments : synthés FM et drones">
+  <img src="docs/img/galerie/instruments-4.jpg" alt="Instruments : vocodeurs et entrée audio">
+</p>
+
+### 🎚️ Les 38 effets
+
+<p align="center">
+  <img src="docs/img/galerie/effets-1.jpg" alt="Effets : égaliseurs et compresseurs">
+  <img src="docs/img/galerie/effets-2.jpg" alt="Effets : saturations, échos, réverbérations">
+  <img src="docs/img/galerie/effets-3.jpg" alt="Effets : modulations et filtres">
+  <img src="docs/img/galerie/effets-4.jpg" alt="Effets : multi-effet et boucleur">
+</p>
+
 ---
 
 ## 🎛️ Fonctionnalités
