@@ -3681,3 +3681,9 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .livexf > .learn-zone { display: block; min-width: 0; }
 .lstrip-fader > .pm-zone { display: flex; align-self: stretch; min-height: 0; }
 .lstrip-fader > .pm-zone > .tfader { flex: 1; }
+/* v0.46 fix30f : voyant d'affectation et message dans la vue live (elle couvre l'écran) */
+.vecfull-toast { z-index: 20; bottom: 18px; pointer-events: none; }
+.vecfull-top .chip.chip--learn { background: var(--scene-a, oklch(0.7 0.14 240)); color: oklch(0.15 0.01 250); font-weight: 700; padding: 6px 12px; border-radius: 8px; animation: live-learn-blink 0.8s steps(2, jump-none) infinite;
+  flex: 0 1 auto; min-width: 0; max-width: 46ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vecfull--phone .vecfull-top .chip--learn { max-width: 24ch; font-size: 11px; }
+@keyframes live-learn-blink { 50% { background: oklch(0.95 0.03 240); box-shadow: 0 0 0 3px var(--scene-a, oklch(0.7 0.14 240)); } }

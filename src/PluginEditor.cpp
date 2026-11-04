@@ -85,6 +85,20 @@ static juce::File installLangFile()
     return juce::File::getSpecialLocation (juce::File::commonApplicationDataDirectory)
                .getChildFile ("One For All Distribution").getChildFile ("Groovebox").getChildFile ("language.txt");
 }
+/** v0.46 fix30f : langue à utiliser maintenant (choix de l'utilisateur, sauf installation plus récente). Relue à
+    chaque chargement de l'interface (fonction « getLang ») : les données d'initialisation sont figées à l'ouverture
+    de la fenêtre, un rechargement après un changement de langue y retrouvait l'ancienne (boucle sur Android). */
+static juce::String currentLang()
+{
+    const auto inst = installLangFile().existsAsFile() ? installLangFile().loadFileAsString().trim().toLowerCase() : juce::String();
+    const auto user = userLangFile().existsAsFile() ? userLangFile().loadFileAsString().trim().toLowerCase() : juce::String();
+    const auto code = [] (const juce::String& v) -> juce::String { return v.startsWith ("en") ? "en" : v.startsWith ("fr") ? "fr" : ""; };
+    const auto stampOf = [] (const juce::String& v) { return v.fromFirstOccurrenceOf (" ", false, false).trim(); };
+    juce::String lang = code (user);
+    if (code (inst).isNotEmpty() && (lang.isEmpty() || stampOf (user) != stampOf (inst)))
+        lang = code (inst);
+    return lang;
+}
 
 juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
 {
@@ -111,16 +125,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
     //    « en 20261104050100 » (langue, heure de l'installation).
     // Une nouvelle installation impose sa langue ; un choix fait ensuite dans l'application est gardé.
     // Rien de connu : l'interface pose la question au premier lancement.
-    {
-        const auto inst = installLangFile().existsAsFile() ? installLangFile().loadFileAsString().trim().toLowerCase() : juce::String();
-        const auto user = userLangFile().existsAsFile() ? userLangFile().loadFileAsString().trim().toLowerCase() : juce::String();
-        const auto code = [] (const juce::String& v) -> juce::String { return v.startsWith ("en") ? "en" : v.startsWith ("fr") ? "fr" : ""; };
-        const auto stampOf = [] (const juce::String& v) { return v.fromFirstOccurrenceOf (" ", false, false).trim(); };
-        juce::String lang = code (user);
-        if (code (inst).isNotEmpty() && (lang.isEmpty() || stampOf (user) != stampOf (inst)))
-            lang = code (inst);
-        options = options.withInitialisationData ("lang", lang);
-    }
+    options = options.withInitialisationData ("lang", currentLang());
 
     auto fn = [&options] (const char* name, std::function<void (const Args&, Completion)> f)
     {
@@ -152,6 +157,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         }
         done (juce::var (true));
     });
+    fn ("getLang", [] (const Args&, Completion done) { done (juce::var (currentLang())); });
     fn ("uiLog", [] (const Args& a, Completion done)
     {
         std::fprintf (stderr, "[interface] %s\n", (a.size() > 0 ? a[0].toString().substring (0, 2000) : juce::String()).toRawUTF8());

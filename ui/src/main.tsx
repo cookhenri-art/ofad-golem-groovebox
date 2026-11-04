@@ -53,7 +53,7 @@ async function start() {
   //   ordre : choix fait dans l'application > choix d'une nouvelle installation (Windows) > question au premier
   //   lancement ; la langue est gardée par l'application (src/PluginEditor.cpp, fonction setLang)
   const { startLang, saveLang } = await import("./lang");
-  let lang: "fr" | "en" | null = startLang();
+  let lang: "fr" | "en" | null = await startLang();
   if (!lang && !mock) { lang = await askLanguage(); await saveLang(lang); }
   if (!lang) lang = "fr"; // maquette de développement : français (captures)
   document.documentElement.lang = lang;

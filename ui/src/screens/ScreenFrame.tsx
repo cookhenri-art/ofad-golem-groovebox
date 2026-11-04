@@ -136,11 +136,29 @@ export function ModeBar() {
   );
 }
 
+/** Attente d'une affectation (bouton assignable à toucher, commande MIDI à toucher) : voyant clignotant.
+    v0.46 fix30f : aussi dans la vue live (elle couvre l'écran : le voyant n'y était pas visible). */
+export function LearnChips() {
+  const learn = useStore((s) => s.tick.learn ?? -1);
+  const knobWait = useStore((s) => s.ui.knobAssign);
+  return (
+    <>
+      {knobWait !== null && <button type="button" className="chip chip--edit chip--A chip--learn chip--knob" onClick={() => setUi({ knobAssign: null })}
+        title="Annuler (Échap)">Bouton {knobWait + 1} : touchez la valeur à piloter… (annuler)</button>}
+      {learn !== -1 && <button type="button" className="chip chip--edit chip--A chip--learn" onClick={() => void actions.midiLearn(-1)} title="Annuler l'apprentissage">MIDI : touchez une commande…</button>}
+    </>
+  );
+}
+
+/** v0.46 fix30f : message court (ex. « touchez un bouton du contrôleur ») affiché dans la vue live. */
+export function LiveToast() {
+  const message = useStore((s) => s.ui.message);
+  return message ? <div className="screen-toast vecfull-toast" role="status">{message}</div> : null;
+}
+
 export function ScreenFrame({ title, status, tabs, tab, onTab, encoders, children }: ScreenFrameProps) {
   const t = useStore((s) => s.tick.t);
   const message = useStore((s) => s.ui.message);
-  const learn = useStore((s) => s.tick.learn ?? -1);
-  const knobWait = useStore((s) => s.ui.knobAssign);
   const slots = Array.from({ length: 8 }, (_, i) => encoders[i] ?? null);
 
   return (
@@ -157,9 +175,7 @@ export function ScreenFrame({ title, status, tabs, tab, onTab, encoders, childre
         {status}
         <span className="screen-spacer" />
         {(t.fill || t.brk) && <span className="chip chip--edit chip--B">{t.brk ? "BREAK" : "FILL"}</span>}
-        {knobWait !== null && <button type="button" className="chip chip--edit chip--A chip--learn chip--knob" onClick={() => setUi({ knobAssign: null })}
-          title="Annuler (Échap)">Bouton {knobWait + 1} : touchez la valeur à piloter… (annuler)</button>}
-        {learn !== -1 && <button type="button" className="chip chip--edit chip--A chip--learn" onClick={() => void actions.midiLearn(-1)} title="Annuler l'apprentissage">MIDI : touchez une commande…</button>}
+        <LearnChips />
         <span className={`transport-state${t.rec ? " rec" : ""}${t.playing ? " play" : ""}`}>
           {t.rec ? <><IconRec /> ENR</> : t.playing ? <><IconPlay /> LECTURE</> : <><IconStop /> ARRÊT</>}
         </span>

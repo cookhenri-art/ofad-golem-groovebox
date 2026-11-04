@@ -10,13 +10,26 @@ export type Lang = "fr" | "en";
 
 const hasNative = (name: string) => !!window.__JUCE__?.initialisationData?.__juce__functions?.includes(name);
 
-/** Langue connue au démarrage : celle que l'application a gardée (ou celle de l'installateur), sinon celle de la
-    maquette ; null : inconnue (premier lancement : on la demande). */
-export function startLang(): Lang | null {
-  const data = (window.__JUCE__ as { initialisationData?: Record<string, unknown> } | undefined)?.initialisationData;
-  const raw = data?.lang;
+const asLang = (raw: unknown): Lang | null => {
   const v = String(Array.isArray(raw) ? (raw[0] ?? "") : (raw ?? ""));
-  if (v === "fr" || v === "en") return v;
+  return v === "fr" || v === "en" ? v : null;
+};
+
+/** Langue connue au démarrage : celle que l'application a gardée (ou celle de l'installateur), sinon celle de la
+    maquette ; null : inconnue (premier lancement : on la demande).
+    v0.46 fix30f : elle est redemandée à l'application à chaque chargement (fonction « getLang ») : les données
+    d'initialisation sont figées à l'ouverture de la fenêtre, et l'interface rechargée après un changement de langue
+    y retrouvait l'ancienne (la langue tournait en rond sur Android). */
+export async function startLang(): Promise<Lang | null> {
+  if (hasNative("getLang")) {
+    try {
+      const v = await Promise.race([getNativeFunction("getLang")(), new Promise((r) => window.setTimeout(() => r(undefined), 800))]);
+      if (v !== undefined) return asLang(v);
+    } catch { /* ancienne version de l'application : données d'initialisation */ }
+  }
+  const data = (window.__JUCE__ as { initialisationData?: Record<string, unknown> } | undefined)?.initialisationData;
+  const l = asLang(data?.lang);
+  if (l) return l;
   if (!hasNative("setLang")) {
     try { const s = window.localStorage.getItem("groovebox.lang"); if (s === "fr" || s === "en") return s; } catch { /* rien */ }
   }

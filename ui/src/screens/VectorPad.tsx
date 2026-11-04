@@ -20,6 +20,7 @@ import { paramAddress, useParam } from "../controls/bindings";
 import { ParamMenuZone } from "../controls/Encoder";
 import { useLearnPress } from "../controls/useLearnPress";
 import { Learn } from "../device/Device";
+import { LearnChips, LiveToast } from "./ScreenFrame";
 import { MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_SOLO_BASE } from "../engine/protocol";
 
 export const VEC_ORBITS = ["Arrêt", "Cercle", "Infini", "Losange", "Carré", "Triangle", "Ricochet", "Hasard", "Dessinée"] as const;
@@ -431,11 +432,13 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
         <button type="button" className={`chip${drawing ? " chip--on" : ""}`} onClick={() => setDrawing(!drawing)} title="Dessiner une forme au doigt sur le pavé" aria-label="Dessiner une forme">{phone ? "✎" : "✎ Dessiner"}</button>
         </>}
         <span className="vecfull-spacer" />
+        <LearnChips />
         {/* v0.46 fix28 : piste choisie (toucher une tranche de la console) : son instrument, ses effets */}
         {focusName && <span className="vecfull-focus" style={{ "--k": focusColor } as React.CSSProperties}><i aria-hidden />{focusName}</span>}
         {focusIsTrack && <button type="button" className="chip chip--inst" onClick={() => setUi({ face: true })}
           title="Ouvrir la façade de l'instrument de la piste choisie (✕ pour revenir à la vue live)">{phone && vecView ? "Instrument" : "Ouvrir l'instrument"}</button>}
       </header>
+      <LiveToast />
       {/* v0.46 fix26 : les 16 boutons assignables sur une seule rangée (le pavé garde sa hauteur) */}
       <div className="vecfull-knobs"><div className="vecfull-knobs-grid"><AssignKnobs /></div></div>
       {/* rangées A à H (lancement de tout un tableau de patterns), comme sur l'écran Lancement */}
