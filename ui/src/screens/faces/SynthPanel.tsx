@@ -112,12 +112,14 @@ export function PanelPage({ channel, module: m, page, lane, bigText = false }: {
   // normale pour tenir passe en grand — sections à la suite, passées à la ligne, et la façade
   // défile vers le bas. Une page qui tient déjà à sa taille normale garde sa disposition.
   const ref = useRef<HTMLDivElement>(null);
-  const big = useStore((s) => s.ui.faceBig);
+  // v0.46 fix20 : sur téléphone, toujours « grand » : les sections passent à la ligne et la façade défile
+  const phone = useStore((s) => !!s.ui.phone);
+  const big = useStore((s) => s.ui.faceBig) || phone;
   const [flow, setFlow] = useState(false);
   // v0.31 : une page qui déborde en largeur même passée à la ligne (bandeau de pistes d'une
   // batterie, d'un seul tenant) n'est pas mise en grand : elle reste ajustée à l'écran.
   const noFlow = useRef(false);
-  useLayoutEffect(() => { setFlow(false); noFlow.current = false; }, [page, m, big]);
+  useLayoutEffect(() => { setFlow(phone); noFlow.current = false; }, [page, m, big, phone]);
   useLayoutEffect(() => {
     const el = ref.current, host = el?.parentElement;
     if (!el || !host) return;
@@ -210,9 +212,13 @@ function PanelSection({ channel, module: m, panel, lane }: { channel: number; mo
   useStore((s) => s.channels[channel]?.inst); // valeurs à jour pour « Copier »
   const sectionMenu = makeSectionMenu(channel, m, sectionTitle, ctlIds);
   const [sectionOpen, setSectionOpen] = useState(false);
+  // v0.46 fix26 : façade « en flux » (téléphone, grande taille) : un petit panneau rangé en colonne
+  // (Mélangeur, Séquence…) passe à l'horizontale : une colonne par commande, jusqu'à 6
+  const nItems = panel.ctl.filter((c) => !(typeof c === "object" && "gap" in c)).length;
+  const flowCols = (panel.cols ?? 4) < nItems && nItems <= 6 ? nItems : panel.cols ?? 4;
   return (
     <SectionMenuContext.Provider value={sectionMenu}>
-    <section className={panel.wideLabels ? "fp fp--wide-labels" : "fp"} style={{ "--cols": panel.cols ?? 4, "--grow": panel.grow ?? 1, ...(panel.tone ? { "--tone": panel.tone } : {}),
+    <section className={panel.wideLabels ? "fp fp--wide-labels" : "fp"} style={{ "--cols": panel.cols ?? 4, "--cols-flow": flowCols, "--grow": panel.grow ?? 1, ...(panel.tone ? { "--tone": panel.tone } : {}),
       // le bandeau (titre + banques) est posé au-dessus du cadre : la section garde assez de largeur pour lui
       ...(panel.banks ? { minWidth: `${36 + panel.title.length * 9 + panel.banks.reduce((n, x) => n + 30 + x.label.length * 7, 0)}px` } : {}) } as React.CSSProperties}>
       <header className="fp-head">

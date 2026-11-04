@@ -68,6 +68,7 @@ struct ChannelGraph
     int numRanges = 0;
     int arpParam = -1; // réglage « arp_mode » de l'instrument (arpégiateur de piste), -1 sans
     int arpOnParam = -1; // v0.43.6 : réglage « arp_on » (marche / arrêt, le mode reste choisi), -1 sans
+    int glideParam = -1; // v0.46 fix27 : réglage de portamento de l'instrument (« glide » ou « porta »), -1 sans
 };
 
 struct Graph
@@ -445,6 +446,14 @@ public:
         float fader = 0.0f;   // 0 = tout A, 1 = tout B
         int sceneA = 0, sceneB = 8;
         bool breakActive = false;
+        // v0.46 fix22 : pavé vectoriel (principe des synthés vectoriels, appliqué à tout le mix) :
+        // quatre coins A B C D, poids des coins (somme 1). Mode 0 : quatre scènes mêlées (remplace
+        // le crossfader A / B) ; mode 1 : quatre effets du bus principal dosés (son direct / traité).
+        bool vecOn = false;
+        int vecMode = 0;
+        std::array<float, 4> vecW { 0.25f, 0.25f, 0.25f, 0.25f };
+        std::array<int, 4> vecScene { 0, 1, 2, 3 };  // scènes 0..31
+        std::array<int, 4> vecFx { 1, 2, 3, 4 };     // insert du bus principal 1..4 (0 : aucun)
     };
 
     void process (const float* inL, const float* inR, float* outL, float* outR, int numSamples,
@@ -631,6 +640,11 @@ private:
     std::array<PendingOff, 2048> pendingOffs {}; // répétitions comprises : jamais de note-off perdu en pratique
     int numPendingOffs = 0;
     float smoothedFader = 0.0f;
+    std::array<float, 4> smoothedVec { 0.25f, 0.25f, 0.25f, 0.25f }; // v0.46 fix22 : poids des coins, lissés
+    bool vecScenesOn = false;                                       // pavé vectoriel en mode scènes (ce bloc)
+    std::array<float, numInserts> vecFxTarget {};                   // mode effets : dosage de chaque insert du principal
+    std::array<bool, numInserts> vecFxMapped {};                    // insert du principal piloté par le pavé
+    std::array<float, numInserts> vecFxGain {};                     // dosage lissé
     std::atomic<float> laneFader { -1.0f }; // v0.46 : crossfader piloté par sa courbe
     double lastPpq = -1.0;
     bool wasRunning = false; // séquenceur en marche au bloc précédent (arrêt : notes relâchées)
@@ -652,7 +666,7 @@ private:
     std::atomic<float> outPeakL { 0.0f }, outPeakR { 0.0f };
     std::array<std::array<std::atomic<float>, numModSources>, numChannels> modLive {};
     std::array<std::array<std::atomic<int>, numModSources>, numChannels> modLiveStep {};
-    struct BlockEvent { int offset; int track; int lane; int note; float vel; bool on; double len; const StepExtra* extra; bool fromSeq; int kind = 0; std::uint8_t flags = 0; double stepLen = 0.0; bool repeat = false; float accent = 0.0f; };
+    struct BlockEvent { int offset; int track; int lane; int note; float vel; bool on; double len; const StepExtra* extra; bool fromSeq; int kind = 0; std::uint8_t flags = 0; double stepLen = 0.0; bool repeat = false; float accent = 0.0f; double glideSamples = 0.0; };
     static constexpr int kindRecord = 100; // kind = kindRecord + action
     std::unique_ptr<std::array<BlockEvent, 4096>> blockEvents = std::make_unique<std::array<BlockEvent, 4096>>();
     dsp::LoudnessMeter loudness;

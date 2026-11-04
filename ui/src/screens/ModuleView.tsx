@@ -414,13 +414,16 @@ function ParamRow({ global, name, text }: { global: number; name: string; text: 
 /** Onglet Modulation : les sources de la famille (son, ou effets et mixage), et pour la source
     choisie : son type, ses destinations (profondeur, retrait) et l'affectation guidée
     (« Affecter », puis toucher les encodeurs à moduler). */
-export function ModSources({ channel, scope }: { channel: number; scope: ModScope }) {
+/** v0.46 fix28 : le même panneau pour les 16 boutons assignables (sources 1 à 4 du bus principal) :
+    titre, compte des destinations, affectation (toucher les boutons) et liste des boutons modulés. */
+export interface KnobModMode { title: string; note: string; assigning: boolean; onAssign: () => void; count: (src: number) => number; dests: React.ReactNode; empty: boolean }
+export function ModSources({ channel, scope, knobs }: { channel: number; scope: ModScope; knobs?: KnobModMode }) {
   const c = useStore((s) => s.channels[channel]);
   const modSlot = useScopedModSlot(scope);
   const assign = useStore((s) => s.ui.modAssign);
   const cat = useStore((s) => s.catalog);
   const tracks = useStore((s) => s.tracks);
-  const live = useStore((s) => (s.focus === channel ? s.tick.mods : undefined));
+  const live = useStore((s) => (knobs ? s.tick.kmods : s.focus === channel ? s.tick.mods : undefined));
   if (!c || !cat) return null;
   const ms = cat.modSource;
   const sources = MOD_SCOPE_SOURCES[scope];
@@ -428,7 +431,7 @@ export function ModSources({ channel, scope }: { channel: number; scope: ModScop
   const selType = modTypeOf(selVals);
   const selName = `${MOD_TYPES[selType]} ${modSlot + 1}`;
   const selColor = MOD_SOURCE_COLORS[modSlot];
-  const assigning = !!assign && assign.channel === channel && assign.source === modSlot;
+  const assigning = knobs ? knobs.assigning : !!assign && assign.channel === channel && assign.source === modSlot;
   const dests = c.mods.filter((m) => m.source === modSlot);
   const typeIdx = ms.params.findIndex((p) => p.id === "type");
   const retrigIdx = ms.params.findIndex((p) => p.id === "retrig");
@@ -439,8 +442,8 @@ export function ModSources({ channel, scope }: { channel: number; scope: ModScop
   return (
     <div className={`mod-panel mod-panel--${scope}`}>
       <div className="mod-scope">
-        <b>{MOD_SCOPE_TITLE[scope]}</b>
-        <span>{scope === "sound" ? "Sources 1 à 4 : réglages de l'instrument (filtre, oscillateurs, enveloppes, pads…)" : "Sources 5 et 6 : effets, volume, panoramique, envois"}</span>
+        <b>{knobs ? knobs.title : MOD_SCOPE_TITLE[scope]}</b>
+        <span>{knobs ? knobs.note : scope === "sound" ? "Sources 1 à 4 : réglages de l'instrument (filtre, oscillateurs, enveloppes, pads…)" : "Sources 5 et 6 : effets, volume, panoramique, envois"}</span>
       </div>
       <div className="mod-slots" style={{ gridTemplateColumns: `repeat(${sources.length}, minmax(0, 1fr))`, gridTemplateRows: "1fr" }}>
         {sources.map((i) => {
@@ -450,7 +453,7 @@ export function ModSources({ channel, scope }: { channel: number; scope: ModScop
           const steps = Array.from({ length: 16 }, (_, k) => toPlain(ms.params[24 + k], vals[24 + k] ?? 0) / 100);
           const levels = [12, 13, 14, 15].map((k) => toPlain(ms.params[k], vals[k] ?? 0) / 100);
           const shape = toPlain(ms.params[4], vals[4] ?? 0);
-          const n = c.mods.filter((m) => m.source === i).length;
+          const n = knobs ? knobs.count(i) : c.mods.filter((m) => m.source === i).length;
           return (
             <button key={i} type="button" className={`mod-slot${i === modSlot ? " is-selected" : ""}`} style={{ "--mod": color } as React.CSSProperties}
               onClick={() => setUi({ modSlot: i, modAssign: assign ? { channel, source: i } : null })} aria-pressed={i === modSlot}>
@@ -476,11 +479,11 @@ export function ModSources({ channel, scope }: { channel: number; scope: ModScop
             ))}
           </span>
           <button type="button" className={`mod-assign${assigning ? " on" : ""}`}
-            onClick={() => setUi({ modAssign: assigning ? null : { channel, source: modSlot } })}>
-            {assigning ? "Terminer" : "Affecter à un réglage…"}
+            onClick={() => (knobs ? knobs.onAssign() : setUi({ modAssign: assigning ? null : { channel, source: modSlot } }))}>
+            {assigning ? "Terminer" : knobs ? "Affecter à un bouton…" : "Affecter à un réglage…"}
           </button>
           <span className="mod-dests-hint">{assigning
-            ? (scope === "sound" ? "Touchez les encodeurs de l'écran Son à moduler" : "Touchez les encodeurs des écrans Effets ou Mixeur à moduler")
+            ? knobs ? "Touchez les boutons assignables (1 à 16) à moduler" : (scope === "sound" ? "Touchez les encodeurs de l'écran Son à moduler" : "Touchez les encodeurs des écrans Effets ou Mixeur à moduler")
             : selType === 0 ? "Encodeurs : synchro au tempo (Libre / Tempo), vitesse ou division, forme, phase…" : selType === 3 ? "Tirez les barres pour régler les 16 pas ; encodeurs : division, longueur, lissage, redéclenchement" : selType === 1 ? "Encodeurs : temps et niveaux des 4 segments" : "Les encodeurs règlent la forme de la source"}</span>
         </div>
         {selType === 1 && (
@@ -516,7 +519,10 @@ export function ModSources({ channel, scope }: { channel: number; scope: ModScop
             })}
           </div>
         )}
-        {dests.length === 0 ? (
+        {knobs ? (knobs.empty
+          ? <p className="mod-dests-empty">Aucun bouton. « Affecter à un bouton… », puis touchez un des 16 boutons : il sera modulé par {selName}.</p>
+          : knobs.dests
+        ) : dests.length === 0 ? (
           <p className="mod-dests-empty">Aucune destination. « Affecter à un réglage… », puis touchez un encodeur : il sera modulé par {selName}.</p>
         ) : (
           <ul className="mod-dest-list">

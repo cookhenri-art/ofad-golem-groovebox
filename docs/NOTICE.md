@@ -16,6 +16,7 @@ Cette notice donne les bases ; le détail des instruments et des effets est dans
 | **B** maintenu | Break : scène de Break tant que la touche est tenue (et Fill en même temps) |
 | **N** maintenu | Fill : les pas à condition FILL jouent, les NON FILL se taisent |
 | Clic droit (appui long au doigt) sur un bouton à diode, Photo, Rappel, M / S… | Affecter au contrôleur MIDI |
+| Toucher le **tempo** (barre d'état, ou rangée Tempo du téléphone) | Taper le tempo au clavier (40 à 240 BPM, au dixième) |
 
 <figure class="wide"><img src="img/appareil-reperes.jpg" alt="Les commandes générales, numérotées"><figcaption>Où sont les commandes générales</figcaption></figure>
 
@@ -23,7 +24,7 @@ Cette notice donne les bases ; le détail des instruments et des effets est dans
 2. **Annuler / Rétablir** (Ctrl + Z / Ctrl + Y), **Photo** et **Rappel** de tous les réglages.
 3. **Audio** : enregistrer ce qui sort (master ou pistes séparées).
 4. **Plein écran** (F11).
-5. Les **8 encodeurs** : ils prennent les réglages affichés en bas de l'écran.
+5. Les **16 boutons assignables** (losange bleu) : chacun pilote la valeur qu'on lui a donnée (voir plus bas).
 6. **M / S** : coupure et solo des pistes affichées.
 7. **Transport** : Enr., Lecture, Arrêt (barre d'espace) ; Fill (N), Break (B), Break temporisé, Maj.
 8. **Crossfader** des scènes A / B (double-clic : retour au milieu).
@@ -44,7 +45,7 @@ Les touches suivent le rôle des pads choisi à droite : Jouer, Couper, Scènes,
 
 <figure class="pads"><img src="img/pads-clavier.jpg" alt="La touche du clavier de l'ordinateur sur chaque pad"><figcaption>La touche du clavier sur chaque pad (la même petite lettre est rappelée en haut à droite de chaque pad)</figcaption></figure>
 
-### Boutons et valeurs (encodeurs, boutons des façades, valeurs écrites à l'écran)
+### Boutons et valeurs (boutons des façades, valeurs du bas des écrans, boutons assignables)
 
 | Geste | Effet |
 |---|---|
@@ -53,15 +54,54 @@ Les touches suivent le rôle des pads choisi à droite : Jouer, Couper, Scènes,
 | Molette | Un cran (**Maj** + molette : cran fin) |
 | Double-clic (double tape au doigt) | Valeur d'origine |
 | Flèches ↑ ↓ ← → (bouton choisi) | Un cran (**Maj** : cran fin) |
-| Clic droit (appui long au doigt) | Menu : valeur exacte, modulation, macro, Apprendre MIDI |
+| Clic droit (appui long au doigt) | Menu : valeur exacte, modulation, Apprendre MIDI, bouton assignable (et macros, sur la façade d'un synthé) |
 | Mixeur : double-clic sur un fader | Valeur d'origine ; double-clic sur le nom d'un groupe : le renommer |
 | Crossfader : double-clic | Retour au milieu |
 
-<figure class="wide"><img src="img/boutons-reperes.jpg" alt="Un encodeur, son nom à l'écran et le menu du clic droit"><figcaption>Régler un bouton</figcaption></figure>
+**Les valeurs du bas des écrans** (Swing, Longueur, Division, X, Y, Crossfader, Scène A…) se règlent en
+glissant dessus. Un **appui long** (clic droit sur PC) ouvre leur menu, le même partout : valeur exacte
+(liste des choix ou nombre à taper), **Apprendre MIDI**, **piloter avec un bouton 1 à 16** ; la
+modulation n'apparaît que pour un réglage de son, d'effet ou de mixage. Les **macros** du synthé ne se
+proposent que dans la façade d'un synthé.
 
-1. Un **encodeur** : glisser, molette, double-clic.
-2. Son **nom et sa valeur**, en bas de l'écran (on peut aussi glisser sur la valeur).
-3. Le **menu du clic droit** : valeur exacte, modulation, macro, Apprendre MIDI.
+<figure class="wide"><img src="img/boutons-reperes.jpg" alt="Une valeur du bas de l'écran, son menu et les 16 boutons assignables"><figcaption>Régler une valeur et la confier à un bouton</figcaption></figure>
+
+1. Une **valeur du bas de l'écran** : glisser, double-clic.
+2. Son **menu** (appui long, clic droit) : valeur exacte, modulation, Apprendre MIDI, bouton 1 à 16.
+3. Les **16 boutons assignables**.
+
+**Les 16 boutons assignables** remplacent les anciens encodeurs : ils ne changent plus avec l'écran,
+chacun garde la valeur qu'on lui a confiée. Sur PC et tablette ils sont en une rangée de 16 ; sur
+téléphone, en deux rangées de 8. Un **losange bleu** les signale : creux quand le bouton est libre,
+plein quand il pilote quelque chose (son nom s'écrit sous le numéro). Toute la course, de 0 au
+maximum, se fait **en un seul geste**.
+
+<figure class="wide"><img src="img/boutons-assignables.jpg" alt="Le menu d'un bouton assignable : Assigner à…, Apprendre MIDI"><figcaption>Appui long sur un bouton assignable</figcaption></figure>
+
+- **Appui long** (clic droit) sur un bouton › **Assigner à…** : le bouton **clignote en bleu** et tout
+  ce qu'on peut piloter est **souligné en pointillés bleus**. Touchez la valeur voulue : une valeur du
+  bas d'un écran, un bouton d'un synthé ou d'un effet, une macro, le crossfader, le tempo, Lecture,
+  Fill, un M / S… On peut changer d'écran ou ouvrir un synthé avant de toucher. **Échap** annule.
+- **Libérer le bouton** : il ne pilote plus rien.
+- **Moduler le bouton** : les 16 boutons ont **leurs propres sources de modulation** (4 sources : LFO,
+  fonction, suiveur ou séquenceur), indépendantes de celles des synthés : un réglage peut être modulé
+  à la fois par le LFO du synthé et par celui du bouton. Le menu du bouton propose ces 4 sources, la
+  **profondeur** (−100 à +100 %) et « Retirer la modulation » ; une pastille de couleur montre la source
+  et le bouton bouge avec elle. Retirer la modulation ou libérer le bouton rend le réglage tel qu'il
+  était. Tout ce que le bouton pilote se module (son, effets, mixage, crossfader, pavé, macros), sauf le
+  tempo et les commandes.
+- **Mod. boutons** (à côté de Photo / Rappel, en haut sur PC, sous les 16 boutons sur téléphone et
+  tablette) ouvre le panneau de ces 4 sources, le même que les modulations d'un synthé : forme, synchro
+  au tempo, vitesse, phase… ; **Affecter à un bouton…** puis toucher les boutons à moduler.
+- **Apprendre MIDI** : un bouton ou un fader du contrôleur fait tourner ce bouton.
+
+<figure class="wide"><img src="img/modulations-boutons.jpg" alt="Panneau Modulations des 16 boutons : LFO 1, LFO 2, Fonction 3, Fonction 4, le bouton 1 modulé par le LFO 1 à +40 %, réglages de la source"><figcaption>Mod. boutons : les 4 sources propres aux 16 boutons</figcaption></figure>
+
+<figure class="wide"><img src="img/assignation.jpg" alt="Assigner à… : le bouton 3 clignote, les valeurs à toucher sont soulignées en bleu"><figcaption>Le bouton 3 attend : touchez la valeur qu'il doit piloter</figcaption></figure>
+
+Les valeurs propres à un écran (Longueur, Division, Famille…) suivent leur bouton tant que l'interface
+est ouverte ; après l'ouverture d'un projet, affichez une fois l'écran concerné. Le son, les effets, le
+tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent toujours.
 
 ### Écran SÉQUENCE (notes et pas)
 
@@ -80,6 +120,8 @@ Les touches suivent le rôle des pads choisi à droite : Jouer, Couper, Scènes,
 | Flèches ← → | Déplacer d'un pas (**Maj** : d'une mesure) |
 | Flèches ↑ ↓ | Note : un demi-ton (**Maj** : une octave) ; batterie : pad voisin |
 | Clic droit sur un pas | Réglages du pas (vélocité, durée, condition, verrous) |
+| Toucher une case **Accent** / **Glissé** | Allumer / éteindre l'accent ou le glissé du pas |
+| Appui long (clic droit) sur une case **Accent** / **Glissé** | La valeur du pas : force de l'accent, durée du glissé |
 | ◀ ▶ à côté du pattern (ou les petites pastilles) | Tourner les pages (une page = 16 pas) |
 | **Maj** + ◀ ▶ d'Octave (transport) | Page précédente / suivante |
 | **Enr.** puis jouer | Les notes jouées s'écrivent dans le pattern (quantification : Réglages) |
@@ -90,6 +132,7 @@ Les touches suivent le rôle des pads choisi à droite : Jouer, Couper, Scènes,
 2. Le **pattern** : nombre de mesures (1 à 32), division (1/16, triolets…), vitesse.
 3. **Tourner les pages** : ◀ ▶ et « page / total » (pastilles jusqu'à 4 pages).
 4. Les lignes **Accent** et **Glissé** (et « Verrous seuls » : le pas pose ses réglages sans jouer).
+   Appui long sur une case : sa valeur (voir « La valeur d'un pas »).
 5. Le **rouleau de notes** : chaque pas reçoit la note qu'on veut, jusqu'à 4 notes par pas (accords).
 6. **Sélection**, **Pinceau**, tout choisir, patterns **A à H**, dupliquer, effacer.
 7. **Notes / Courbes** : les mouvements de boutons enregistrés avec **ENR.** dans ce pattern.
@@ -110,7 +153,7 @@ Les touches suivent le rôle des pads choisi à droite : Jouer, Couper, Scènes,
 1. Les onglets **Grille**, **Morceau**, **Audio**.
 2. La **grille** : une colonne par piste, une case par pattern (A à H) ; ▶ lance une rangée, ■ arrête une piste.
 3. Copier, effacer ou éditer le pattern ou la rangée choisis.
-4. Les encodeurs : piste, pattern édité, **quantification du lancement**, rangée, **scène liée**.
+4. Les valeurs du bas : piste, pattern édité, **quantification du lancement**, rangée, **scène liée**.
 
 ### Écran LANCEMENT › Morceau et courbes
 
@@ -171,14 +214,19 @@ Les touches suivent le rôle des pads choisi à droite : Jouer, Couper, Scènes,
 ## L'appareil
 
 - **8 écrans** (boutons à droite) : Pistes, Lancement, Séquence, Son, Effets, Mixeur, Scènes, Réglages.
-- **8 encodeurs** sous l'écran : ils prennent les réglages affichés à l'écran.
+- **16 boutons assignables** sous l'écran : chacun pilote la valeur qu'on lui a confiée (voir « Boutons
+  et valeurs »). Les valeurs de l'écran se règlent en bas de l'écran, directement.
 - **16 pads** à droite : leur rôle (Jouer, Couper, Scènes, Pas, Effacer) se choisit au-dessus d'eux.
 - **Transport** en bas : Enr. (enregistrement dans le pattern), Lecture, Arrêt ; Fill, Break, Maj ; octave ;
   crossfader des scènes A / B.
+- **Sur téléphone** : à côté de l'écran, deux onglets. **Commandes** : les écrans, les 16 boutons, le
+  transport, Fill et Break, le crossfader, Photo / Rappel et la rangée **Tempo** (− / valeur à toucher
+  pour la taper / + / **Tap** : touchez en rythme, le tempo suit). **Pads** : le rôle des pads, les 16
+  pads, la banque de scènes.
 - **Barre du haut** : « Ouvrir le synthé » (la façade de l'instrument en grand), charge du processeur,
   annuler / rétablir, Photo et Rappel des réglages, enregistrement Audio, plein écran.
 
-<figure><img src="img/appareil.jpg" alt="L'appareil : l'écran (ici LANCEMENT › Grille), les 8 encodeurs, les M / S, le transport, les 8 écrans et les 16 pads"><figcaption>L'appareil : l'écran (ici LANCEMENT › Grille), les 8 encodeurs, les M / S, le transport, les 8 écrans et les 16 pads</figcaption></figure>
+<figure><img src="img/appareil.jpg" alt="L'appareil : l'écran (ici LANCEMENT › Grille), les 16 boutons assignables, les M / S, le transport, les 8 écrans et les 16 pads"><figcaption>L'appareil : l'écran (ici LANCEMENT › Grille), les 16 boutons assignables, les M / S, le transport, les 8 écrans et les 16 pads</figcaption></figure>
 
 ## Les bases de l'édition
 
@@ -196,6 +244,11 @@ piste affichée). « Ouvrir le synthé » montre la façade de l'instrument en g
 
 <figure><img src="img/facade.jpg" alt="La façade d'un instrument (ici la batterie à machines) : tous ses réglages, ses pads ou son clavier"><figcaption>La façade d'un instrument (ici la batterie à machines) : tous ses réglages, ses pads ou son clavier</figcaption></figure>
 
+**L'en-tête de chaque façade** a toujours trois lignes, sur PC comme sur téléphone : 1. le nom de
+l'instrument, le transport (● ▶ ■), le choix de la piste (◀ ▶, M, S) et ✕ pour refermer ; 2. les pages
+(Son, Pas, Modulations de la piste, Macros…), qui défilent de côté s'il y en a beaucoup ; 3. les outils :
+échantillon et bibliothèque (si l'instrument en a), ⇄ Instrument, FX · Effets, Préréglages.
+
 ### 3. Écrire une séquence
 
 Chaque piste a **8 patterns** (A à H), de 1 à 32 mesures. Une même séquence s'écrit de trois façons,
@@ -209,9 +262,14 @@ l'écran SÉQUENCE, et inversement.
   de 0 à 100 % dans Réglages ; le reste du décalage est gardé). **ENR.** enregistre aussi les
   **mouvements** des boutons de la piste en courbes dans le pattern (onglet Courbes).
 - **Sur la façade du synthé**, dans « Pas de la séquence », avec deux écritures au choix
-  (« Écriture ») : **Acide** ou **À verrous**. Le choix est gardé, et le même partout.
+  (« Écriture ») : **Acide** ou **À verrous**. Le choix est gardé, et le même partout. Sur les synthés
+  mélodiques, la rangée choisie est aussi **au-dessus du clavier**, sur toutes les pages de la façade :
+  on écrit ses pas sans quitter la page Son. **Masquer ▾** la replie (plus de place pour les réglages),
+  **Afficher ▴** la ramène.
 - Rôle des pads **Pas** : les 16 pads posent ou retirent les pas de la page affichée, comme le pas à
   pas d'une boîte à rythmes.
+
+<figure class="wide"><img src="img/facade-pas.jpg" alt="Façade d'un synthé : la rangée de pas Acide au-dessus du clavier, Écriture Acide ou À verrous"><figcaption>La rangée de pas au-dessus du clavier : Écriture Acide ou À verrous, Décaler, Masquer</figcaption></figure>
 
 **Le séquenceur acide** (basses et synthés) : la rangée des années 80, pas par pas.
 
@@ -225,7 +283,7 @@ l'écran SÉQUENCE, et inversement.
 5. **Vélocité** et **durée** du pas (glisser sur la valeur).
 6. **Acc.** (accent : le pas joue plus fort et plus « mordant », dosé par le bouton Accent) et **Gl.**
    (glissé : la note tient jusqu'au pas suivant et glisse vers lui ; même note : liée, sans
-   redéclencher).
+   redéclencher). Toucher : allumer / éteindre ; **appui long** : la valeur du pas (voir ci-dessous).
 7. **FX · Effets** : les effets de la piste en pédales (voir 5).
 8. **Son · Modulations de la piste · Macros** : les autres pages de la façade.
 9. **⇄ Instrument** : changer d'instrument par les images.
@@ -252,8 +310,24 @@ revient de l'autre côté) ; notes, accents, glissés, conditions et verrous sui
 droite de « Écriture » (batteries : **Tout** ou le **Pad** choisi seul), ou dans la rangée à verrous
 (la ligne seule) ; dans l'écran SÉQUENCE : ◀ ▶ après « Effacer pattern » (**Maj** : la ligne choisie seule).
 
-**Transport de la façade** : en haut de chaque façade, **●** enregistrer, **▶** lecture (**❚❚** pour
-arrêter), **■** arrêt — sans quitter l'instrument.
+**Transport de la façade** : sur la première ligne de chaque façade, juste à gauche du choix de la
+piste, **●** enregistrer, **▶** lecture (**❚❚** pour arrêter), **■** arrêt — sans quitter l'instrument.
+
+**La valeur d'un pas : accent et glissé.** Dans l'écran SÉQUENCE (lignes **Accent** et **Glissé**) comme
+sur la façade (**Acc.** et **Gl.**), toucher allume ou éteint la fonction du pas ; un **appui long**
+(clic droit sur PC) ouvre sa valeur, en grand :
+
+- **Accent** : la force de l'accent de ce pas, de 1 à 100 %. Sans valeur, le pas prend l'accent de la
+  piste (le réglage Accent en bas de l'écran).
+- **Glissé** : la durée du glissement vers la note suivante, de 1 à 100 % du pas (plus c'est haut, plus
+  ça glisse), sur les synthés qui ont un portamento. Sans valeur : le portamento de l'instrument.
+- **▲ ▼** (maintenus, la valeur défile), **glisser** le doigt sur la valeur, ou **Taper…** ; **Par
+  défaut** revient à la valeur de la piste ou de l'instrument. Chaque changement s'entend tout de suite,
+  la fenêtre reste ouverte tant qu'on règle. Régler une valeur allume la fonction du pas.
+- Une case qui a sa valeur l'affiche (par exemple « 54 »). Les valeurs suivent la copie, le décalage et
+  l'annulation, et sont gardées dans le projet.
+
+<figure class="wide"><img src="img/pas-valeur.jpg" alt="Appui long sur une case Accent : la force de l'accent du pas 5"><figcaption>La force de l'accent d'un pas</figcaption></figure>
 
 Dans l'écran SÉQUENCE, le clic droit sur un pas ouvre les mêmes réglages : vélocité, durée, décalage,
 **note**, condition (probabilité, A:B, Fill…), répétitions, flam, et le bouton **Verrous**.
@@ -264,9 +338,9 @@ haut (ou les pastilles), ou **Maj** + ◀ ▶ d'Octave au transport ; sur la fa�
 
 #### Les réglages de la piste (aucun pas choisi)
 
-Les 8 encodeurs règlent le pattern de la piste :
+Les valeurs du bas de l'écran règlent le pattern de la piste :
 
-| Encodeur | Effet |
+| Valeur | Effet |
 |---|---|
 | **Swing** | Décale un pas sur deux (50 % : droit, jusqu'à 75 %) |
 | **Longueur** | Nombre de mesures du pattern (1 à 32) |
@@ -281,9 +355,9 @@ Les 8 encodeurs règlent le pattern de la piste :
 #### Les réglages d'un pas
 
 Un **premier clic** sur un pas posé le **choisit** (il s'entoure) ; un deuxième clic l'enlève. Le pas
-choisi, les encodeurs règlent **ce pas seulement** :
+choisi, les valeurs du bas de l'écran règlent **ce pas seulement** :
 
-<figure class="wide"><img src="img/sequence-pas.jpg" alt="Écran SÉQUENCE d'une batterie : un pas choisi et ses réglages aux encodeurs"><figcaption>Un pas de grosse caisse choisi : ses réglages en bas</figcaption></figure>
+<figure class="wide"><img src="img/sequence-pas.jpg" alt="Écran SÉQUENCE d'une batterie : un pas choisi et ses réglages en bas de l'écran"><figcaption>Un pas de grosse caisse choisi : ses réglages en bas</figcaption></figure>
 
 1. La **ligne** (un pad de la batterie) : toucher son nom la choisit et sélectionne tous ses pas
    (encore une fois : les désélectionne).
@@ -295,7 +369,7 @@ choisi, les encodeurs règlent **ce pas seulement** :
    le pas », « Retirer condition et verrous ».
 6. Les **réglages du pas** :
 
-| Encodeur | Effet |
+| Valeur | Effet |
 |---|---|
 | **Note** (mélodique) ou **Flam** (batterie) | La note du pas ; ou un petit coup juste avant le coup principal (8 à 60 ms) |
 | **Vélocité** | Le **volume** du coup (1 à 127) |
@@ -336,10 +410,10 @@ courte, des variations et des petites relances sans écrire d'autres patterns.
 
 #### Sélectionner, effacer, tout supprimer
 
-<figure class="wide"><img src="img/sequence-selection.jpg" alt="Écran SÉQUENCE : tous les pas sélectionnés, barre de la sélection et encodeurs"><figcaption>« Tout sélect. » : les 20 pas du pattern choisis</figcaption></figure>
+<figure class="wide"><img src="img/sequence-selection.jpg" alt="Écran SÉQUENCE : tous les pas sélectionnés, barre de la sélection et valeurs du bas"><figcaption>« Tout sélect. » : les 20 pas du pattern choisis</figcaption></figure>
 
 1. La **sélection** : les pas choisis sont entourés.
-2. Les encodeurs règlent **tous les pas choisis à la fois** : vélocité (moyenne ; les écarts entre pas sont
+2. Les valeurs du bas règlent **tous les pas choisis à la fois** : vélocité (moyenne ; les écarts entre pas sont
    gardés), durée, décalage, condition, probabilité, répétitions, verrous ; en mélodique, « Transposer ».
 3. La **barre de la sélection** : ◀ ▶ (décaler d'un pas), Copier, Couper, Coller, Dupliquer, Effacer, Copie
    au glisser, Verrous, Tout.
@@ -367,7 +441,7 @@ Les gestes :
 **Un instrument, trois vues, les mêmes réglages.** Le son d'une piste se règle :
 
 - sur la **façade du synthé** (« Ouvrir le synthé ») : tous ses boutons, comme sur la machine ;
-- dans l'**écran SON** : les mêmes réglages par onglets, aux 8 encodeurs, avec les préréglages ;
+- dans l'**écran SON** : les mêmes réglages par onglets, en bas de l'écran, avec les préréglages ;
 - en **pédales** (« FX · Effets » sur la façade) : les 4 effets d'insert de la piste comme un pédalier,
   par-dessus l'instrument (Échap revient à l'instrument) ; l'**écran EFFETS** montre les mêmes effets
   dans l'ordre du signal.
@@ -406,7 +480,7 @@ basculent au milieu). Seuls les réglages enregistrés dans A ou B bougent : le 
 3. La **position du crossfader**.
 4. La **grille des scènes** : toucher une scène la place **du côté qu'on entend** (là où est le
    crossfader) ; avec **Maj**, elle part **de l'autre côté**, prête à être amenée au crossfader. Clic
-   droit : scène muette. Les encodeurs « Scène A » / « Scène B » choisissent aussi la scène de chaque côté.
+   droit : scène muette. Les valeurs « Scène A » / « Scène B » du bas choisissent aussi la scène de chaque côté.
 5. La **scène de Break** : appliquée tant que **Break** (ou la touche **B**) est tenu.
 6. Le **crossfader** du transport (aussi au contrôleur MIDI ; double-clic : retour au milieu).
 7. Les **rangées A à H** : lancer une rangée lance aussi sa **scène liée** (réglée dans LANCEMENT).
@@ -418,7 +492,51 @@ glisse vers la scène 3. Et ainsi de suite, autant de scènes qu'on veut, sans c
 crossfader s'enregistrent dans le morceau (« Enr. les mouvements »). Au contrôleur MIDI, les Program
 Change 0 à 31 lancent les scènes 1 à 32.
 
-<figure><img src="img/scenes.jpg" alt="Écran SCÈNES : scènes A et B, banques de scènes, scène de Break"><figcaption>Écran SCÈNES : scènes A et B, banques de scènes, scène de Break</figcaption></figure>
+<figure class="wide"><img src="img/scenes-crossfader-pc.jpg" alt="Écran SCÈNES › Crossfader sur PC : scène 1 en A, scène 9 en B, crossfader, grille des 16 scènes, scène de Break, 16 boutons assignables"><figcaption>SCÈNES › Crossfader (PC) : scène 1 en A, scène 9 en B, le crossfader entre les deux</figcaption></figure>
+
+**Le pavé vectoriel** (écran SCÈNES, onglet **Vecteur** ; l'onglet **Crossfader** garde le crossfader A /
+B). Quatre scènes, une par coin (**A B C D**, choisies dans « Coins »), se mêlent selon la position du
+point sur le pavé : au centre, les quatre à parts égales ; dans un coin, la scène de ce coin.
+
+- **Pavé actif** : le pavé remplace le crossfader A / B. Toucher le pavé l'active et place le point ;
+  double-clic : retour au centre. **X** et **Y** se règlent aussi en bas de l'écran.
+- **Mouvement** : le point tourne tout seul autour de sa place — Cercle, Infini, Losange, Carré,
+  Triangle, Ricochet, Hasard, ou **Dessinée** (« Dessiner une forme » : tracez-la au doigt). La forme
+  choisie s'affiche sur le pavé.
+- **Un tour en** : de 1/2 à 128 mesures, calé sur le tempo. **Taille** : l'ampleur du mouvement.
+  **Hauteur** : aplatit ou étire la forme (de 5 % à 200 %) : le cercle devient un ovale, le carré un
+  rectangle, l'infini s'écrase ou s'étire. **Rotation** : fait tourner la forme (0°, 45°, 90°, 135° en un toucher ; l'Infini passe à la
+  verticale à 90°). La forme dessinée garde sa place et son sens.
+- **Régler la forme sur le pavé** : glisser la **déplace** (sans saut). Sur PC, **clic droit tiré**
+  vers le haut ou le bas : taille ; vers la gauche ou la droite : rotation ; **molette** : taille,
+  **Maj + molette** : rotation. Au doigt, à **deux doigts** : pincer pour la taille, tourner pour la
+  rotation.
+- Toutes ces valeurs se confient à un bouton assignable ou au contrôleur MIDI.
+
+<figure class="wide"><img src="img/scenes-vecteur-pc.jpg" alt="Écran SCÈNES › Vecteur sur PC : le pavé, les quatre coins, le mouvement Infini affiché à 95 % de taille"><figcaption>SCÈNES › Vecteur (PC) : le mouvement « Infini » parcourt les quatre scènes</figcaption></figure>
+
+**⛶ Vue live** (bouton framboise à côté des onglets Crossfader / Vecteur) : tout le jeu sur un seul
+écran, la vitrine du direct. En haut : Retour, ● ▶ ■, le mode **Crossfader** ou **Vecteur** (avec, en
+Vecteur, le mouvement, la durée d'un tour, Dessiner), la piste choisie et **Ouvrir l'instrument** ; puis
+les **16 boutons assignables avec le nom de leur fonction** ; les **rangées A à H**.
+
+- **Mode Crossfader** : la scène A et ses réglages, un grand crossfader (A, B, double-clic : moitié), la
+  scène B ; à côté, la grille des scènes (banques 1–16 / 17–32, toucher : lancer) et la scène Break.
+- **Mode Vecteur** : le pavé carré et tous ses réglages (coins, mouvement, durée, taille, hauteur,
+  rotation, dessin).
+- **Console** (PC) : les 16 pistes avec fader de volume, crête-mètre, **FX** (les effets de la piste, en
+  pédales), **M / S** ; **Pistes / Groupes** montre les groupes du mixeur, et en vue Pistes les groupes
+  utilisés prennent la place des pistes sans instrument. Toucher le nom ou le fader d'une piste la
+  choisit (Ouvrir l'instrument, effets, boutons à assigner) ; ✕ dans l'instrument ou les effets
+  ramène à la vue live.
+- En bas : la **position** (mesure, temps, boucle, rangée du morceau) et **Photo / Rappel / Mod. boutons**.
+- Sur téléphone, la console devient la liste des pistes (nom : choisir, M / S).
+
+<figure class="wide"><img src="img/vue-live-crossfader.jpg" alt="Vue live en mode Crossfader : scène 1 et scène 9, grand crossfader, grille des scènes, console des 16 pistes avec faders, FX, M / S, 16 boutons nommés"><figcaption>Vue live · Crossfader</figcaption></figure>
+
+<figure class="wide"><img src="img/vue-live-vecteur.jpg" alt="Vue live en mode Vecteur : pavé carré avec le mouvement Infini tourné à 45°, réglages du pavé, console des 16 pistes, position et Photo / Rappel / Mod. boutons"><figcaption>Vue live · Vecteur</figcaption></figure>
+
+<figure><img src="img/vecteur-grand.jpg" alt="Vue live sur téléphone : barre du haut, 16 boutons, rangées A à H, pavé et M / S des 16 pistes"><figcaption>Vue live sur téléphone</figcaption></figure>
 
 ### 8. Morceau
 
@@ -447,7 +565,11 @@ boucle. Plus besoin d'arrêter à la main au bon moment.
 ### 10. Enregistrer
 
 Écran RÉGLAGES › Projet : Enregistrer (un fichier .gbx avec sons, échantillons, séquences,
-scènes) ou « Comme modèle » (réglages et sons, sans les écritures). Le montage audio est rangé dans le
+scènes) ou « Comme modèle » (réglages et sons, sans les écritures). **Projet de démonstration**,
+**Nouveau projet vide** et **Ouvrir…** s'allument en jaune quand on les touche, et un message confirme
+le chargement. La démonstration est volontairement légère (7 instruments, 11 effets) pour tourner sur tous les
+téléphones. Elle montre aussi le pavé vectoriel en mouvement (Cercle, un tour en 16 mesures) et le
+bouton assignable 1 relié à la coupure du filtre de Kick Killer. Le montage audio est rangé dans le
 dossier « &lt;nom du projet&gt; - audio » à côté du fichier.
 
 <figure><img src="img/reglages.jpg" alt="Écran RÉGLAGES : projet (démonstration, vide, ouvrir, enregistrer, modèle), dossiers, enregistrement, MIDI"><figcaption>Écran RÉGLAGES : projet (démonstration, vide, ouvrir, enregistrer, modèle), dossiers, enregistrement, MIDI</figcaption></figure>
@@ -458,11 +580,36 @@ dossier « &lt;nom du projet&gt; - audio » à côté du fichier.
 
 ## Contrôleur MIDI
 
-- Clic droit sur un réglage › **Apprendre MIDI**, puis toucher la commande du contrôleur.
+### Brancher un contrôleur : prêt à jouer
+
+- **En USB** : branchez le clavier ou le contrôleur, il est reconnu tout seul, sans rien régler — sur
+  l'application PC comme sur le téléphone ou la tablette Android (avec un câble ou un hub USB-C « OTG »).
+  On peut le brancher ou le débrancher pendant que le Groovebox tourne.
+- **En Bluetooth (Android)** : Réglages › « **Appairer un contrôleur Bluetooth…** ». La première fois,
+  Android demande l'autorisation Bluetooth ; choisissez ensuite votre clavier ou contrôleur MIDI sans fil
+  dans la liste : il joue comme un contrôleur USB.
+- **Sur PC**, un contrôleur Bluetooth ne marche que si Windows le présente comme un port MIDI : le plus
+  simple reste l'USB.
+- **Dans un logiciel hôte** (VST3) : c'est le logiciel hôte qui reçoit le contrôleur et l'envoie au Groovebox.
+- Les notes jouent la piste choisie (ou les pistes réglées sur un canal, Réglages › MIDI) ; sur une
+  batterie, les notes 36 à 51 jouent les 16 pads. La molette, le pitch bend et la pédale de maintien
+  suivent la piste jouée.
+- Téléphone avec un seul port USB-C : un hub USB-C avec charge (PD) permet de brancher en même temps
+  le clavier, la sortie son USB vers la table de mixage et le chargeur.
+
+### Affecter les commandes du contrôleur
+
+- Clic droit (appui long) sur un réglage › **Apprendre MIDI**, puis toucher la commande du contrôleur.
+  Cela marche aussi pour les **valeurs du bas des écrans** et les réglages généraux : tempo, swing,
+  crossfader, scènes A et B, pavé vectoriel (X, Y, mouvement, taille…) et macros.
+- Les **16 boutons assignables** s'apprennent aussi : branchez une rangée de boutons du contrôleur sur
+  les boutons 1 à 16, puis confiez-leur ce que vous voulez (Assigner à…).
 - Clic droit sur les boutons (M / S, rangées, Photo, Rappel, transport…) : les affecter au contrôleur.
 - Réglages › MIDI : canal des notes, canal des commandes, canal propre à chaque piste.
+- Sur l'application Android : Réglages › « **Appairer un contrôleur Bluetooth…** » (clavier ou
+  contrôleur MIDI sans fil) ; un clavier USB est reconnu tout seul.
 
-<figure><img src="img/menu-bouton.jpg" alt="Clic droit sur un bouton : valeur exacte (ou liste des choix), modulation, macros, Apprendre MIDI"><figcaption>Clic droit sur un bouton : valeur exacte (ou liste des choix), modulation, macros, Apprendre MIDI</figcaption></figure>
+<figure><img src="img/menu-bouton.jpg" alt="Appui long sur une valeur du bas : valeur exacte, modulation, Apprendre MIDI, bouton assignable"><figcaption>Appui long (clic droit) sur une valeur du bas : valeur exacte, modulation, Apprendre MIDI, bouton 1 à 16</figcaption></figure>
 
 ## Où sont vos fichiers
 

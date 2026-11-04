@@ -47,7 +47,10 @@ export interface UiState {
   paint: boolean;               // séquenceur : pinceau (glisser pose ou efface les pas survolés)
   copyDrag: boolean;            // tactile : glisser la sélection la copie (comme Ctrl)
   modAssign: { channel: number; source: number } | null; // affectation : toucher un encodeur le module par cette source
-  macroAssign: number | null;   // affectation de macro : toucher un encodeur l'ajoute à cette macro (ou l'en retire)
+  macroAssign: number | null;
+  modPanel: { channel: number; scope: "sound" | "fx"; knobs?: boolean } | null;
+  knobLfoAssign: number | null; // v0.46 fix28 : LFO des boutons (1..4) en cours d'affectation : toucher un bouton le relie // v0.46 fix28 : réglages des sources (LFO…) ouverts depuis un menu de réglage
+  knobAssign: number | null;    // v0.46 fix24 : bouton assignable en attente : la prochaine valeur touchée lui est reliée   // affectation de macro : toucher un encodeur l'ajoute à cette macro (ou l'en retire)
   face: boolean;                // façade de l'instrument ouverte (vue « vrai synthé »)
   pedals: boolean;              // pédalier ouvert (les inserts du canal en pédales)
   fullscreen: boolean;          // application en plein écran
@@ -56,6 +59,8 @@ export interface UiState {
   launchAll: boolean;           // grille de lancement : les 16 pistes en défilement (sinon 8 par écran)
   muteTarget: "pads" | "tracks"; // v0.31 : rôle Couper sur une batterie — ses pads (sons) ou les 16 pistes
   faceBig: boolean;            // façades jamais réduites sous leur taille normale (sinon défilement vertical)
+  vecFull?: boolean;           // v0.46 fix22 : pavé vectoriel en grand (tout l'écran)
+  phone?: boolean;             // v0.46 fix20 : disposition téléphone (façades et pédalier pensés pour le petit écran)
   trackClip: number | null;    // v0.41 : piste copiée (Copier / Coller la piste, principe de l'Octatrack)
 }
 
@@ -142,7 +147,7 @@ let state: AppState = {
     screen: "sequence", page: 0, lane: 0, step: null, stepEdit: false, editSlot: null, editBreak: false,
     soundTab: "", soundSection: 0, fxSlot: 0, fxTab: "", fxSection: 0, modSlot: 0, mixerBank: 0, mixerFirst: 0,
     padMode: "play", octave: 0, scale: 0, root: 0, padLevels: false, rollBase: 36, shift: false, browserFamily: "Batteries", browserIndex: 0, sceneBank: 0, message: null, trackClip: null,
-    selection: [], selectMode: false, paint: false, copyDrag: false, modAssign: null, macroAssign: null, face: false, pedals: false, fullscreen: false, launchView: "grid", seqView: "notes", launchAll: readPref("launchAll", true), muteTarget: readPref("muteTracks", false) ? "tracks" : "pads", faceBig: readPref("faceBig", true),
+    selection: [], selectMode: false, paint: false, copyDrag: false, modAssign: null, macroAssign: null, knobAssign: null, modPanel: null, knobLfoAssign: null, face: false, pedals: false, fullscreen: false, launchView: "grid", seqView: "notes", launchAll: readPref("launchAll", true), muteTarget: readPref("muteTracks", false) ? "tracks" : "pads", faceBig: readPref("faceBig", true),
   },
 };
 
@@ -211,12 +216,17 @@ function hexToArray(hex: string, signed = false, width = 2): number[] {
 }
 
 interface RawLane { dir: number; length?: number; mute: boolean; solo: boolean; vel: string; note: string; len?: string; len3?: string; micro: string }
-interface RawPattern extends Omit<PatternData, "lanes" | "flags" | "accent"> { lanes: RawLane[]; flags?: string; accent?: number }
+interface RawPattern extends Omit<PatternData, "lanes" | "flags" | "accent" | "accAmt" | "sldAmt"> { lanes: RawLane[]; flags?: string; accent?: number; amt?: string }
+/** v0.46 fix27 : valeurs des pas : 4 chiffres par pas (accent puis glissé, 2 chacun). */
+const decodeAmounts = (hex: string | undefined, which: 0 | 1) =>
+  hex ? Array.from({ length: Math.floor(hex.length / 4) }, (_, i) => parseInt(hex.substr(i * 4 + which * 2, 2), 16) || 0) : [];
 const decodePattern = (p: RawPattern | null): PatternData | null => p && ({
   ...p,
   accent: p.accent ?? 50,
   // une fonction de pas par chiffre hexadécimal
   flags: p.flags ? Array.from(p.flags, (c) => parseInt(c, 16) || 0) : [],
+  accAmt: decodeAmounts(p.amt, 0),
+  sldAmt: decodeAmounts(p.amt, 1),
   lanes: p.lanes.map((l): LaneData => ({ dir: l.dir, length: l.length ?? 0, mute: l.mute, solo: l.solo, vel: hexToArray(l.vel), note: hexToArray(l.note), len: l.len3 !== undefined ? hexToArray(l.len3, false, 3) : hexToArray(l.len ?? ""), micro: hexToArray(l.micro, true) })),
 });
 
@@ -342,6 +352,8 @@ async function refreshPattern() {
 }
 async function refreshScenes() { set({ scenes: await callJson<SceneData[]>("getScenes") }); }
 async function refreshLaunch() { set({ launch: await callJson<LaunchData>("getLaunch") }); }
+/** v0.46 fix24 : crochets du tick (posés par d'autres modules, sans import circulaire). */
+export const tickHooks: { uc?: (list: [number, number][]) => void } = {};
 async function refreshMidi() { set({ midi: await callJson<MidiData>("getMidi") }); }
 async function refreshMacros() { set({ macros: (await callJson<MacroData[]>("getMacros")) ?? [] }); }
 async function refreshEverything() { await refreshTracks(); await refreshAllChannels(); await refreshPattern(); await refreshScenes(); await refreshLaunch(); await refreshMidi(); await refreshMacros(); }
@@ -403,6 +415,7 @@ function onTick(payload: unknown) {
     if (state.ui.screen === "launch" || state.ui.screen === "sequence") void refreshLaunch();
   }
   if (tick.midi || tick.learn !== state.midi.learn) void refreshMidi();
+  if (tick.uc?.length) tickHooks.uc?.(tick.uc); // v0.46 fix24 : valeurs d'écran pilotées par le MIDI ou un bouton assignable
   // morceau changé (enregistrement en cours, chargement, historique) : relu, au plus 5 fois par seconde
   if (tick.song && state.song && tick.song[2] !== state.song.version && state.ui.screen === "launch") scheduleSongRefresh();
   // courbes du pattern : relues quand le morceau change (enregistrement en cours, annulation…)
@@ -470,6 +483,13 @@ export async function connect() {
 
 // ---------------------------------------------------------------------------
 // Actions
+
+/** v0.46 fix28 : lignes qui ont une note posée à ce pas (synthés : la ligne 0 et les notes d'accord). */
+export function stepLanes(p: PatternData | null | undefined, step: number): number[] {
+  const out: number[] = [];
+  p?.lanes.forEach((l, i) => { if ((l?.vel[step] ?? 0) > 0) out.push(i); });
+  return out;
+}
 
 export const actions = {
   // v0.32 : enregistrement audio (master, pistes séparées ou les deux ; WAV ou MP3)
@@ -566,7 +586,14 @@ export const actions = {
   /** v0.33 : phrase de la voix interne d'un vocodeur (vide = phrase de démonstration). */
   async setSpeech(track: number, text: string) { set({ tracks: await callJson<TracksData>("setTrackSpeech", track, text.slice(0, 164)) }); },
   /** v0.39 : entrée audio coupée par l'application autonome : -1 lire, 0 ouvrir, 1 couper. Réponse : 1 coupée, 0 ouverte, -1 sans objet. */
-  async inputMute(op: number): Promise<number> { if (!hasNative("inputMute")) return -1; const r = Number(await call("inputMute", op)); return Number.isFinite(r) ? r : -1; },
+  /** v0.46 fix22 : forme dessinée du pavé vectoriel (« x,y;x,y;… », 0..1). */
+  async setVecPath(text: string): Promise<string> { return String(await call("setVecPath", text) ?? ""); },
+  async getVecPath(): Promise<string> { return hasNative("getVecPath") ? String(await call("getVecPath") ?? "") : ""; },
+  /** v0.46 fix22 : contrôleur MIDI Bluetooth — 0 : est-ce possible ? 1 : ouvrir l'appairage. */
+  async bluetoothMidi(open: boolean): Promise<boolean> { if (!hasNative("bluetoothMidi")) return false; return Number(await call("bluetoothMidi", open ? 1 : 0)) === 1; },
+  /** v0.46 fix21 : on se sert de l'appli (écran gardé allumé sur téléphone). */
+  async userActive() { if (hasNative("userActive")) await call("userActive"); },
+    async inputMute(op: number): Promise<number> { if (!hasNative("inputMute")) return -1; const r = Number(await call("inputMute", op)); return Number.isFinite(r) ? r : -1; },
   async setTrackColor(track: number, color: number) { set({ tracks: await callJson<TracksData>("setTrackColor", track, color) }); },
   /** v0.24 : sortie de la piste (0 = bus principal, 1 à 7 = groupe, v0.46). */
   async trackOutput(track: number, out: number) { set({ tracks: await callJson<TracksData>("setTrackOutput", track, out) }); },
@@ -660,6 +687,14 @@ export const actions = {
     const p = await callJson<RawPattern>(name, focusTrack(), ...args);
     set({ pattern: decodePattern(p) });
   },
+  /** v0.46 fix28 : retire le pas sur toutes les lignes (notes d'accord posées au piano roll comprises). */
+  async clearStepLanes(step: number, lanes?: number[]) {
+    const p = state.pattern;
+    if (!p) return;
+    const ls = lanes ?? stepLanes(p, step);
+    for (const l of ls) await actions.seq("seqSetStep", l, step, 0);
+    if (state.ui.step === step) setUi({ step: null, stepEdit: false });
+  },
   toggleStep(lane: number, step: number, note?: number) {
     const p = state.pattern;
     if (!p) return;
@@ -741,7 +776,7 @@ export const actions = {
   breakKey(on: boolean) { void call("breakKey", on); },
   /** Break temporisé : beats temps (0 : l'arrêter). */
   breakTimed(beats: number) { void call("breakTimed", beats); },
-  setGlobal(id: "bpm" | "swing" | "xfade" | "sceneA" | "sceneB", value: number) {
+  setGlobal(id: string, value: number) {
     set({ tick: { ...state.tick, g: { ...state.tick.g, [id]: value } } });
     void call("setGlobal", id, value);
   },
@@ -946,6 +981,16 @@ export const actions = {
   // Apprentissage MIDI -------------------------------------------------------------------
   async midiLearn(target: number) { set({ midi: await callJson<MidiData>("midiLearn", target) }); },
   async midiResolve(replace: boolean) { set({ midi: await callJson<MidiData>("midiResolve", replace) }); },
+  // v0.46 fix24 : boutons assignables
+  setKnob(k: number, v: number) { void call("setKnob", k, Math.min(1, Math.max(0, v))); },
+  /** v0.46 fix28 : LFO propre d'un bouton assignable (0 = aucun, 1..4) et sa profondeur -1..1. */
+  async setKnobLfo(k: number, src: number, depth: number) {
+    set({ midi: await callJson<MidiData>("setKnobLfo", k, Math.max(0, Math.min(4, Math.round(src))), Math.max(-1, Math.min(1, depth))) });
+  },
+  async setKnobTarget(k: number, target: number, start?: number) {
+    set({ midi: await callJson<MidiData>("setKnobTarget", ...(start === undefined ? [k, target] : [k, target, Math.min(1, Math.max(0, start))])) });
+  },
+  async setCtlTable(text: string) { set({ midi: await callJson<MidiData>("setCtlTable", text) }); },
   async midiForget(target: number) { set({ midi: await callJson<MidiData>("midiForget", target) }); },
   /** v0.46 : canaux MIDI (0 = tous) et commandes apprises actives ; canal propre à une piste (0 = piste choisie). */
   async setMidiRoute(note: number, ctrl: number, ctrlOn: boolean) { set({ midi: await callJson<MidiData>("setMidiRoute", note, ctrl, ctrlOn) }); },

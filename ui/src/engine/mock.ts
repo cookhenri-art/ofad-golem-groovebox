@@ -32,11 +32,11 @@ export function installMockBackend() {
   const extras = new Map<string, { lane: number; step: number; cond: number; a: number; b: number; prob: number; rat?: number; rs?: number; flam?: number; locks: [number, number][] }>();
   const mkLane = () => ({ dir: 0, length: 0, mute: false, solo: false, vel: new Array(L.maxSteps).fill(0), note: new Array(L.maxSteps).fill(60), len: new Array(L.maxSteps).fill(8), micro: new Array(L.maxSteps).fill(0) });
   const NP = L.numPatterns ?? 8;
-  const mkPattern = () => ({ length: 16, speed: 4, flags: new Array(L.maxSteps).fill(0) as number[], lanes: Array.from({ length: L.numLanes }, mkLane) });
+  const mkPattern = () => ({ length: 16, speed: 4, flags: new Array(L.maxSteps).fill(0) as number[], amt: new Array(L.maxSteps).fill(0) as number[], lanes: Array.from({ length: L.numLanes }, mkLane) });
   const pats = Array.from({ length: L.numTracks }, () => Array.from({ length: NP }, mkPattern));
   const trackSeq = Array.from({ length: L.numTracks }, () => ({ mute: false, solo: false, playing: 0, queued: -1, editing: 0, accent: 50 }));
   // vue « pattern édité » : mêmes champs que l'ancien modèle (longueur, vitesse, lignes + coupure, solo)
-  const patterns = new Proxy([] as { length: number; speed: number; mute: boolean; solo: boolean; flags: number[]; lanes: ReturnType<typeof mkLane>[] }[], {
+  const patterns = new Proxy([] as { length: number; speed: number; mute: boolean; solo: boolean; flags: number[]; amt: number[]; lanes: ReturnType<typeof mkLane>[] }[], {
     get(_, key) {
       if (typeof key !== "string" || !/^\d+$/.test(key)) return undefined;
       const t = Number(key), ts = trackSeq[t], pt = pats[t][ts.editing];
@@ -52,7 +52,8 @@ export function installMockBackend() {
   let midiLearn = -1;
   const divs = Array.from({ length: 16 }, () => new Array(8).fill(2) as number[]); // division par piste et par pattern
   const divisionOf = (t: number) => divs[t]?.[trackSeq[t]?.editing ?? 0] ?? 2;
-  const globals = { xfade: 0, sceneA: 1, sceneB: 9, bpm: 122, swing: 54 };
+  const globals: Record<string, number> = { xfade: 0, sceneA: 1, sceneB: 9, bpm: 122, swing: 54,
+    vecOn: 0, vecMode: 0, vecX: 0.5, vecY: 0.5, vecOrbit: 0, vecRate: 2, vecDepth: 0.35, vecRot: 0, vecHeight: 1, vecPX: 0.5, vecPY: 0.5, vecSA: 1, vecSB: 2, vecSC: 3, vecSD: 4, vecFA: 1, vecFB: 2, vecFC: 3, vecFD: 4 };
   const macros = Array.from({ length: 8 }, () => ({ v: 0.5, rel: true, links: [] as [number, number, number][] }));
   const transport = { playing: false, rec: false, ppq: -1, fill: false, brk: false };
   let focus = 0;
@@ -181,6 +182,7 @@ export function installMockBackend() {
     return JSON.stringify({ track: t, length: p.length, speed: p.speed, mute: p.mute, solo: p.solo, division: divisionOf(t),
       pattern: trackSeq[t].editing, playing: trackSeq[t].playing, recQuant, accent: trackSeq[t].accent,
       flags: p.flags.map((f) => (f & 15).toString(16)).join(""),
+      ...(p.amt.some((v) => v) ? { amt: p.amt.map((v) => (v & 255).toString(16).padStart(2, "0") + ((v >> 8) & 255).toString(16).padStart(2, "0")).join("") } : {}),
       lanes: p.lanes.map((l) => ({ dir: l.dir, length: l.length, mute: l.mute, solo: l.solo, vel: hex(l.vel), note: hex(l.note), len3: hex3(l.len), micro: hex(l.micro) })) });
   };
   const exKey = (t: number, l: number, s: number) => `${t}:${trackSeq[t].editing}:${l}:${s}`;
@@ -191,7 +193,12 @@ export function installMockBackend() {
       filled: pats[t].map((pt) => (pt.lanes.some((l) => l.vel.some((v) => v > 0)) ? 1 : 0)), length: pats[t].map((pt) => pt.length), division: divs[t] })),
   });
   const midiRoute = { note: 0, ctrl: 0, ctrlOn: true, tracks: new Array(16).fill(0) as number[] };
-  const midiJson = () => JSON.stringify({ learn: midiLearn, maps: midiMaps, route: midiRoute });
+  // v0.46 fix24 : boutons assignables (maquette : la cible n'est pas pilotée, sauf les valeurs d'écran)
+  let midiDirty = false; // un appel direct (tests) fait relire les affectations par l'interface
+  const knobs: [number, number, number, number][] = Array.from({ length: 16 }, () => [-1, 0, 0, 0] as [number, number, number, number]);
+  let ctlTable = "";
+  let ucOut: [number, number][] = [];
+  const midiJson = () => JSON.stringify({ learn: midiLearn, maps: midiMaps, route: midiRoute, knobs, ctl: ctlTable });
   const scenesJson = () => JSON.stringify(scenes);
 
   const ex = (t: number, l: number, s: number) => {
@@ -326,6 +333,12 @@ export function installMockBackend() {
     seqClearPattern: (t: number, pt: number) => { pats[t][pt].lanes.forEach((l) => l.vel.fill(0)); return patternJson(t); },
     seqRecQuant: (t: number, q: number) => { recQuant = q; return patternJson(t); },
     seqStepFlags: pattern((p, [st, f]) => { p.flags[st] = f & 15; }),
+    seqStepAmount: (t: number, step: number, which: number, v: number) => {
+      const p = patterns[t]; if (!p) return patternJson(t);
+      const cur = p.amt[step] ?? 0;
+      p.amt[step] = which === 0 ? (cur & 0xff00) | v : (cur & 0xff) | (v << 8);
+      return patternJson(t);
+    },
     seqStepsFlag: (t: number, stepsJson: string, bit: number, on: boolean) => {
       const p = patterns[t];
       for (const st of JSON.parse(stepsJson) as number[]) p.flags[st] = on ? p.flags[st] | bit : p.flags[st] & ~bit;
@@ -351,6 +364,17 @@ export function installMockBackend() {
     copyRow: (from: number, to: number) => { for (let t = 0; t < pats.length; ++t) pats[t][to] = JSON.parse(JSON.stringify(pats[t][from])); return launchJson(); },
     clearRow: (p: number) => { for (let t = 0; t < pats.length; ++t) pats[t][p] = mkPattern(); return launchJson(); },
     getMidi: midiJson,
+    setKnob: (k: number, v: number) => {
+      if (!knobs[k]) return null;
+      knobs[k][1] = v;
+      const t = knobs[k][0];
+      if (t <= -700 && t > -764) ucOut.push([-700 - t, v]);
+      else if (t >= 0 && describe(t)) values[Math.floor(t / S)][t % S] = v;
+      return null;
+    },
+    setKnobLfo: (k: number, src: number, d: number) => { if (knobs[k]) { knobs[k][2] = src; knobs[k][3] = d; } return midiJson(); },
+    setKnobTarget: (k: number, t: number, v?: number) => { midiDirty = true; if (knobs[k]) { knobs[k][0] = t; if (typeof v === "number") knobs[k][1] = v; } return midiJson(); },
+    setCtlTable: (text: string) => { ctlTable = String(text); return midiJson(); },
     setMidiRoute: (n: number, c: number, on: boolean) => { midiRoute.note = n; midiRoute.ctrl = c; midiRoute.ctrlOn = !!on; return midiJson(); },
     setTrackMidiChannel: (t: number, c: number) => { midiRoute.tracks[t] = c; return midiJson(); },
     midiLearn: (target: number) => { midiLearn = target; if (target !== -1) window.setTimeout(() => { midiMaps.push([0, 0, 20 + midiMaps.length, target]); midiLearn = -1; }, 1500); return midiJson(); },
@@ -439,8 +463,12 @@ export function installMockBackend() {
     fill: (b: boolean) => { transport.fill = !!b; return null; },
     breakKey: (b: boolean) => { transport.brk = !!b; return null; },
     breakTimed: (beats: number) => { transport.brk = beats > 0; (transport as { tbrk?: boolean }).tbrk = beats > 0; if (beats > 0) window.setTimeout(() => { transport.brk = false; (transport as { tbrk?: boolean }).tbrk = false; }, (beats * 60000) / 120); return null; },
+    setVecPath: (t: string) => { (globals as Record<string, unknown>).__path = t; return t; },
+    getVecPath: () => String((globals as Record<string, unknown>).__path ?? ""),
     setGlobal: (id: string, v: number) => {
-      if (id in globals) globals[id as keyof typeof globals] = v;
+      if (id in globals) globals[id] = v;
+      if (id === "vecX") globals.vecPX = v;
+      if (id === "vecY") globals.vecPY = v;
       const mk = /^macro(\d)$/.exec(id); if (mk) macros[Number(mk[1]) - 1].v = v;
       return null;
     },
@@ -599,7 +627,9 @@ const histMock = { undo: 3, redo: 0, photo: false };
     peaks: Array.from({ length: CH }, (_, i) => (transport.playing && i < 4 ? 0.2 + Math.random() * 0.4 : transport.playing && i === L.masterChannel ? 0.6 : 0)),
     outlr: transport.playing ? [0.5 + Math.random() * 0.1, 0.4 + Math.random() * 0.1] : [0, 0], och: 2,
     pos: new Array(16).fill(-1), tpos: new Array(16).fill(-1), eff: [] as number[][], mac: macros.map((m) => m.v), mods: Array.from({ length: 6 }, (_, m) => [m === 0 ? Math.sin(performance.now() / 300) : (performance.now() / 500 % 1), Math.floor(performance.now() / 250) % 16]), fxm: [[3 + Math.random() * 2, 0.5, 0.4], [2, 0.5, 0.4], [0, 0, 0], [0, 0, 0]],
-    pat: trackSeq.map((ts) => [ts.playing, ts.queued]), learn: midiLearn, midi: false,
+    pat: trackSeq.map((ts) => [ts.playing, ts.queued]), learn: midiLearn, midi: (() => { const d = midiDirty; midiDirty = false; return d; })(),
+    kv: knobs.map((k) => k[1]), ke: knobs.map(() => -1), kmods: Array.from({ length: 4 }, (_, m) => [Math.sin(performance.now() / (300 + m * 200)), Math.floor(performance.now() / 250) % 16]),
+    ko: knobs.map((k) => (k[0] !== -1 && k[2] > 0 ? Math.max(0, Math.min(1, k[1] + k[3] * Math.sin(performance.now() / 300))) : -1)), ...(ucOut.length ? { uc: ucOut.splice(0) } : {}),
     hist: [histMock.undo > 0 ? 1 : 0, histMock.redo > 0 ? 1 : 0, histMock.photo ? 1 : 0],
     // aperçu : un spectre de mix plausible (grave fort, pente vers l'aigu, bosses qui bougent)
     spec: specOn ? [...Array.from({ length: 96 }, (_, b) => Math.round(10 * (-18 - b * 0.42 + 6 * Math.sin(b / 7 + transport.ppq) + (b < 12 ? 8 : 0) + Math.random() * 3 - (transport.playing ? 0 : 50)))),

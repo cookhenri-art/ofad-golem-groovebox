@@ -125,6 +125,10 @@ int main (int argc, char* argv[])
             for (int c = 0; c < 2; ++c) for (int k = 0; k < 256; ++k) { const auto v = b.getSample (c, k); finite = finite && std::isfinite (v); peak = std::max (peak, std::abs (v)); }
         }
         std::printf ("Projet relu : %d pistes, cr\xC3\xAAte %.3f, fini %d\n", used, peak, (int) finite);
+        // v0.46 fix28 : réglages du pavé vectoriel relus (la démonstration doit l'ouvrir actif)
+        for (const auto* id : { "vecOn", "vecOrbit", "vecRate", "vecDepth", "vecX", "vecY", "vecSA", "vecSB", "vecSC", "vecSD", "vecRot", "vecHeight" })
+            std::printf ("%s=%.3f ", id, (double) pp.getGlobal (id));
+        std::printf ("\n");
         return finite && peak > 0.001f ? 0 : 4;
     }
 

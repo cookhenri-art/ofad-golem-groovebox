@@ -39,6 +39,18 @@ namespace ParamID
     inline const juce::String sceneA { "sceneA" }; // 1..32
     inline const juce::String sceneB { "sceneB" }; // 1..32
     inline juce::String macro (int i) { return "macro" + juce::String (i + 1); }
+    // v0.46 fix22 : pavé vectoriel (coins A B C D : scènes ou effets du principal)
+    inline const juce::String vecOn    { "vecOn" };    // 0 / 1
+    inline const juce::String vecMode  { "vecMode" };  // 0 scènes, 1 effets
+    inline const juce::String vecX     { "vecX" };     // 0 = gauche (A, C), 1 = droite (B, D)
+    inline const juce::String vecY     { "vecY" };     // 0 = haut (A, B), 1 = bas (C, D)
+    inline const juce::String vecOrbit { "vecOrbit" }; // 0 arrêt, 1 cercle, 2 infini, 3 losange, 4 carré, 5 triangle, 6 ricochet, 7 hasard, 8 dessinée
+    inline const juce::String vecRate  { "vecRate" };  // 0..8 : 1/2, 1, 2, 4, 8, 16, 32, 64, 128 mesures par tour
+    inline const juce::String vecDepth { "vecDepth" }; // rayon du mouvement 0..1
+    inline const juce::String vecHeight { "vecHeight" }; // v0.46 fix28 : hauteur de la forme (aplatir / étirer), 1 = d'origine
+    inline const juce::String vecRot { "vecRot" };     // v0.46 fix28 : rotation de la forme du mouvement (degrés)
+    inline juce::String vecScene (int k) { return juce::String ("vecS") + juce::String::charToString ((juce::juce_wchar) ('A' + k)); } // 1..32
+    inline juce::String vecFx (int k) { return juce::String ("vecF") + juce::String::charToString ((juce::juce_wchar) ('A' + k)); }    // 0..4
 }
 
 class GrooveboxProcessor final : public juce::AudioProcessor,
@@ -224,10 +236,72 @@ public:
                       midiMuteBase = -100,   // -100 - piste : coupure de la piste (pistes 1 à 16 : -100 à -115)
                       midiSoloBase = -200,   // -200 - piste : solo de la piste (-200 à -215)
                       midiBusMuteBase = -300, // v0.46 : -300 - (canal - 16) : coupure d'un retour, du principal ou d'un groupe
-                      midiBusSoloBase = -400 }; // v0.46 : -400 - (canal - 16) : solo d'un groupe
+                      midiBusSoloBase = -400, // v0.46 : -400 - (canal - 16) : solo d'un groupe
+                      midiKnobBase = -500,    // v0.46 fix24 : -500 - k : bouton assignable k (1 à 16 : -500 à -515)
+                      midiHostBase = -600,    // v0.46 fix24 : -600 - h : réglage global (tempo, swing, scènes, pavé, macros…)
+                      midiUiBase = -700 };    // v0.46 fix24 : -700 - n : valeur d'un écran pilotée par l'interface (64 au plus)
     static constexpr int numBusTargets = engine::numChannels - engine::numTracks;
-    static constexpr int midiLowestTarget = midiBusSoloBase - numBusTargets + 1;
+    static constexpr int numKnobs = 16, numUiCtl = 64;
+    /** v0.46 fix24 : réglages globaux pilotables (MIDI, boutons assignables), dans cet ordre (ne pas réordonner :
+        les numéros sont gardés dans les projets et les affectations MIDI). */
+    static juce::String hostCtlId (int h)
+    {
+        static const char* const ids[] { "bpm", "swing", "sceneA", "sceneB", "vecOn", "vecMode", "vecX", "vecY", "vecOrbit", "vecRate", "vecDepth",
+                                         "macro1", "macro2", "macro3", "macro4", "macro5", "macro6", "macro7", "macro8",
+                                         "vecSA", "vecSB", "vecSC", "vecSD", "vecFA", "vecFB", "vecFC", "vecFD",
+                                         "vecRot", "vecHeight" }; // v0.46 fix28 (à la fin : les numéros déjà gardés ne bougent pas)
+        return h >= 0 && h < (int) std::size (ids) ? juce::String (ids[h]) : juce::String();
+    }
+    static constexpr int numHostCtl = 29;
+    static constexpr int midiLowestTarget = midiUiBase - numUiCtl + 1;
     static bool isMidiSpecial (int target) noexcept { return target <= midiXfade && target >= midiLastSpecial; }
+    static bool isKnobTarget (int t) noexcept { return t <= midiKnobBase && t > midiKnobBase - numKnobs; }
+    static bool isHostTarget (int t) noexcept { return t <= midiHostBase && t > midiHostBase - numHostCtl; }
+    static bool isUiTarget (int t) noexcept { return t <= midiUiBase && t > midiUiBase - numUiCtl; }
+    /** v0.46 fix24 : cible valable pour une commande MIDI ou un bouton assignable (hors réglages >= 0). */
+    static bool isMidiExtra (int t) noexcept { return isKnobTarget (t) || isHostTarget (t) || isUiTarget (t); }
+
+    // --- v0.46 fix24 : 16 boutons assignables -------------------------------------------------
+    // Chacun pilote une cible (réglage du moteur, commande spéciale, réglage global, valeur d'écran),
+    // depuis l'interface ou une commande MIDI apprise. Le fil audio applique la valeur au bloc suivant.
+    /** v0.46 fix26 : ajoute à un état relu les réglages absents (versions plus anciennes), à leur valeur d'origine. */
+    void fillMissingParams (juce::ValueTree& tree) const;
+    void setKnob (int k, float v) noexcept
+    {
+        if (k < 0 || k >= numKnobs) return;
+        v = juce::jlimit (0.0f, 1.0f, v);
+        knobVal[(size_t) k].store (v); knobPending[(size_t) k].store (v);
+    }
+    float getKnob (int k) const noexcept { return k >= 0 && k < numKnobs ? knobVal[(size_t) k].load() : 0.0f; }
+    /** La cible ne peut pas être un autre bouton assignable. */
+    void setKnobTarget (int k, int target) noexcept
+    {
+        if (k < 0 || k >= numKnobs) return;
+        if (! (target >= 0 && target < engine::numSlots) && ! isMidiSpecial (target) && ! isMidiTrackTarget (target) && ! isHostTarget (target) && ! isUiTarget (target)) target = midiNone;
+        knobTarget[(size_t) k].store (target); midiVersion.fetch_add (1);
+    }
+    int getKnobTarget (int k) const noexcept { return k >= 0 && k < numKnobs ? knobTarget[(size_t) k].load() : (int) midiNone; }
+    /** v0.46 fix28 : LFO des boutons : 4 sources propres aux boutons assignables (les sources 1 à 4 du bus
+        principal, réglées dans le même panneau que celles des synthés) ; chaque bouton en suit une (0 = aucune)
+        avec une profondeur -1..1, autour de sa position. */
+    static constexpr int knobLfoChannel = engine::masterChannel, numKnobLfos = 4;
+    void setKnobLfo (int k, int src, float depth) noexcept
+    {
+        if (k < 0 || k >= numKnobs) return;
+        knobLfo[(size_t) k].store (juce::jlimit (0, numKnobLfos, src)); knobDepth[(size_t) k].store (juce::jlimit (-1.0f, 1.0f, depth));
+        midiVersion.fetch_add (1);
+    }
+    int getKnobLfo (int k) const noexcept { return k >= 0 && k < numKnobs ? knobLfo[(size_t) k].load() : 0; }
+    float getKnobDepth (int k) const noexcept { return k >= 0 && k < numKnobs ? knobDepth[(size_t) k].load() : 0.0f; }
+    /** Valeur envoyée par le bouton avec son LFO (-1 : pas de LFO). */
+    float getKnobOut (int k) const noexcept { return k >= 0 && k < numKnobs ? knobOut[(size_t) k].load() : -1.0f; }
+    /** Table des valeurs d'écran (texte JSON tenu par l'interface : numéro → identifiant, nom), gardée dans le projet. */
+    void setCtlTable (const juce::String& t) { ctlTable = t.substring (0, 20000); }
+    const juce::String& getCtlTable() const noexcept { return ctlTable; }
+    /** Valeurs d'écran poussées par le MIDI ou un bouton assignable : l'interface les applique. */
+    unsigned getUiCtlVersion() const noexcept { return uiCtlVersion.load(); }
+    float getUiCtl (int n) const noexcept { return n >= 0 && n < numUiCtl ? uiCtlVal[(size_t) n].load() : 0.0f; }
+    unsigned getUiCtlSeq (int n) const noexcept { return n >= 0 && n < numUiCtl ? uiCtlSeq[(size_t) n].load() : 0u; }
     static bool isMidiTrackTarget (int target) noexcept
     {
         return (target <= midiMuteBase && target > midiMuteBase - engine::numTracks) || (target <= midiSoloBase && target > midiSoloBase - engine::numTracks)
@@ -293,10 +367,16 @@ public:
         lissée et pointe récente (1 = 100 %, la limite avant les craquements). */
     float getCpuAverage() const noexcept { return cpuAvg.load (std::memory_order_relaxed); }
     float getCpuPeak() const noexcept { return cpuPeak.load (std::memory_order_relaxed); }
+    void setVecPath (const juce::String& text, bool store = true);
+    juce::String getVecPath() const;
+    float getVecShownX() const noexcept { return vecShownX.load (std::memory_order_relaxed); }
+    float getVecShownY() const noexcept { return vecShownY.load (std::memory_order_relaxed); }
     float getAudioPeriodMs() const noexcept { return audioPeriodMs.load (std::memory_order_relaxed); }
     int getAudioBlockSize() const noexcept { return audioBlockSize.load (std::memory_order_relaxed); }
     /** v0.46 fix17 : état Android du fil audio : -1 hors Android ; sinon 100 si l'indice de performance
         est actif, plus le nombre de grands cœurs où il est posé. */
+    /** v0.46 fix21 : l'utilisateur vient de toucher l'interface (téléphone : garder l'écran allumé). Fil des messages. */
+    void noteUserActivity() noexcept;
     int getAndroidAudioStatus() const noexcept
     {
        #if JUCE_ANDROID
@@ -395,6 +475,18 @@ private:
     std::atomic<float>* pXfade = nullptr;
     std::atomic<float>* pSceneA = nullptr;
     std::atomic<float>* pSceneB = nullptr;
+    // v0.46 fix22 : pavé vectoriel
+    std::atomic<float>* pVecOn = nullptr; std::atomic<float>* pVecMode = nullptr;
+    std::atomic<float>* pVecX = nullptr; std::atomic<float>* pVecY = nullptr;
+    std::atomic<float>* pVecOrbit = nullptr; std::atomic<float>* pVecRate = nullptr; std::atomic<float>* pVecDepth = nullptr; std::atomic<float>* pVecRot = nullptr; std::atomic<float>* pVecHeight = nullptr;
+    std::array<std::atomic<float>*, 4> pVecScene {}, pVecFx {};
+    double vecPhase = 0.0;                                    // fil audio : tour du mouvement (0..1)
+    std::array<double, 4> vecRand { 0.5, 0.5, 0.5, 0.5 };     // fil audio : hasard (points de départ et d'arrivée x, y)
+    std::uint32_t vecSeed = 0x9E3779B9u;
+    std::atomic<float> vecShownX { 0.5f }, vecShownY { 0.5f }; // position jouée (avec le mouvement), pour l'écran
+    struct VecPath { std::array<float, 128> x {}, y {}; int count = 0; };
+    std::array<VecPath, 2> vecPaths {};                      // forme dessinée (double tampon)
+    std::atomic<int> vecPathIndex { 0 };
     std::array<std::atomic<float>*, numMacros> pMacro {};
     struct MacroSlot { std::atomic<int> global { -1 }; std::atomic<float> lo { 0.0f }, hi { 1.0f }, base { -1.0f }, ref { 0.5f }, written { -1.0f }; };
     std::array<std::atomic<bool>, numMacros> macroRel {}; // v0.46 : macros en mode relatif
@@ -418,6 +510,8 @@ private:
    #if JUCE_ANDROID
     AndroidPerfHint perfHint; // v0.46 fix16 : garde le fil audio sur des cœurs rapides
     int inputStartTicks = 0;  // v0.46 fix16 : fermeture du micro au démarrage (-1 : faite)
+    double lastUserActivity = 0.0; // v0.46 fix21 : dernier toucher de l'interface (ms)
+    bool screenKeptOn = false;     // v0.46 fix21 : écran gardé allumé
    #endif
 
     // déplacements de pistes dans l'historique (v0.23) : ce que la copie d'historique ne porte pas
@@ -434,6 +528,23 @@ private:
 
     std::array<std::atomic<int>, numMidiKeys> ccMap {}, noteMap {};
     std::atomic<int> learnTarget { midiNone };
+    // v0.46 fix24 : boutons assignables, réglages globaux et valeurs d'écran pilotés
+    std::array<std::atomic<float>, numKnobs> knobVal {}, knobPending {};
+    std::array<std::atomic<int>, numKnobs> knobTarget {};
+    std::array<std::atomic<int>, numKnobs> knobLfo {};        // v0.46 fix28 : LFO des boutons (0 = aucun, 1..4)
+    std::array<std::atomic<float>, numKnobs> knobDepth {}, knobOut {};
+    std::array<bool, numKnobs> knobLfoActive {};               // fil audio : le LFO menait la cible au bloc précédent
+    std::array<float, numKnobs> knobLfoSent {};
+    std::array<int, numKnobs> knobLfoTarget {};
+    std::array<float, numKnobs> knobLfoBase {};                // fil audio : position du bouton pendant la modulation                // fil audio : cible menée par le LFO (pour la rendre si elle change)
+    int knobLfoBlocks = 0;
+    std::array<float, numKnobs> knobLastAudio {};       // fil audio : dernier envoi (front des commandes)
+    std::array<std::atomic<float>, numHostCtl> hostPending {};
+    std::array<std::atomic<float>, numUiCtl> uiCtlVal {};
+    std::array<std::atomic<unsigned>, numUiCtl> uiCtlSeq {};
+    std::atomic<unsigned> uiCtlVersion { 0 };
+    juce::String ctlTable;
+    std::array<juce::RangedAudioParameter*, numHostCtl> hostParams {}; // relevés à la construction
     std::atomic<int> conflictKey { -1 }, conflictOld { midiNone }, conflictNew { midiNone }; // clé : genre × 2048 + canal × 128 + numéro
     std::atomic<int> songModeToggles { 0 };
     std::atomic<int> photoRequests { 0 }, recallRequests { 0 }; // v0.46 : photo / rappel au contrôleur (fil de l'interface)

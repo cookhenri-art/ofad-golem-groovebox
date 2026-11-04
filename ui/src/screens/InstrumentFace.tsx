@@ -13,7 +13,7 @@ import { actions, getState, hasNative, setUi, showMessage, useStore, writePref }
 import type { ModuleDesc, SectionDesc } from "../engine/protocol";
 import { noteName, toPlain, trackColor } from "../engine/params";
 import { paramAddress, useParam } from "../controls/bindings";
-import { Encoder } from "../controls/Encoder";
+import { Encoder, MacroMenuContext } from "../controls/Encoder";
 import { PresetPanel } from "../controls/PresetPanel";
 import { FolderBrowser } from "../controls/FolderBrowser";
 import { ModSources, SectionVisual, TAB_LABELS, moduleTabs, sectionsFor, useModSourceEncoders } from "./ModuleView";
@@ -316,6 +316,7 @@ export function InstrumentFace() {
   const cat = useStore((s) => s.catalog);
   const lane = useStore((s) => s.ui.lane);
   const faceBig = useStore((s) => s.ui.faceBig);
+  const phoneUi = useStore((s) => !!s.ui.phone);
   const samples = useStore((s) => s.channels[focus]?.samples);
   const instValues = useStore((s) => s.channels[focus]?.inst);
   const [page, setPage] = useState<string>("sound");
@@ -335,6 +336,7 @@ export function InstrumentFace() {
   useEffect(() => { if (open && !m) { setUi({ face: false }); showMessage("Choisissez d'abord une piste qui a un instrument"); } }, [open, m]);
 
   if (!open || !m || !track) return null;
+  // (v0.46 fix20 : sur téléphone la façade est toujours en grand et défile : pas de bouton Taille)
   const face = FACES[m.type] ?? FACES.input;
   // panneau « comme la machine » si l'instrument en a un, sinon la façade générique
   const layout = FACE_LAYOUTS[m.type];
@@ -363,43 +365,53 @@ export function InstrumentFace() {
   const takesSamples = m.drumKit || m.type === "keys" || m.type === "octa";
 
   return (
+    <MacroMenuContext.Provider value={true}>
     <div className={`face face--skin${sk.skin.cheek ? " face--cheeks" : ""}${layout ? ` face--panel face--t-${layout.theme}` : ""}`} role="dialog" aria-label={`${m.name} — façade de l'instrument`}
       style={{ ...(layout ? { "--k": color } : { "--face-accent": face.accent, "--face-panel": face.panel, "--k": color }), ...sk.style } as React.CSSProperties}>
-      <header className="face-head">
-        <span className="face-stripe" aria-hidden />
-        <div className="face-title">
-          <span className="face-tag">P{focus + 1} · {track.name} · {face.tag}</span>
-          <h2>{m.name}{perPad ? <small> · {lane + 1} {m.padNames[lane] ?? ""}</small> : null}</h2>
+      {/* v0.46 fix26 : en-tête sur trois lignes fixes (PC et téléphone) : 1. nom, transport, piste, ✕ ;
+          2. les pages (elles défilent si la place manque) ; 3. les outils de l'instrument. Rien ne change
+          de ligne d'un instrument à l'autre. */}
+      <header className="face-head face-head--2rows">
+        <div className="face-head-row">
+          <span className="face-stripe" aria-hidden />
+          <div className="face-title">
+            <span className="face-tag">P{focus + 1} · {track.name} · {face.tag}</span>
+            <h2>{m.name}{perPad ? <small> · {lane + 1} {m.padNames[lane] ?? ""}</small> : null}</h2>
+          </div>
+          {/* v0.46 fix26 : transport juste à gauche du choix de piste, sur tous les instruments */}
+          <FaceTransport />
+          <TrackNav focus={focus} />
+          <button type="button" className="face-close" onClick={() => setUi({ face: false })} aria-label="Refermer la façade" title="Refermer (Échap)">✕</button>
         </div>
-        <TrackNav focus={focus} />
-        <div className="face-pages" role="tablist" aria-label="Pages de la façade">
-          {pages.map((p) => (
-            <button key={p.id} type="button" role="tab" aria-selected={current === p.id} className={current === p.id ? "on" : ""} onClick={() => setPage(p.id)}>{p.label}</button>
-          ))}
+        <div className="face-head-row face-head-row--pages">
+          <div className="face-pages" role="tablist" aria-label="Pages de la façade">
+            {pages.map((p) => (
+              <button key={p.id} type="button" role="tab" aria-selected={current === p.id} className={current === p.id ? "on" : ""} onClick={() => setPage(p.id)}>{p.label}</button>
+            ))}
+          </div>
         </div>
-        <FaceTransport />
-        <span className="face-spacer" />
-        {takesSamples && (
-          <span className="face-sample">
-            <span>{samples?.[sampleIndex] ?? "Voix de synthèse"}</span>
-            <button type="button" onClick={() => (hasNative("chooseSample") ? actions.chooseSample(focus, sampleIndex) : setUi({ face: false, screen: "sound" }))}>Échantillon…</button>
-            <button type="button" className={library ? "on" : ""} onClick={() => { setLibrary(!library); setPresets(null); }} title="Les échantillons du dossier choisi dans les Réglages">Bibliothèque</button>
-          </span>
-        )}
-        <button type="button" className={`face-btn face-btn--swap${picker ? " on" : ""}`} onClick={() => { setPicker(!picker); setPresets(null); setLibrary(false); }}
-          title="Choisir un autre instrument pour cette piste, d'après l'image de sa façade">⇄ Instrument</button>
-        {/* v0.46 fix6 : raccourci vers les effets de la piste (et du pad), en pédales par-dessus la façade ;
-            on les referme (✕ ou Échap) pour revenir à l'instrument. L'écran EFFETS reste là. */}
-        <button type="button" className="face-btn face-btn--fx" onClick={() => setUi({ pedals: true })}
-          title={m.drumKit ? `Les effets de la piste et ceux du ${octa ? `T${lane + 1}` : `pad ${lane + 1}`}, en pédales, sans quitter l'instrument (✕ ou Échap pour revenir)` : "Les effets de cette piste, en pédales, sans quitter l'instrument (✕ ou Échap pour revenir)"}>FX · Effets</button>
-        {!octa && <button type="button" className={`face-btn${presets === "inst" ? " on" : ""}`} onClick={() => { setPresets(presets === "inst" ? null : "inst"); setLibrary(false); }}>
-          {m.drumKit ? "Kit · préréglages" : "Préréglages"}{track.preset ? ` · ${track.preset}` : ""}
-        </button>}
-        {m.drumKit && <button type="button" className={`face-btn${presets === "pad" ? " on" : ""}`} onClick={() => { setPresets(presets === "pad" ? null : "pad"); setLibrary(false); }}>{octa ? `T${lane + 1}` : `Pad ${lane + 1}`} · préréglages</button>}
-        {layout && <button type="button" className={`face-btn${faceBig ? " on" : ""}`} aria-pressed={faceBig}
-          onClick={() => { setUi({ faceBig: !faceBig }); writePref("faceBig", !faceBig); }}
-          title={faceBig ? "Grand : une façade trop chargée n'est plus réduite, on la fait défiler vers le bas (toucher pour tout faire tenir dans l'écran)" : "Tout tient dans l'écran, quitte à réduire (toucher pour garder la taille normale et faire défiler)"}>{faceBig ? "Taille : grande" : "Taille : ajustée"}</button>}
-        <button type="button" className="face-close" onClick={() => setUi({ face: false })} aria-label="Refermer la façade" title="Refermer (Échap)">✕</button>
+        <div className="face-head-row face-head-row--tools">
+          {takesSamples && (
+            <span className="face-sample">
+              <span>{samples?.[sampleIndex] ?? "Voix de synthèse"}</span>
+              <button type="button" onClick={() => (hasNative("chooseSample") ? actions.chooseSample(focus, sampleIndex) : setUi({ face: false, screen: "sound" }))}>Échantillon…</button>
+              <button type="button" className={library ? "on" : ""} onClick={() => { setLibrary(!library); setPresets(null); }} title="Les échantillons du dossier choisi dans les Réglages">Bibliothèque</button>
+            </span>
+          )}
+          <button type="button" className={`face-btn face-btn--swap${picker ? " on" : ""}`} onClick={() => { setPicker(!picker); setPresets(null); setLibrary(false); }}
+            title="Choisir un autre instrument pour cette piste, d'après l'image de sa façade">⇄ Instrument</button>
+          {/* v0.46 fix6 : raccourci vers les effets de la piste (et du pad), en pédales par-dessus la façade ;
+              on les referme (✕ ou Échap) pour revenir à l'instrument. L'écran EFFETS reste là. */}
+          <button type="button" className="face-btn face-btn--fx" onClick={() => setUi({ pedals: true })}
+            title={m.drumKit ? `Les effets de la piste et ceux du ${octa ? `T${lane + 1}` : `pad ${lane + 1}`}, en pédales, sans quitter l'instrument (✕ ou Échap pour revenir)` : "Les effets de cette piste, en pédales, sans quitter l'instrument (✕ ou Échap pour revenir)"}>FX · Effets</button>
+          {!octa && <button type="button" className={`face-btn${presets === "inst" ? " on" : ""}`} onClick={() => { setPresets(presets === "inst" ? null : "inst"); setLibrary(false); }}>
+            {m.drumKit ? "Kit · préréglages" : "Préréglages"}{track.preset ? ` · ${track.preset}` : ""}
+          </button>}
+          {m.drumKit && <button type="button" className={`face-btn${presets === "pad" ? " on" : ""}`} onClick={() => { setPresets(presets === "pad" ? null : "pad"); setLibrary(false); }}>{octa ? `T${lane + 1}` : `Pad ${lane + 1}`} · préréglages</button>}
+          {layout && !phoneUi && <button type="button" className={`face-btn${faceBig ? " on" : ""}`} aria-pressed={faceBig}
+            onClick={() => { setUi({ faceBig: !faceBig }); writePref("faceBig", !faceBig); }}
+            title={faceBig ? "Grand : une façade trop chargée n'est plus réduite, on la fait défiler vers le bas (toucher pour tout faire tenir dans l'écran)" : "Tout tient dans l'écran, quitte à réduire (toucher pour garder la taille normale et faire défiler)"}>{faceBig ? "Taille : grande" : "Taille : ajustée"}</button>}
+        </div>
       </header>
       <ModeBar />
 
@@ -443,5 +455,6 @@ export function InstrumentFace() {
           : <div className={layout?.wheels ? "face-play face-play--wheels" : "face-play"}>{layout?.wheels && <Wheels track={focus} />}<Keyboard track={focus} color={layout ? "var(--fp-led)" : face.accent} /></div>}
       </footer>
     </div>
+    </MacroMenuContext.Provider>
   );
 }

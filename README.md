@@ -51,6 +51,7 @@ vocodeurs, sampler de performance, échos à bande, réverbérations, compresseu
 
 - **Application Windows** (autonome), **plugin VST3** pour les logiciels de musique, **application Android** pour tablette.
 - **34 instruments**, **1249 sons d'usine**, **38 effets**, 16 pistes, 8 patterns par piste, 32 scènes.
+- **Vue live** pour le jeu en direct : crossfader ou **pavé vectoriel** à quatre scènes (formes en mouvement, taille, hauteur, rotation), console des 16 pistes avec faders, FX et M / S, et les **16 boutons assignables** avec leurs propres modulations.
 - Logiciel **libre** (AGPL-3.0) : les sources de chaque version sont fournies avec elle.
 
 ### 🤝 Un projet qui évolue avec vous
@@ -70,6 +71,9 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
 <tr><td align="center"><a href="docs/img/morceau.jpg"><img src="docs/img/morceau.jpg" alt="Morceau"></a><br><b>Morceau</b></td><td align="center"><a href="docs/img/montage.jpg"><img src="docs/img/montage.jpg" alt="Montage audio"></a><br><b>Montage audio</b></td></tr>
 <tr><td align="center"><a href="docs/img/facade-acide.jpg"><img src="docs/img/facade-acide.jpg" alt="Séquenceur acide sur la façade"></a><br><b>Séquenceur acide sur la façade</b></td><td align="center"><a href="docs/img/facade-verrous.jpg"><img src="docs/img/facade-verrous.jpg" alt="Séquenceur à verrous"></a><br><b>Séquenceur à verrous</b></td></tr>
 <tr><td align="center"><a href="docs/img/scenes-reperes.jpg"><img src="docs/img/scenes-reperes.jpg" alt="Scènes A / B et crossfader"></a><br><b>Scènes A / B et crossfader</b></td><td align="center"><a href="docs/img/sequence-reperes.jpg"><img src="docs/img/sequence-reperes.jpg" alt="Rouleau de notes, accent, glissé, pages"></a><br><b>Rouleau de notes, accent, glissé, pages</b></td></tr>
+<tr><td align="center"><a href="docs/img/scenes-crossfader-pc.jpg"><img src="docs/img/scenes-crossfader-pc.jpg" alt="Scènes : crossfader sur PC"></a><br><b>Scènes : crossfader</b></td><td align="center"><a href="docs/img/scenes-vecteur-pc.jpg"><img src="docs/img/scenes-vecteur-pc.jpg" alt="Scènes : pavé vectoriel sur PC"></a><br><b>Scènes : pavé vectoriel</b></td></tr>
+<tr><td align="center"><a href="docs/img/vue-live-crossfader.jpg"><img src="docs/img/vue-live-crossfader.jpg" alt="Vue live : crossfader et console"></a><br><b>Vue live : crossfader et console</b></td><td align="center"><a href="docs/img/vue-live-vecteur.jpg"><img src="docs/img/vue-live-vecteur.jpg" alt="Vue live : pavé vectoriel et console"></a><br><b>Vue live : pavé vectoriel et console</b></td></tr>
+<tr><td align="center" colspan="2"><a href="docs/img/modulations-boutons.jpg"><img src="docs/img/modulations-boutons.jpg" alt="Modulations des 16 boutons assignables"></a><br><b>Modulations propres aux 16 boutons assignables</b></td></tr>
 </table>
 
 <p align="center"><i>Les repères numérotés sont expliqués dans la <a href="docs/NOTICE.md">notice</a>.</i></p>

@@ -511,6 +511,33 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
 
     // v0.39 : entrée audio coupée par l'application autonome (sécurité anti-larsen) : lire, ouvrir, couper.
     // Réponse : 1 coupée, 0 ouverte, -1 pas d'application autonome.
+    // v0.46 fix21 : l'interface signale qu'on s'en sert (au plus une fois toutes les 20 s) : sur
+    // téléphone, l'écran reste allumé tant qu'on joue ou qu'on a touché l'appli il y a moins de 10 min
+    fn ("userActive", [this] (const Args&, Completion done) { processor.noteUserActivity(); done (juce::var (true)); });
+
+    // v0.46 fix22 : forme dessinée du pavé vectoriel (« x,y;x,y;… », 0..1)
+    fn ("setVecPath", [this] (const Args& a, Completion done) { processor.setVecPath (strArg (a, 0, 4096)); done (juce::var (processor.getVecPath())); });
+    fn ("getVecPath", [this] (const Args&, Completion done) { done (juce::var (processor.getVecPath())); });
+
+    // v0.46 fix22 : contrôleur MIDI Bluetooth (téléphone, tablette) : arg 0 = savoir si c'est possible,
+    // 1 = ouvrir la fenêtre d'appairage (demande d'abord l'autorisation Bluetooth). Réponse : 1 / 0.
+    fn ("bluetoothMidi", [] (const Args& a, Completion done)
+    {
+        const bool open = a.size() > 0 && (int) a[0] == 1;
+       #if JUCE_ANDROID || JUCE_IOS
+        if (! juce::BluetoothMidiDevicePairingDialogue::isAvailable()) { done (juce::var (0)); return; }
+        if (open)
+            juce::RuntimePermissions::request (juce::RuntimePermissions::bluetoothMidi, [] (bool granted)
+            {
+                if (granted) juce::BluetoothMidiDevicePairingDialogue::open();
+            });
+        done (juce::var (1));
+       #else
+        juce::ignoreUnused (open);
+        done (juce::var (0));
+       #endif
+    });
+
     fn ("inputMute", [] (const Args& a, Completion done)
     {
         const auto& hook = grv::standaloneInputHook();
@@ -560,7 +587,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
                 seq.setLength8 (t, l, to + k, seq.getLength8 (t, l, from + k));
                 seq.setMicro (t, l, to + k, seq.getMicro (t, l, from + k));
             }
-        for (int k = 0; k < n; ++k) seq.setStepFlags (t, to + k, seq.getStepFlags (t, from + k));
+        for (int k = 0; k < n; ++k) { seq.setStepFlags (t, to + k, seq.getStepFlags (t, from + k)); seq.setStepAmounts (t, to + k, seq.getStepAmounts (t, from + k)); }
         eng.copyStepRangeExtras (t, seq.getEditing (t), from, to, n, nowMs());
     });
 
@@ -621,6 +648,13 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
                     const auto f = seq.getStepFlags (t, st);
                     seq.setStepFlags (t, st, on ? (f | bit) : (f & ~bit));
                 }
+    });
+    // v0.46 fix27 : valeur d'un pas : pas, genre (0 = force de l'accent, 1 = durée du glissé), 0 (par défaut) à 100 %
+    patternFn ("seqStepAmount", [&seq, S] (const Args& a, int t)
+    {
+        const auto st = intArg (a, 1, 0, S, 0), which = intArg (a, 2, 0, 1, 0), v = intArg (a, 3, 0, 100, 0);
+        const auto cur = seq.getStepAmounts (t, st);
+        seq.setStepAmounts (t, st, which == 0 ? ((cur & 0xFF00) | v) : ((cur & 0xFF) | (v << 8)));
     });
     patternFn ("seqLaneLength", [&seq, L, S] (const Args& a, int t) { seq.setLaneLength (t, intArg (a, 1, 0, L, 0), intArg (a, 2, 0, S + 1, 0)); });
     patternFn ("seqAccent", [&seq] (const Args& a, int t) { seq.setAccentAmount (t, intArg (a, 1, 0, 100, 50)); });
@@ -931,8 +965,38 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
     {
         // réglages (0 et plus), commandes spéciales (-2 à -5), coupure (-100 à -115) et solo (-200 à -215) de piste
         const auto t = intArg (a, i, GrooveboxProcessor::midiLowestTarget, numSlots - 1, GrooveboxProcessor::midiNone);
-        return t >= GrooveboxProcessor::midiLastSpecial || GrooveboxProcessor::isMidiTrackTarget (t) ? t : (int) GrooveboxProcessor::midiNone;
+        return t >= GrooveboxProcessor::midiLastSpecial || GrooveboxProcessor::isMidiTrackTarget (t) || GrooveboxProcessor::isMidiExtra (t) ? t : (int) GrooveboxProcessor::midiNone;
     };
+    // v0.46 fix24 : boutons assignables (valeur, cible) et table des valeurs d'écran
+    fn ("setKnob", [&proc] (const Args& a, Completion done)
+    {
+        if (const auto k = intArg (a, 0, 0, GrooveboxProcessor::numKnobs - 1, -1); k >= 0) proc.setKnob (k, floatArg (a, 1, 0.0f, 1.0f, 0.0f));
+        done (juce::var());
+    });
+    fn ("setKnobTarget", [this, &proc, &eng, midiTargetArg] (const Args& a, Completion done)
+    {
+        const auto k = intArg (a, 0, 0, GrooveboxProcessor::numKnobs - 1, -1);
+        auto t = midiTargetArg (a, 1);
+        if (GrooveboxProcessor::isKnobTarget (t) || (t >= 0 && eng.describe (t) == nullptr)) t = GrooveboxProcessor::midiNone;
+        if (k >= 0)
+        {
+            proc.setKnobTarget (k, t);
+            if (a.size() > 2) proc.setKnob (k, floatArg (a, 2, 0.0f, 1.0f, 0.0f)); // position de départ : la valeur de la cible
+        }
+        done (json (midiJson()));
+    });
+    // v0.46 fix28 : LFO d'un bouton assignable (0 = aucun, 1..4) et profondeur -1..1
+    fn ("setKnobLfo", [this, &proc] (const Args& a, Completion done)
+    {
+        const auto k = intArg (a, 0, 0, GrooveboxProcessor::numKnobs - 1, -1);
+        if (k >= 0) proc.setKnobLfo (k, intArg (a, 1, 0, GrooveboxProcessor::numKnobLfos, 0), floatArg (a, 2, -1.0f, 1.0f, 0.0f));
+        done (json (midiJson()));
+    });
+    fn ("setCtlTable", [this, &proc] (const Args& a, Completion done)
+    {
+        proc.setCtlTable (a.size() > 0 ? a[0].toString() : juce::String());
+        done (json (midiJson()));
+    });
     fn ("getMidi", [this] (const Args&, Completion done) { done (json (midiJson())); });
     fn ("resetLoudness", [this] (const Args&, Completion done) { loudness.reset(); done (juce::var()); });
     fn ("midiLearn", [this, &proc, &eng, midiTargetArg] (const Args& a, Completion done)
@@ -1467,7 +1531,11 @@ GrooveboxEditor::GrooveboxEditor (GrooveboxProcessor& p)
     lastProject = processor.getProjectVersion();
     lastSeq = processor.getEngine().sequencer().getVersion();
     lastStructure = processor.getEngine().getStructureVersion();
+   #if JUCE_ANDROID
+    startTimerHz (20); // v0.46 fix20 : téléphone et tablette — écran rafraîchi un peu moins souvent (moins de chauffe)
+   #else
     startTimerHz (30);
+   #endif
 }
 
 GrooveboxEditor::~GrooveboxEditor() { stopTimer(); }
@@ -1560,7 +1628,17 @@ void GrooveboxEditor::timerCallback()
     o += ",\"mrec\":"; o += processor.montageRecording() ? "true" : "false";
     o += "},\"g\":{\"xfade\":" + num (processor.getGlobal (ParamID::xfade)) + ",\"sceneA\":" + num (processor.getGlobal (ParamID::sceneA))
        + ",\"sceneB\":" + num (processor.getGlobal (ParamID::sceneB)) + ",\"bpm\":" + num (processor.getGlobal (ParamID::bpm))
-       + ",\"swing\":" + num (processor.getGlobal (ParamID::swing)) + "}";
+       + ",\"swing\":" + num (processor.getGlobal (ParamID::swing));
+    // v0.46 fix22 : pavé vectoriel (réglages, et position jouée avec le mouvement)
+    o += ",\"vecOn\":" + num (processor.getGlobal (ParamID::vecOn)) + ",\"vecMode\":" + num (processor.getGlobal (ParamID::vecMode))
+       + ",\"vecX\":" + num (processor.getGlobal (ParamID::vecX)) + ",\"vecY\":" + num (processor.getGlobal (ParamID::vecY))
+       + ",\"vecOrbit\":" + num (processor.getGlobal (ParamID::vecOrbit)) + ",\"vecRate\":" + num (processor.getGlobal (ParamID::vecRate))
+       + ",\"vecDepth\":" + num (processor.getGlobal (ParamID::vecDepth)) + ",\"vecRot\":" + num (processor.getGlobal (ParamID::vecRot)) + ",\"vecHeight\":" + num (processor.getGlobal (ParamID::vecHeight))
+       + ",\"vecPX\":" + num (processor.getVecShownX()) + ",\"vecPY\":" + num (processor.getVecShownY());
+    for (int k = 0; k < 4; ++k)
+        o += ",\"" + ParamID::vecScene (k).toStdString() + "\":" + num (processor.getGlobal (ParamID::vecScene (k)))
+           + ",\"" + ParamID::vecFx (k).toStdString() + "\":" + num (processor.getGlobal (ParamID::vecFx (k)));
+    o += "}";
 
     // Notes jouées (allumage des pads) : [piste, ligne] qui ont changé
     o += ",\"hits\":[";
@@ -1662,6 +1740,42 @@ void GrooveboxEditor::timerCallback()
        + "," + num ((float) totalMemMb) // v0.46 fix17 : mémoire de l'appareil (Mo), pour l'afficher en %
        + "," + num ((float) processor.getAndroidAudioStatus());
     o += "],\"learn\":" + std::to_string (processor.getMidiLearn());
+    // v0.46 fix24 : positions des 16 boutons assignables, valeurs d'écran pilotées (MIDI, boutons)
+    o += ",\"kv\":[";
+    for (int k = 0; k < GrooveboxProcessor::numKnobs; ++k) o += (k ? "," : "") + num (processor.getKnob (k));
+    // v0.46 fix28 : valeur jouée du réglage relié (modulation LFO…, scène, verrou), sur toutes les pistes,
+    // pour que le bouton bouge avec sa modulation comme les boutons des synthés ; -1 = la valeur du bouton
+    // v0.46 fix28 : valeur envoyée par chaque bouton avec son LFO (-1 : pas de LFO)
+    // v0.46 fix28 : sources des 16 boutons (1 à 4 du bus principal) : [valeur, pas] pour leur dessin animé
+    o += "],\"kmods\":[";
+    for (int m = 0; m < GrooveboxProcessor::numKnobLfos; ++m)
+        o += (m ? ",[" : "[") + num (eng.getModValue (GrooveboxProcessor::knobLfoChannel, m)) + "," + std::to_string (eng.getModStep (GrooveboxProcessor::knobLfoChannel, m)) + "]";
+    o += "],\"ko\":[";
+    for (int k = 0; k < GrooveboxProcessor::numKnobs; ++k) o += (k ? "," : "") + num (processor.getKnobOut (k));
+    o += "],\"ke\":[";
+    for (int k = 0; k < GrooveboxProcessor::numKnobs; ++k)
+    {
+        const auto t = processor.getKnobTarget (k);
+        float e = -1.0f;
+        if (t >= 0 && eng.describe (t) != nullptr)
+            if (const auto v = eng.getEffective (t); std::abs (v - eng.getParam (t)) > 1.0e-4f) e = v;
+        o += (k ? "," : "") + num (e);
+    }
+    o += "]";
+    if (const auto uv = processor.getUiCtlVersion(); uv != lastUiCtlVersion)
+    {
+        lastUiCtlVersion = uv;
+        o += ",\"uc\":[";
+        bool firstUc = true;
+        for (int u = 0; u < GrooveboxProcessor::numUiCtl; ++u)
+            if (const auto useq = processor.getUiCtlSeq (u); useq != lastUiCtlSeq[(size_t) u])
+            {
+                lastUiCtlSeq[(size_t) u] = useq;
+                o += (firstUc ? "[" : ",[") + std::to_string (u) + "," + num (processor.getUiCtl (u)) + "]";
+                firstUc = false;
+            }
+        o += "]";
+    }
     dsp::LoudnessBlock lb;
     while (eng.popLoudness (lb)) loudness.add (lb);
     if (spectrumOn != 0)
@@ -1736,6 +1850,12 @@ std::string GrooveboxEditor::midiJson() const
        + ",\"ctrlOn\":" + (processor.getMidiCtrlOn() ? "true" : "false") + ",\"tracks\":[";
     for (int t = 0; t < numTracks; ++t) o += (t ? "," : "") + std::to_string (processor.getTrackMidiChannel (t));
     o += "]}";
+    // v0.46 fix24 : boutons assignables [cible, position] et table des valeurs d'écran (texte JSON de l'interface)
+    o += ",\"knobs\":[";
+    for (int k = 0; k < GrooveboxProcessor::numKnobs; ++k)
+        o += (k ? ",[" : "[") + std::to_string (processor.getKnobTarget (k)) + "," + std::to_string (processor.getKnob (k))
+           + "," + std::to_string (processor.getKnobLfo (k)) + "," + std::to_string (processor.getKnobDepth (k)) + "]"; // v0.46 fix28 : LFO, profondeur
+    o += "],\"ctl\":" + bridge::quote (processor.getCtlTable().toStdString());
     return o + "}";
 }
 

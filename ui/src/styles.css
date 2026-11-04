@@ -81,6 +81,8 @@
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
+/* v0.46 fix28 : pas de zoom ni de déplacement de tout l'écran (les listes gardent leur défilement) */
+html, body { overflow: hidden; overscroll-behavior: none; touch-action: pan-x pan-y; }
 body { background: var(--room); color: var(--scr-fg); overflow: hidden; user-select: none; -webkit-user-select: none; }
 ::selection { background: var(--accent); color: var(--scr-bg); }
 button { font: inherit; color: inherit; }
@@ -911,7 +913,7 @@ button { font: inherit; color: inherit; }
 .seq-octave button:hover:not(:disabled) { background: var(--scr-raise-hi); }
 .roll { display: grid; grid-template-rows: repeat(24, 1fr); min-height: 0; gap: 1px; }
 .roll-row { display: grid; grid-template-columns: 52px 1fr; gap: 4px; min-height: 0; }
-.roll-key { border: 0; border-radius: 2px; padding: 0 5px; text-align: left; font-size: 9.5px; font-weight: 700; color: var(--scr-subtle); background: oklch(0.86 0.005 250 / 0.14); cursor: pointer; }
+.roll-key { touch-action: none; border: 0; border-radius: 2px; padding: 0 5px; text-align: left; font-size: 9.5px; font-weight: 700; color: var(--scr-subtle); background: oklch(0.86 0.005 250 / 0.14); cursor: pointer; }
 .roll-row--black .roll-key { background: var(--scr-bg); }
 .roll-row--c .roll-key { color: var(--scr-fg); }
 .roll-row--root .roll-key { color: var(--accent); }
@@ -2181,13 +2183,13 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 
 /* En-tête de façade : les boutons gardent leur largeur (texte sur une ligne) ; c'est le titre qui
    se raccourcit, puis le nom de l'échantillon (corrige le chevauchement des en-têtes de batteries) */
-.face-head > .face-btn, .face-sample button, .face-pages button { flex: none; white-space: nowrap; }
-.face-head > .face-title { flex: 1 1 auto; min-width: 90px; overflow: hidden; }
-.face-head > .face-title h2, .face-head > .face-title .face-tag { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.face-head-row > .face-btn, .face-sample button, .face-pages button { flex: none; white-space: nowrap; }
+.face-head-row > .face-title { flex: 1 1 auto; min-width: 90px; overflow: hidden; }
+.face-head-row > .face-title h2, .face-head-row > .face-title .face-tag { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .face-head { flex-wrap: wrap; row-gap: 6px; }
 .face-sample { flex: none; min-width: auto; }
 .face-sample > span { min-width: 0; max-width: 140px; flex: 0 1 auto; }
-.face-head > .face-spacer { flex: 1 1 0; min-width: 0; }
+.face-head-row > .face-spacer { flex: 1 1 0; min-width: 0; }
 
 /* v0.23 : témoin de charge (calcul audio et mémoire) dans la barre du haut */
 .perf-meter { display: flex; flex: none; white-space: nowrap; align-items: center; gap: 5px; margin-right: 8px; padding: 3px 7px; border-radius: 6px; background: rgba(0, 0, 0, 0.28); font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--silk, #9aa3ad); cursor: pointer; }
@@ -3143,3 +3145,440 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .perf-meter--compact .perf-bar { display: none; }
 .perf-meter--compact { gap: 4px; }
 .perf-meter--compact + .phone-tabs-play { margin-left: 6px; }
+
+/* ============================================================ v0.46 fix20 : façades et pédalier sur téléphone
+   Dessin plus étroit (960 px) donc plus gros ; la façade entière défile vers le bas (en-tête, page,
+   rangée de pas, clavier à la suite). */
+.device--ghost-phone .face { inset: 4px; display: flex; flex-direction: column; gap: 8px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.device--ghost-phone .face > * { flex: none; }
+.device--ghost-phone .face-body { overflow: visible !important; min-height: 0; }
+.device--ghost-phone .face--panel .face-body { display: block; }
+.device--ghost-phone .face-fit { position: relative; inset: auto; overflow: visible; }
+.device--ghost-phone .face-head { flex-wrap: wrap; row-gap: 6px; }
+.device--ghost-phone .pedalboard { inset: 4px; overflow-y: auto; overscroll-behavior: contain; }
+/* rangées de 16 (kit, touches de pas des batteries) : deux rangées de 8 sur téléphone */
+.device--ghost-phone .kitcols { grid-template-columns: repeat(8, 64px); row-gap: 8px; }
+.device--ghost-phone .stepkeys { grid-template-columns: repeat(8, 60px); }
+/* Pieuvre 8 sur téléphone : les pages (Lecture, Attributs, Ampli…) en bandeau au-dessus, l'écran plus large */
+.device--ghost-phone .ot { grid-template-columns: 160px 724px; grid-template-areas: "pages pages" "trk screen" "trk knobs" "rec steps" "rec lfo"; }
+.device--ghost-phone .ot-pages { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
+.device--ghost-phone .ot-pages button { justify-content: center; }
+.device--ghost-phone .welcome { overflow-y: auto; overscroll-behavior: contain; }
+
+/* v0.46 fix20 : menus des réglages sur téléphone, agrandis au milieu de l'écran */
+.mod-menu.mod-menu--sheet { animation: none; z-index: 900; box-shadow: 0 18px 60px oklch(0 0 0 / 0.75), inset 0 0 0 1px oklch(0.42 0.02 245); }
+.midi-bt { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.midi-bt small { opacity: 0.7; }
+
+/* ============================================================ v0.46 fix22 : pavé vectoriel (Scènes › Vecteur) */
+.vec { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; height: 100%; padding: 12px 14px; min-height: 0; }
+.vec-pad-wrap { height: 100%; aspect-ratio: 1; min-height: 0; display: grid; }
+.vec-pad { position: relative; border-radius: 14px; touch-action: none; cursor: crosshair; user-select: none;
+  background: radial-gradient(120% 120% at 50% 50%, oklch(0.24 0.02 250), oklch(0.16 0.012 250));
+  box-shadow: inset 0 0 0 1px oklch(0.38 0.02 250), inset 0 0 40px oklch(0 0 0 / 0.5); overflow: hidden; }
+.vec-pad.on { box-shadow: inset 0 0 0 1.5px var(--accent), inset 0 0 40px oklch(0 0 0 / 0.5); }
+.vec-grid { position: absolute; inset: 0; background-image: linear-gradient(oklch(1 0 0 / 0.06) 1px, transparent 1px), linear-gradient(90deg, oklch(1 0 0 / 0.06) 1px, transparent 1px); background-size: 12.5% 12.5%; pointer-events: none; }
+.vec-corner { position: absolute; margin: 8px; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 10px; border-radius: 10px; pointer-events: none;
+  background: color-mix(in oklch, var(--accent) calc(var(--w, 0) * 70%), oklch(0.2 0.01 250 / 0.85)); color: var(--scr-fg); }
+.vec-corner b { font-size: 20px; line-height: 1; }
+.vec-corner small { font-size: 10px; opacity: 0.8; white-space: nowrap; }
+.vec-dot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; pointer-events: none;
+  background: oklch(0.7 0.02 250); box-shadow: 0 0 0 3px oklch(0 0 0 / 0.35); transition: background 0.2s; }
+.vec-dot.on { background: var(--accent); box-shadow: 0 0 0 3px oklch(0 0 0 / 0.35), 0 0 18px var(--accent); }
+.vec-home { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid oklch(1 0 0 / 0.55); pointer-events: none; }
+.vec-orbit { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; border: 1.5px dashed oklch(1 0 0 / 0.25); pointer-events: none; }
+.vec-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; overflow-y: auto; }
+.vec-row { display: flex; align-items: center; gap: 10px; }
+.vec-note, .vec-help { font-size: 11px; color: var(--scr-muted); }
+.vec-help { margin: 0; }
+.vec-group { display: flex; flex-direction: column; gap: 5px; }
+.vec-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--scr-muted); }
+.vec-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.vec-corners { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.vec-sel { display: flex; align-items: center; gap: 6px; }
+.vec-sel b { width: 18px; text-align: center; color: var(--accent); }
+.vec-sel select { flex: 1; min-width: 0; padding: 4px 6px; border-radius: 6px; background: var(--scr-raise); color: var(--scr-fg); border: 1px solid oklch(1 0 0 / 0.12); }
+.vec-group input[type=range] { width: 100%; }
+.vec .chip { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 650; padding: 4px 10px; border-radius: 6px; color: var(--scr-fg); background: var(--scr-raise-hi); }
+.vec .chip.chip--on { background: var(--accent); color: oklch(0.15 0.01 250); }
+.vec-path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.vec-path polyline { stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; opacity: 0.75; }
+.vec-draw-hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: 11px; padding: 4px 10px; border-radius: 6px; background: oklch(0 0 0 / 0.55); color: var(--scr-fg); pointer-events: none; white-space: nowrap; }
+/* v0.46 fix22 : pavé vectoriel en grand (tout l'écran, hors appareil) */
+.vecfull { position: absolute; inset: 0; z-index: 1000; display: flex; flex-direction: column; gap: 8px; padding: 8px 10px 10px; background: radial-gradient(110% 90% at 40% 30%, oklch(0.2 0.015 250), oklch(0.12 0.008 250)); color: var(--scr-fg, #e6e9ee); font-family: inherit; }
+.vecfull-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: none; }
+.vecfull-back { appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 700; font-size: 14px; padding: 8px 14px; border-radius: 10px; background: oklch(1 0 0 / 0.1); color: inherit; }
+.vecfull-transport { display: inline-flex; gap: 5px; padding: 3px; border-radius: 10px; background: oklch(0 0 0 / 0.3); }
+.vecfull-transport button { appearance: none; border: 0; cursor: pointer; width: 42px; height: 36px; border-radius: 8px; font-size: 15px; color: oklch(0.9 0.01 250); background: oklch(1 0 0 / 0.08); }
+.vecfull-transport .ft-rec { color: oklch(0.66 0.2 25); }
+.vecfull-transport .ft-rec.on { background: oklch(0.6 0.21 25); color: #fff; }
+.vecfull-transport .ft-play.on { background: oklch(0.68 0.17 145); color: #0c140e; }
+.vecfull .chip { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 650; padding: 8px 12px; border-radius: 8px; color: inherit; background: oklch(1 0 0 / 0.1); }
+.vecfull .chip.chip--on { background: oklch(0.82 0.15 78); color: oklch(0.15 0.01 250); }
+.vecfull-sel { font: inherit; font-size: 13px; padding: 7px 8px; border-radius: 8px; background: oklch(1 0 0 / 0.1); color: inherit; border: 0; }
+.vecfull-sel option { color: #111; }
+.vecfull-body { flex: 1; min-height: 0; display: flex; gap: 10px; }
+.vecfull-pad { flex: 1; min-width: 0; min-height: 0; display: grid; }
+.vecfull-pad .vec-pad { width: 100%; height: 100%; }
+.vecfull-pad .vec-corner b { font-size: 28px; }
+.vecfull-pad .vec-corner small { font-size: 12px; }
+.vecfull-pad .vec-dot { width: 40px; height: 40px; margin: -20px 0 0 -20px; }
+.vecfull-side { flex: none; width: min(40%, 360px); min-height: 0; display: flex; flex-direction: column; gap: 4px; }
+.vecfull-switch { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.vecfull-switch button { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 750; padding: 5px 6px; border-radius: 6px; color: inherit; background: oklch(1 0 0 / 0.08); }
+.vecfull-switch button.on { background: var(--accent, oklch(0.8 0.15 75)); color: #111; }
+.vecfull-trk--group { border-left-color: oklch(0.75 0.12 200); background: oklch(0.75 0.12 200 / 0.1); }
+.vecfull-tracks { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 4px; overflow-y: auto; }
+.vecfull-trk { display: flex; align-items: center; gap: 3px; min-height: 0; padding: 2px 3px 2px 6px; border-radius: 7px; background: oklch(1 0 0 / 0.05); border-left: 3px solid var(--k); }
+.vecfull-trk.is-empty { opacity: 0.4; }
+.vecfull-name { flex: 1; min-width: 0; font-size: 11.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vecfull-m, .vecfull-s { appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 800; font-size: 12px; width: 30px; align-self: stretch; min-height: 26px; border-radius: 6px; color: inherit; background: oklch(1 0 0 / 0.1); }
+.vecfull-m.on { background: oklch(0.6 0.2 25); color: #fff; }
+.vecfull-s.on { background: oklch(0.8 0.15 90); color: #111; }
+.vecfull-rows { flex: none; }
+.vecfull-rows .row-launch { margin: 0; }
+.vecfull-rows button { min-height: 32px; font-size: 14px; } /* v0.46 fix28 : rangées un peu moins hautes (place pour les groupes) */
+
+/* v0.46 fix23 : rangée Tempo du téléphone (− / valeur à taper / + / Tap) */
+.phone-row--tempo > .tempo-btn { flex: 0 0 52px; font-size: 22px; font-weight: 700; justify-content: center; align-items: center; }
+.phone-row--tempo > .tempo-btn--tap { flex: 0 0 64px; font-size: 14px; letter-spacing: 0.04em; }
+.phone-row--tempo > .tempo-phone-value { flex: 1 1 auto; height: 46px; display: flex; align-items: baseline; justify-content: center; gap: 6px;
+  padding-top: 8px; border-radius: 6px; background: oklch(0.2 0.015 245); border: 1px solid oklch(0.32 0.02 245); color: var(--scr-fg, #e8eef5);
+  cursor: ns-resize; touch-action: none; user-select: none; -webkit-user-select: none; }
+.phone-row--tempo > .tempo-phone-value > * { flex: none; display: inline; }
+.tempo-phone-value b { font-size: 22px; font-weight: 700; }
+.tempo-phone-value small { font-size: 11px; opacity: 0.7; font-weight: 600; }
+
+/* fenêtre de saisie du tempo (hors de l'appareil mis à l'échelle : taille réelle de l'écran) */
+.tempo-entry-back { position: fixed; inset: 0; z-index: 3000; background: oklch(0 0 0 / 0.55); display: flex; justify-content: center; align-items: flex-start; padding-top: 6vh; }
+.tempo-entry { width: min(92vw, 380px); display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 12px;
+  background: oklch(0.2 0.015 245); border: 1px solid oklch(0.35 0.02 245); box-shadow: 0 12px 40px oklch(0 0 0 / 0.5); color: #e8eef5; font-family: inherit; }
+.tempo-entry-title { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.8; }
+.tempo-entry-row { display: flex; gap: 8px; align-items: center; }
+.tempo-entry-row input { flex: 1; min-width: 0; height: 52px; font-size: 28px; font-weight: 700; text-align: center; border-radius: 8px;
+  border: 1px solid oklch(0.45 0.03 245); background: oklch(0.14 0.01 245); color: inherit; font-variant-numeric: tabular-nums; }
+.tempo-entry-unit { font-size: 14px; opacity: 0.7; }
+.tempo-entry-ok, .tempo-entry-cancel { height: 52px; min-width: 72px; border-radius: 8px; font-size: 17px; font-weight: 700; cursor: pointer;
+  border: 1px solid oklch(0.5 0.08 70); background: oklch(0.42 0.1 70); color: #fff; }
+.tempo-entry-cancel { height: 44px; background: none; border-color: oklch(0.4 0.02 245); font-size: 15px; font-weight: 600; }
+.tempo-entry-range { font-size: 12px; opacity: 0.65; }
+
+/* ============================================================ v0.46 fix24 : 16 boutons assignables */
+.encoder-row--knobs { grid-template-columns: repeat(16, 1fr); padding: 0 6px; column-gap: 2px; }
+.aknob { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; width: 100%; position: relative; }
+.aknob .encoder { width: 52px; height: 52px; }
+.aknob .encoder-cap { inset: 9px; }
+.aknob .encoder-mark { top: 3px; height: 9px; }
+/* marque « assignable » : petit losange bleu en haut à droite */
+.aknob::after { content: ""; position: absolute; top: 1px; right: calc(50% - 27px); width: 6px; height: 6px; transform: rotate(45deg);
+  background: oklch(0.7 0.14 240); box-shadow: 0 0 4px oklch(0.7 0.14 240 / 0.7); pointer-events: none; }
+.aknob--free::after { background: transparent; box-shadow: inset 0 0 0 1.5px oklch(0.7 0.14 240); }
+.aknob--free .led--on { fill: oklch(0.45 0.05 240); filter: none; }
+.aknob:not(.aknob--free) .led--on { fill: oklch(0.72 0.14 240); filter: drop-shadow(0 0 2px oklch(0.72 0.14 240 / 0.8)); }
+.aknob-cap { display: flex; gap: 3px; align-items: baseline; max-width: 100%; font-size: 9px; line-height: 1.1; color: var(--silk-dim, #8b93a0); white-space: nowrap; overflow: hidden; }
+.aknob-cap b { color: oklch(0.72 0.12 240); font-weight: 800; }
+.aknob-cap span { overflow: hidden; text-overflow: ellipsis; color: var(--silk, #c9ced6); }
+.aknob--wait .encoder { border-radius: 50%; animation: knob-wait 0.8s steps(2, jump-none) infinite; }
+@keyframes knob-wait { 0% { box-shadow: 0 0 0 3px oklch(0.7 0.16 240); } 100% { box-shadow: 0 0 0 3px transparent; } }
+/* téléphone : deux rangées de 8 */
+.device--phone .encoder-row--knobs { height: auto; grid-template-columns: repeat(8, 1fr); row-gap: 4px; padding: 2px 0; }
+.device--phone .aknob .encoder { zoom: 1; width: 44px; height: 44px; }
+.device--phone .aknob .encoder-cap { inset: 7px; }
+.device--phone .aknob::after { right: calc(50% - 23px); }
+.device--phone .aknob-cap { font-size: 9.5px; }
+/* en attente d'affectation : les valeurs qu'on peut relier sont soulignées en bleu */
+.knob-assigning [data-ctl], .knob-assigning [data-ctl-ui] { outline: 2px dashed oklch(0.7 0.14 240 / 0.85); outline-offset: -2px; cursor: crosshair; }
+.knob-assigning .aknob [data-ctl], .knob-assigning .aknob [data-ctl-ui] { outline: none; }
+.chip--knob { background: oklch(0.55 0.14 240); color: #fff; }
+/* menu : 16 boutons assignables (deux rangées de 8) */
+.macro-row--16 button.busy { box-shadow: inset 0 -2px 0 oklch(0.65 0.12 240); }
+.macro-row--16 button.on { background: oklch(0.7 0.14 240); color: #fff; }
+.knob-assign-go { font-weight: 700; color: oklch(0.78 0.12 240) !important; }
+/* bas des écrans : chaque valeur a son menu (appui long, clic droit) */
+.enc-label-zone { min-width: 0; }
+.enc-label-zone > .enc-label { border-left: 1px solid var(--scr-line); height: 100%; }
+.enc-label-zone:first-child > .enc-label { border-left: 0; }
+/* v0.46 fix24 : forme du mouvement prédéfini sur le pavé */
+.vec-path--shape polygon, .vec-path--shape rect { stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; opacity: 0.75; }
+.vec-path--shape.off polygon, .vec-path--shape.off rect { opacity: 0.35; stroke-dasharray: 4 4; }
+.vec-path--shape rect { stroke-dasharray: 5 4; }
+/* v0.46 fix26 : vue « En grand » : une rangée de 16 boutons assignables, compacte ; Dessiner dans la barre du haut */
+.vecfull-knobs { flex: none; min-width: 0; }
+.vecfull-knobs-grid { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); justify-items: center; }
+.vecfull .aknob .encoder { zoom: 1; width: 34px; height: 34px; }
+.vecfull .aknob .encoder-cap { inset: 5px; }
+.vecfull .aknob .encoder-mark { top: 2px; height: 6px; width: 2px; margin-left: -1px; }
+.vecfull .aknob::after { right: calc(50% - 18px); width: 5px; height: 5px; }
+.vecfull .aknob-cap { font-size: 9px; }
+/* écran bas (téléphone en paysage) : barre du haut resserrée pour tenir sur une ligne */
+@media (max-height: 520px) {
+  .vecfull { gap: 5px; padding: 6px 8px 8px; }
+  .vecfull-top { flex-wrap: nowrap; gap: 6px; }
+  .vecfull-back { padding: 6px 10px; font-size: 13px; }
+  .vecfull-transport button { width: 36px; height: 32px; }
+  .vecfull .chip { padding: 6px 9px; font-size: 12.5px; white-space: nowrap; }
+  .vecfull-sel { max-width: 130px; padding: 5px 6px; font-size: 12.5px; }
+  .vecfull-rows button { min-height: 28px; font-size: 13px; }
+}
+.mod-menu-note { font-size: 11.5px; opacity: 0.75; padding: 4px 8px; max-width: 260px; white-space: normal; line-height: 1.35; }
+/* v0.46 fix26 : téléphone : tout le panneau Commandes tient sans défiler (tempo compris) */
+.device--phone .phone-panel--ctrl { gap: 5px; }
+.device--phone .phone-panel--ctrl .phone-row .hw { height: 40px; }
+.device--phone .phone-row--tempo > .tempo-phone-value { height: 40px; padding-top: 5px; }
+.device--phone .button-row--screens .hw { height: 33px; }
+.device--phone .encoder-row--knobs { row-gap: 1px; padding: 0; }
+.device--phone .aknob .encoder { width: 42px; height: 42px; }
+.device--phone .aknob::after { right: calc(50% - 22px); }
+/* v0.46 fix26 : transport de la façade à la hauteur du choix de piste */
+.face-head-row > .face-transport button { height: 30px; width: 34px; }
+/* v0.46 fix26 : en-tête des façades sur deux lignes fixes, PC et téléphone */
+.face-head.face-head--2rows { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 6px; }
+.face-head-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.face-head-row > .face-close { flex: none; margin-left: 2px; }
+.face-head-row > .face-tracknav, .face-head-row > .face-transport { flex: none; }
+/* deuxième ligne : jamais coupée ; les pages se raccourcissent et défilent sur le côté */
+.face-head-row--tools { flex-wrap: nowrap; gap: 8px; }
+.face-head-row--pages > .face-pages { flex: 0 1 auto; min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+.face-head-row--pages > .face-pages::-webkit-scrollbar { display: none; }
+.face-head-row--pages > .face-pages button { flex: none; }
+/* troisième ligne : les outils, de gauche à droite ; défile de côté si jamais elle déborde */
+.face-head-row--tools { overflow-x: auto; scrollbar-width: none; }
+.face-head-row--tools::-webkit-scrollbar { display: none; }
+.face-head-row--tools > .face-sample { flex: none; }
+.face-head-row--tools > .face-btn { flex: none; max-width: 230px; overflow: hidden; text-overflow: ellipsis; }
+.face-head-row--tools > .face-sample > span { max-width: 120px; }
+
+/* téléphone : le nom de l'échantillon s'efface (il reste dans le menu Échantillon…), les pages gagnent la place */
+.device--ghost-phone .face-head-row--tools > .face-sample > span { max-width: 120px; }
+/* v0.46 fix26 : en flux (téléphone), les petits panneaux s'étalent en largeur, les piles passent en ligne */
+.fp-row--flow .fp-grid { grid-template-columns: repeat(var(--cols-flow, var(--cols, 4)), auto); }
+.fp-row--flow .fc-stack { flex-direction: row; gap: 10px; }
+
+/* ============================================================ v0.46 fix27 : valeur d'un pas (accent, glissé) */
+.stepamt-back { position: fixed; inset: 0; z-index: 3000; display: flex; justify-content: center; align-items: flex-start; padding-top: 8vh; background: oklch(0 0 0 / 0.35); }
+.stepamt { width: min(92vw, 360px); display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; border-radius: 12px; color: #e8eef5;
+  background: oklch(0.2 0.015 245); border: 1px solid oklch(0.35 0.02 245); box-shadow: 0 12px 40px oklch(0 0 0 / 0.5); font-family: inherit; }
+.stepamt--acc { --amt-c: oklch(0.78 0.15 70); }
+.stepamt--sld { --amt-c: oklch(0.72 0.13 240); }
+.stepamt-head { display: flex; align-items: center; gap: 8px; }
+.stepamt-title { flex: 1; font-size: 15px; font-weight: 750; letter-spacing: 0.03em; color: var(--amt-c); }
+.stepamt-close { appearance: none; border: 0; cursor: pointer; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; color: inherit; background: oklch(1 0 0 / 0.08); }
+.stepamt-row { display: flex; align-items: stretch; gap: 10px; }
+.stepamt-btn { appearance: none; border: 0; cursor: pointer; width: 64px; border-radius: 10px; font-size: 22px; color: inherit; background: oklch(1 0 0 / 0.1); touch-action: none; user-select: none; }
+.stepamt-btn:active { background: oklch(1 0 0 / 0.2); }
+.stepamt-val { flex: 1; height: 72px; display: flex; align-items: baseline; justify-content: center; gap: 6px; padding-top: 12px; border-radius: 10px;
+  background: oklch(0.13 0.01 245); border: 1px solid oklch(0.4 0.03 245); cursor: ns-resize; touch-action: none; user-select: none; -webkit-user-select: none; }
+.stepamt-val b { font-size: 38px; font-weight: 800; color: var(--amt-c); font-variant-numeric: tabular-nums; }
+.stepamt-val small { font-size: 15px; opacity: 0.7; }
+.stepamt-val input { width: 90px; font: inherit; font-size: 32px; font-weight: 800; text-align: center; color: var(--amt-c); background: transparent; border: 0; border-bottom: 2px solid var(--amt-c); outline: none; }
+.stepamt-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.stepamt-hint { flex: 1 1 100%; font-size: 12px; opacity: 0.7; }
+.stepamt-small { appearance: none; border: 1px solid oklch(0.4 0.02 245); cursor: pointer; padding: 7px 12px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 650; color: inherit; background: none; }
+/* case d'accent / de glissé avec une valeur réglée : la couleur suit la force, le nombre s'affiche */
+.fcell.fcell--amt { position: relative; }
+.fcell--on.fcell--amt { opacity: calc(0.45 + 0.55 * var(--amt, 1)); }
+.fcell-amt { position: absolute; inset: 0; display: grid; place-items: center; font-size: 9px; font-weight: 800; color: oklch(0.15 0.01 250); pointer-events: none; }
+.fn-amt { margin-left: 3px; font-size: 0.75em; opacity: 0.85; }
+/* v0.46 fix27 : rangée de pas au-dessus du clavier : choix de l'écriture en grand */
+.steps-dock .steps-choice-head { font-size: 13px; gap: 8px; }
+.steps-dock .steps-choice-head > small:first-child { font-size: 12px; }
+.steps-dock .steps-choice-head button { padding: 6px 16px; font-size: 13.5px; border-radius: 7px; }
+.steps-dock .steps-choice-head .steps-shift button { padding: 5px 10px; font-size: 13px; }
+.steps-dock-title { margin-left: 6px; opacity: 0.6; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; }
+.steps-dock-hide { min-width: 96px; }
+.steps-dock.is-hidden { padding-bottom: 0; }
+/* rangée acide au-dessus du clavier : les 16 pas se partagent la largeur (pas de débordement sur téléphone) */
+.steps-dock .steps303-row { grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px; }
+.steps-dock .step303 { min-width: 0; }
+.steps-dock .step303-fn button { min-width: 0; padding-left: 0; padding-right: 0; }
+/* v0.46 fix28 : note écrite par la rangée acide (dernière touche jouée) */
+.steps303-note { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: oklch(0 0 0 / 0.25); color: var(--fp-text, #ddd); margin-right: 6px; }
+.steps303-note b { color: var(--fp-led, var(--accent)); margin-left: 3px; }
+.steps303-note.none b { opacity: 0.5; }
+
+/* v0.46 fix28 : notes d'accord (autres lignes du piano roll) sur un pas des rangées acide / verrous */
+.step303-chord { font-size: 0.7em; margin-left: 2px; color: var(--accent, #ffb000); font-weight: 700; vertical-align: super; line-height: 0; }
+
+/* v0.46 fix28 : pattern montré par la rangée de pas, alerte s'il n'est pas celui qui joue */
+.steps-pat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--scr-dim, #9aa); white-space: nowrap; }
+.steps-pat b { color: var(--scr-fg, #eee); }
+.steps-pat--other b { color: var(--led-amber, #ffb000); }
+.steps-pat button { border: 0; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 700; cursor: pointer;
+  background: var(--led-amber, #ffb000); color: #1a1a1a; }
+
+/* v0.46 fix28 : réglages des sources de modulation par-dessus l'écran (menu d'un réglage › ⚙) */
+.mod-menu .mod-edit, .mod-edit { font-weight: 700; }
+.modsrc-backdrop { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; background: oklch(0 0 0 / 0.55); }
+.modsrc-dialog { width: min(980px, 96vw); height: min(600px, 92vh); display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px;
+  border-radius: 14px; background: var(--scr-bg, #10151b); color: var(--scr-fg, #eee); box-shadow: 0 20px 60px oklch(0 0 0 / 0.6); }
+.modsrc-head { flex: none; display: flex; align-items: center; gap: 10px; }
+.modsrc-head b { font-size: 15px; }
+.modsrc-head small { opacity: 0.65; }
+.modsrc-head button { margin-left: auto; appearance: none; border: 0; border-radius: 8px; width: 36px; height: 32px; cursor: pointer; font-size: 16px; color: inherit; background: oklch(1 0 0 / 0.1); }
+.modsrc-body { flex: 1; min-height: 0; display: flex; }
+.modsrc-knobs { flex: none; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; height: 112px; }
+.modsrc-knob { min-width: 0; display: flex; justify-content: center; }
+.modsrc-knob .encoder { width: 100%; max-width: 110px; }
+@media (max-height: 520px) { .modsrc-knobs { height: 92px; } .modsrc-dialog { gap: 4px; padding: 6px 8px 8px; } }
+
+/* v0.46 fix28 : modulations propres aux 16 boutons */
+.aknob { position: relative; }
+.aknob--lfo .encoder-ring { filter: drop-shadow(0 0 0 transparent); }
+.aknob--lfo .encoder-cap { box-shadow: 0 0 0 2px var(--mod); }
+.aknob-lfo { position: absolute; top: 0; left: 2px; z-index: 2; min-width: 13px; height: 13px; border-radius: 7px; font-size: 9px; font-weight: 800; line-height: 13px; text-align: center; color: #111; background: var(--mod); pointer-events: none; }
+.aknob--lfoassign { cursor: copy; }
+.aknob--lfoassign .encoder-cap { animation: knob-lfo-blink 0.9s steps(2, jump-none) infinite; box-shadow: 0 0 0 2px var(--mod); }
+@keyframes knob-lfo-blink { 50% { box-shadow: 0 0 0 4px var(--mod); } }
+.modsrc-assignbar { position: absolute; z-index: 60; top: 8px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px;
+  background: var(--scr-bg, #10151b); color: var(--scr-fg, #eee); border: 2px solid var(--mod); font-size: 13px; box-shadow: 0 8px 30px oklch(0 0 0 / 0.5); max-width: 94vw; }
+.modsrc-assignbar button { appearance: none; border: 0; border-radius: 7px; padding: 6px 12px; font: inherit; font-weight: 800; cursor: pointer; background: var(--mod); color: #111; }
+.mod-dest-range { width: 100%; min-width: 0; }
+.phone-row--photo .hw { font-size: 12px; }
+.top-knobmods { color: oklch(0.85 0.1 220); }
+.mod-dest-list li:has(.mod-dest-range) { grid-template-columns: minmax(0, 1fr) minmax(90px, 160px) 44px 22px; }
+.mod-dest-list li:has(.mod-dest-range) b { white-space: nowrap; min-width: 46px; text-align: right; }
+.mod-dest-list li:has(.mod-dest-range) .mod-dest-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* v0.46 fix28 : pavé en grand sur un grand écran (PC) — la vitrine du jeu en direct : pavé carré lumineux,
+   tous ses réglages dans un panneau, console des 16 pistes (ou des groupes) avec faders, crêtes, M / S */
+.vecfull-settings, .vecfull-console { display: none; }
+@media (min-width: 1100px) and (min-height: 650px) {
+  .vecfull { gap: 10px; padding: 10px 14px 14px; background:
+    radial-gradient(70% 60% at 25% 40%, oklch(0.24 0.04 260 / 0.9), transparent 70%),
+    radial-gradient(60% 60% at 85% 70%, oklch(0.22 0.05 300 / 0.6), transparent 70%),
+    linear-gradient(180deg, oklch(0.15 0.012 255), oklch(0.1 0.008 255)); }
+  .vecfull-top { padding: 4px 6px; border-radius: 12px; background: oklch(1 0 0 / 0.035); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.06); }
+  .vecfull-knobs { padding: 6px 10px 2px; border-radius: 14px; background: linear-gradient(180deg, oklch(1 0 0 / 0.05), oklch(1 0 0 / 0.02)); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.07); }
+  .vecfull .aknob .encoder { zoom: 1.4; }
+  .vecfull .aknob-cap { font-size: 11px; }
+  .vecfull-rows button { min-height: 34px; font-size: 14px; }
+  .vecfull-body { gap: 12px; }
+  .vecfull-side { display: none; }
+  /* pavé : carré, cadre lumineux */
+  .vecfull-pad { flex: 0 1 auto; height: 100%; aspect-ratio: 1 / 1; max-width: 36vw; padding: 6px; border-radius: 20px;
+    background: linear-gradient(145deg, oklch(0.82 0.15 78 / 0.35), oklch(0.6 0.15 300 / 0.25)); box-shadow: 0 20px 50px oklch(0 0 0 / 0.45), 0 0 40px oklch(0.82 0.15 78 / 0.12); }
+  .vecfull-pad .vec-pad { border-radius: 15px; }
+  /* réglages du pavé */
+  .vecfull-settings { display: flex; flex-direction: column; gap: 12px; flex: 0 1 330px; min-width: 260px; min-height: 0; overflow-y: auto;
+    padding: 14px 14px; border-radius: 18px; background: linear-gradient(180deg, oklch(1 0 0 / 0.06), oklch(1 0 0 / 0.025)); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08); }
+  .vecfull-settings .vec-group { gap: 6px; }
+  .vecfull-settings .vec-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75; }
+  .vecfull-settings .chip { padding: 6px 10px; font-size: 12.5px; }
+  .vecfull-settings input[type=range] { width: 100%; accent-color: oklch(0.82 0.15 78); }
+  .vecfull-settings select { width: 100%; }
+  /* console */
+  .vecfull-console { display: flex; flex-direction: column; gap: 8px; flex: 1 1 0; min-width: 0; min-height: 0; padding: 12px; border-radius: 18px;
+    background: linear-gradient(180deg, oklch(0.2 0.012 255), oklch(0.15 0.01 255)); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08), 0 14px 40px oklch(0 0 0 / 0.35); }
+  .vecfull-console-head { flex: none; display: flex; align-items: center; gap: 10px; }
+  .vecfull-console-head b { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.75; }
+  .vecfull-console-head .vecfull-switch { margin-left: auto; display: inline-grid; grid-template-columns: auto auto; }
+  .vecfull-console-strips { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .vecfull-console-strips.is-groups { grid-template-rows: minmax(0, 1fr); }
+  .lstrip { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: stretch; gap: 5px; padding: 8px 6px 6px; border-radius: 12px;
+    background: linear-gradient(180deg, color-mix(in oklab, var(--k) 16%, oklch(0.22 0.01 255)), oklch(0.17 0.01 255)); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.07); overflow: hidden; }
+  .lstrip::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--k); box-shadow: 0 0 12px var(--k); }
+  .lstrip.is-empty { opacity: 0.35; }
+  .lstrip.is-muted { filter: saturate(0.25) brightness(0.8); }
+  .lstrip.is-solo { box-shadow: inset 0 0 0 2px oklch(0.85 0.15 90); }
+  .lstrip-head { flex: none; display: flex; align-items: baseline; gap: 5px; min-width: 0; font-size: 12px; }
+  .lstrip-head b { flex: none; font-size: 11px; color: var(--k); }
+  .lstrip-head { flex-direction: column; align-items: stretch; gap: 1px; min-height: 2.9em; }
+  .lstrip-head span { min-width: 0; overflow: hidden; font-weight: 700; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: normal; overflow-wrap: anywhere; }
+  .lstrip-fader { flex: 1; min-height: 40px; display: flex; justify-content: center; gap: 6px; padding: 4px 0; }
+  .lstrip-fader .tfader { width: 24px; height: 100%; flex: none; }
+  .lstrip-meter { position: relative; width: 6px; border-radius: 3px; background: oklch(0 0 0 / 0.45); overflow: hidden; }
+  .lstrip-meter span { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(0deg, var(--led-green, #3c3), var(--led-amber, #fb0) 80%, var(--led-red, #f33)); transition: height 60ms linear; }
+  .lstrip-db { flex: none; text-align: center; font-size: 10.5px; opacity: 0.8; white-space: nowrap; overflow: hidden; }
+  .lstrip-ms { flex: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
+  .lstrip-ms button { min-width: 0; padding: 0; appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 800; font-size: 12px; height: 28px; border-radius: 7px; color: inherit; background: oklch(1 0 0 / 0.1); }
+  .lstrip-ms .m.on { background: oklch(0.6 0.2 25); color: #fff; box-shadow: 0 0 12px oklch(0.6 0.2 25 / 0.6); }
+  .lstrip-ms .s.on { background: oklch(0.85 0.15 90); color: #111; box-shadow: 0 0 12px oklch(0.85 0.15 90 / 0.5); }
+}
+@media (min-width: 1500px) and (min-height: 850px) {
+  .vecfull-pad { max-width: 42vw; }
+  .vecfull-settings { flex-basis: 360px; }
+  .vecfull .aknob .encoder { zoom: 1.65; }
+  .lstrip-head { font-size: 13px; }
+  .lstrip-fader .tfader { width: 28px; }
+  .lstrip-ms button { height: 32px; font-size: 13px; }
+}
+
+/* v0.46 fix28 : vue live (pavé en grand) : bouton d'accès, mode Crossfader / Vecteur, piste choisie */
+.chip.chip--live { background: oklch(0.62 0.2 0); color: #fff; font-weight: 800; box-shadow: 0 0 14px oklch(0.62 0.2 0 / 0.45); }
+.chip.chip--live:hover { background: oklch(0.68 0.2 0); }
+.vecfull-mode { display: inline-flex; gap: 3px; padding: 3px; border-radius: 10px; background: oklch(0 0 0 / 0.3); }
+.vecfull-mode button { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 750; padding: 7px 14px; border-radius: 8px; color: inherit; background: transparent; }
+.vecfull-mode button.on { background: oklch(0.82 0.15 78); color: oklch(0.15 0.01 250); }
+.vecfull-spacer { flex: 1; }
+.vecfull-focus { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 9px; font-size: 13px; font-weight: 750; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis;
+  background: color-mix(in oklab, var(--k) 22%, oklch(0.2 0.01 255)); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--k) 70%, transparent); }
+.vecfull-focus i { width: 9px; height: 9px; border-radius: 50%; background: var(--k); box-shadow: 0 0 8px var(--k); flex: none; }
+.vecfull .chip.chip--inst { background: oklch(0.82 0.15 78); color: oklch(0.15 0.01 250); }
+.vecfull .chip.chip--fx { background: oklch(0.35 0.07 220); color: oklch(0.92 0.05 210); box-shadow: inset 0 0 0 1px oklch(0.7 0.12 215); }
+.lstrip-head { appearance: none; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 0; }
+.lstrip.is-picked { box-shadow: inset 0 0 0 2px oklch(0.75 0.13 235), 0 0 18px oklch(0.75 0.13 235 / 0.35); }
+.lstrip.is-picked.is-solo { box-shadow: inset 0 0 0 2px oklch(0.85 0.15 90), 0 0 18px oklch(0.75 0.13 235 / 0.45); }
+/* mode Crossfader : scènes A et B, grand crossfader */
+.vecfull-xf { display: flex; flex-direction: column; gap: 10px; padding: 12px; overflow: hidden; background: linear-gradient(160deg, oklch(0.2 0.02 250), oklch(0.15 0.012 255)); }
+.vecfull-xf .slot { flex: 1 1 0; min-height: 0; }
+.livexf { flex: none; display: grid; grid-template-columns: 54px minmax(0, 1fr) 54px; align-items: center; gap: 10px; }
+.livexf-end { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 20px; font-weight: 900; height: 54px; border-radius: 12px; color: #fff; background: oklch(1 0 0 / 0.08); }
+.livexf-end.a { color: oklch(0.75 0.13 240); } .livexf-end.b { color: oklch(0.72 0.18 340); }
+.livexf-end.a.on { background: oklch(0.6 0.15 240); color: #fff; box-shadow: 0 0 16px oklch(0.6 0.15 240 / 0.6); }
+.livexf-end.b.on { background: oklch(0.6 0.2 340); color: #fff; box-shadow: 0 0 16px oklch(0.6 0.2 340 / 0.6); }
+.livexf-track { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.livexf-track input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 46px; margin: 0; border-radius: 12px; cursor: ew-resize;
+  background: linear-gradient(90deg, oklch(0.6 0.15 240), oklch(0.25 0.01 255) 42%, oklch(0.25 0.01 255) 58%, oklch(0.6 0.2 340)); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.12); }
+.livexf-track input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 34px; height: 54px; border-radius: 8px; background: linear-gradient(180deg, #f4f4f6, #b9bcc4); box-shadow: 0 4px 12px oklch(0 0 0 / 0.6), inset 0 -3px 0 oklch(0 0 0 / 0.2); }
+.livexf-track input[type=range]::-moz-range-thumb { width: 34px; height: 54px; border-radius: 8px; border: 0; background: #e6e7ea; }
+.livexf-marks { display: flex; justify-content: space-between; font-size: 11px; opacity: 0.6; }
+.livexf-marks i { font-style: normal; }
+.livescenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.livescene { position: relative; appearance: none; border: 0; cursor: pointer; font: inherit; color: inherit; text-align: left; padding: 8px 8px 6px; border-radius: 10px; background: oklch(1 0 0 / 0.06); display: flex; flex-direction: column; gap: 2px; }
+.livescene b { font-size: 16px; } .livescene small { font-size: 10.5px; opacity: 0.65; }
+.livescene.is-filled { background: oklch(1 0 0 / 0.11); }
+.livescene.is-a { box-shadow: inset 0 0 0 2px oklch(0.65 0.15 240); }
+.livescene.is-b { box-shadow: inset 0 0 0 2px oklch(0.65 0.2 340); }
+.livescene.is-a.is-b { box-shadow: inset 0 0 0 2px oklch(0.65 0.15 240), inset 0 0 0 4px oklch(0.65 0.2 340); }
+.livescene em { position: absolute; top: 5px; right: 6px; font-style: normal; font-size: 10px; font-weight: 900; padding: 0 5px; border-radius: 5px; color: #fff; }
+.livescene em.a { background: oklch(0.6 0.15 240); } .livescene em.b { background: oklch(0.6 0.2 340); right: 26px; }
+.livescene em.a:only-of-type, .livescene em.b:only-of-type { right: 6px; }
+.vecfull-scenes .slot { flex: none; }
+.vecfull-name { cursor: pointer; } .vecfull-name.is-picked { color: oklch(0.82 0.12 235); text-decoration: underline; text-underline-offset: 3px; }
+
+/* v0.46 fix28 : vue live : nom complet de la fonction de chaque bouton assignable */
+.aknob-full { display: none; }
+.vecfull .aknob-cap { display: none; }
+.vecfull .aknob-full { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%; text-align: center;
+  font-size: 10.5px; line-height: 1.15; font-weight: 650; color: oklch(0.9 0.02 250); overflow-wrap: anywhere; min-height: 2.3em; }
+.vecfull .aknob-full b { color: oklch(0.75 0.13 235); margin-right: 3px; font-weight: 900; }
+.vecfull .aknob-full.is-free { color: oklch(0.6 0.01 250); font-weight: 500; }
+@media (min-width: 1100px) and (min-height: 650px) { .vecfull .aknob-full { font-size: 12px; } }
+.lstrip-fx { flex: none; appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; height: 24px; border-radius: 7px;
+  color: oklch(0.75 0.02 250); background: oklch(1 0 0 / 0.07); display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.lstrip-fx.has { color: oklch(0.9 0.06 210); background: oklch(0.35 0.07 220); box-shadow: inset 0 0 0 1px oklch(0.7 0.12 215); }
+.lstrip-fx b { font-size: 10px; padding: 0 5px; border-radius: 5px; background: oklch(0.75 0.12 215); color: #08202a; }
+
+/* v0.46 fix28 : vue live : position dans le morceau, Photo / Rappel / Mod. boutons (bas de la colonne du milieu) */
+.liveperf { display: none; }
+@media (min-width: 1100px) and (min-height: 650px) {
+  .liveperf { display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding-top: 10px; border-top: 1px solid oklch(1 0 0 / 0.08); }
+  .liveperf-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75; }
+  .liveperf-pos { display: flex; flex-direction: column; gap: 6px; }
+  .liveperf-clock { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .liveperf-clock b { font-size: 30px; font-weight: 800; line-height: 1; color: oklch(0.88 0.12 85); }
+  .liveperf-clock small { font-size: 11px; opacity: 0.65; margin-right: 8px; }
+  .liveperf-loop { display: flex; gap: 3px; height: 12px; }
+  .liveperf-loop i { flex: 1; border-radius: 3px; background: oklch(1 0 0 / 0.08); }
+  .liveperf-loop i.past { background: oklch(0.82 0.15 78 / 0.45); }
+  .liveperf-loop i.on { background: oklch(0.82 0.15 78); box-shadow: 0 0 10px oklch(0.82 0.15 78 / 0.7); }
+  .liveperf-sub { font-size: 11px; opacity: 0.6; }
+  .liveperf-btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .liveperf-btns button { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; height: 44px; border-radius: 10px;
+    color: oklch(0.92 0.01 250); background: linear-gradient(180deg, oklch(0.32 0.01 255), oklch(0.24 0.01 255)); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.1), 0 3px 8px oklch(0 0 0 / 0.35); }
+  .liveperf-btns button:active { transform: translateY(1px); }
+  .liveperf-btns button.is-off { opacity: 0.5; }
+  .liveperf-btns button.mod { color: oklch(0.88 0.1 220); }
+}
+.knob-depth { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 4px 8px; font-size: 12px; }
+.knob-depth input { width: 100%; min-width: 90px; }

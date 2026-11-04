@@ -158,6 +158,9 @@ export interface PatternData {
   recQuant: number;  // quantification de l'enregistrement en direct (%)
   accent: number;    // force de l'accent de la piste (%)
   flags: number[];   // fonctions de chaque pas : 1 = accent, 2 = glissé
+  /** v0.46 fix27 : valeurs de chaque pas (0 = par défaut) : force de l'accent, durée du glissé (1..100 %). */
+  accAmt: number[];
+  sldAmt: number[];
   lanes: LaneData[];
 }
 
@@ -183,6 +186,9 @@ export interface MidiData {
   conflict?: [number, number, number, number, number]; // commande déjà affectée : [genre, canal, numéro, ancienne cible, nouvelle cible]
   /** v0.46 : canaux MIDI — notes et commandes (0 = tous, 1 à 16), commandes actives, canal propre à chaque piste (0 = piste choisie). */
   route?: { note: number; ctrl: number; ctrlOn: boolean; tracks: number[] };
+  /** v0.46 fix24 : 16 boutons assignables [cible (-1 = libre), position 0..1] et table des valeurs d'écran (JSON). */
+  knobs?: [number, number, number?, number?][]; // [cible, position, LFO des boutons 0..4 (v0.46 fix28), profondeur -1..1]
+  ctl?: string;
 }
 
 export interface StepExtra {
@@ -228,7 +234,9 @@ export interface Tick {
   t: { playing: boolean; rec: boolean; ppq: number; bpm: number; fill: boolean; brk: boolean; tbrk?: boolean;
     lq?: number; lp?: number;  // v0.43 : boucle la plus longue (durée en noires, avancée 0 à 1)
     mon?: boolean; mp?: number; mrec?: boolean }; // v0.46 fix8 : montage audio (mode, position en noires, prise)
-  g: { xfade: number; sceneA: number; sceneB: number; bpm: number; swing: number };
+  g: { xfade: number; sceneA: number; sceneB: number; bpm: number; swing: number;
+       // v0.46 fix22 : pavé vectoriel (vecOn, vecMode, vecX, vecY, vecOrbit, vecRate, vecDepth, vecPX/vecPY = position jouée, vecSA…vecSD, vecFA…vecFD)
+       [key: string]: number };
   hits: [number, number][];
   kn?: number[];   // notes tenues de la piste choisie (clavier, contrôleur, séquence, arpège)
   kh?: number[];   // notes de la piste choisie jouées depuis le dernier envoi
@@ -244,6 +252,11 @@ export interface Tick {
   pat: [number, number][];   // par piste : [pattern joué, pattern en attente]
   ph?: number;               // piste choisie : position dans son pattern en pas, avec la fraction (-1 à l'arrêt)
   inst?: number[];           // état de l'instrument de la piste choisie (sampler de performance : enregistreur, position, boucle, machine)
+  ke?: number[];             // v0.46 fix28 : valeur jouée du réglage relié à chaque bouton (modulation…), -1 = celle du bouton
+  kmods?: [number, number][]; // v0.46 fix28 : sources des boutons (1 à 4 du bus principal) : [valeur, pas]
+  ko?: number[];             // v0.46 fix28 : valeur envoyée par chaque bouton avec son LFO (-1 : sans LFO)
+  kv?: number[];             // v0.46 fix24 : positions des 16 boutons assignables
+  uc?: [number, number][];   // v0.46 fix24 : valeurs d'écran poussées par le MIDI ou un bouton [numéro, valeur 0..1]
   hist?: number[];           // [peut annuler, peut rétablir, photo prise] (1 / 0)
   perf?: number[];           // v0.23 : [calcul audio moyen %, pointe %, mémoire de l'application (Mo), échantillons (Mo), fréquence (Hz), taille des blocs, temps mesuré entre deux blocs (ms) (v0.46 fix16), mémoire de l'appareil (Mo), état Android (-1 ; 100 = indice actif + grands cœurs) (fix17)]
   learn: number;             // apprentissage MIDI en cours
@@ -274,6 +287,24 @@ export const MIDI_BUS_MUTE_BASE = -300, MIDI_BUS_SOLO_BASE = -400;
 export const MIDI_ROW_PREV = -11, MIDI_ROW_NEXT = -12, MIDI_ROW_STOP = -13, MIDI_ROW_BASE = -20;
 /** v0.46 : photo des réglages et rappel de la photo au contrôleur. */
 export const MIDI_PHOTO = -14, MIDI_RECALL = -15;
+/** v0.46 fix24 : bouton assignable k (-500 - k), réglage global h (-600 - h), valeur d'écran n (-700 - n). */
+export const MIDI_KNOB_BASE = -500, MIDI_HOST_BASE = -600, MIDI_UI_BASE = -700;
+export const NUM_KNOBS = 16, NUM_UI_CTL = 64;
+/** Réglages globaux pilotables, dans l'ordre du moteur (ne pas réordonner). */
+export const HOST_CTL = ["bpm", "swing", "sceneA", "sceneB", "vecOn", "vecMode", "vecX", "vecY", "vecOrbit", "vecRate", "vecDepth",
+  "macro1", "macro2", "macro3", "macro4", "macro5", "macro6", "macro7", "macro8",
+  "vecSA", "vecSB", "vecSC", "vecSD", "vecFA", "vecFB", "vecFC", "vecFD", "vecRot", "vecHeight"] as const;
+export const HOST_CTL_NAMES: Record<string, string> = {
+  bpm: "Tempo", swing: "Swing", sceneA: "Scène A", sceneB: "Scène B", vecOn: "Pavé actif", vecMode: "Pavé : coins", vecX: "Pavé X", vecY: "Pavé Y",
+  vecOrbit: "Pavé : mouvement", vecRate: "Pavé : un tour en", vecDepth: "Pavé : taille", vecRot: "Pavé : rotation", vecHeight: "Pavé : hauteur de la forme",
+  macro1: "Macro 1", macro2: "Macro 2", macro3: "Macro 3", macro4: "Macro 4", macro5: "Macro 5", macro6: "Macro 6", macro7: "Macro 7", macro8: "Macro 8",
+  vecSA: "Pavé : scène A", vecSB: "Pavé : scène B", vecSC: "Pavé : scène C", vecSD: "Pavé : scène D",
+  vecFA: "Pavé : effet A", vecFB: "Pavé : effet B", vecFC: "Pavé : effet C", vecFD: "Pavé : effet D",
+};
+export const hostCode = (id: (typeof HOST_CTL)[number]) => MIDI_HOST_BASE - HOST_CTL.indexOf(id);
+export const isKnobCode = (t: number) => t <= MIDI_KNOB_BASE && t > MIDI_KNOB_BASE - NUM_KNOBS;
+export const isHostCode = (t: number) => t <= MIDI_HOST_BASE && t > MIDI_HOST_BASE - HOST_CTL.length;
+export const isUiCode = (t: number) => t <= MIDI_UI_BASE && t > MIDI_UI_BASE - NUM_UI_CTL;
 export const SPEEDS = ["×1/8", "×1/4", "×1/2", "×3/4", "×1", "×3/2", "×2"];
 export const DIRECTIONS = ["Avant", "Arrière", "Aller-retour", "Aléatoire"];
 export const CONDITIONS = ["Aucune", "A:B", "FILL", "NON FILL", "PRÉ", "NON PRÉ", "VOISIN", "NON VOISIN", "1ER", "NON 1ER"];

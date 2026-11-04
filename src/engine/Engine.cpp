@@ -10,6 +10,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <limits>
 
 namespace grv::engine
 {
@@ -576,7 +577,11 @@ void Engine::publishGraph (double nowMs)
             c.arpParam = a >= 0 && a < instrumentSlots ? a : -1;
             const auto ao = d.indexOf ("arp_on");
             c.arpOnParam = ao >= 0 && ao < instrumentSlots ? ao : -1;
+            auto gl = d.indexOf ("glide");
+            if (gl < 0) gl = d.indexOf ("porta");
+            c.glideParam = gl >= 0 && gl < instrumentSlots ? gl : -1;
         }
+        else c.glideParam = -1;
         for (int s = 0; s < numInserts; ++s)
             if (auto* e = c.inserts[(size_t) s])
             {
@@ -1255,9 +1260,41 @@ void Engine::updateParams (const Graph& g, const SceneSet& s, const BlockInfo& b
         }
     }
 
-    // 2. Scènes A/B au crossfader
-    const auto sa = std::clamp (bi.sceneA, 0, numScenes - 1), sb = std::clamp (bi.sceneB, 0, numScenes - 1);
+    // 2. Scènes A/B au crossfader — ou, pavé vectoriel en mode scènes (v0.46 fix22), quatre scènes
+    //    mêlées selon les poids des coins : valeur = somme des poids × (verrou de la scène, ou base)
     static const std::vector<SceneLock> empty;
+    if (vecScenesOn)
+    {
+        std::array<const std::vector<SceneLock>*, 4> lists {};
+        std::array<size_t, 4> idx {};
+        for (size_t k = 0; k < 4; ++k)
+        {
+            const auto sc = std::clamp (bi.vecScene[k], 0, numScenes - 1);
+            lists[k] = s.muted[(size_t) sc] ? &empty : &s.scenes[(size_t) sc];
+        }
+        for (;;)
+        {
+            int slot = std::numeric_limits<int>::max();
+            for (size_t k = 0; k < 4; ++k)
+                if (idx[k] < lists[k]->size()) slot = std::min (slot, (*lists[k])[idx[k]].slot);
+            if (slot == std::numeric_limits<int>::max()) break;
+            const auto base = baseNorm (slot);
+            const auto* d = g.ch[(size_t) channelOf (slot)].desc[(size_t) localOf (slot)];
+            const bool stepped = d != nullptr && d->stepped();
+            float v = 0.0f, best = -1.0f, bestV = base;
+            for (size_t k = 0; k < 4; ++k)
+            {
+                float nk = base;
+                if (idx[k] < lists[k]->size() && (*lists[k])[idx[k]].slot == slot) { nk = (*lists[k])[idx[k]].norm; ++idx[k]; }
+                v += smoothedVec[k] * nk;
+                if (smoothedVec[k] > best) { best = smoothedVec[k]; bestV = nk; }
+            }
+            apply (slot, stepped ? bestV : v);
+        }
+    }
+    else
+    {
+    const auto sa = std::clamp (bi.sceneA, 0, numScenes - 1), sb = std::clamp (bi.sceneB, 0, numScenes - 1);
     const auto& la = s.muted[(size_t) sa] ? empty : s.scenes[(size_t) sa];
     const auto& lb = s.muted[(size_t) sb] ? empty : s.scenes[(size_t) sb];
     size_t ia = 0, ib = 0;
@@ -1271,6 +1308,7 @@ void Engine::updateParams (const Graph& g, const SceneSet& s, const BlockInfo& b
         const auto* d = g.ch[(size_t) channelOf (slot)].desc[(size_t) localOf (slot)];
         const auto v = (d != nullptr && d->stepped()) ? (fader < 0.5f ? na : nb) : na + (nb - na) * fader;
         apply (slot, v);
+    }
     }
 
     // 3. Break : sa scène s'applique d'un coup tant qu'il est enfoncé
@@ -1672,6 +1710,29 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
                 const auto* fp = p + insertBase + i * insertSlots;
                 const bool active = p[mixBypass1 + i] < 0.5f;
                 auto& g = c.fxOn[(size_t) i];
+                // v0.46 fix22 : pavé vectoriel en mode effets — l'insert du principal est dosé (son
+                // direct ↔ son traité) selon le poids de son coin
+                if (ch == masterChannel && vecFxMapped[(size_t) i] && active)
+                {
+                    g = 1.0f;
+                    auto& vg = vecFxGain[(size_t) i];
+                    const auto v0 = vg, v1 = vecFxTarget[(size_t) i];
+                    vg = v1;
+                    float dryL[controlBlock], dryR[controlBlock];
+                    std::copy (L, L + n, dryL); std::copy (R, R + n, dryR);
+                    if (! scReady) { sidechainFor (ch); scReady = true; }
+                    fx->setPosition (ppq, playing);
+                    fx->setSidechainSources (scPtrL, scPtrR);
+                    fx->process (L, R, n, fp, bpm);
+                    const auto dv = (v1 - v0) * inv;
+                    for (int k = 0; k < n; ++k)
+                    {
+                        const auto w = v0 + dv * (float) k;
+                        L[k] = dryL[k] + (L[k] - dryL[k]) * w;
+                        R[k] = dryR[k] + (R[k] - dryR[k]) * w;
+                    }
+                    continue;
+                }
                 // v0.46 : contourner / rallumer un effet sans traîne passe par un fondu de 6 ms
                 // entre le son direct et le son traité (plus de saut au clic)
                 const bool fading = ! fx->trails (fp) && (active ? g < 1.0f : g > 0.0f);
@@ -2069,7 +2130,8 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
         if (se.lane < 0) { add ({ se.offset, se.track, 0, 0, 0.0f, false, 0.0, nullptr, false, kindRecord + 3 }); return; } // pas d'enregistrement : (re)départ
         const bool drum = inst->desc().drumKit;
         const auto note = ! drum ? se.note : inst->desc().laneNotes ? 128 + se.lane * 128 + std::clamp (se.note, 0, 127) : se.lane; // v0.42 : ligne et note du pas
-        add ({ se.offset, se.track, se.lane, note, se.velocity, true, se.lengthSamples, se.extra, true, 0, se.flags, se.stepSamples, se.repeat, se.accent });
+        add ({ se.offset, se.track, se.lane, note, se.velocity, true, se.lengthSamples, se.extra, true, 0, se.flags, se.stepSamples, se.repeat, se.accent,
+               (double) se.glide * se.stepSamples });
     });
 
     captureBar(); // enregistrer le jeu : patterns joués au début de chaque mesure
@@ -2148,6 +2210,18 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
                             c.plockFrom[lane][(size_t) count] = from;
                             c.plocks[lane][(size_t) count++] = { l.first, l.second };
                         }
+                // v0.46 fix27 : la note arrive par un glissé réglé : le portamento de l'instrument prend, pour ce
+                // pas, la durée choisie (part du pas), comme un verrou (sans glisser lui-même)
+                if (e.glideSamples > 0.0 && count < (int) c.plocks[lane].size() && e.track >= 0 && e.track < numTracks)
+                    if (const auto gp = g->ch[(size_t) e.track].glideParam; gp >= 0)
+                        if (const auto* d = g->ch[(size_t) e.track].desc[(size_t) (instrumentBase + gp)])
+                        {
+                            const auto ms = (float) (e.glideSamples / std::max (1.0, sampleRate) * 1000.0);
+                            const auto norm = d->toNorm (std::clamp (ms, d->min, d->max));
+                            const auto slot = e.track * slotsPerChannel + instrumentBase + gp;
+                            c.plockFrom[lane][(size_t) count] = norm;
+                            c.plocks[lane][(size_t) count++] = { slot, norm };
+                        }
                 c.anyPlocks += count > 0 ? 1 : 0;
                 const bool slide = (e.flags & stepSlide) != 0 && count > 0;
                 c.slideLen[lane] = slide ? std::max (1.0, e.stepLen) : 0.0;
@@ -2184,6 +2258,23 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
             for (auto& c : *state) for (auto& m : c.mods) m.barStart();
         lastPpq = seq->isPlayingInBlock() ? ppq : -1.0;
 
+        // v0.46 fix22 : pavé vectoriel — poids des coins lissés comme le crossfader
+        for (size_t k = 0; k < 4; ++k)
+        {
+            const auto t = bi.vecOn ? std::clamp (bi.vecW[k], 0.0f, 1.0f) : 0.0f;
+            smoothedVec[k] = t + (smoothedVec[k] - t) * faderCoef;
+        }
+        vecScenesOn = bi.vecOn && bi.vecMode == 0;
+        for (int i = 0; i < numInserts; ++i)
+        {
+            float w = 0.0f; bool mapped = false;
+            if (bi.vecOn && bi.vecMode == 1)
+                for (size_t k = 0; k < 4; ++k)
+                    if (bi.vecFx[k] == i + 1) { mapped = true; w += smoothedVec[k]; }
+            if (mapped && ! vecFxMapped[(size_t) i]) vecFxGain[(size_t) i] = 1.0f; // prise en main : part du son traité
+            vecFxMapped[(size_t) i] = mapped;
+            vecFxTarget[(size_t) i] = std::clamp (w, 0.0f, 1.0f);
+        }
         updateParams (*g, *sc, bi, smoothedFader, n, ppq);
         runArpeggiators (*g, ppq, seq->isPlayingInBlock(), bi.bpm, n, pos);
         for (int t = 0; t < numTracks; ++t)

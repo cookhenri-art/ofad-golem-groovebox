@@ -24,7 +24,7 @@ void check (bool condition, const char* what)
     if (! condition) ++failures;
 }
 
-struct Hit { int track, lane; long long sample; float velocity; int note; double len; float accent = 0.0f; };
+struct Hit { int track, lane; long long sample; float velocity; int note; double len; float accent = 0.0f; float glide = 0.0f; };
 
 std::vector<Hit> run (Sequencer& seq, double sr, double bpm, double swing, long long totalSamples, int blockSize,
                       const PatternExtras* extras = nullptr, bool start = true)
@@ -35,7 +35,7 @@ std::vector<Hit> run (Sequencer& seq, double sr, double bpm, double swing, long 
     {
         const auto n = (int) std::min<long long> (blockSize, totalSamples - done);
         seq.beginBlock (n, sr, bpm, swing, {});
-        seq.collect (extras, [&] (const SeqEvent& e) { hits.push_back ({ e.track, e.lane, done + e.offset, e.velocity, e.note, e.lengthSamples, e.accent }); });
+        seq.collect (extras, [&] (const SeqEvent& e) { hits.push_back ({ e.track, e.lane, done + e.offset, e.velocity, e.note, e.lengthSamples, e.accent, e.glide }); });
         seq.endBlock();
     }
     return hits;
@@ -389,6 +389,24 @@ int main()
         check (hits.size() == 2 && std::abs (hits[0].velocity - (v0 + (1.0f - v0) * 0.5f)) < 1e-5f && std::abs (hits[1].velocity - v0) < 1e-6f
                && std::abs (hits[0].accent - 0.5f) < 1e-6f && hits[1].accent == 0.0f,
                "accent : pas accentu\xC3\xA9 renforc\xC3\xA9, pas suivant inchang\xC3\xA9");
+    }
+    {
+        // v0.46 fix27 : force d'accent propre au pas, durée du glissé portée par la note qui arrive
+        Sequencer seq;
+        seq.setStep (0, 0, 0, 64); seq.setStep (0, 0, 1, 64); seq.setStep (0, 0, 2, 64);
+        seq.setStepFlags (0, 0, stepAccent); seq.setStepAmounts (0, 0, 100);         // accent 100 % sur le pas 1
+        seq.setStepFlags (0, 1, stepAccent | stepSlide); seq.setStepAmounts (0, 1, 25 << 8); // accent de la piste, glissé 25 %
+        seq.setAccentAmount (0, 50);
+        const auto hits = run (seq, sr, 120.0, 50.0, 17000, 256);
+        const auto v0 = 64.0f / 127.0f;
+        std::printf ("  (valeurs de pas : v %.3f %.3f %.3f, glissé %.2f %.2f %.2f)\n", hits.size() > 2 ? hits[0].velocity : -1.0f, hits.size() > 2 ? hits[1].velocity : -1.0f,
+                     hits.size() > 2 ? hits[2].velocity : -1.0f, hits.size() > 2 ? hits[0].glide : -1.0f, hits.size() > 2 ? hits[1].glide : -1.0f, hits.size() > 2 ? hits[2].glide : -1.0f);
+        check (hits.size() == 3 && std::abs (hits[0].velocity - 1.0f) < 1e-5f && std::abs (hits[1].velocity - (v0 + (1.0f - v0) * 0.5f)) < 1e-5f
+               && hits[0].glide == 0.0f && hits[1].glide == 0.0f && std::abs (hits[2].glide - 0.25f) < 1e-6f,
+               "valeurs de pas : force d'accent du pas, gliss\xC3\xA9 r\xC3\xA9gl\xC3\xA9 port\xC3\xA9 par la note suivante");
+        Sequencer copy;
+        copy.setStepAmountsP (0, 0, 3, 40 | (60 << 8)); copy.copyPattern (0, 0, 1);
+        check (copy.getStepAmountsP (0, 1, 3) == (40 | (60 << 8)), "copie de pattern : valeurs de pas");
     }
     {
         // Glissé : la note tient au-delà du début du pas suivant (chevauchement), même si sa durée est courte

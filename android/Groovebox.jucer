@@ -133,7 +133,7 @@
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
   </MODULES>
   <EXPORTFORMATS>
-    <ANDROIDSTUDIO targetFolder="Builds/Android" bigIcon="GrvIcn" smallIcon="GrvIcn" androidMinimumSDK="26" androidTargetSDK="35"
+    <ANDROIDSTUDIO androidBluetoothScanNeeded="1" androidBluetoothConnectNeeded="1" targetFolder="Builds/Android" bigIcon="GrvIcn" smallIcon="GrvIcn" androidMinimumSDK="26" androidTargetSDK="35"
                    androidScreenOrientation="landscape" androidTheme="@android:style/Theme.NoTitleBar.Fullscreen"
                    androidInternetNeeded="0" microphonePermissionNeeded="1" androidReadMediaAudioPermission="0"
                    androidReadMediaImagesPermission="0" androidReadMediaVideoPermission="0" androidExternalWriteNeeded="0"

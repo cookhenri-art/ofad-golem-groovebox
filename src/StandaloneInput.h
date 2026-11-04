@@ -42,6 +42,11 @@ inline void startupMark (const char* what)
    #endif
 }
 
+#if JUCE_ANDROID
+/** v0.46 fix21 : écran gardé allumé (Android, src/StandaloneHook.cpp). Fil des messages. */
+void androidKeepScreenOn (bool on);
+#endif
+
 inline std::function<void()>& uiReadyHook()
 {
     static std::function<void()> hook;

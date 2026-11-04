@@ -10,14 +10,15 @@
 import { useEffect, useState } from "react";
 import { actions, resolveGlobal, setUi, showMessage, useStore } from "../engine/store";
 import { describeGlobal } from "../engine/describe";
-import { BREAK_SCENE } from "../engine/protocol";
+import { BREAK_SCENE, MIDI_XFADE, hostCode } from "../engine/protocol";
 import { formatNorm, toNorm, toPlain } from "../engine/params";
 import { useRef } from "react";
 import { useValueDrag } from "../controls/useValueDrag";
 import type { EncoderBinding } from "../controls/Encoder";
-import { steppedBinding, valueBinding } from "../controls/bindings";
+import { rangeEntry, steppedBinding, valueBinding, withCtl } from "../controls/bindings";
 import { RowLaunchBar } from "./RowLaunchBar";
 import { ScreenFrame } from "./ScreenFrame";
+import { VEC_ORBITS, VEC_RATES, VectorPad } from "./VectorPad";
 
 const describe = describeGlobal;
 /** Position du crossfader affichée de -100 (tout A) à +100 (tout B). */
@@ -53,7 +54,7 @@ function LockValue({ scene, g, v }: { scene: number; g: number; v: number }) {
   );
 }
 
-function SlotCard({ slot, scene, copying, onCopy }: { slot: "A" | "B" | "Break"; scene: number; copying: boolean; onCopy: () => void }) {
+export function SlotCard({ slot, scene, copying, onCopy }: { slot: "A" | "B" | "Break"; scene: number; copying: boolean; onCopy: () => void }) {
   const data = useStore((s) => s.scenes[scene]);
   const editing = useStore((s) => (slot === "Break" ? s.ui.editBreak : s.ui.editSlot === slot));
   const locks = data?.locks ?? [];
@@ -116,16 +117,43 @@ export function ScenesScreen() {
     setCopyFrom(null);
   };
 
+  // v0.46 fix22 : onglet « Vecteur » (pavé à quatre coins), mémorisé
+  const [tab, setTabState] = useState<"xf" | "vec">(() => { try { return localStorage.getItem("grv.scenesTab") === "vec" ? "vec" : "xf"; } catch { return "xf"; } });
+  const setTab = (t: string) => { const v = t === "vec" ? "vec" : "xf"; setTabState(v); try { localStorage.setItem("grv.scenesTab", v); } catch { /* */ } };
+  const vecOn = (g.vecOn ?? 0) >= 0.5;
+  const vecEncoders = [
+    withCtl(valueBinding("X", g.vecX ?? 0.5, `${Math.round((g.vecX ?? 0.5) * 100)} %`, (v) => { if (!vecOn) actions.setGlobal("vecOn", 1); actions.setGlobal("vecX", v); }),
+      hostCode("vecX"), rangeEntry(g.vecX ?? 0.5, 0, 100, "%", (v) => { if (!vecOn) actions.setGlobal("vecOn", 1); actions.setGlobal("vecX", v); })),
+    withCtl(valueBinding("Y", g.vecY ?? 0.5, `${Math.round((g.vecY ?? 0.5) * 100)} %`, (v) => { if (!vecOn) actions.setGlobal("vecOn", 1); actions.setGlobal("vecY", v); }),
+      hostCode("vecY"), rangeEntry(g.vecY ?? 0.5, 0, 100, "%", (v) => { if (!vecOn) actions.setGlobal("vecOn", 1); actions.setGlobal("vecY", v); })),
+    withCtl(steppedBinding("Mouvement", [0, 1, 2, 3, 4, 5, 6, 7, 8], Math.round(g.vecOrbit ?? 0), (n) => actions.setGlobal("vecOrbit", n), (n) => VEC_ORBITS[n]), hostCode("vecOrbit")),
+    withCtl(steppedBinding("Un tour en", [0, 1, 2, 3, 4, 5, 6, 7, 8], Math.round(g.vecRate ?? 2), (n) => actions.setGlobal("vecRate", n), (n) => VEC_RATES[n]), hostCode("vecRate")),
+    withCtl(valueBinding("Taille", g.vecDepth ?? 0.35, `${Math.round((g.vecDepth ?? 0.35) * 100)} %`, (v) => actions.setGlobal("vecDepth", v)),
+      hostCode("vecDepth"), rangeEntry(g.vecDepth ?? 0.35, 0, 100, "%", (v) => actions.setGlobal("vecDepth", v))),
+    // v0.46 fix28 : hauteur (aplatir / étirer) et rotation de la forme du mouvement
+    withCtl(valueBinding("Hauteur", ((g.vecHeight ?? 1) - 0.05) / 1.95, `${Math.round((g.vecHeight ?? 1) * 100)} %`, (v) => actions.setGlobal("vecHeight", 0.05 + v * 1.95)),
+      hostCode("vecHeight"), rangeEntry(((g.vecHeight ?? 1) - 0.05) / 1.95, 5, 200, "%", (v) => actions.setGlobal("vecHeight", 0.05 + v * 1.95))),
+    withCtl(valueBinding("Rotation", (g.vecRot ?? 0) / 360, `${Math.round(g.vecRot ?? 0)}°`, (v) => actions.setGlobal("vecRot", Math.round(v * 360) % 360)),
+      hostCode("vecRot"), rangeEntry((g.vecRot ?? 0) / 360, 0, 360, "°", (v) => actions.setGlobal("vecRot", Math.round(v * 360) % 360))),
+    withCtl(steppedBinding("Pavé", [0, 1], vecOn ? 1 : 0, (n) => actions.setGlobal("vecOn", n), (n) => (n ? "actif" : "arrêté")), hostCode("vecOn")),
+  ];
+
   const encoders = [
-    steppedBinding("Scène A", list, sceneA, (n) => actions.setGlobal("sceneA", n + 1), (n) => `${n + 1}`),
-    steppedBinding("Scène B", list, sceneB, (n) => actions.setGlobal("sceneB", n + 1), (n) => `${n + 1}`),
-    valueBinding("Crossfader", g.xfade, xfText(g.xfade), (v) => actions.setGlobal("xfade", v), true),
+    withCtl(steppedBinding("Scène A", list, sceneA, (n) => actions.setGlobal("sceneA", n + 1), (n) => `${n + 1}`), hostCode("sceneA")),
+    withCtl(steppedBinding("Scène B", list, sceneB, (n) => actions.setGlobal("sceneB", n + 1), (n) => `${n + 1}`), hostCode("sceneB")),
+    withCtl(valueBinding("Crossfader", g.xfade, xfText(g.xfade), (v) => actions.setGlobal("xfade", v), true),
+      MIDI_XFADE, rangeEntry(g.xfade, 0, 100, "% vers B", (v) => actions.setGlobal("xfade", v))),
     steppedBinding("Banque", [0, 1], bank, (b) => setUi({ sceneBank: b }), (b) => (b === 0 ? "1 – 16" : "17 – 32")),
     steppedBinding("Copier A vers", list, sceneB, (n) => { void actions.scene("sceneCopy", sceneA, n); }, (n) => `scène ${n + 1}`),
   ];
 
   return (
-    <ScreenFrame title="Scènes" encoders={encoders} status={<span className="chip tabular">Crossfader {xfText(g.xfade)}</span>}>
+    <ScreenFrame title="Scènes" tabs={[{ id: "xf", label: "Crossfader" }, { id: "vec", label: "Vecteur" }]} tab={tab} onTab={setTab}
+      encoders={tab === "vec" ? vecEncoders : encoders}
+      status={<><button type="button" className="chip chip--live" onClick={() => setUi({ vecFull: true })}
+          title="Vue live : crossfader ou pavé, réglages des scènes, console des 16 pistes et les 16 boutons, sur un seul écran">⛶ Vue live</button>
+        <span className="chip tabular">{tab === "vec" ? (vecOn ? "Pavé actif" : "Pavé arrêté") : `Crossfader ${xfText(g.xfade)}`}</span></>}>
+      {tab === "vec" ? <VectorPad /> : (
       <div className="with-rowlaunch">
       <RowLaunchBar />
       <div className="scenes">
@@ -163,6 +191,7 @@ export function ScenesScreen() {
         </div>
       </div>
       </div>
+      )}
     </ScreenFrame>
   );
 }

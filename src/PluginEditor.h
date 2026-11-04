@@ -60,6 +60,8 @@ private:
     int lastNoteTrack = -1;
     std::uint32_t lastProject = 0, lastSeq = 0, lastStructure = 0, lastMidi = 0;
     std::uint64_t lastBusMask = 0; // v0.46 : coupures / solos des bus (changés par le contrôleur MIDI)
+    std::array<unsigned, GrooveboxProcessor::numUiCtl> lastUiCtlSeq {}; // v0.46 fix24 : valeurs d'écran déjà envoyées
+    unsigned lastUiCtlVersion = 0;
     std::uint32_t touchedRead = 0; // v0.32.1 : réglages écrits par le contrôleur MIDI ou une macro
     double perfAt = 0.0, memMb = 0.0, sampleMb = 0.0, totalMemMb = 0.0; // témoin de charge (v0.23), relu chaque seconde ; mémoire de l'appareil (fix17)
 

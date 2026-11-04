@@ -15,7 +15,7 @@ import { DragParam } from "../controls/DragParam";
 import { useLearnPress } from "../controls/useLearnPress";
 import { MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_SOLO_BASE } from "../engine/protocol";
 
-function TouchFader({ binding, label }: { binding: EncoderBinding | null; label: string }) {
+export function TouchFader({ binding, label }: { binding: EncoderBinding | null; label: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const grab = useRef<{ y: number; v: number } | null>(null);
   if (!binding || binding.kind !== "continuous") return <div className="tfader tfader--blank" />;

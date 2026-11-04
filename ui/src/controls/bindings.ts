@@ -200,6 +200,7 @@ export function useParam(global: number | null, label?: string): EncoderBinding 
       locked: lockedFlag,
       hint,
       mod: steppedMod,
+      ctl: global, // v0.46 fix24 : pilotable (MIDI, bouton assignable)
       entry,
       onStep: (dir) => {
         const nextIndex = Math.min(n - 1, Math.max(0, index + dir));
@@ -217,6 +218,7 @@ export function useParam(global: number | null, label?: string): EncoderBinding 
     locked: lockedFlag,
     hint,
     mod: modTarget,
+    ctl: global, // v0.46 fix24
     entry,
     onChange: (v) => write(target, global, v),
     reset: () => clearLock(target, global),
@@ -256,15 +258,48 @@ export function paramAddress(channel: number, area: "mix" | "inst" | "fx" | "mod
 /** Liaison à crans sur une liste de valeurs (réglages de l'interface ou du séquenceur). */
 export function steppedBinding<T>(label: string, options: readonly T[], current: T, onPick: (v: T) => void, show: (v: T) => string = String): EncoderBinding {
   const index = Math.max(0, options.indexOf(current));
+  const n = options.length;
+  const pickAt = (i: number) => { const k = Math.min(n - 1, Math.max(0, Math.round(i))); if (n > 0) onPick(options[k]); };
+  // v0.46 fix24 : valeur exacte (menu) : la liste des choix, ou un nombre si la liste est longue et numérique
+  const numeric = n > 24 && options.every((o) => typeof o === "number");
+  const nums = numeric ? (options as readonly unknown[] as number[]) : [];
+  const entry: ValueEntry | undefined = n < 2 ? undefined : numeric
+    ? {
+        plain: Number(current), min: Math.min(...nums), max: Math.max(...nums), unit: "", integer: nums.every(Number.isInteger),
+        set: (plain) => {
+          if (!Number.isFinite(plain)) return;
+          let best = 0;
+          nums.forEach((o, i) => { if (Math.abs(o - plain) < Math.abs(nums[best] - plain)) best = i; });
+          pickAt(best);
+        },
+        pick: pickAt,
+      }
+    : { plain: index, min: 0, max: n - 1, unit: "", integer: true, choices: options.map(show), set: pickAt, pick: pickAt };
   return {
     kind: "stepped",
     label,
     text: show(current),
-    normalised: options.length > 1 ? index / (options.length - 1) : 0,
+    normalised: n > 1 ? index / (n - 1) : 0,
+    entry,
+    setNorm: (v) => pickAt(v * (n - 1)), // v0.46 fix24 : bouton assignable, commande MIDI
     onStep: (dir) => {
-      const next = Math.min(options.length - 1, Math.max(0, index + dir));
+      const next = Math.min(n - 1, Math.max(0, index + dir));
       if (next !== index) onPick(options[next]);
     },
+  };
+}
+
+/** v0.46 fix24 : liaison pilotable par une cible du moteur (réglage global, commande), avec sa valeur exacte. */
+export function withCtl(b: EncoderBinding, ctl: number, entry?: ValueEntry): EncoderBinding {
+  return { ...b, ctl, ...(entry ? { entry } : {}) };
+}
+/** v0.46 fix24 : valeur exacte d'un réglage continu, dans ses unités (min à max ↔ 0..1). */
+export function rangeEntry(normalised: number, min: number, max: number, unit: string, set: (normalised: number) => void, integer = false): ValueEntry {
+  const toN = (p: number) => Math.min(1, Math.max(0, (p - min) / (max - min)));
+  return {
+    plain: Math.round((min + normalised * (max - min)) * 10) / 10, min, max, unit, integer,
+    set: (p) => { if (Number.isFinite(p)) set(toN(p)); },
+    pick: (i) => set(toN(i)),
   };
 }
 

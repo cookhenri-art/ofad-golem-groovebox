@@ -302,6 +302,30 @@ static void testInserts()
 }
 
 // v0.46 fix16 : décaler l'écriture d'un pas, en boucle ; fonctions des pas, conditions et verrous suivent
+// v0.46 fix22 : pavé vectoriel en mode scènes — quatre scènes mêlées selon les poids des coins
+static void testVectorScenes()
+{
+    Engine e;
+    e.prepare (48000.0, 256);
+    e.setInstrument (0, "drumA", 0.0);
+    const auto decay = e.findParam (0, "inst", "p01_decay");
+    const auto base = e.getParam (decay);
+    e.setSceneLock (0, decay, 0.0f, 0.0);
+    e.setSceneLock (1, decay, 1.0f, 0.0);
+    e.setSceneLock (2, decay, 0.2f, 0.0);
+    // scène 3 vide : le coin D garde la valeur de base
+    Engine::BlockInfo bi;
+    bi.vecOn = true; bi.vecMode = 0; bi.vecScene = { 0, 1, 2, 3 };
+    bi.vecW = { 0.0f, 1.0f, 0.0f, 0.0f }; run (e, 200, bi);
+    CHECK (std::abs (e.getEffective (decay) - 1.0f) < 0.02f);
+    bi.vecW = { 0.25f, 0.25f, 0.25f, 0.25f }; run (e, 200, bi);
+    CHECK (std::abs (e.getEffective (decay) - (0.0f + 1.0f + 0.2f + base) * 0.25f) < 0.03f);
+    bi.vecW = { 0.0f, 0.0f, 0.0f, 1.0f }; run (e, 200, bi);
+    CHECK (std::abs (e.getEffective (decay) - base) < 0.02f);
+    bi.vecOn = false; bi.sceneA = 0; bi.sceneB = 1; bi.fader = 0.0f; run (e, 200, bi); // retour au crossfader
+    CHECK (std::abs (e.getEffective (decay) - 0.0f) < 0.02f);
+}
+
 static void testShiftPattern()
 {
     Engine e;
@@ -2026,6 +2050,7 @@ int main()
     testMuteRecording();
     testPlayAndMovesOneTake();
     testScenes();
+    testVectorScenes();
     testStepLocksAndConditions();
     testModulation();
     testSeqModSource();

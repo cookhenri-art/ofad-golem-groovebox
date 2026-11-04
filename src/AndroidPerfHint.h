@@ -61,8 +61,9 @@ public:
         const auto tid = audioTid.load (std::memory_order_relaxed);
         const auto period = audioPeriod.load (std::memory_order_relaxed);
         if (tid <= 0 || period <= 0 || ! load()) return;
-        // Cible : la moitié de la durée du bloc, pour garder de la marge face aux pics
-        const auto target = period / 2;
+        // Cible : les trois quarts de la durée du bloc (v0.46 fix20, avant : la moitié) : assez de marge
+        // face aux pics, sans pousser les cœurs plus que nécessaire (moins de chauffe)
+        const auto target = period * 3 / 4;
         if (tid == sessionTid.load (std::memory_order_relaxed))
         {
             if (target != sessionTarget && updateFn != nullptr)

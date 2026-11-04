@@ -5,6 +5,7 @@
     l'accès au réglage « Mute audio input » de la fenêtre autonome de JUCE.
 */
 
+#define JUCE_CORE_INCLUDE_JNI_HELPERS 1 // v0.46 fix21 : JNI (écran gardé allumé sur Android)
 #if __has_include(<JuceHeader.h>)
  #include <JuceHeader.h> // projet Projucer (Android) : réglages des modules et du greffon
 #endif
@@ -14,6 +15,35 @@
 #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 
 #include "StandaloneInput.h"
+
+#if JUCE_ANDROID
+namespace grv
+{
+// v0.46 fix21 : écran gardé allumé (drapeau FLAG_KEEP_SCREEN_ON de la fenêtre de l'activité) :
+// seulement tant que l'appli est au premier plan — Android l'oublie dès qu'on la quitte —, et
+// seulement quand on joue ou qu'on l'a touchée il y a moins de 10 minutes. Fil des messages
+// (le fil principal d'Android).
+void androidKeepScreenOn (bool on)
+{
+    auto* env = juce::getEnv();
+    auto activity = juce::getMainActivity();
+    if (env == nullptr || activity.get() == nullptr) return;
+    auto actCls = env->GetObjectClass (activity.get());
+    const auto getWindow = env->GetMethodID (actCls, "getWindow", "()Landroid/view/Window;");
+    jobject window = getWindow != nullptr ? env->CallObjectMethod (activity.get(), getWindow) : nullptr;
+    if (window != nullptr)
+    {
+        auto winCls = env->GetObjectClass (window);
+        if (const auto mid = env->GetMethodID (winCls, on ? "addFlags" : "clearFlags", "(I)V"); mid != nullptr)
+            env->CallVoidMethod (window, mid, (jint) 0x00000080); // WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        env->DeleteLocalRef (winCls);
+        env->DeleteLocalRef (window);
+    }
+    if (env->ExceptionCheck()) env->ExceptionClear();
+    env->DeleteLocalRef (actCls);
+}
+} // namespace grv
+#endif
 
 namespace
 {
@@ -261,7 +291,9 @@ private:
        #else
         const juce::Array<juce::StandalonePluginHolder::PluginInOuts> channelConfig;
        #endif
-        return std::make_unique<juce::StandalonePluginHolder> (appProperties.getUserSettings(), false, juce::String{}, nullptr, channelConfig, false);
+        // v0.46 fix27 : contrôleurs MIDI prêts à jouer : tout clavier ou contrôleur branché est ouvert tout
+        // seul (vérifié toutes les 500 ms), sur PC comme sur Android
+        return std::make_unique<juce::StandalonePluginHolder> (appProperties.getUserSettings(), false, juce::String{}, nullptr, channelConfig, true);
     }
 
     void openMainWindow()

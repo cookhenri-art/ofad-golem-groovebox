@@ -305,6 +305,16 @@ std::string patternJson (const Engine& e, int t)
         std::string f;
         for (int st = 0; st < Sequencer::maxSteps; ++st) f += digits[s.getStepFlags (t, st) & 15];
         o += ",\"flags\":\"" + f + "\"";
+        // v0.46 fix27 : valeurs des pas (force de l'accent, durée du glissé), 2 × 2 chiffres par pas, s'il y en a
+        std::string am;
+        bool anyAmt = false;
+        for (int st = 0; st < Sequencer::maxSteps; ++st)
+        {
+            const auto v = s.getStepAmounts (t, st);
+            anyAmt = anyAmt || v != 0;
+            am += digits[(v >> 4) & 15]; am += digits[v & 15]; am += digits[(v >> 12) & 15]; am += digits[(v >> 8) & 15];
+        }
+        if (anyAmt) o += ",\"amt\":\"" + am + "\"";
     }
     o += ",\"lanes\":[";
     for (int l = 0; l < Sequencer::numLanes; ++l)

@@ -85,7 +85,7 @@ async function mark(p, items, letters = []) {
     { sel: ".top-hist", text: "Annuler · Rétablir · Photo · Rappel", pos: "b", n: 2 },
     { sel: ".top-rec", text: "Enregistrement audio", pos: "b", n: 3 },
     { sel: ".top-full", text: "Plein écran (F11)", pos: "b", n: 4 },
-    { sel: ".encoder-row", text: "8 encodeurs : les réglages affichés à l'écran", pos: "t", n: 5 },
+    { sel: ".encoder-row", text: "16 boutons assignables (appui long : Assigner à…)", pos: "t", n: 5 },
     { sel: ".track-ms-row", text: "M / S des pistes", pos: "b", n: 6 },
     { sel: ".device-left .cluster", nth: 0, sel2: ".device-left .cluster", nth2: 1, text: "Transport : Enr. · Lecture · Arrêt · Fill · Break · Maj", pos: "t", n: 7 },
     { sel: ".hw-xfade", text: "Crossfader des scènes A / B", pos: "t", n: 8 },
@@ -99,14 +99,14 @@ async function mark(p, items, letters = []) {
     { sel: ".button-row--padmodes", text: "Rôle des pads : Jouer · Couper · Scènes · Pas · Effacer", pos: "t" },
   ], { clip: ".device-right", pad: 12, letters: keys.map((k, i) => [".padgrid .pad", i, k]) });
 
-  // 3. Boutons et valeurs : encodeur et menu du clic droit
+  // 3. Boutons et valeurs : une valeur du bas de l'écran et son menu (clic droit ou appui long)
   await shot("boutons-reperes", ["Son", async (p) => {
-    const e = p.locator(".encoder-row .encoder").first(); const bb = await e.boundingBox();
+    const e = p.locator(".screen-encoders .enc-label").nth(1); const bb = await e.boundingBox();
     await p.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2, { button: "right" }); await p.waitForTimeout(400);
   }], [
-    { sel: ".encoder-row .encoder", nth: 1, text: "Glisser ↑↓ · molette · double-clic : valeur d'origine", pos: "t", n: 1 },
-    { sel: ".screen-encoders", text: "Le nom et la valeur de chaque encodeur", pos: "t", n: 2 },
-    { sel: ".mod-menu", text: "Menu du clic droit", n: 3 },
+    { sel: ".screen-encoders .enc-label", nth: 0, text: "Glisser ↑↓ · double-clic : valeur d'origine", pos: "t", n: 1 },
+    { sel: ".mod-menu", text: "Appui long / clic droit : valeur exacte · modulation · MIDI · bouton 1 à 16", pos: "l", n: 2 },
+    { sel: ".encoder-row", text: "16 boutons assignables", pos: "t", n: 3 },
   ]);
 
   // 4. Séquence : rouleau de notes de la basse, lignes Accent / Glissé, pages

@@ -20,11 +20,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { actions, baseValue, getState, resolveGlobal, ROLL_MAX, ROLL_MIN, setRollBase, setUi, showMessage, slots, useStore } from "../engine/store";
+import { StepAmountEditor, useLongPress, type StepAmountKind } from "../controls/StepAmount";
 import { allKeys, cellKey, flagMoves, getClipboard, getLockClip, laneOf, origin, payload, place, retarget, setClipboard, snapshot, stepOf, type CellData, type Plan } from "../engine/selection";
-import { condChoices, DIRECTIONS, RATCHET_CHOICES, condKey, condText, parseCond, ratchetKey, ratchetText, DIVISIONS, DIVISION_ORDER, PATTERN_NAMES, SPEEDS, STEPS_PER_BAR, FLAM_CHOICES, flamText, STEP_ACCENT, STEP_SLIDE, STEP_REC, STEP_TRIGLESS, type PatternData } from "../engine/protocol";
+import { condChoices, DIRECTIONS, RATCHET_CHOICES, condKey, condText, parseCond, ratchetKey, ratchetText, DIVISIONS, DIVISION_ORDER, PATTERN_NAMES, SPEEDS, STEPS_PER_BAR, FLAM_CHOICES, flamText, STEP_ACCENT, STEP_SLIDE, STEP_REC, STEP_TRIGLESS, type PatternData, hostCode } from "../engine/protocol";
 import { inScale } from "../engine/scales";
 import { formatNorm, noteName, trackColor } from "../engine/params";
-import { steppedBinding, valueBinding } from "../controls/bindings";
+import { rangeEntry, steppedBinding, valueBinding, withCtl } from "../controls/bindings";
 import type { EncoderBinding } from "../controls/Encoder";
 
 /** Durée d'une note en huitièmes de pas : jusqu'à 128 pas (8 mesures en double croches). */
@@ -38,6 +39,40 @@ const PAGE = 16;
 const LANE_LENGTHS = [0, ...Array.from({ length: 32 }, (_, i) => i + 1), 48, 64, 96, 128, 192, 256, 384, 512];
 const BAR_CHOICES = [1, 2, 3, 4, 8, 12, 16, 24, 32];
 const ROLL_ROWS = 24; // deux octaves affichées
+
+/** v0.46 fix28 : clavier du rouleau de notes : toucher joue la note ; glisser le doigt vers le haut ou le
+    bas fait défiler les octaves (comme la molette sur PC), sans jouer. */
+const keyDrag: { id: number; y: number; base: number; n: number; t: number; playing: boolean; step: number } = { id: -1, y: 0, base: 0, n: 0, t: 0, playing: false, step: 60 };
+function rollKeyHandlers(t: number, n: number) {
+  return {
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      const rowH = e.currentTarget.getBoundingClientRect().height || 12;
+      Object.assign(keyDrag, { id: e.pointerId, y: e.clientY, base: getState().ui.rollBase, n, t, playing: true, step: Math.max(36, rowH * 6) });
+      actions.noteOn(t, n, 0.8);
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (keyDrag.id !== e.pointerId) return;
+      const dy = e.clientY - keyDrag.y;
+      if (keyDrag.playing && Math.abs(dy) > 10) { keyDrag.playing = false; actions.noteOff(keyDrag.t, keyDrag.n); }
+      if (keyDrag.playing) return;
+      // tirer vers le bas fait apparaître les notes du dessus (comme une liste qu'on fait défiler)
+      const oct = Math.round(dy / keyDrag.step);
+      const b = keyDrag.base + oct * 12;
+      if (b !== getState().ui.rollBase) setRollBase(b);
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (keyDrag.id !== e.pointerId) return;
+      keyDrag.id = -1;
+      if (keyDrag.playing) { keyDrag.playing = false; actions.noteOff(keyDrag.t, keyDrag.n); }
+    },
+    onPointerCancel: (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (keyDrag.id !== e.pointerId) return;
+      keyDrag.id = -1;
+      if (keyDrag.playing) { keyDrag.playing = false; actions.noteOff(keyDrag.t, keyDrag.n); }
+    },
+  };
+}
 /** v0.44.1 : avec une gamme choisie, les lignes de la gamme sont claires (à jouer) et les autres
     sombres, dièse ou pas ; sans gamme (chromatique), le dessin du clavier (touches noires). */
 const scaleRowClass = (_n: number, black: boolean, out: boolean, scale: number) =>
@@ -146,7 +181,8 @@ export function SequenceScreen() {
   const accentBinding = steppedBinding("Accent", Array.from({ length: 21 }, (_, i) => i * 5), Math.round((pattern.accent ?? 50) / 5) * 5,
     (a) => void actions.seq("seqAccent", a), (a) => `${a} %`);
   const trackEncoders: (EncoderBinding | null)[] = [
-    valueBinding("Swing", (g.swing - 50) / 25, `${Math.round(g.swing)} %`, (v) => actions.setGlobal("swing", 50 + v * 25)),
+    withCtl(valueBinding("Swing", (g.swing - 50) / 25, `${Math.round(g.swing)} %`, (v) => actions.setGlobal("swing", 50 + v * 25)),
+      hostCode("swing"), rangeEntry((g.swing - 50) / 25, 50, 75, "%", (v) => actions.setGlobal("swing", 50 + v * 25))),
     steppedBinding("Longueur", BAR_CHOICES.filter((b) => b * spb <= L.maxSteps), BAR_CHOICES.includes(bars) ? bars : 1,
       (b) => { void actions.seq("seqTrackLength", b * spb); setUi({ page: 0 }); }, (b) => `${b} mes.`),
     steppedBinding("Pas (fin)", Array.from({ length: Math.min(L.maxSteps, 64) }, (_, i) => i + 1), Math.min(64, pattern.length),
@@ -549,8 +585,7 @@ export function SequenceScreen() {
             const outOfScale = ui.scale > 0 && !inScale(n, ui.scale, ui.root);
             return (
               <div key={n} className={`roll-row${scaleRowClass(n, black, outOfScale, ui.scale)}${n % 12 === 0 ? " roll-row--c" : ""}${ui.scale > 0 && ((n - ui.root) % 12 + 12) % 12 === 0 ? " roll-row--root" : ""}`}>
-                <button type="button" className="roll-key" onPointerDown={() => actions.noteOn(t, n, 0.8)} onPointerUp={() => actions.noteOff(t, n)}
-                  onPointerLeave={(e) => { if (e.buttons) actions.noteOff(t, n); }}>{noteName(n)}</button>
+                <button type="button" className="roll-key" {...rollKeyHandlers(t, n)} title="Toucher : jouer · glisser vers le haut ou le bas : changer d'octave">{noteName(n)}</button>
                 <div className="roll-cells">
                   {Array.from({ length: PAGE }, (_, i) => {
                     const s = first + i;
@@ -728,6 +763,23 @@ function PatternCurves({ t, spb }: { t: number; spb: number }) {
   );
 }
 
+/** v0.46 fix27 : case d'une fonction de pas : toucher = poser / retirer ; appui long (clic droit) =
+    sa valeur ; une valeur réglée se voit à la force de la couleur. */
+function FlagCell({ disabled, on, amount, className, label, onToggle, onEdit }: {
+  disabled: boolean; on: boolean; amount: number; className: string; label: string; onToggle: () => void; onEdit?: () => void;
+}) {
+  const lp = useLongPress(() => onEdit?.());
+  return (
+    <button type="button" disabled={disabled} aria-pressed={on} className={`${className}${amount > 0 ? " fcell--amt" : ""}`} aria-label={label}
+      title={amount > 0 ? `${label} : ${amount} %` : label}
+      style={amount > 0 ? { "--amt": amount / 100 } as React.CSSProperties : undefined}
+      {...(onEdit ? lp.handlers : {})}
+      onClick={() => { if (onEdit && lp.consumed()) return; onToggle(); }}>
+      {amount > 0 && <span className="fcell-amt">{amount}</span>}
+    </button>
+  );
+}
+
 /** Lignes des fonctions de pas de la piste : ACCENT (toutes les pistes) et GLISSÉ (mélodique).
     Toucher une case pose ou retire la fonction sur ce pas ; avec des pas sélectionnés, sur leurs
     positions. */
@@ -742,6 +794,10 @@ function FlagRows({ drum, roll = false, first, length, flags, stepsPerBeat, play
     { bit: STEP_TRIGLESS, name: "Verrous seuls", hint: "le pas pose ses verrous sans jouer de note", cls: "trigless" },
     ...(octa ? [{ bit: STEP_REC, name: "Enregistrer", hint: "le pas lance l'enregistreur de la piste (source et durée : vue synthé, page Enregistreur)", cls: "rec" }] : []),
   ];
+  // v0.46 fix27 : valeur du pas (force de l'accent, durée du glissé) : appui long sur la case
+  const [edit, setEdit] = useState<{ step: number; kind: StepAmountKind } | null>(null);
+  const accAmt = useStore((st) => st.pattern?.accAmt) ?? [];
+  const sldAmt = useStore((st) => st.pattern?.sldAmt) ?? [];
   const toggle = (bit: number, s: number) => {
     const st = getState();
     const sel = [...new Set(st.ui.selection.map(stepOf))];
@@ -751,6 +807,7 @@ function FlagRows({ drum, roll = false, first, length, flags, stepsPerBeat, play
   };
   return (
     <div className={`seq-flags${drum && !roll ? "" : " seq-flags--roll"}`}>
+      {edit && <StepAmountEditor step={edit.step} kind={edit.kind} onClose={() => setEdit(null)} />}
       {rows.map((r) => (
         <div key={r.bit} className={`flag-row flag-row--${r.cls}`}>
           <span className="flag-name" title={`${r.name} : ${r.hint}`}>{r.name}</span>
@@ -759,11 +816,13 @@ function FlagRows({ drum, roll = false, first, length, flags, stepsPerBeat, play
               const s = first + i;
               const on = ((flags[s] ?? 0) & r.bit) !== 0;
               const out = s >= length;
+              const kind: StepAmountKind | null = r.bit === STEP_ACCENT ? "acc" : r.bit === STEP_SLIDE ? "sld" : null;
+              const amt = kind === "acc" ? accAmt[s] ?? 0 : kind === "sld" ? sldAmt[s] ?? 0 : 0;
               return (
-                <button key={i} type="button" disabled={out} aria-pressed={on}
+                <FlagCell key={i} disabled={out} on={on} amount={on ? amt : 0}
                   className={`fcell${on ? " fcell--on" : ""}${s % stepsPerBeat === 0 ? " fcell--beat" : ""}${out ? " fcell--out" : ""}${playStep === s ? " fcell--play" : ""}`}
-                  aria-label={`${r.name}, pas ${s + 1}`}
-                  onClick={() => toggle(r.bit, s)} />
+                  label={`${r.name}, pas ${s + 1}${kind ? " (appui long : valeur)" : ""}`}
+                  onToggle={() => toggle(r.bit, s)} onEdit={kind ? () => setEdit({ step: s, kind }) : undefined} />
               );
             })}
           </div>
@@ -1079,8 +1138,7 @@ function OctaLaneRoll({ t, T, first, stepsPerBeat, playStep }: { t: number; T: n
         const outOfScale = ui.scale > 0 && !inScale(n, ui.scale, ui.root);
         return (
           <div key={n} className={`roll-row${scaleRowClass(n, black, outOfScale, ui.scale)}${n % 12 === 0 ? " roll-row--c" : ""}${(ui.scale > 0 ? ((n - ui.root) % 12 + 12) % 12 === 0 : n === 60) ? " roll-row--root" : ""}`}>
-            <button type="button" className="roll-key" onPointerDown={() => actions.noteOn(t, n, 0.8)} onPointerUp={() => actions.noteOff(t, n)}
-              onPointerLeave={(e) => { if (e.buttons) actions.noteOff(t, n); }} title={n === 60 ? "Hauteur d'origine de l'emplacement" : undefined}>{noteName(n)}{n === 60 ? " ●" : ""}</button>
+            <button type="button" className="roll-key" {...rollKeyHandlers(t, n)} title={n === 60 ? "Hauteur d'origine de l'emplacement (glisser : changer d'octave)" : "Toucher : jouer · glisser vers le haut ou le bas : changer d'octave"}>{noteName(n)}{n === 60 ? " ●" : ""}</button>
             <div className="roll-cells">
               {Array.from({ length: PAGE }, (_, i) => {
                 const s = first + i;

@@ -2,13 +2,14 @@
 // Cadre commun des écrans : barre d'état (titre, onglets, transport, position, tempo), contenu,
 // et en bas les libellés des 8 encodeurs placés juste sous l'écran (comme sur une machine à écran).
 
-import { createContext, useContext, useEffect, type ReactNode } from "react";
-import { createPortal } from "react-dom";
-import { Encoder, type EncoderBinding } from "../controls/Encoder";
+import { createContext, useEffect, type ReactNode } from "react";
+import { ParamMenuZone, type EncoderBinding } from "../controls/Encoder";
+import { bindingCode, registerCtl } from "../engine/ctl";
 import { actions, getState, setUi, useStore } from "../engine/store";
 import { IconPlay, IconRec, IconStop } from "../controls/Icons";
 import { MOD_SOURCE_COLORS, modSourceShort } from "../engine/params";
 import { useValueDrag } from "../controls/useValueDrag";
+import { TempoValue } from "../controls/TempoBox";
 
 export const EncoderRowContext = createContext<HTMLElement | null>(null);
 
@@ -22,23 +23,29 @@ interface ScreenFrameProps {
   children: ReactNode;
 }
 
-/** Libellé et valeur d'un encodeur, sur l'écran. On peut aussi tirer la valeur vers le haut ou
-    le bas directement ici (souris ou doigt), comme sur l'encodeur. */
-function EncoderLabel({ b }: { b: EncoderBinding | null }) {
+/** Libellé et valeur d'un réglage, en bas de l'écran. On tire la valeur vers le haut ou le bas
+    (souris ou doigt). v0.46 fix24 : appui long (clic droit) : le menu du réglage — valeur exacte,
+    modulation et macros s'il y a lieu, MIDI, bouton assignable. */
+function EncoderLabel({ b, screen }: { b: EncoderBinding | null; screen: string }) {
   const target = b && b.kind === "continuous" ? b.mod : undefined;
   const mod = useStore((s) => (target ? s.channels[target.channel]?.mods.find((m) => m.target === target.local) : undefined));
-  const { handlers } = useValueDrag(b);
+  // valeur propre à l'écran (pas un réglage du moteur) : identifiant stable « Écran.Libellé »
+  const bb: EncoderBinding | null = b && bindingCode(b) === null && !b.ctlId ? { ...b, ctlId: `${screen}.${b.label}` } : b;
+  if (bb?.ctlId) registerCtl(bb.ctlId, bb);
+  const { handlers } = useValueDrag(bb);
   return (
-    <div className={`enc-label${b ? " enc-label--drag" : " enc-label--idle"}${b && b.locked ? ` enc-label--lock-${b.locked}` : ""}`}
-      title={b ? `${b.label} : glisser vers le haut ou le bas (Maj = fin, double-clic = valeur d'origine)` : undefined} {...handlers}>
-      <span className="enc-name">{b?.label ?? "—"}</span>
-      <span className="enc-value tabular">{b?.text ?? ""}</span>
-      {mod && (
-        <span className="enc-mod tabular" style={{ color: MOD_SOURCE_COLORS[mod.source] }}>
-          {modSourceShort(mod.source)} {mod.amount >= 0 ? "+" : "−"}{Math.round(Math.abs(mod.amount) * 100)} %
-        </span>
-      )}
-    </div>
+    <ParamMenuZone binding={bb} preferBelow={false} className="enc-label-zone">
+      <div className={`enc-label${bb ? " enc-label--drag" : " enc-label--idle"}${bb && bb.locked ? ` enc-label--lock-${bb.locked}` : ""}`}
+        title={bb ? `${bb.label} : glisser vers le haut ou le bas (Maj = fin, double-clic = valeur d'origine) — appui long ou clic droit : menu (valeur exacte, MIDI, bouton assignable)` : undefined} {...handlers}>
+        <span className="enc-name">{bb?.label ?? "—"}</span>
+        <span className="enc-value tabular">{bb?.text ?? ""}</span>
+        {mod && (
+          <span className="enc-mod tabular" style={{ color: MOD_SOURCE_COLORS[mod.source] }}>
+            {modSourceShort(mod.source)} {mod.amount >= 0 ? "+" : "−"}{Math.round(Math.abs(mod.amount) * 100)} %
+          </span>
+        )}
+      </div>
+    </ParamMenuZone>
   );
 }
 
@@ -60,22 +67,13 @@ function LoopBar({ playing, lq, lp }: { playing: boolean; lq: number; lp: number
   );
 }
 
-/** Tempo de la barre d'état : se règle en le tirant vers le haut ou le bas (0,1 BPM par cran
-    avec Maj), comme toutes les valeurs de l'écran. */
+/** Tempo de la barre d'état : glisser vers le haut ou le bas pour le régler, toucher pour taper
+    la valeur au clavier (v0.46 fix23). */
 function TempoReadout({ bpm }: { bpm: number }) {
-  const g = useStore((s) => s.tick.g.bpm);
-  const binding: EncoderBinding = {
-    kind: "continuous", label: "Tempo", text: `${g.toFixed(1)} BPM`, normalised: (g - 40) / 200,
-    onChange: (v) => actions.setGlobal("bpm", Math.round((40 + v * 200) * 10) / 10),
-    reset: () => actions.setGlobal("bpm", 120),
-    sensitivity: 0.25, // 0,25 BPM par pixel (Maj : 0,06)
-  };
-  const { handlers } = useValueDrag(binding);
   return (
-    <span className="screen-bpm screen-bpm--drag tabular" role="slider" aria-label="Tempo" aria-valuemin={40} aria-valuemax={240} aria-valuenow={g}
-      title="Tempo : glisser vers le haut ou le bas (Maj = fin, double-clic = 120)" {...handlers}>
+    <TempoValue className="screen-bpm screen-bpm--drag tabular">
       {bpm.toFixed(1)} <small>BPM</small>
-    </span>
+    </TempoValue>
   );
 }
 
@@ -139,10 +137,10 @@ export function ModeBar() {
 }
 
 export function ScreenFrame({ title, status, tabs, tab, onTab, encoders, children }: ScreenFrameProps) {
-  const row = useContext(EncoderRowContext);
   const t = useStore((s) => s.tick.t);
   const message = useStore((s) => s.ui.message);
   const learn = useStore((s) => s.tick.learn ?? -1);
+  const knobWait = useStore((s) => s.ui.knobAssign);
   const slots = Array.from({ length: 8 }, (_, i) => encoders[i] ?? null);
 
   return (
@@ -159,6 +157,8 @@ export function ScreenFrame({ title, status, tabs, tab, onTab, encoders, childre
         {status}
         <span className="screen-spacer" />
         {(t.fill || t.brk) && <span className="chip chip--edit chip--B">{t.brk ? "BREAK" : "FILL"}</span>}
+        {knobWait !== null && <button type="button" className="chip chip--edit chip--A chip--learn chip--knob" onClick={() => setUi({ knobAssign: null })}
+          title="Annuler (Échap)">Bouton {knobWait + 1} : touchez la valeur à piloter… (annuler)</button>}
         {learn !== -1 && <button type="button" className="chip chip--edit chip--A chip--learn" onClick={() => void actions.midiLearn(-1)} title="Annuler l'apprentissage">MIDI : touchez une commande…</button>}
         <span className={`transport-state${t.rec ? " rec" : ""}${t.playing ? " play" : ""}`}>
           {t.rec ? <><IconRec /> ENR</> : t.playing ? <><IconPlay /> LECTURE</> : <><IconStop /> ARRÊT</>}
@@ -174,11 +174,9 @@ export function ScreenFrame({ title, status, tabs, tab, onTab, encoders, childre
         {message && <div className="screen-toast" role="status">{message}</div>}
       </div>
 
-      <footer className="screen-encoders" aria-hidden>
-        {slots.map((b, i) => <EncoderLabel key={i} b={b} />)}
+      <footer className="screen-encoders">
+        {slots.map((b, i) => <EncoderLabel key={i} b={b} screen={title} />)}
       </footer>
-
-      {row && createPortal(slots.map((b, i) => <Encoder key={i} binding={b} />), row)}
     </div>
   );
 }

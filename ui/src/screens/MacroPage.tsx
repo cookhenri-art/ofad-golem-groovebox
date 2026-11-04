@@ -8,6 +8,7 @@
 // (vers « De » quand elle descend, vers « À » quand elle monte) ; le retoucher à la main le réancre.
 
 import { useEffect } from "react";
+import { HOST_CTL, hostCode } from "../engine/protocol";
 import { actions, resolveGlobal, setUi, useStore } from "../engine/store";
 import { busName, formatPlain, toPlain } from "../engine/params";
 import type { MacroData } from "../engine/protocol";
@@ -43,6 +44,7 @@ function MacroCard({ index, data, value, assigning }: { index: number; data?: Ma
   const binding: EncoderBinding = {
     kind: "continuous", label: `Macro ${index + 1}`, text: `${Math.round(value * 100)} %`, normalised: value,
     onChange: (n) => actions.setMacroValue(index, n), reset: () => actions.setMacroValue(index, 0.5),
+    ctl: hostCode(`macro${index + 1}` as (typeof HOST_CTL)[number]), // v0.46 fix24 : MIDI, bouton assignable
   };
   return (
     <section className={`macro-card${assigning ? " is-assigning" : ""}`} aria-label={`Macro ${index + 1}`}>

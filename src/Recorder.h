@@ -69,6 +69,10 @@ public:
     bool isEncoding() const noexcept { return encoding.load(); }
 
     /** État pour l'interface (JSON) : prise, durée, fichiers, conversion, pertes, dossier. */
+    /** v0.46 fix20 : dossier de la dernière prise, tel que l'utilisateur le retrouve (téléphone :
+        « Mes fichiers › Audio › Groovebox › … »). Fil des messages. */
+    juce::String lastFolderShown() const;
+    static juce::String describeFolder (const juce::File& dir);
     juce::String statusJson() const;
 
     /** Dossier de la dernière prise (pour l'ouvrir dans l'explorateur). */

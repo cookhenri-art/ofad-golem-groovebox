@@ -91,6 +91,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout GrooveboxProcessor::createLa
     for (int m = 0; m < numMacros; ++m)
         layout.add (std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { ParamID::macro (m), 1 }, "Macro " + juce::String (m + 1),
                                                                  juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f), 0.5f));
+    // v0.46 fix22 : pavé vectoriel — X et Y s'automatisent dans le logiciel hôte (sur ordinateur)
+    layout.add (std::make_unique<juce::AudioParameterInt> (juce::ParameterID { ParamID::vecOn, 1 }, "Vecteur", 0, 1, 0));
+    layout.add (std::make_unique<juce::AudioParameterInt> (juce::ParameterID { ParamID::vecMode, 1 }, "Vecteur mode", 0, 1, 0));
+    layout.add (std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { ParamID::vecX, 1 }, "Vecteur X", juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f), 0.5f));
+    layout.add (std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { ParamID::vecY, 1 }, "Vecteur Y", juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f), 0.5f));
+    layout.add (std::make_unique<juce::AudioParameterInt> (juce::ParameterID { ParamID::vecOrbit, 1 }, "Vecteur mouvement", 0, 8, 0));
+    layout.add (std::make_unique<juce::AudioParameterInt> (juce::ParameterID { ParamID::vecRate, 1 }, "Vecteur vitesse", 0, 8, 2));
+    layout.add (std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { ParamID::vecDepth, 1 }, "Vecteur rayon", juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f), 0.35f));
+    // v0.46 fix28 : rotation de la forme (les projets plus anciens la reçoivent à 0 par fillMissingParams)
+    layout.add (std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { ParamID::vecRot, 1 }, "Vecteur rotation", juce::NormalisableRange<float> (0.0f, 360.0f, 0.0f), 0.0f));
+    layout.add (std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { ParamID::vecHeight, 1 }, "Vecteur hauteur", juce::NormalisableRange<float> (0.05f, 2.0f, 0.0f), 1.0f));
+    for (int k = 0; k < 4; ++k)
+        layout.add (std::make_unique<juce::AudioParameterInt> (juce::ParameterID { ParamID::vecScene (k), 1 }, "Vecteur scene " + juce::String::charToString ((juce::juce_wchar) ('A' + k)), 1, numScenes, k + 1));
+    for (int k = 0; k < 4; ++k)
+        layout.add (std::make_unique<juce::AudioParameterInt> (juce::ParameterID { ParamID::vecFx (k), 1 }, "Vecteur effet " + juce::String::charToString ((juce::juce_wchar) ('A' + k)), 0, 4, k + 1));
     return layout;
 }
 
@@ -106,6 +121,13 @@ GrooveboxProcessor::GrooveboxProcessor()
     pXfade = state.getRawParameterValue (ParamID::xfade);
     pSceneA = state.getRawParameterValue (ParamID::sceneA);
     pSceneB = state.getRawParameterValue (ParamID::sceneB);
+    pVecOn = state.getRawParameterValue (ParamID::vecOn); pVecMode = state.getRawParameterValue (ParamID::vecMode);
+    pVecX = state.getRawParameterValue (ParamID::vecX); pVecY = state.getRawParameterValue (ParamID::vecY);
+    pVecOrbit = state.getRawParameterValue (ParamID::vecOrbit); pVecRate = state.getRawParameterValue (ParamID::vecRate);
+    pVecDepth = state.getRawParameterValue (ParamID::vecDepth); pVecRot = state.getRawParameterValue (ParamID::vecRot); pVecHeight = state.getRawParameterValue (ParamID::vecHeight);
+    for (int k = 0; k < 4; ++k) { pVecScene[(size_t) k] = state.getRawParameterValue (ParamID::vecScene (k)); pVecFx[(size_t) k] = state.getRawParameterValue (ParamID::vecFx (k)); }
+    for (int h = 0; h < numHostCtl; ++h) hostParams[(size_t) h] = state.getParameter (hostCtlId (h)); // v0.46 fix24
+    jassert (hostCtlId (numHostCtl - 1).isNotEmpty() && hostCtlId (numHostCtl).isEmpty());
     for (int m = 0; m < numMacros; ++m)
     {
         pMacro[(size_t) m] = state.getRawParameterValue (ParamID::macro (m));
@@ -115,6 +137,11 @@ GrooveboxProcessor::GrooveboxProcessor()
     }
     currentBpm.store (pBpm->load());
     for (auto& m : ccMap) m.store (midiNone);
+    // v0.46 fix24 : boutons assignables libres, rien en attente
+    for (auto& k : knobTarget) k.store (midiNone);
+    for (auto& k : knobPending) k.store (-1.0f);
+    for (auto& k : knobOut) k.store (-1.0f);
+    for (auto& h : hostPending) h.store (-1.0f);
     for (auto& m : noteMap) m.store (midiNone);
     for (auto& r : rowScene) r.store (-1);
     grv::startupMark ("moteur : creation");
@@ -143,6 +170,42 @@ GrooveboxProcessor::~GrooveboxProcessor()
    #if JUCE_ANDROID
     // laisse finir un enregistrement automatique en cours (5 s au plus)
     for (int i = 0; i < 500 && autosaveBusy->load(); ++i) juce::Thread::sleep (10);
+   #endif
+}
+
+#if JUCE_ANDROID
+#endif
+
+// v0.46 fix22 : forme dessinée du pavé vectoriel — « x,y;x,y;… » (0..1), 128 points au plus ;
+// gardée dans le projet (propriété « vecPath » de l'état) ; le fil audio lit l'autre moitié du
+// double tampon (aucun verrou). Fil des messages.
+void GrooveboxProcessor::setVecPath (const juce::String& text, bool store)
+{
+    const auto next = (vecPathIndex.load() + 1) & 1;
+    auto& p = vecPaths[(size_t) next];
+    p.count = 0;
+    for (const auto& pt : juce::StringArray::fromTokens (text, ";", ""))
+    {
+        if (p.count >= (int) p.x.size()) break;
+        const auto xy = juce::StringArray::fromTokens (pt, ",", "");
+        if (xy.size() != 2) continue;
+        p.x[(size_t) p.count] = juce::jlimit (0.0f, 1.0f, xy[0].getFloatValue());
+        p.y[(size_t) p.count] = juce::jlimit (0.0f, 1.0f, xy[1].getFloatValue());
+        ++p.count;
+    }
+    vecPathIndex.store (next, std::memory_order_release);
+    if (store) state.state.setProperty ("vecPath", text, nullptr);
+}
+
+juce::String GrooveboxProcessor::getVecPath() const
+{
+    return state.state.getProperty ("vecPath").toString();
+}
+
+void GrooveboxProcessor::noteUserActivity() noexcept
+{
+   #if JUCE_ANDROID
+    lastUserActivity = nowMs();
    #endif
 }
 
@@ -225,6 +288,11 @@ void GrooveboxProcessor::timerCallback()
     historyTick();
    #if JUCE_ANDROID
     perfHint.service();
+    {
+        if (lastUserActivity <= 0.0) lastUserActivity = nowMs();
+        const bool keep = engine.sequencer().isRunning() || recorder.isRecording() || nowMs() - lastUserActivity < 10.0 * 60.0 * 1000.0;
+        if (keep != screenKeptOn) { screenKeptOn = keep; androidKeepScreenOn (keep); }
+    }
     // v0.46 fix16 : une seconde après le démarrage, le micro est fermé (pas de flux d'entrée)
     if (inputStartTicks >= 0 && ++inputStartTicks >= 25)
     {
@@ -234,6 +302,10 @@ void GrooveboxProcessor::timerCallback()
     if (++autosaveTicks >= 375) { autosaveTicks = 0; autosaveIfChanged(); } // 15 s
    #endif
 
+    // v0.46 fix24 : réglages globaux pilotés (MIDI, boutons assignables) : écrits ici, sur le fil de l'interface
+    for (int h = 0; h < numHostCtl; ++h)
+        if (const auto v = hostPending[(size_t) h].exchange (-1.0f); v >= 0.0f)
+            if (auto* p = hostParams[(size_t) h]) p->setValueNotifyingHost (juce::jlimit (0.0f, 1.0f, v));
     // Crossfader piloté en MIDI : le réglage du logiciel hôte suit (affichage, sauvegarde)
     if (const auto x = xfadeFromMidi.exchange (-1.0f); x >= 0.0f)
         if (auto* p = state.getParameter (ParamID::xfade)) p->setValueNotifyingHost (juce::jlimit (0.0f, 1.0f, x));
@@ -532,7 +604,7 @@ namespace
             {
                 for (int j = c.getNumChildren(); --j >= 0;) if (! convertRef (c.getChild (j), "c")) c.removeChild (j, nullptr);
             }
-            else if (type == "MACRO" || type == "MIDI")
+            else if (type == "MACRO" || type == "MIDI" || type == "KNOB")
             {
                 if (c.hasProperty ("c") && ! convertRef (c, "c")) project.removeChild (n, nullptr);
             }
@@ -625,7 +697,7 @@ namespace
                     c.setProperty ("name", "Piste " + juce::String (newI + 1), nullptr);
             }
             else if (type == "SEQ") { for (auto tr : c) if (tr.hasType ("T")) mapProp (tr, "i"); }
-            else if (type == "INSERT" || type == "MOD" || type == "MACRO" || type == "MIDI") mapProp (c, "c");
+            else if (type == "INSERT" || type == "MOD" || type == "MACRO" || type == "MIDI" || type == "KNOB") mapProp (c, "c");
             else if (type == "PADFX" || type == "SAMPLE") mapProp (c, "t");
             else if (type == "PARAMS")
             {
@@ -1118,7 +1190,7 @@ void GrooveboxProcessor::clearMidiTarget (int target) noexcept
 void GrooveboxProcessor::setMidiMapping (int kind, int channel, int number, int target) noexcept
 {
     if (channel < 0 || channel > 15 || number < 0 || number > 127) return;
-    if (! isMidiSpecial (target) && ! isMidiTrackTarget (target) && (target < 0 || target >= numSlots)) target = midiNone;
+    if (! isMidiSpecial (target) && ! isMidiTrackTarget (target) && ! isMidiExtra (target) && (target < 0 || target >= numSlots)) target = midiNone;
     (kind == 0 ? ccMap : noteMap)[(size_t) (channel * 128 + number)].store (target);
     midiVersion.fetch_add (1);
 }
@@ -1298,6 +1370,89 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     bi.fader = juce::jlimit (0.0f, 1.0f, pXfade->load());
     bi.sceneA = juce::jlimit (0, numScenes - 1, (int) pSceneA->load() - 1);
     bi.sceneB = juce::jlimit (0, numScenes - 1, (int) pSceneB->load() - 1);
+    // v0.46 fix22 : pavé vectoriel — position au doigt (ou automatisée), plus le mouvement qui tourne
+    // autour d'elle (calé sur la mesure en lecture) ; poids bilinéaires des coins A (haut gauche),
+    // B (haut droite), C (bas gauche), D (bas droite)
+    bi.vecOn = pVecOn->load() >= 0.5f;
+    bi.vecMode = pVecMode->load() >= 0.5f ? 1 : 0;
+    for (int k = 0; k < 4; ++k)
+    {
+        bi.vecScene[(size_t) k] = juce::jlimit (0, numScenes - 1, (int) std::lround (pVecScene[(size_t) k]->load()) - 1);
+        bi.vecFx[(size_t) k] = juce::jlimit (0, 4, (int) std::lround (pVecFx[(size_t) k]->load()));
+    }
+    {
+        static constexpr double barsPerTurn[] { 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0 };
+        const auto turnBeats = 4.0 * barsPerTurn[juce::jlimit (0, 8, (int) std::lround (pVecRate->load()))];
+        const auto orbit = juce::jlimit (0, 8, (int) std::lround (pVecOrbit->load()));
+        const auto prev = vecPhase;
+        if (engine.sequencer().isRunning()) vecPhase = std::fmod (std::max (0.0, engine.sequencer().getPpq()) / turnBeats, 1.0);
+        else vecPhase = std::fmod (vecPhase + (double) n / std::max (1.0, getSampleRate()) * bi.bpm / 60.0 / turnBeats, 1.0);
+        const auto r = (double) juce::jlimit (0.0f, 1.0f, pVecDepth->load()) * 0.5;
+        const auto tw = juce::MathConstants<double>::twoPi * vecPhase;
+        double ox = 0.0, oy = 0.0;
+        bool absolute = false; // forme dessinée : position exacte sur le pavé (ni centre, ni taille)
+        // parcours d'une ligne brisée fermée, à vitesse régulière (sommets en -1..1 ou 0..1)
+        const auto along = [] (const float* px, const float* py, int count, double t, double& outX, double& outY)
+        {
+            if (count < 2) { outX = count > 0 ? px[0] : 0.0; outY = count > 0 ? py[0] : 0.0; return; }
+            double total = 0.0;
+            for (int i = 0; i < count; ++i) { const int j = (i + 1) % count; total += std::hypot (px[j] - px[i], py[j] - py[i]); }
+            if (total <= 1.0e-9) { outX = px[0]; outY = py[0]; return; }
+            double d = t * total;
+            for (int i = 0; i < count; ++i)
+            {
+                const int j = (i + 1) % count;
+                const double seg = std::hypot (px[j] - px[i], py[j] - py[i]);
+                if (d <= seg || i == count - 1)
+                {
+                    const auto f = seg > 1.0e-9 ? std::min (1.0, d / seg) : 0.0;
+                    outX = px[i] + (px[j] - px[i]) * f; outY = py[i] + (py[j] - py[i]) * f; return;
+                }
+                d -= seg;
+            }
+        };
+        switch (orbit)
+        {
+            case 1: ox = std::cos (tw); oy = std::sin (tw); break;                           // cercle
+            case 2: ox = std::sin (tw); oy = std::sin (2.0 * tw) * 0.5; break;                // infini (∞)
+            case 3: { static const float vx[] { 0, 1, 0, -1 }, vy[] { -1, 0, 1, 0 };          // losange
+                      along (vx, vy, 4, vecPhase, ox, oy); break; }
+            case 4: { static const float vx[] { -1, 1, 1, -1 }, vy[] { -1, -1, 1, 1 };        // carré
+                      along (vx, vy, 4, vecPhase, ox, oy); break; }
+            case 5: { static const float vx[] { 0.0f, 0.87f, -0.87f }, vy[] { -1.0f, 0.5f, 0.5f }; // triangle
+                      along (vx, vy, 3, vecPhase, ox, oy); break; }
+            case 6: { static const float vx[] { -1.0f, -0.5f, 0.0f, 0.5f, 1.0f, 0.5f, 0.0f, -0.5f }, // ricochet (aller-retour en zigzag)
+                                             vy[] { -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f };
+                      along (vx, vy, 8, vecPhase, ox, oy); break; }
+            case 7: { // hasard : un nouveau point tiré à chaque quart de tour, rejoint en glissant
+                      const auto q = vecPhase * 4.0, f = q - std::floor (q);
+                      if (std::floor (q) != std::floor (prev * 4.0) || prev > vecPhase)
+                      {
+                          vecRand[0] = vecRand[2]; vecRand[1] = vecRand[3];
+                          auto rnd = [this] { vecSeed = vecSeed * 1664525u + 1013904223u; return (double) (vecSeed >> 8) / 16777216.0; };
+                          vecRand[2] = rnd() * 2.0 - 1.0; vecRand[3] = rnd() * 2.0 - 1.0;
+                      }
+                      const auto e = f * f * (3.0 - 2.0 * f);
+                      ox = vecRand[0] + (vecRand[2] - vecRand[0]) * e; oy = vecRand[1] + (vecRand[3] - vecRand[1]) * e; break; }
+            case 8: { // forme dessinée au doigt (positions 0..1 sur le pavé)
+                      const auto& path = vecPaths[(size_t) (vecPathIndex.load (std::memory_order_acquire) & 1)];
+                      if (path.count >= 2) { along (path.x.data(), path.y.data(), path.count, vecPhase, ox, oy); absolute = true; }
+                      break; }
+            default: break;
+        }
+        // v0.46 fix28 : rotation de la forme autour de son centre (pas la forme dessinée, placée telle quelle)
+        if (! absolute)
+        {
+            oy *= (double) juce::jlimit (0.05f, 2.0f, pVecHeight->load()); // aplatie ou étirée, avant de tourner
+            const auto a = juce::degreesToRadians ((double) juce::jlimit (0.0f, 360.0f, pVecRot->load()));
+            const auto ca = std::cos (a), sa = std::sin (a), rx = ox * ca - oy * sa;
+            oy = ox * sa + oy * ca; ox = rx;
+        }
+        const auto x = juce::jlimit (0.0, 1.0, absolute ? ox : (double) pVecX->load() + ox * r);
+        const auto y = juce::jlimit (0.0, 1.0, absolute ? oy : (double) pVecY->load() + oy * r);
+        vecShownX.store ((float) x, std::memory_order_relaxed); vecShownY.store ((float) y, std::memory_order_relaxed);
+        bi.vecW = { (float) ((1.0 - x) * (1.0 - y)), (float) (x * (1.0 - y)), (float) ((1.0 - x) * y), (float) (x * y) };
+    }
     // Break temporisé : demandé par l'interface, compté ici en temps (suit les changements de tempo)
     const auto beatsThisBlock = (double) n / getSampleRate() * bi.bpm / 60.0;
     if (const auto req = timedBreakRequest.exchange (0.0); req != 0.0)
@@ -1327,6 +1482,86 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     const bool ctrlOn = midiCtrlOn.load (std::memory_order_relaxed);
     std::array<int, numTracks> trackCh {};
     for (int t = 0; t < numTracks; ++t) trackCh[(size_t) t] = trackMidiChan[(size_t) t].load (std::memory_order_relaxed);
+    // v0.46 fix24 : une cible pilotée par une commande MIDI ou un bouton assignable (valeur 0..1).
+    // Les commandes (lecture, arrêt, rangées…) partent à 0,5 et plus ; coupure, solo, Fill, Break suivent la moitié.
+    const auto applyTarget = [&] (int target, float v)
+    {
+        if (target >= 0) { engine.setParam (target, v); engine.recordMoveAudio (target, v); markTouched (target); }
+        else if (isHostTarget (target)) hostPending[(size_t) (midiHostBase - target)].store (v, std::memory_order_relaxed);
+        else if (isUiTarget (target))
+        {
+            const auto u = (size_t) (midiUiBase - target);
+            uiCtlVal[u].store (v, std::memory_order_relaxed); uiCtlSeq[u].fetch_add (1); uiCtlVersion.fetch_add (1);
+        }
+        else if (target == midiXfade) { bi.fader = v; xfadeFromMidi.store (v); engine.recordFaderAudio (v); }
+        else if (target == midiBreak) { setBreak (v >= 0.5f); bi.breakActive = v >= 0.5f; }
+        else if (target == midiFill) setFill (v >= 0.5f);
+        else if (target == midiPlay && v >= 0.5f) playToggleRequests.fetch_add (1);
+        else if (target <= midiStart && target >= midiLastSpecial) { if (v >= 0.5f) transportCommand (target); }
+        // coupure / solo de piste : bouton à bascule (127 = coupé, 0 = joué) ou maintenu
+        else if (target <= midiBusSoloBase && target > midiBusSoloBase - numBusTargets) { const auto ch = numTracks + midiBusSoloBase - target; engine.setBusSolo (ch, v >= 0.5f); engine.recordSwitchAudio (ch, true, engine.getBusSolo (ch)); }
+        else if (target <= midiBusMuteBase && target > midiBusMuteBase - numBusTargets) { const auto ch = numTracks + midiBusMuteBase - target; engine.setBusMute (ch, v >= 0.5f); engine.recordSwitchAudio (ch, false, engine.getBusMute (ch)); }
+        else if (target <= midiSoloBase && target > midiSoloBase - numTracks) { engine.sequencer().setTrackSolo (midiSoloBase - target, v >= 0.5f); engine.recordSwitchAudio (midiSoloBase - target, true, v >= 0.5f); }
+        else if (target <= midiMuteBase && target > midiMuteBase - numTracks) { engine.sequencer().setTrackMute (midiMuteBase - target, v >= 0.5f); engine.recordSwitchAudio (midiMuteBase - target, false, v >= 0.5f); }
+    };
+    // bouton assignable k : sa cible suit ; une commande ne part qu'au passage de la moitié
+    const auto driveKnob = [&] (int k, float v)
+    {
+        const auto t = knobTarget[(size_t) k].load (std::memory_order_relaxed);
+        const auto last = knobLastAudio[(size_t) k];
+        knobLastAudio[(size_t) k] = v;
+        if (t == midiNone) return;
+        if ((isMidiSpecial (t) && t != midiXfade) || isMidiTrackTarget (t)) { if ((last >= 0.5f) == (v >= 0.5f)) return; }
+        applyTarget (t, v);
+    };
+    for (int k = 0; k < numKnobs; ++k)
+        if (const auto p = knobPending[(size_t) k].exchange (-1.0f, std::memory_order_relaxed); p >= 0.0f) driveKnob (k, p);
+    // v0.46 fix28 : LFO des boutons : la cible suit position + profondeur × source (sources 1 à 4 du bus
+    // principal, valeurs du bloc précédent). Ni les commandes ni le tempo. Les réglages de son sont écrits
+    // sans enregistrer de mouvement ; LFO retiré : la cible revient à la position du bouton.
+    {
+        const bool mark = (++knobLfoBlocks & 7) == 0; // l'interface relit les réglages ~20 fois par seconde
+        for (int k = 0; k < numKnobs; ++k)
+        {
+            const auto t = knobTarget[(size_t) k].load (std::memory_order_relaxed);
+            const auto src = knobLfo[(size_t) k].load (std::memory_order_relaxed);
+            const auto depth = knobDepth[(size_t) k].load (std::memory_order_relaxed);
+            const bool command = (isMidiSpecial (t) && t != midiXfade) || isMidiTrackTarget (t) || (isHostTarget (t) && midiHostBase - t == 0);
+            const bool on = src > 0 && t != midiNone && ! command && std::abs (depth) > 1.0e-4f;
+            const auto base = knobVal[(size_t) k].load (std::memory_order_relaxed);
+            auto sendTo = [&] (int tt, float v, bool touch)
+            {
+                if (tt >= 0) { engine.setParam (tt, v); if (touch) markTouched (tt); }
+                else applyTarget (tt, v);
+            };
+            auto send = [&] (float v, bool touch) { sendTo (t, v, touch); };
+            // bouton libéré ou relié ailleurs pendant sa modulation : l'ancienne cible revient à la position du bouton
+            if (knobLfoActive[(size_t) k] && knobLfoTarget[(size_t) k] != t)
+            {
+                if (const auto old = knobLfoTarget[(size_t) k]; old != midiNone) sendTo (old, knobLfoBase[(size_t) k], true);
+                knobLfoActive[(size_t) k] = false;
+                knobOut[(size_t) k].store (-1.0f, std::memory_order_relaxed);
+            }
+            if (on)
+            {
+                const auto m = engine.getModValue (knobLfoChannel, src - 1);
+                const auto v = juce::jlimit (0.0f, 1.0f, base + depth * (std::isfinite (m) ? m : 0.0f));
+                if (! knobLfoActive[(size_t) k] || std::abs (v - knobLfoSent[(size_t) k]) > 2.0e-4f) { send (v, mark); knobLfoSent[(size_t) k] = v; }
+                else if (mark && t >= 0) markTouched (t);
+                knobLfoActive[(size_t) k] = true;
+                knobLfoTarget[(size_t) k] = t;
+                knobLfoBase[(size_t) k] = base;
+                knobOut[(size_t) k].store (v, std::memory_order_relaxed);
+            }
+            else if (knobLfoActive[(size_t) k])
+            {
+                knobLfoActive[(size_t) k] = false;
+                if (t != midiNone && ! command) send (base, true);
+                knobOut[(size_t) k].store (-1.0f, std::memory_order_relaxed);
+            }
+        }
+    }
+
     int numEvents = 0;
     for (const auto meta : midi)
     {
@@ -1388,17 +1623,8 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
             const auto v = (float) msg.getControllerValue() / 127.0f;
             if (target == midiNone && msg.getControllerNumber() == 1) expression (InputEvent::modWheel, v);
             else if (target == midiNone && msg.getControllerNumber() == 64) expression (InputEvent::sustain, v >= 0.5f ? 1.0f : 0.0f);
-            else if (target >= 0) { engine.setParam (target, v); engine.recordMoveAudio (target, v); markTouched (target); }
-            else if (target == midiXfade) { bi.fader = v; xfadeFromMidi.store (v); engine.recordFaderAudio (v); }
-            else if (target == midiBreak) { setBreak (v >= 0.5f); bi.breakActive = v >= 0.5f; }
-            else if (target == midiFill) setFill (v >= 0.5f);
-            else if (target == midiPlay && v >= 0.5f) playToggleRequests.fetch_add (1);
-            else if (target <= midiStart && target >= midiLastSpecial) { if (v >= 0.5f) transportCommand (target); }
-            // coupure / solo de piste : bouton à bascule (127 = coupé, 0 = joué) ou maintenu
-            else if (target <= midiBusSoloBase) { const auto ch = numTracks + midiBusSoloBase - target; engine.setBusSolo (ch, v >= 0.5f); engine.recordSwitchAudio (ch, true, engine.getBusSolo (ch)); }
-            else if (target <= midiBusMuteBase) { const auto ch = numTracks + midiBusMuteBase - target; engine.setBusMute (ch, v >= 0.5f); engine.recordSwitchAudio (ch, false, engine.getBusMute (ch)); }
-            else if (target <= midiSoloBase) { engine.sequencer().setTrackSolo (midiSoloBase - target, v >= 0.5f); engine.recordSwitchAudio (midiSoloBase - target, true, v >= 0.5f); }
-            else if (target <= midiMuteBase) { engine.sequencer().setTrackMute (midiMuteBase - target, v >= 0.5f); engine.recordSwitchAudio (midiMuteBase - target, false, v >= 0.5f); }
+            else if (isKnobTarget (target)) { const auto k = midiKnobBase - target; knobVal[(size_t) k].store (v, std::memory_order_relaxed); driveKnob (k, v); }
+            else if (target != midiNone) applyTarget (target, v);
             continue;
         }
         if (msg.isNoteOnOrOff() && ctrlMsg)
@@ -1411,6 +1637,18 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
                 else if (target <= midiStart && target >= midiLastSpecial) { if (on) transportCommand (target); }
                 else if (target == midiXfade && on) { bi.fader = bi.fader < 0.5f ? 1.0f : 0.0f; xfadeFromMidi.store (bi.fader); engine.recordFaderAudio (bi.fader); }
                 else if (target >= 0 && on) { engine.setParam (target, engine.getParam (target) < 0.5f ? 1.0f : 0.0f); markTouched (target); }
+                // v0.46 fix24 : bouton assignable, réglage global, valeur d'écran : chaque appui bascule 0 / 1
+                else if (isKnobTarget (target) && on)
+                {
+                    const int k = midiKnobBase - target; const float nv = knobVal[(size_t) k].load() < 0.5f ? 1.0f : 0.0f;
+                    knobVal[(size_t) k].store (nv); driveKnob (k, nv);
+                }
+                else if (isHostTarget (target) && on)
+                {
+                    const auto* p = hostParams[(size_t) (midiHostBase - target)];
+                    applyTarget (target, p != nullptr && p->getValue() < 0.5f ? 1.0f : 0.0f);
+                }
+                else if (isUiTarget (target) && on) applyTarget (target, uiCtlVal[(size_t) (midiUiBase - target)].load() < 0.5f ? 1.0f : 0.0f);
                 // pad du contrôleur : chaque appui bascule la coupure ou le solo de la piste (ou du bus)
                 else if (target <= midiBusSoloBase && on) { const auto ch = numTracks + midiBusSoloBase - target; engine.setBusSolo (ch, ! engine.getBusSolo (ch)); engine.recordSwitchAudio (ch, true, engine.getBusSolo (ch)); }
                 else if (target <= midiBusMuteBase && on) { const auto ch = numTracks + midiBusMuteBase - target; engine.setBusMute (ch, ! engine.getBusMute (ch)); engine.recordSwitchAudio (ch, false, engine.getBusMute (ch)); }
@@ -1527,7 +1765,7 @@ void GrooveboxProcessor::launchScene (int scene, bool otherSlot) noexcept
 void GrooveboxProcessor::setGlobal (const juce::String& id, float plainValue)
 {
     if (id != ParamID::bpm && id != ParamID::swing && id != ParamID::xfade && id != ParamID::sceneA && id != ParamID::sceneB
-        && ! id.startsWith ("macro")) return;
+        && ! id.startsWith ("macro") && ! id.startsWith ("vec")) return;
     if (auto* p = state.getParameter (id))
         if (std::isfinite (plainValue))
         {
@@ -2161,6 +2399,11 @@ juce::ValueTree GrooveboxProcessor::projectToTree (bool withSamples) const
                 bool anyFlag = false;
                 for (int s = 0; s < Sequencer::maxSteps; ++s) { flags.push_back (seq.getStepFlagsP (t, p, s)); anyFlag = anyFlag || flags.back() != 0; }
                 if (anyFlag) pt.setProperty ("flags", toHex (flags), nullptr);
+                // v0.46 fix27 : valeurs des pas (force de l'accent + 256 × durée du glissé)
+                std::vector<int> amts;
+                bool anyAmt = false;
+                for (int st = 0; st < Sequencer::maxSteps; ++st) { amts.push_back (seq.getStepAmountsP (t, p, st)); anyAmt = anyAmt || amts.back() != 0; }
+                if (anyAmt) pt.setProperty ("amt", toHex16 (amts), nullptr);
                 juce::String lens;
                 bool anyLen = false;
                 for (int l = 0; l < Sequencer::numLanes; ++l)
@@ -2266,6 +2509,27 @@ juce::ValueTree GrooveboxProcessor::projectToTree (bool withSamples) const
         }
         else mt.setProperty ("special", mm.target, nullptr);
         project.appendChild (mt, nullptr);
+    }
+    // v0.46 fix24 : boutons assignables (cible : adresse d'un réglage, ou commande / réglage global / valeur d'écran)
+    for (int k = 0; k < numKnobs; ++k)
+    {
+        const auto t = knobTarget[(size_t) k].load();
+        juce::ValueTree kn ("KNOB");
+        kn.setProperty ("k", k, nullptr); kn.setProperty ("v", knobVal[(size_t) k].load(), nullptr);
+        if (const auto l = knobLfo[(size_t) k].load(); l > 0) { kn.setProperty ("lfo", l, nullptr); kn.setProperty ("depth", knobDepth[(size_t) k].load(), nullptr); }
+        if (t >= 0)
+        {
+            const auto a = addressOf (t);
+            if (a.channel >= 0) { kn.setProperty ("c", a.channel, nullptr); kn.setProperty ("a", a.area, nullptr); kn.setProperty ("i", a.id, nullptr); }
+        }
+        else if (t != midiNone) kn.setProperty ("special", t, nullptr);
+        project.appendChild (kn, nullptr);
+    }
+    if (ctlTable.isNotEmpty())
+    {
+        juce::ValueTree ct ("CTLTABLE");
+        ct.setProperty ("text", ctlTable, nullptr);
+        project.appendChild (ct, nullptr);
     }
 
     juce::ValueTree photoNow;
@@ -2524,6 +2788,15 @@ void GrooveboxProcessor::applyProjectContent (const juce::ValueTree& project, bo
         midiVersion.fetch_add (1);
     }
 
+    // v0.46 fix24 : boutons assignables et table des valeurs d'écran : comme les commandes MIDI, ils restent
+    // d'un projet à l'autre, sauf si le projet chargé a les siens
+    if (withSamplesAndMidi && (project.getChildWithName ("KNOB").isValid() || project.getChildWithName ("CTLTABLE").isValid()))
+    {
+        for (int k = 0; k < numKnobs; ++k) { knobTarget[(size_t) k].store (midiNone); knobVal[(size_t) k].store (0.0f); knobLfo[(size_t) k].store (0); knobDepth[(size_t) k].store (0.0f); }
+        ctlTable = project.getChildWithName ("CTLTABLE").getProperty ("text").toString().substring (0, 20000);
+        midiVersion.fetch_add (1);
+    }
+
     bool sawMacroMode = false;
     auto macroLinkOf = [&unit] (const juce::ValueTree& c, int g)
     {
@@ -2605,6 +2878,12 @@ void GrooveboxProcessor::applyProjectContent (const juce::ValueTree& project, bo
                             for (int s = 0; s < Sequencer::maxSteps; ++s)
                                 if (flags[(size_t) s] > 0) seq.setStepFlagsP (ti, p, s, flags[(size_t) s]);
                         }
+                        if (child.hasProperty ("amt")) // v0.46 fix27
+                        {
+                            const auto amts = fromHex16 (child.getProperty ("amt").toString(), Sequencer::maxSteps);
+                            for (int s = 0; s < Sequencer::maxSteps; ++s)
+                                if (amts[(size_t) s] > 0) seq.setStepAmountsP (ti, p, s, amts[(size_t) s]);
+                        }
                         if (child.hasProperty ("laneLen"))
                         {
                             juce::StringArray parts;
@@ -2677,10 +2956,19 @@ void GrooveboxProcessor::applyProjectContent (const juce::ValueTree& project, bo
             for (int t = 0; t < numTracks; ++t) trackMidiChan[(size_t) t].store (t < parts.size() ? juce::jlimit (0, 16, parts[t].getIntValue()) : 0);
             midiVersion.fetch_add (1);
         }
+        else if (c.hasType ("KNOB") && withSamplesAndMidi)
+        {
+            const auto k = clampInt (c.getProperty ("k"), 0, numKnobs - 1, 0);
+            knobVal[(size_t) k].store (unit (c.getProperty ("v")));
+            knobLfo[(size_t) k].store (clampInt (c.getProperty ("lfo"), 0, numKnobLfos, 0));
+            { const auto d = (float) (double) c.getProperty ("depth", 0.0); knobDepth[(size_t) k].store (std::isfinite (d) ? juce::jlimit (-1.0f, 1.0f, d) : 0.0f); }
+            if (c.hasProperty ("special")) setKnobTarget (k, clampInt (c.getProperty ("special"), midiLowestTarget, midiXfade, midiNone));
+            else if (c.hasProperty ("c")) setKnobTarget (k, globalOf (addr (c)));
+        }
         else if (c.hasType ("MIDI") && withSamplesAndMidi)
         {
             auto target = c.hasProperty ("special") ? clampInt (c.getProperty ("special"), midiLowestTarget, midiXfade, midiNone) : globalOf (addr (c));
-            if (c.hasProperty ("special") && ! isMidiSpecial (target) && ! isMidiTrackTarget (target)) target = midiNone;
+            if (c.hasProperty ("special") && ! isMidiSpecial (target) && ! isMidiTrackTarget (target) && ! isMidiExtra (target)) target = midiNone;
             if (target != midiNone)
                 setMidiMapping (clampInt (c.getProperty ("kind"), 0, 1, 0), clampInt (c.getProperty ("ch"), 0, 15, 0), clampInt (c.getProperty ("num"), 0, 127, 0), target);
         }
@@ -2712,7 +3000,7 @@ juce::ValueTree GrooveboxProcessor::snapshotForHistory() const
     for (int k = snap.getNumChildren(); --k >= 0;)
     {
         auto c = snap.getChild (k);
-        if (c.hasType ("MIDI") || c.hasType ("MIDIROUTE") || c.hasType ("PHOTO") || c.hasType ("MONTAGE")) snap.removeChild (k, nullptr); // montage : annuler à part
+        if (c.hasType ("MIDI") || c.hasType ("MIDIROUTE") || c.hasType ("PHOTO") || c.hasType ("MONTAGE") || c.hasType ("KNOB") || c.hasType ("CTLTABLE")) snap.removeChild (k, nullptr); // montage : annuler à part
         else if (c.hasType ("SEQ"))
             for (auto tr : c) { tr.removeProperty ("play", nullptr); tr.removeProperty ("edit", nullptr); } // le jeu en cours n'est pas un réglage
     }
@@ -2915,6 +3203,14 @@ void GrooveboxProcessor::restoreSnapshot (const juce::ValueTree& snap)
             {
                 const auto f = std::max (0, flags[(size_t) s]);
                 if (seq.getStepFlagsP (tr, p, s) != f) seq.setStepFlagsP (tr, p, s, f);
+            }
+            {
+                const auto amts = fromHex16 (pt.getProperty ("amt").toString(), Sequencer::maxSteps); // v0.46 fix27
+                for (int s = 0; s < Sequencer::maxSteps; ++s)
+                {
+                    const auto v = std::max (0, amts[(size_t) s]);
+                    if (seq.getStepAmountsP (tr, p, s) != v) seq.setStepAmountsP (tr, p, s, v);
+                }
             }
             juce::StringArray lens;
             lens.addTokens (pt.getProperty ("laneLen").toString().substring (0, 200), ",", "");
@@ -3206,6 +3502,25 @@ void GrooveboxProcessor::getStateInformation (juce::MemoryBlock& destData)
         copyXmlToBinary (*xml, destData);
 }
 
+/** v0.46 fix26 : un état enregistré par une version plus ancienne n'a pas les réglages ajoutés depuis
+    (pavé vectoriel…) : ils sont ajoutés à leur valeur d'origine, sinon ils garderaient celle de la séance
+    en cours (pavé décentré en ouvrant la démonstration, par exemple). */
+void GrooveboxProcessor::fillMissingParams (juce::ValueTree& tree) const
+{
+    for (auto* p : getParameters())
+        if (auto* rp = dynamic_cast<juce::RangedAudioParameter*> (p))
+        {
+            const auto id = rp->getParameterID();
+            bool found = false;
+            for (const auto& c : tree) if (c.hasType ("PARAM") && c.getProperty ("id").toString() == id) { found = true; break; }
+            if (found) continue;
+            juce::ValueTree pt ("PARAM");
+            pt.setProperty ("id", id, nullptr);
+            pt.setProperty ("value", rp->convertFrom0to1 (rp->getDefaultValue()), nullptr);
+            tree.appendChild (pt, nullptr);
+        }
+}
+
 void GrooveboxProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
    #if JUCE_ANDROID
@@ -3218,7 +3533,9 @@ void GrooveboxProcessor::setStateInformation (const void* data, int sizeInBytes)
     auto tree = juce::ValueTree::fromXml (*xml);
     const auto project = tree.getChildWithName ("PROJECT");
     tree.removeChild (project, nullptr);
+    fillMissingParams (tree); // v0.46 fix26
     state.replaceState (tree);
+    setVecPath (state.state.getProperty ("vecPath").toString(), false); // v0.46 fix22 : forme dessinée du pavé
     if (project.isValid()) projectFromTree (project);
     grv::startupMark ("derniere seance : relue");
 }
@@ -3280,7 +3597,9 @@ juce::String GrooveboxProcessor::readProjectFile (juce::InputStream& in)
     const auto project = tree.getChildWithName ("PROJECT");
     if (! project.isValid()) return juce::String::fromUTF8 ("Projet incomplet");
     tree.removeChild (project, nullptr);
+    fillMissingParams (tree); // v0.46 fix26 : projet plus ancien (sans pavé…) : ses réglages absents repartent de leur valeur d'origine
     state.replaceState (tree);
+    setVecPath (state.state.getProperty ("vecPath").toString(), false); // v0.46 fix22
     projectFromTree (project);
     return {};
 }
@@ -3657,7 +3976,7 @@ void GrooveboxProcessor::montageTick()
         recorder.stop();
         montagePlayer.setExporting (false);
         montagePlayer.setPlayhead (montageDoc.playhead);
-        montageStatus = juce::String::fromUTF8 ("Montage exporté (dossier des enregistrements)");
+        montageStatus = juce::String::fromUTF8 ("Montage exporté dans ") + recorder.lastFolderShown();
     }
 }
 } // namespace grv

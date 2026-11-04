@@ -338,6 +338,32 @@ juce::File Recorder::lastFolder() const
     return folder;
 }
 
+// v0.46 fix20 : dossier montré à l'utilisateur, tel qu'il le retrouve (jamais le chemin complet).
+// Téléphone : dans le dossier Musique, que les gestionnaires de fichiers rangent sous « Audio ».
+juce::String Recorder::describeFolder (const juce::File& dir)
+{
+    if (dir == juce::File()) return {};
+   #if JUCE_ANDROID
+    const auto music = juce::File::getSpecialLocation (juce::File::userMusicDirectory);
+    if (music != juce::File() && dir.isAChildOf (music))
+        return juce::String::fromUTF8 ("Mes fichiers \xE2\x80\xBA Audio \xE2\x80\xBA ") + dir.getRelativePathFrom (music).replaceCharacter ('\\', '/');
+    return juce::String::fromUTF8 ("dossier priv\xC3\xA9 de l'application \xE2\x80\x94 ") + dir.getFileName();
+   #else
+    const auto docs = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+    if (dir.isAChildOf (docs))
+        return juce::String::fromUTF8 ("Documents/") + dir.getRelativePathFrom (docs).replaceCharacter ('\\', '/');
+    const auto root = dir.getParentDirectory();
+    return (root.getParentDirectory().getFileName() == "Groovebox" ? "Groovebox/" + root.getFileName() : root.getFileName()) + "/" + dir.getFileName();
+   #endif
+}
+
+juce::String Recorder::lastFolderShown() const
+{
+    juce::File dir;
+    { const juce::ScopedLock sl (lock); dir = folder; }
+    return describeFolder (dir);
+}
+
 juce::String Recorder::statusJson() const
 {
     juce::File dir; juce::StringArray names; juce::String err;
@@ -346,14 +372,7 @@ juce::String Recorder::statusJson() const
         dir = folder; names = files; err = lastError;
     }
     const auto secs = (double) samples.load() / rate;
-    // dossier montré à l'utilisateur : à partir du dossier « Groovebox » (jamais le chemin complet)
-    juce::String shown;
-    if (dir != juce::File())
-    {
-        const auto root = dir.getParentDirectory();
-        shown = (root.getParentDirectory().getFileName() == "Groovebox" ? "Groovebox/" + root.getFileName() : root.getFileName())
-                + "/" + dir.getFileName();
-    }
+    const auto shown = describeFolder (dir);
     juce::String fl;
     for (const auto& n : names) fl << (fl.isEmpty() ? "" : ",") << jsonEscape (n);
     return "{\"active\":" + juce::String (active.load() ? "true" : "false")

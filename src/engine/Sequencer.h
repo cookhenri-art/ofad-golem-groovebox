@@ -161,6 +161,7 @@ struct SeqEvent
     double stepSamples = 0.0;  // durée du pas (glissé des verrous)
     bool repeat = false;       // répétition (ou coup principal d'un flam) d'un pas déjà déclenché
     float accent = 0.0f;       // pas accentué : force de l'accent de la piste (0..1), 0 sinon
+    float glide = 0.0f;        // v0.46 fix27 : arrivée d'un glissé réglé : durée du portamento (part du pas, 0..1), 0 = celle de l'instrument
 };
 
 /**
@@ -191,6 +192,7 @@ public:
                 for (auto& lane : pat.len) for (auto& s : lane) s.store (8);
                 for (auto& lane : pat.micro) for (auto& s : lane) s.store (0);
                 for (auto& f : pat.flags) f.store (0);
+                for (auto& a : pat.amt) a.store (0);
                 for (auto& l : pat.laneLen) l.store (0);
                 pat.length.store (16); pat.speed.store (4);
             }
@@ -222,6 +224,22 @@ public:
     }
     void setStepFlags (int t, int step, int flags) noexcept { setStepFlagsP (t, getEditing (t), step, flags); }
     int getStepFlags (int t, int step) const noexcept { return getStepFlagsP (t, getEditing (t), step); }
+
+    /** v0.46 fix27 : valeurs d'un pas : force de son accent (1..100 %) et durée de son glissé (1..100 % du
+        pas), 0 = celles de la piste / de l'instrument. Rangées ensemble : accent + 256 × glissé. */
+    void setStepAmountsP (int t, int p, int step, int amounts) noexcept
+    {
+        if (! validT (t) || ! validP (p) || step < 0 || step >= maxSteps) return;
+        const int acc = std::clamp (amounts & 0xFF, 0, 100), sld = std::clamp ((amounts >> 8) & 0xFF, 0, 100);
+        pat (t, p).amt[(size_t) step].store ((std::uint16_t) (acc | (sld << 8)), std::memory_order_relaxed);
+        bump();
+    }
+    int getStepAmountsP (int t, int p, int step) const noexcept
+    {
+        return validT (t) && validP (p) && step >= 0 && step < maxSteps ? pat (t, p).amt[(size_t) step].load (std::memory_order_relaxed) : 0;
+    }
+    void setStepAmounts (int t, int step, int amounts) noexcept { setStepAmountsP (t, getEditing (t), step, amounts); }
+    int getStepAmounts (int t, int step) const noexcept { return getStepAmountsP (t, getEditing (t), step); }
 
     /** Longueur propre d'une ligne (0 = celle du pattern). */
     void setLaneLengthP (int t, int p, int lane, int n) noexcept
@@ -305,7 +323,7 @@ public:
     void clearPattern (int t, int p) noexcept
     {
         for (int l = 0; l < numLanes; ++l) clearLaneP (t, p, l);
-        if (validT (t) && validP (p)) for (auto& f : pat (t, p).flags) f.store (0, std::memory_order_relaxed);
+        if (validT (t) && validP (p)) { for (auto& f : pat (t, p).flags) f.store (0, std::memory_order_relaxed); for (auto& a : pat (t, p).amt) a.store (0, std::memory_order_relaxed); }
     }
     /** Remet toute la piste à zéro : notes, hauteurs, durées, décalages, longueurs, vitesses. */
     void resetTrack (int t) noexcept
@@ -326,6 +344,7 @@ public:
             for (auto& lane : pt.len) for (auto& s : lane) s.store (8, std::memory_order_relaxed);
             for (auto& lane : pt.micro) for (auto& s : lane) s.store (0, std::memory_order_relaxed);
             for (auto& f : pt.flags) f.store (0, std::memory_order_relaxed);
+            for (auto& a : pt.amt) a.store (0, std::memory_order_relaxed);
             for (auto& l : pt.laneLen) l.store (0, std::memory_order_relaxed);
             pt.length.store (16); pt.speed.store (4); pt.division.store ((int) Division::sixteenth);
         }
@@ -358,7 +377,7 @@ public:
             rotate (pt.vel[(size_t) l], n); rotate (pt.note[(size_t) l], n);
             rotate (pt.len[(size_t) l], n); rotate (pt.micro[(size_t) l], n);
         }
-        if (lane < 0) rotate (pt.flags, length);
+        if (lane < 0) { rotate (pt.flags, length); rotate (pt.amt, length); }
         bump();
     }
 
@@ -375,6 +394,7 @@ public:
             std::array<std::array<std::array<std::uint16_t, maxSteps>, numLanes>, numPatterns> len;
             std::array<std::array<std::array<std::int8_t, maxSteps>, numLanes>, numPatterns> micro;
             std::array<std::array<std::uint8_t, maxSteps>, numPatterns> flags;
+            std::array<std::array<std::uint16_t, maxSteps>, numPatterns> amt;
             std::array<std::array<int, numLanes>, numPatterns> laneLen;
             std::array<int, numPatterns> length, speed, division;
             std::array<bool, numLanes> laneMute, laneSolo;
@@ -400,7 +420,7 @@ public:
                     }
                     d.laneLen[(size_t) p][(size_t) l] = a.laneLen[(size_t) l].load();
                 }
-                for (int st = 0; st < maxSteps; ++st) d.flags[(size_t) p][(size_t) st] = a.flags[(size_t) st].load();
+                for (int st = 0; st < maxSteps; ++st) { d.flags[(size_t) p][(size_t) st] = a.flags[(size_t) st].load(); d.amt[(size_t) p][(size_t) st] = a.amt[(size_t) st].load(); }
                 d.length[(size_t) p] = a.length.load(); d.speed[(size_t) p] = a.speed.load(); d.division[(size_t) p] = a.division.load();
             }
             for (int l = 0; l < numLanes; ++l) { d.laneMute[(size_t) l] = tr.laneMute[(size_t) l].load(); d.laneSolo[(size_t) l] = tr.laneSolo[(size_t) l].load(); }
@@ -425,7 +445,7 @@ public:
                     }
                     a.laneLen[(size_t) l].store (d.laneLen[(size_t) p][(size_t) l]);
                 }
-                for (int st = 0; st < maxSteps; ++st) a.flags[(size_t) st].store (d.flags[(size_t) p][(size_t) st]);
+                for (int st = 0; st < maxSteps; ++st) { a.flags[(size_t) st].store (d.flags[(size_t) p][(size_t) st]); a.amt[(size_t) st].store (d.amt[(size_t) p][(size_t) st]); }
                 a.length.store (d.length[(size_t) p]); a.speed.store (d.speed[(size_t) p]); a.division.store (d.division[(size_t) p]);
             }
             for (int l = 0; l < numLanes; ++l) { tr.laneMute[(size_t) l].store (d.laneMute[(size_t) l]); tr.laneSolo[(size_t) l].store (d.laneSolo[(size_t) l]); }
@@ -468,7 +488,7 @@ public:
                 b.len[(size_t) l][(size_t) s].store (a.len[(size_t) l][(size_t) s].load());
                 b.micro[(size_t) l][(size_t) s].store (a.micro[(size_t) l][(size_t) s].load());
             }
-        for (int s = 0; s < maxSteps; ++s) b.flags[(size_t) s].store (a.flags[(size_t) s].load());
+        for (int s = 0; s < maxSteps; ++s) { b.flags[(size_t) s].store (a.flags[(size_t) s].load()); b.amt[(size_t) s].store (a.amt[(size_t) s].load()); }
         for (int l = 0; l < numLanes; ++l) b.laneLen[(size_t) l].store (a.laneLen[(size_t) l].load());
         b.length.store (a.length.load()); b.speed.store (a.speed.load()); b.division.store (a.division.load());
         bump();
@@ -807,6 +827,7 @@ private:
         std::array<std::array<std::atomic<std::uint16_t>, maxSteps>, numLanes> len; // en huitièmes de pas (jusqu'à 128 pas)
         std::array<std::array<std::atomic<std::int8_t>, maxSteps>, numLanes> micro;
         std::array<std::atomic<std::uint8_t>, maxSteps> flags;   // fonctions de pas (accent, glissé)
+        std::array<std::atomic<std::uint16_t>, maxSteps> amt;    // v0.46 fix27 : force de l'accent + 256 × durée du glissé (0 = par défaut)
         std::array<std::atomic<int>, numLanes> laneLen;          // longueur par ligne (0 = celle du pattern)
         std::atomic<int> length { 16 }, speed { 4 };
         std::atomic<int> division { (int) Division::sixteenth }; // division propre au pattern (binaire, ternaire)
@@ -950,6 +971,12 @@ private:
             const auto nextTime = origin + (double) (k + 1) * stepLen + (((kAbs + 1) & 1) ? swingOffset : 0.0);
             // fonctions de pas : elles suivent la grille du pattern (toutes les lignes du pas)
             const auto flags = pt.flags[(size_t) (k % std::max (1, len))].load (std::memory_order_relaxed);
+            // v0.46 fix27 : force d'accent propre au pas ; durée du glissé du pas d'avant (la note glisse en arrivant ici)
+            const auto amts = pt.amt[(size_t) (k % std::max (1, len))].load (std::memory_order_relaxed);
+            const auto stepAcc = (amts & 0xFF) > 0 ? (double) (amts & 0xFF) / 100.0 : accentAmt;
+            const auto prevIdx = (size_t) (((k - 1) % std::max (1, len) + std::max (1, len)) % std::max (1, len));
+            const auto prevAmt = (pt.amt[prevIdx].load (std::memory_order_relaxed) >> 8) & 0xFF;
+            const float glideIn = (pt.flags[prevIdx].load (std::memory_order_relaxed) & stepSlide) != 0 && prevAmt > 0 ? (float) prevAmt / 100.0f : 0.0f;
             if ((flags & stepRec) != 0 && ! trackSilent && stepTime >= from - eps * ppqPerSample && stepTime < to - eps * ppqPerSample)
             {
                 const auto at = (stepTime - p0) / ppqPerSample;
@@ -981,7 +1008,7 @@ private:
                 const auto offset = std::clamp ((int) std::floor (at + eps), 0, std::max (0, blockSamples - 1));
                 auto lenPpq = (double) pt.len[(size_t) lane][(size_t) pos].load (std::memory_order_relaxed) / 8.0 * stepLen;
                 auto v = (double) vel / 127.0;
-                if (flags & stepAccent) v += (1.0 - v) * accentAmt;
+                if (flags & stepAccent) v += (1.0 - v) * stepAcc;
                 // glissé : la note tient jusqu'au pas suivant (un peu au-delà, pour que les notes se chevauchent)
                 if (flags & stepSlide) lenPpq = std::max (lenPpq, nextTime - when + 0.12 * stepLen);
 
@@ -1005,7 +1032,7 @@ private:
                     t.ratchetReps[(size_t) lane] = flamMs > 0 ? 2 : reps;
                     t.ratchetVel[(size_t) lane] = (float) v;
                     t.ratchetFlam[(size_t) lane] = flamMs > 0;
-                    t.ratchetAcc[(size_t) lane] = (flags & stepAccent) ? (float) accentAmt : 0.0f;
+                    t.ratchetAcc[(size_t) lane] = (flags & stepAccent) ? (float) stepAcc : 0.0f;
                     t.ratchetWhen[(size_t) lane] = when;
                     t.ratchetGap[(size_t) lane] = gap;
                 }
@@ -1013,7 +1040,7 @@ private:
                                     (int) pt.note[(size_t) lane][(size_t) pos].load (std::memory_order_relaxed),
                                     (flamMs > 0 ? std::min (lenPpq, t.ratchetGap[(size_t) lane] * 0.85) : lenPpq) / ppqPerSample, extra,
                                     flags, (nextTime - when) / ppqPerSample, false,
-                                    (flags & stepAccent) ? (float) accentAmt : 0.0f });
+                                    (flags & stepAccent) ? (float) stepAcc : 0.0f, glideIn });
                 if (reps > 1 || flamMs > 0) collectRatchets (ti, t, pt, p, lane, stepLen, from, to, extras, skipTrack, anyLaneSolo, onEvent);
             }
         }

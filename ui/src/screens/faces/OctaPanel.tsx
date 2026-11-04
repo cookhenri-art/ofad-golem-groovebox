@@ -15,7 +15,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ModuleDesc } from "../../engine/protocol";
-import { actions, getState, setUi, showMessage, useStore } from "../../engine/store";
+import { actions, getState, setUi, showMessage, stepLanes, useStore } from "../../engine/store";
 import { paramAddress, useParam, useWriteTarget, writeParam } from "../../controls/bindings";
 import { getLockClip } from "../../engine/selection";
 import { Encoder } from "../../controls/Encoder";
@@ -445,6 +445,8 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
     window.clearTimeout(p.timer);
     if (p.long) return;
     if (lockMode) choose(step);
+    // v0.46 fix28 (synthés) : un pas qui porte des notes d'accord (piano roll) se retire en entier
+    else if (melodic && T === 0 && stepLanes(pattern, step).length > 0) void actions.clearStepLanes(step);
     else { actions.toggleStep(T, step, melodic && played.note >= 0 ? played.note : undefined); if (sel === step) setUi({ step: null, stepEdit: false }); }
   };
   // longueur de la ligne de T en mesures ; le pattern s'allonge si besoin, sans changer les autres T
@@ -506,8 +508,11 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
       <div className="ot-steps-keys">
         {Array.from({ length: 16 }, (_, k) => {
           const s = shown * 16 + k;
-          const on = (ln.vel[s] ?? 0) > 0;
           const out = s >= len;
+          const held = melodic && T === 0 && !out ? stepLanes(pattern, s) : [];
+          const on = (ln.vel[s] ?? 0) > 0 || held.length > 0;
+          const ml = held.length > 0 && !held.includes(T) ? held[0] : T;
+          const more = Math.max(0, held.length - 1);
           const ex = extras.find((e) => e.lane === T && e.step === s);
           const cls = ["ot-step"];
           if (on) cls.push("on");
@@ -521,8 +526,8 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
           return (
             <button key={k} type="button" className={cls.join(" ")} disabled={out}
               onPointerDown={() => down(s)} onPointerUp={() => up(s)} onPointerLeave={() => { if (press.current?.step === s) { window.clearTimeout(press.current.timer); press.current = null; } }}
-              title={`Pas ${s + 1}${on ? ` (posé${melodic ? `, ${noteName(ln.note[s] ?? 60)}` : ""})` : ""}${ex && ex.locks.length ? ` · ${ex.locks.length} verrou${ex.locks.length > 1 ? "s" : ""}` : ""} — toucher : poser / retirer ; appui long : verrous`}>
-              <span className="fc-led" aria-hidden /><i>{melodic && on ? noteName(ln.note[s] ?? 60) : s + 1}</i>
+              title={`Pas ${s + 1}${on ? ` (posé${melodic ? `, ${noteName(pattern.lanes[ml]?.note[s] ?? 60)}${more > 0 ? ` + ${more} note${more > 1 ? "s" : ""} d'accord` : ""}` : ""})` : ""}${ex && ex.locks.length ? ` · ${ex.locks.length} verrou${ex.locks.length > 1 ? "s" : ""}` : ""} — toucher : poser / retirer ; appui long : verrous`}>
+              <span className="fc-led" aria-hidden /><i>{melodic && on ? noteName(pattern.lanes[ml]?.note[s] ?? 60) : s + 1}{more > 0 && <sup className="step303-chord">+{more}</sup>}</i>
               {slotLock !== undefined && slotName && <em className="ot-step-slot" title="Emplacement joué sur ce pas">{slotName(slotLock)}</em>}
             </button>
           );

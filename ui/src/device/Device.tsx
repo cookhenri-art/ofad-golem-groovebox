@@ -4,11 +4,15 @@
 // de la fenêtre en gardant ses proportions, comme un vrai appareil.
 
 import { Welcome } from "./Welcome";
+import { VectorPad } from "../screens/VectorPad";
 import { AudioRecorder } from "./AudioRecorder";
 import { useEffect, useRef, useState } from "react";
 import { HwButton } from "../controls/HwButton";
+import { TempoRow } from "../controls/TempoBox";
+import { AssignKnobs, KnobAssignCapture, openKnobMods } from "./AssignKnobs";
+import { ModSourcesDialog } from "../screens/ModSourcesDialog";
 import { IconNext, IconPlay, IconPrev, IconRec, IconStop } from "../controls/Icons";
-import { actions, setPadOctave, setUi, showMessage, useStore, writePref, type PadMode, type ScreenMode } from "../engine/store";
+import { actions, hasNative, setPadOctave, setUi, showMessage, useStore, writePref, type PadMode, type ScreenMode } from "../engine/store";
 import { MIDI_BREAK, MIDI_PHOTO, MIDI_RECALL, MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_FILL, MIDI_MUTE_BASE, MIDI_RECORD, MIDI_SOLO_BASE, MIDI_START, MIDI_STOP, MIDI_XFADE } from "../engine/protocol";
 import { MidiConflict } from "./MidiConflict";
 import { useLearnPress } from "../controls/useLearnPress";
@@ -52,10 +56,13 @@ const PAD_MODES: { id: PadMode; label: string; led: "amber" | "red" | "blue" }[]
     hauteur et un panneau à onglets à côté ; tout est ~50 % plus grand qu'avec l'appareil de tablette. */
 const PHONE_W = 1177;
 const PHONE_H = 530;
+/** v0.46 fix20 : largeur de dessin des grandes fenêtres (façade, pédalier) sur un téléphone : bien
+    plus étroite que la tablette, donc tout est plus gros ; ce qui ne tient pas passe en dessous. */
+const PHONE_FACE_W = 960;
 export function isPhoneViewport(w: number, h: number) { return h <= 540 && w / h >= 1.55; }
 
 function useFitScale() {
-  const [fit, setFit] = useState({ scale: 1, phone: false, ghost: 1, ghostW: DESIGN_W, areaW: 0, areaH: 0 });
+  const [fit, setFit] = useState({ scale: 1, phone: false, ghost: 1, ghostW: DESIGN_W, ghostH: DESIGN_H, areaW: 0, areaH: 0 });
   useEffect(() => {
     const update = () => {
       // v0.46 fix16 : la plus petite des tailles annoncées (fenêtre, zone visible, page) : certaines
@@ -74,7 +81,8 @@ function useFitScale() {
       const phone = isPhoneViewport(w, h);
       const tablet = Math.min(w / DESIGN_W, h / DESIGN_H);
       // fenêtres de tablette sur un téléphone : hauteur de dessin gardée, largeur étirée à celle de l'écran
-      setFit({ scale: (phone ? Math.min(w / PHONE_W, h / PHONE_H) : tablet) * 0.995, phone, ghost: h / DESIGN_H, ghostW: Math.round(DESIGN_H * w / h), areaW, areaH });
+      const ghost = phone ? w / PHONE_FACE_W : h / DESIGN_H;
+      setFit({ scale: (phone ? Math.min(w / PHONE_W, h / PHONE_H) : tablet) * 0.995, phone, ghost, ghostW: phone ? PHONE_FACE_W : Math.round(DESIGN_H * w / h), ghostH: phone ? Math.floor(h / ghost) : DESIGN_H, areaW, areaH });
     };
     update();
     window.addEventListener("resize", update);
@@ -93,7 +101,7 @@ function Crossfader() {
       <span className="silk">Crossfader</span>
       <div className="hw-xfade-row">
         <HwButton size="sm" label="A" led="blue" active={xfade <= 0.001} onPress={() => jump(0)} ariaLabel="Crossfader tout à A" />
-        <div className="hw-xfade-slot">
+        <div className="hw-xfade-slot" data-ctl={MIDI_XFADE} data-ctl-label="Crossfader" data-ctl-norm={xfade}>
           <span className="hw-xfade-ticks" aria-hidden />
           <input type="range" min={0} max={1000} step={1} value={Math.round(xfade * 1000)} aria-label="Crossfader"
             aria-valuetext={xfade <= 0.001 ? "A" : xfade >= 0.999 ? "B" : `${Math.round(xfade * 100)} % B`}
@@ -199,6 +207,35 @@ function HistoryButtons() {
       <button type="button" className={`top-photo${hasPhoto ? "" : " is-disabled"}`} aria-disabled={!hasPhoto}
         onClick={() => { if (hasPhoto) void actions.recallPhoto(); }} {...learn(MIDI_RECALL, "Rappel de la photo")}
         title={`${hasPhoto ? "Revenir à la photo des réglages (Ctrl+Z pour revenir avant le rappel)" : "Aucune photo prise"} — clic droit : affecter au contrôleur MIDI`}>Rappel</button>
+      <button type="button" className="top-photo top-knobmods" onClick={openKnobMods} title="Modulations des 16 boutons assignables (LFO, fonction, suiveur, séquenceur propres aux boutons)">Mod. boutons</button>
+    </div>
+  );
+}
+
+/** v0.46 fix22 : pavé vectoriel en grand, par-dessus tout (hors de l'appareil mis à l'échelle). */
+function VectorFullLayer() {
+  // v0.46 fix28 : la vue live s'efface le temps d'ouvrir un instrument ou des effets, puis revient
+  const open = useStore((s) => !!s.ui.vecFull && !s.ui.face && !s.ui.pedals);
+  return open ? <VectorPad full /> : null;
+}
+
+/** v0.46 fix28 : bouton d'accès aux modulations des 16 boutons assignables (même panneau que celui des synthés). */
+function KnobModButton() {
+  const open = useStore((s) => !!s.ui.modPanel?.knobs);
+  return <div><HwButton size="md" led="blue" active={open} onPress={openKnobMods} ariaLabel="Modulations des 16 boutons" label="Mod. boutons"
+    title="Modulations des 16 boutons assignables : 4 sources (LFO, fonction, suiveur, séquenceur) propres aux boutons" /></div>;
+}
+
+/** v0.46 fix22 : Photo et Rappel des réglages en grands boutons (téléphone, onglet Commandes). */
+function PhotoRow() {
+  const hasPhoto = !!useStore((s) => s.tick.hist)?.[2];
+  return (
+    <div className="phone-row phone-row--photo">
+      <Learn target={MIDI_PHOTO} what="Photo des réglages"><HwButton size="md" led="amber" onPress={() => void actions.takePhoto()} ariaLabel="Photo des réglages" label="Photo"
+        title="Photo de tous les réglages du projet, à rappeler d'un bouton (remplace la photo précédente)" /></Learn>
+      <Learn target={MIDI_RECALL} what="Rappel de la photo"><HwButton size="md" led="amber" active={hasPhoto} onPress={() => { if (hasPhoto) void actions.recallPhoto(); else showMessage("Aucune photo prise : touchez d'abord Photo"); }}
+        ariaLabel="Rappel de la photo" label="Rappel" title="Revenir à la photo des réglages (↶ pour revenir avant le rappel)" /></Learn>
+      <KnobModButton />
     </div>
   );
 }
@@ -240,7 +277,7 @@ function Learn({ target, what, children }: { target: number; what: string; child
   const learn = () => { void actions.midiLearn(target); showMessage(`${what} : touchez un bouton ou un pad du contrôleur MIDI`); };
   const cancel = () => { if (press.current !== null) { window.clearTimeout(press.current); press.current = null; } };
   return (
-    <span className="learn-zone" title={`${what} — clic droit : affecter au contrôleur MIDI`}
+    <span className="learn-zone" title={`${what} — clic droit : affecter au contrôleur MIDI`} data-ctl={target} data-ctl-label={what} data-ctl-norm={0}
       onContextMenu={(e) => { e.preventDefault(); learn(); }}
       onPointerDown={(e) => { if (e.pointerType !== "mouse") press.current = window.setTimeout(() => { press.current = null; learn(); }, 600); }}
       onPointerUp={cancel} onPointerLeave={cancel}>
@@ -307,7 +344,19 @@ function TrackMuteRow() {
 export function Device() {
   const fit = useFitScale();
   const area = fit.areaW > 0 ? { width: fit.areaW, height: fit.areaH, right: "auto", bottom: "auto" } as React.CSSProperties : undefined;
-  if (fit.phone) return <PhoneDevice scale={fit.scale} ghost={fit.ghost} ghostW={fit.ghostW} area={area} />;
+  const phoneUi = useStore((s) => !!s.ui.phone);
+  // v0.46 fix21 : signaler qu'on se sert de l'appli (au plus toutes les 20 s) : sur téléphone, l'écran
+  // reste allumé tant qu'on joue ou qu'on l'a touchée il y a moins de 10 minutes
+  useEffect(() => {
+    if (!hasNative("userActive")) return;
+    let last = 0;
+    const ping = () => { const t = Date.now(); if (t - last > 20000) { last = t; void actions.userActive(); } };
+    window.addEventListener("pointerdown", ping, true);
+    window.addEventListener("keydown", ping, true);
+    return () => { window.removeEventListener("pointerdown", ping, true); window.removeEventListener("keydown", ping, true); };
+  }, []);
+  useEffect(() => { if (phoneUi !== fit.phone) setUi({ phone: fit.phone }); }, [fit.phone, phoneUi]);
+  if (fit.phone) return <PhoneDevice scale={fit.scale} ghost={fit.ghost} ghostW={fit.ghostW} ghostH={fit.ghostH} area={area} />;
   return <TabletDevice scale={fit.scale} area={area} />;
 }
 
@@ -386,12 +435,14 @@ function SceneBankButtons() {
     hauteur) ; à côté, deux onglets : Commandes (écrans, 8 encodeurs, transport, jeu, crossfader) et
     Pads (rôle des pads, 16 pads, banque de scènes). Les grandes fenêtres (façade, pédalier, accueil)
     gardent leur dessin de tablette, posées sur toute la fenêtre. */
-function PhoneDevice({ scale, ghost, ghostW, area }: { scale: number; ghost: number; ghostW: number; area?: React.CSSProperties }) {
+function PhoneDevice({ scale, ghost, ghostW, ghostH, area }: { scale: number; ghost: number; ghostW: number; ghostH: number; area?: React.CSSProperties }) {
   const [encoderRow, setEncoderRow] = useState<HTMLElement | null>(null);
   const [tab, setTabState] = useState<"ctrl" | "pads">(() => { try { return localStorage.getItem("grv.phoneTab") === "pads" ? "pads" : "ctrl"; } catch { return "ctrl"; } });
   const setTab = (v: "ctrl" | "pads") => { setTabState(v); try { localStorage.setItem("grv.phoneTab", v); } catch { /* stockage indisponible */ } };
   return (
     <div className="stage" style={area}>
+      <KnobAssignCapture />
+      <VectorFullLayer />
       {/* v0.46 fix16 : l'appareil est posé dans une zone qui défile ; s'il ne tient pas en entier
           (bandeau du système, encoche, taille annoncée fausse), on le fait glisser au doigt. */}
       <div className="phone-scroll">
@@ -423,10 +474,14 @@ function PhoneDevice({ scale, ghost, ghostW, area }: { scale: number; ghost: num
           {tab === "ctrl" ? (
             <div className="phone-panel phone-panel--ctrl">
               <ScreenButtons />
-              <div className="encoder-row" ref={setEncoderRow} />
-              <div className="phone-row"><TransportButtons /></div>
+              <div className="encoder-row encoder-row--knobs" ref={setEncoderRow}><AssignKnobs /></div>
+              {/* v0.46 fix28 : Photo / Rappel / Mod. boutons juste sous les 16 boutons ; le transport juste au-dessus du tempo */}
+              <PhotoRow />
               <div className="phone-row"><PlayButtons /></div>
               <div className="phone-row phone-row--xf"><OctaveButtons /><Learn target={MIDI_XFADE} what="Crossfader"><Crossfader /></Learn></div>
+              <div className="phone-row"><TransportButtons /></div>
+              {/* v0.46 fix23 : tempo sous Photo / Rappel (− / valeur à taper / + / Tap) */}
+              <TempoRow />
             </div>
           ) : (
             <div className="phone-panel phone-panel--pads">
@@ -439,8 +494,9 @@ function PhoneDevice({ scale, ghost, ghostW, area }: { scale: number; ghost: num
       </div>
       </div>
       </div>
-      <div className="device device--ghost" style={{ width: ghostW, transform: `translate(-50%, -50%) scale(${ghost})` }}>
+      <div className="device device--ghost device--ghost-phone" style={{ width: ghostW, height: ghostH, transform: `translate(-50%, -50%) scale(${ghost})` }}>
         <InstrumentFace />
+        <ModSourcesDialog />
         <MidiConflict />
         <Pedalboard />
         <Welcome />
@@ -467,8 +523,11 @@ function TabletDevice({ scale, area }: { scale: number; area?: React.CSSProperti
 
   return (
     <div className="stage" style={area}>
+      <KnobAssignCapture />
+      <VectorFullLayer />
       <div className="device" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
         <InstrumentFace />
+        <ModSourcesDialog />
         <MidiConflict />
         <Pedalboard />
         <Welcome />
@@ -495,7 +554,7 @@ function TabletDevice({ scale, area }: { scale: number; area?: React.CSSProperti
             </div>
           </div>
 
-          <div className="encoder-row" ref={setEncoderRow} />
+          <div className="encoder-row encoder-row--knobs" ref={setEncoderRow}><AssignKnobs /></div>
           <TrackMuteRow />
 
           <div className="device-bottom">

@@ -5,12 +5,32 @@
 // Clic droit (ou appui long au doigt) : menu — valeur exacte ou liste des choix, modulation,
 // macro, MIDI. En mode « affectation » (onglet Modulation), toucher l'encodeur le module.
 
-import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MatrixMenuRow, SectionMenuContext, SectionMenuRow } from "./sectionMenu";
-import { actions, getState, globalOf, showMessage, useStore } from "../engine/store";
+import { actions, getState, globalOf, setUi, showMessage, useStore } from "../engine/store";
 import { MOD_SOURCE_COLORS, modSourceName } from "../engine/params";
 import { useValueDrag } from "./useValueDrag";
 import { MOD_SCOPE_SOURCES, modScopeOf } from "../engine/modScopes";
+import { bindingCode, peekUiCode, resolveCode } from "../engine/ctl";
+import { NUM_KNOBS } from "../engine/protocol";
+
+/** v0.46 fix25 : l'ajout aux macros du synthé ne se propose que dans la façade d'un synthé (ailleurs, ce
+    sont les 16 boutons assignables : pas de confusion entre les deux). */
+export const MacroMenuContext = createContext(false);
+
+/** v0.46 fix24 : la liaison a-t-elle un menu (valeur, modulation, MIDI, bouton assignable) ? */
+export const bindingHasMenu = (b: EncoderBinding | null | undefined) => !!(b && (b.mod || b.entry || b.menu || b.ctl !== undefined || b.ctlId));
+
+/** v0.46 fix24 : attributs qui rendent un contrôle « assignable » (toucher en attente d'un bouton). */
+export function ctlAttrs(b: EncoderBinding | null | undefined): Record<string, string> {
+  if (!b || b.menu) return {};
+  const code = bindingCode(b);
+  if (code === null && !b.ctlId) return {};
+  const a: Record<string, string> = { "data-ctl-label": b.label, "data-ctl-norm": String(b.normalised) };
+  if (code !== null) a["data-ctl"] = String(code);
+  else a["data-ctl-ui"] = b.ctlId as string;
+  return a;
+}
 
 /** Saisie exacte d'un réglage du moteur (menu de l'encodeur). */
 export interface ValueEntry {
@@ -19,7 +39,15 @@ export interface ValueEntry {
   pick: (index: number) => void;
 }
 
-export type EncoderBinding =
+/** v0.46 fix24 : champs communs : cible pilotable (MIDI, bouton assignable) et menu propre. */
+interface BindingCtl {
+  ctl?: number;                    // cible : réglage du moteur, commande spéciale, réglage global (voir engine/ctl.ts)
+  ctlId?: string;                  // valeur d'écran pilotée par l'interface (« Séquence.Longueur »)
+  setNorm?: (normalised: number) => void; // réglage à crans : choix direct d'après une position 0..1
+  menu?: (onDone: () => void) => React.ReactNode; // menu propre (boutons assignables)
+}
+
+export type EncoderBinding = BindingCtl & (
   | {
       kind: "continuous";
       label: string;
@@ -45,7 +73,7 @@ export type EncoderBinding =
       onStep: (direction: 1 | -1) => void;
       reset?: () => void;
       entry?: ValueEntry;
-    };
+    });
 
 const LEDS = 15;
 const START = -135;
@@ -100,9 +128,8 @@ export function Encoder({ binding, variant = "hw" }: { binding: EncoderBinding |
   const root = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const press = useRef<{ x: number; y: number; timer: number } | null>(null);
-  const entry = binding?.entry;
   const section = useContext(SectionMenuContext);
-  const hasMenu = !!(modTarget || entry || section);
+  const hasMenu = !!(bindingHasMenu(binding) || section);
 
   // Affectation de modulation : la source choisie dans l'onglet Modulation module le réglage touché
   const assignMode = useStore((s) => s.ui.modAssign);
@@ -159,7 +186,7 @@ export function Encoder({ binding, variant = "hw" }: { binding: EncoderBinding |
   return (
     <div ref={root} className={`encoder${isKnob ? " encoder--knob" : ""}${binding ? "" : " encoder--idle"}${mod ? " encoder--mod" : ""}${assignable ? " encoder--assign" : assignMode ? " encoder--noassign" : ""}${macroAssignable ? ` encoder--assign${macroHas ? " encoder--macro-on" : ""}` : macroAssign !== null ? " encoder--noassign" : ""}`}
       style={assignable ? { "--assign": MOD_SOURCE_COLORS[assignMode!.source] } as React.CSSProperties : macroAssignable ? { "--assign": "oklch(0.82 0.15 85)" } as React.CSSProperties : undefined}
-      title={binding?.hint}>
+      title={binding?.hint} {...ctlAttrs(binding)}>
       {isKnob && <FitText className="knob-label" text={binding?.label ?? ""} />}
       {isKnob && binding?.locked && <span className={`knob-lock knob-lock--${binding.locked}`} aria-hidden />}
       <svg viewBox="0 0 80 80" className="encoder-ring" aria-hidden>
@@ -239,7 +266,13 @@ function ValueEntryRow({ entry, label, onDone }: { entry: ValueEntry; label: str
   const decimals = entry.integer ? 0 : Math.abs(entry.max - entry.min) <= 2 ? 3 : Math.abs(entry.max - entry.min) <= 50 ? 2 : 1;
   const [text, setText] = useState(() => String(Number(entry.plain.toFixed(decimals))));
   const input = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (!entry.choices) input.current?.select(); }, [entry.choices]);
+  // v0.46 fix20 : au doigt (tablette, téléphone), le champ n'est pas pris d'office : le menu s'ouvre,
+  // et le clavier ne vient que si l'on touche le champ. À la souris, la valeur reste présélectionnée.
+  useEffect(() => {
+    if (entry.choices) return;
+    const finePointer = typeof window.matchMedia === "function" && window.matchMedia("(pointer: fine)").matches;
+    if (finePointer && !getState().ui.phone) input.current?.select();
+  }, [entry.choices]);
   if (entry.choices) {
     const cur = Math.round(entry.plain);
     return (
@@ -278,14 +311,51 @@ function ValueEntryRow({ entry, label, onDone }: { entry: ValueEntry; label: str
 }
 
 /** Apprentissage MIDI d'un réglage : le prochain CC reçu pilote ce réglage. */
-function MidiLearnRow({ global, label, onDone }: { global: number; label: string; onDone: () => void }) {
+export function MidiLearnRow({ global, label, onDone, resolve }: { global: number | null; label: string; onDone: () => void; resolve?: () => Promise<number | null> }) {
   const maps = useStore((s) => s.midi.maps);
-  const mine = maps.find((m) => m[3] === global);
+  const mine = global === null ? undefined : maps.find((m) => m[3] === global);
   return (
     <>
       <span className="mod-menu-title mod-menu-title--macro">Contrôleur MIDI{mine ? ` · ${mine[0] === 0 ? "CC" : "note"} ${mine[2]}, canal ${mine[1] + 1}` : ""}</span>
-      <button type="button" onClick={() => { void actions.midiLearn(global); showMessage(`Touchez une commande du contrôleur pour « ${label} »`); onDone(); }}>Apprendre MIDI</button>
-      {mine && <button type="button" className="mod-remove" onClick={() => { void actions.midiForget(global); onDone(); }}>Oublier la commande MIDI</button>}
+      <button type="button" onClick={() => {
+        onDone();
+        void (async () => {
+          const code = global ?? (await resolve?.()) ?? null;
+          if (code === null) return;
+          void actions.midiLearn(code); showMessage(`Touchez une commande du contrôleur pour « ${label} »`);
+        })();
+      }}>Apprendre MIDI</button>
+      {mine && global !== null && <button type="button" className="mod-remove" onClick={() => { void actions.midiForget(global); onDone(); }}>Oublier la commande MIDI</button>}
+    </>
+  );
+}
+
+/** v0.46 fix24 : piloter ce réglage avec l'un des 16 boutons assignables. */
+function KnobAssignRow({ binding, onDone }: { binding: EncoderBinding; onDone: () => void }) {
+  const knobs = useStore((s) => s.midi.knobs);
+  const code = bindingCode(binding) ?? (binding.ctlId ? peekUiCode(binding.ctlId) : null);
+  return (
+    <>
+      <span className="mod-menu-title mod-menu-title--macro">Bouton assignable : piloter « {binding.label} » avec</span>
+      <div className="macro-row macro-row--16">
+        {Array.from({ length: NUM_KNOBS }, (_, k) => {
+          const on = code !== null && knobs?.[k]?.[0] === code;
+          const busy = !on && (knobs?.[k]?.[0] ?? -1) !== -1;
+          return (
+            <button key={k} type="button" className={`${on ? "on" : ""}${busy ? " busy" : ""}`} aria-pressed={on}
+              title={on ? `Le bouton ${k + 1} pilote déjà ce réglage (toucher : le libérer)` : busy ? `Le bouton ${k + 1} pilote autre chose : il sera réaffecté` : `Le bouton ${k + 1} pilotera ce réglage`}
+              onClick={() => {
+                onDone();
+                if (on) { void actions.setKnobTarget(k, -1); showMessage(`Bouton ${k + 1} libéré`); return; }
+                void resolveCode(binding, binding.ctlId).then((c) => {
+                  if (c === null) return;
+                  void actions.setKnobTarget(k, c, binding.normalised);
+                  showMessage(`Bouton ${k + 1} → ${binding.label}`);
+                });
+              }}>{k + 1}</button>
+          );
+        })}
+      </div>
     </>
   );
 }
@@ -333,6 +403,27 @@ export function useMenuPlacement(open: boolean, root: React.RefObject<HTMLElemen
       if (clipX) { leftB = Math.max(leftB, r.left); rightB = Math.min(rightB, r.right); }
     }
     const gap = 6, edge = 8;
+    // v0.46 fix20 : sur téléphone, le menu est agrandi et posé au milieu de la partie visible
+    // (comme une fenêtre), pour se lire et se toucher facilement ; sa liste défile s'il est haut.
+    if (getState().ui.phone) {
+      const availW = rightB - leftB - 2 * edge, availH = bottom - top - 2 * edge;
+      const w0 = el.offsetWidth;
+      const z = Math.max(1, Math.min(360 / (w0 * scale), (availW * 0.9) / (w0 * scale)));
+      el.style.zoom = "";
+      el.style.transformOrigin = "0 0";
+      el.style.transform = `scale(${z})`;
+      el.style.maxHeight = "";
+      el.style.overflowY = "";
+      const fullH = el.scrollHeight * scale * z;
+      if (fullH > availH) { el.style.maxHeight = `${availH / (scale * z)}px`; el.style.overflowY = "auto"; }
+      const visW = w0 * scale * z, visH = Math.min(fullH, availH);
+      const vx = leftB + edge + (availW - visW) / 2, vy = top + edge + (availH - visH) / 2;
+      el.style.left = `${(vx - hostRect.left) / scale}px`;
+      el.style.top = `${(vy - hostRect.top) / scale}px`;
+      el.style.bottom = "auto";
+      el.classList.add("mod-menu--sheet");
+      return;
+    }
     // horizontal : centré sur le bouton, ramené dans la zone visible
     const w = el.offsetWidth;
     let left = (host.offsetWidth - w) / 2;
@@ -370,29 +461,48 @@ export function useMenuDismiss(open: boolean, root: React.RefObject<HTMLElement 
   }, [open, root]);
 }
 
+/** Modulation d'un réglage du moteur : sources (LFO, fonctions…, vélocité), retrait, matrice. Partagé
+    par le menu des réglages et celui des boutons assignables (v0.46 fix26 : leur cible se module). */
+export function ModRows({ target, label, onDone }: { target: { channel: number; local: number }; label: string; onDone: () => void }) {
+  const { mod, assign } = useModulation(target);
+  const scope = modScopeOf(target.local);
+  const menuSources = scope ? [...MOD_SCOPE_SOURCES[scope], 6] : [];
+  return (
+    <>
+      <span className="mod-menu-title">Moduler « {label} » avec</span>
+      {menuSources.map((src) => (
+        <button key={src} type="button" role="menuitemradio" aria-checked={mod?.source === src}
+          className={mod?.source === src ? "on" : ""} onClick={() => { assign(src); onDone(); }}>
+          <span className="mod-dot" style={{ background: MOD_SOURCE_COLORS[src] }} />{sourceLabel(target.channel, src)}
+        </button>
+      ))}
+      {mod && <button type="button" className="mod-remove" onClick={() => { assign(null); onDone(); }}>Retirer la modulation</button>}
+      {/* v0.46 fix28 : régler les sources elles-mêmes (forme, vitesse, synchro…) sans quitter l'écran */}
+      {scope && <button type="button" className="mod-edit" onClick={() => { setUi({ modPanel: { channel: target.channel, scope } }); onDone(); }}>⚙ Régler les sources (LFO, fonctions…)</button>}
+      <MatrixMenuRow target={target} label={label} onDone={onDone} />
+    </>
+  );
+}
+
 /** Contenu du menu d'un réglage. */
 export function ParamMenuBody({ binding, onDone }: { binding: EncoderBinding | null; onDone: () => void }) {
+  if (binding?.menu) return <>{binding.menu(onDone)}</>;
+  return <ParamMenuStandard binding={binding} onDone={onDone} />;
+}
+
+function ParamMenuStandard({ binding, onDone }: { binding: EncoderBinding | null; onDone: () => void }) {
+  const macroMenu = useContext(MacroMenuContext);
   const entry = binding?.entry;
   const modTarget = binding?.mod;
-  const { mod, assign } = useModulation(modTarget);
   const macros = useStore((s) => s.macros);
-  const scope = modTarget ? modScopeOf(modTarget.local) : null;
-  const menuSources = scope ? [...MOD_SCOPE_SOURCES[scope], 6] : [];
   return (
     <>
       <SectionMenuRow onDone={onDone} />
           {entry && <ValueEntryRow entry={entry} label={binding?.label ?? ""} onDone={() => onDone()} />}
           {modTarget && <>
-          <span className="mod-menu-title">Moduler « {binding?.label} » avec</span>
-          {menuSources.map((src) => (
-            <button key={src} type="button" role="menuitemradio" aria-checked={mod?.source === src}
-              className={mod?.source === src ? "on" : ""} onClick={() => { assign(src); onDone(); }}>
-              <span className="mod-dot" style={{ background: MOD_SOURCE_COLORS[src] }} />{sourceLabel(modTarget.channel, src)}
-            </button>
-          ))}
-          {mod && <button type="button" className="mod-remove" onClick={() => { assign(null); onDone(); }}>Retirer la modulation</button>}
-          <MatrixMenuRow target={modTarget} label={binding?.label ?? ""} onDone={onDone} />
-          <span className="mod-menu-title mod-menu-title--macro">Macros (logiciel hôte, contrôleur) : ajouter ou retirer</span>
+          <ModRows target={modTarget} label={binding?.label ?? ""} onDone={onDone} />
+          {macroMenu && <>
+          <span className="mod-menu-title mod-menu-title--macro">Macros du synthé : ajouter ou retirer</span>
           <div className="macro-row">
             {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => {
               const g = globalOf(modTarget.channel, modTarget.local);
@@ -410,8 +520,15 @@ export function ParamMenuBody({ binding, onDone }: { binding: EncoderBinding | n
               );
             })}
           </div>
+          </>}
           <MidiLearnRow global={globalOf(modTarget.channel, modTarget.local)} label={binding?.label ?? ""} onDone={() => onDone()} />
           </>}
+          {/* v0.46 fix24 : réglage sans modulation (commande, réglage global, valeur d'écran) : MIDI */}
+          {!modTarget && binding && (binding.ctl !== undefined || binding.ctlId) && (
+            <MidiLearnRow global={bindingCode(binding) ?? (binding.ctlId ? peekUiCode(binding.ctlId) : null)} label={binding.label} onDone={() => onDone()}
+              resolve={() => resolveCode(binding, binding.ctlId)} />
+          )}
+          {binding && (modTarget || binding.ctl !== undefined || binding.ctlId) && <KnobAssignRow binding={binding} onDone={onDone} />}
     </>
   );
 }
@@ -426,12 +543,12 @@ export function ParamMenuZone({ binding, className, children, preferBelow = true
   const menuRef = useRef<HTMLDivElement>(null);
   const press = useRef<{ x: number; y: number; timer: number } | null>(null);
   const section = useContext(SectionMenuContext);
-  const hasMenu = !!(binding?.mod || binding?.entry || section);
+  const hasMenu = !!(bindingHasMenu(binding) || section);
   useMenuPlacement(open, root, menuRef, preferBelow);
   useMenuDismiss(open, root, () => setOpen(false));
   const cancel = () => { if (press.current) { window.clearTimeout(press.current.timer); press.current = null; } };
   return (
-    <div ref={root} className={`pm-zone${className ? ` ${className}` : ""}`}
+    <div ref={root} className={`pm-zone${className ? ` ${className}` : ""}`} {...ctlAttrs(binding)}
       onContextMenu={(e) => { if (!hasMenu) return; e.preventDefault(); e.stopPropagation(); cancel(); setOpen(true); }}
       onPointerDownCapture={(e) => { if (e.pointerType === "touch" && hasMenu) press.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { press.current = null; setOpen(true); }, 550) }; }}
       onPointerMoveCapture={(e) => { if (press.current && Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > 6) cancel(); }}

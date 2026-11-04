@@ -4,13 +4,14 @@
 // contrôleur MIDI (apprentissage des commandes du crossfader, de Break, de Fill et de la lecture,
 // liste de toutes les affectations), raccourcis du clavier.
 
-import { useState } from "react";
-import { actions, getState, hasNative, readPref, setUi, useStore, writePref, type FolderKind } from "../engine/store";
+import { useEffect, useRef, useState } from "react";
+import { actions, getState, hasNative, readPref, setUi, showMessage, useStore, writePref, type FolderKind } from "../engine/store";
 import { busName } from "../engine/params";
 import { FolderBrowser } from "../controls/FolderBrowser";
 import { cleanName } from "../controls/PresetPanel";
 import { ROOTS, SCALE_GROUPS, SCALES } from "../engine/scales";
-import { LAUNCH_QUANTS, MIDI_BREAK, MIDI_FILL, MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_PLAY, MIDI_ROW_BASE, MIDI_ROW_NEXT, MIDI_ROW_PREV, MIDI_ROW_STOP, MIDI_PHOTO, MIDI_RECALL, MIDI_REC_MOVES, MIDI_RECORD, MIDI_SOLO_BASE, MIDI_SONG_MODE, MIDI_START, MIDI_STOP, MIDI_XFADE } from "../engine/protocol";
+import { LAUNCH_QUANTS, MIDI_BREAK, MIDI_FILL, MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_PLAY, MIDI_ROW_BASE, MIDI_ROW_NEXT, MIDI_ROW_PREV, MIDI_ROW_STOP, MIDI_PHOTO, MIDI_RECALL, MIDI_REC_MOVES, MIDI_RECORD, MIDI_SOLO_BASE, MIDI_SONG_MODE, MIDI_START, MIDI_STOP, MIDI_XFADE, MIDI_KNOB_BASE, MIDI_HOST_BASE, HOST_CTL, HOST_CTL_NAMES, isKnobCode, isHostCode, isUiCode } from "../engine/protocol";
+import { uiCtlName } from "../engine/ctl";
 import { describeGlobal } from "../engine/describe";
 import { steppedBinding } from "../controls/bindings";
 import { ScreenFrame } from "./ScreenFrame";
@@ -48,6 +49,10 @@ export function targetName(target: number): string {
   if (target <= MIDI_ROW_BASE && target > MIDI_ROW_BASE - 8) return `Lancer la rangée ${"ABCDEFGH"[MIDI_ROW_BASE - target]}`;
   if (target <= MIDI_BUS_SOLO_BASE && target > MIDI_BUS_SOLO_BASE - 12) return `Solo ${busLabel(16 + MIDI_BUS_SOLO_BASE - target)}`;
   if (target <= MIDI_BUS_MUTE_BASE && target > MIDI_BUS_MUTE_BASE - 12) return `Coupure ${busLabel(16 + MIDI_BUS_MUTE_BASE - target)}`;
+  // v0.46 fix24 : boutons assignables, réglages globaux, valeurs d'écran
+  if (isKnobCode(target)) return `Bouton assignable ${MIDI_KNOB_BASE - target + 1}`;
+  if (isHostCode(target)) { const id = HOST_CTL[MIDI_HOST_BASE - target]; return HOST_CTL_NAMES[id] ?? id; }
+  if (isUiCode(target)) return uiCtlName(target);
   return describeGlobal(target);
 }
 
@@ -66,6 +71,16 @@ export function SettingsScreen() {
   const launch = useStore((s) => s.launch);
   const ui = { launchAll: useStore((s) => s.ui.launchAll) };
   const files = hasNative("saveProject");
+  // v0.46 fix27 : retour visuel des boutons du projet
+  const [lit, setLit] = useState<string | null>(null);
+  const litTimer = useRef(0);
+  useEffect(() => () => window.clearTimeout(litTimer.current), []);
+  const press = (id: string, run: () => unknown, done?: string) => {
+    setLit(id);
+    window.clearTimeout(litTimer.current);
+    litTimer.current = window.setTimeout(() => setLit(null), 1500);
+    void Promise.resolve(run()).then(() => { if (done) showMessage(done); });
+  };
   const scale = useStore((s) => s.ui.scale);
   const root = useStore((s) => s.ui.root);
   const padLevels = useStore((s) => s.ui.padLevels);
@@ -99,9 +114,13 @@ export function SettingsScreen() {
         <section className="settings-block">
           <h3>Projet</h3>
           <div className="settings-row">
-            <button type="button" className="touch" onClick={() => void actions.newProject(false)}>Projet de démonstration</button>
-            <button type="button" className="touch" onClick={() => void actions.newProject(true)}>Nouveau projet vide</button>
-            <button type="button" className="touch" disabled={!files} onClick={() => actions.openProject()}>Ouvrir…</button>
+            {/* v0.46 fix27 : le bouton touché s'allume en jaune un instant (on voit qu'il a pris) */}
+            <button type="button" className={`touch${lit === "demo" ? " touch--on" : ""}`}
+              onClick={() => press("demo", () => actions.newProject(false), "Projet de démonstration chargé")}>Projet de démonstration</button>
+            <button type="button" className={`touch${lit === "empty" ? " touch--on" : ""}`}
+              onClick={() => press("empty", () => actions.newProject(true), "Nouveau projet vide")}>Nouveau projet vide</button>
+            <button type="button" className={`touch${lit === "open" ? " touch--on" : ""}`} disabled={!files}
+              onClick={() => press("open", () => actions.openProject())}>Ouvrir…</button>
             <button type="button" className="touch touch--on" disabled={!files} onClick={() => actions.saveProject()}>Enregistrer…</button>
             <button type="button" className="touch" disabled={!files} onClick={() => actions.saveProject(true)}
               title="Modèle : tous les réglages restent (sons, échantillons, effets, mixeur, scènes, macros, MIDI) ; patterns, notes, verrous de pas et morceau sont retirés">Enregistrer comme modèle…</button>
@@ -202,6 +221,7 @@ export function SettingsScreen() {
 
         <section className="settings-block">
           <h3>Contrôleur MIDI</h3>
+          <BluetoothMidi />
           {/* v0.46 : canaux, comme dans Ableton ou Fruity : un canal pour jouer, un pour les commandes */}
           <div className="midi-route">
             <label>Notes (piste choisie)
@@ -261,6 +281,24 @@ export function SettingsScreen() {
 }
 
 /** v0.46 fix6 : l'accueil (choix du projet, mascotte) au lancement de l'application autonome. */
+/** v0.46 fix22 : appairer un clavier ou un contrôleur MIDI Bluetooth (téléphone, tablette). Le son
+    peut alors sortir par la prise USB (carte son) pendant que le contrôleur joue sans fil. Sur
+    ordinateur, l'appairage se fait dans les réglages Bluetooth du système. */
+function BluetoothMidi() {
+  const [ok, setOk] = useState<boolean | null>(null);
+  useEffect(() => { void actions.bluetoothMidi(false).then(setOk); }, []);
+  if (!ok) return null;
+  return (
+    <div className="midi-bt">
+      <button type="button" className="chip" onClick={() => void actions.bluetoothMidi(true)}
+        title="Cherche les claviers et contrôleurs MIDI Bluetooth allumés à proximité ; touchez-en un pour le connecter. Il joue ensuite comme un clavier USB.">
+        Appairer un contrôleur Bluetooth…
+      </button>
+      <small>Clavier ou contrôleur MIDI sans fil (Bluetooth MIDI). Le son peut sortir par la prise USB.</small>
+    </div>
+  );
+}
+
 function WelcomeToggle() {
   const [on, setOn] = useState(() => readPref("welcome", true));
   return (
