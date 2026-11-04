@@ -3690,3 +3690,9 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 /* v0.46 fix30g : menu d'un fader de la vue live (valeur, modulation, Learn MIDI, bouton assignable 1–16) : la tranche
    coupe ce qui dépasse (lueur de couleur) ; menu ouvert, elle le laisse déborder et passe au-dessus des voisines. */
 .lstrip:has(.mod-menu) { overflow: visible; z-index: 30; opacity: 1; filter: none; }
+/* v0.46 fix30j : l'écran ne bouge plus (téléphone : à l'ouverture, une page qui amène un élément en vue faisait
+   descendre tout l'appareil ; on pouvait le remonter au doigt, mais mal). « clip » coupe ce qui dépasse sans
+   faire de zone qui défile : ni le doigt ni une page ne peuvent déplacer l'appareil. Les listes gardent leur
+   propre défilement. */
+html, body, #root { overflow: clip; }
+.phone-scroll { overflow: clip; }

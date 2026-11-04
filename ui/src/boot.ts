@@ -58,3 +58,11 @@ if (window.__JUCE__?.initialisationData?.__juce__functions?.includes("uiLog")) {
     if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) cancel();
   }, true);
 }
+
+// v0.46 fix30j : l'appareil ne se déplace jamais (secours des WebView sans « overflow: clip ») : si la page ou la
+// zone de l'appareil défile quand même, on la remet à sa place.
+document.addEventListener("scroll", (e) => {
+  const t = e.target;
+  if (t === document || t === document.documentElement || t === document.body) { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); return; }
+  if (t instanceof HTMLElement && (t.id === "root" || t.classList.contains("phone-scroll") || t.classList.contains("stage")) && (t.scrollTop || t.scrollLeft)) { t.scrollTop = 0; t.scrollLeft = 0; }
+}, { capture: true, passive: true });
