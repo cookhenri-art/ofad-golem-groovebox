@@ -1887,6 +1887,8 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
                 peak = std::max (peak, std::max (std::abs (L[i]), std::abs (R[i])));
             }
             c.level = peak;
+            // v0.47 : vumètre de la piste pendant le montage (il restait figé)
+            peaks[(size_t) t].store (std::max (peak, peaks[(size_t) t].load (std::memory_order_relaxed) * 0.97f), std::memory_order_relaxed);
             if (wantsTracks) { std::copy (L, L + n, trackOutL[t]); std::copy (R, R + n, trackOutR[t]); trackOutMask |= 1u << t; }
             if (! has && m0 == 0.0f) continue;
             float* dl = og >= 1 && og <= numGroups ? grpL[og - 1] : masterL;
@@ -1894,7 +1896,14 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
             for (int i = 0; i < n; ++i) { dl[i] += L[i]; dr[i] += R[i]; }
             continue;
         }
-        if (! cg.used || cg.instrument == nullptr) { prevValid = false; st[(size_t) t].level = 0.0f; continue; } // piste vide : niveau nul (suiveurs en side-chain)
+        if (! cg.used || cg.instrument == nullptr)
+        {
+            // piste vide : niveau nul (suiveurs en side-chain) ; v0.47 : son vumètre retombe aussi (il restait
+            // figé quand on ouvrait un nouveau projet pendant la lecture)
+            prevValid = false; st[(size_t) t].level = 0.0f;
+            peaks[(size_t) t].store (peaks[(size_t) t].load (std::memory_order_relaxed) * 0.97f, std::memory_order_relaxed);
+            continue;
+        }
         auto& c = st[(size_t) t];
         float L[controlBlock] {}, R[controlBlock] {};
         // Envois par pad (batteries) : directement dans les retours A et B
