@@ -14,6 +14,7 @@ import { toPlain } from "../engine/params";
 import { paramAddress, useParam } from "../controls/bindings";
 import { Encoder, ParamMenuZone } from "../controls/Encoder";
 import { useBypass } from "../controls/useBypass";
+import { PresetPanel } from "../controls/PresetPanel";
 import { moduleSkinStyle } from "../skin/skins";
 import { DistCurve, eqBandDb } from "./Visuals";
 import type { EqBand } from "./Visuals";
@@ -821,6 +822,7 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
   const meters = useStore((s) => (!pad && s.focus === channel ? s.tick.fxm[slot] : undefined)) ?? [];
   const preset = useStore((s) => (pad ? undefined : s.tracks.insertPresets?.[channel]?.[slot])) || undefined;
   const [band, setBand] = useState(lay?.firstBand ?? 0);
+  const [presetsOpen, setPresetsOpen] = useState(false); // v0.47 : préréglages de l'effet (inserts du canal)
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); } };
@@ -873,6 +875,8 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
           {lcd ? <MLcd g={addr(lcd.id)} label="" wide prefix={lcd.label} /> : <div className="mp-lcd mp-lcd--wide"><div className="mp-lcd-box mp-lcd-box--text"><span>{lay.lcdText?.(ctx.vals) ?? preset ?? ""}</span></div></div>}
           {lay.leds && <span className="mp-tools">{lay.leds.map((c) => <MLed key={norm(c).id} g={addr(norm(c).id)} label={norm(c).label} />)}</span>}
           <span className="mp-role">{m.role ?? m.family}</span>
+          {!pad && <button type="button" className={`mp-lb mp-presets-btn${presetsOpen ? " on" : ""}`} onClick={() => setPresetsOpen(!presetsOpen)}
+            title="Préréglages de l'effet : ceux d'usine et les vôtres (enregistrer, rappeler)">★ Préréglages</button>}
           <ParamMenuZone binding={byp.binding} className="pm-zone--byp">
             <button type="button" className={`mp-lb mp-power${bypassed ? "" : " on"}`} aria-pressed={!bypassed} onClick={toggle}
               title={bypassed ? "Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"}><i />{bypassed ? "Contourné" : "Actif"}</button>
@@ -881,6 +885,13 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
         </header>
         {body}
       </div>
+      {presetsOpen && !pad && (
+        <div className="face-presets mp-presets">
+          <PresetPanel key={`${channel}:${slot}:${m.type}`} scope="fx" channel={channel} slot={slot} pad={-1} title={`${slot + 1} · ${m.name}`}
+            current={preset} factory={m.presets}
+            onPickFactory={(n) => void actions.applyPreset(channel, slot, n)} onClose={() => setPresetsOpen(false)} />
+        </div>
+      )}
     </div>
   );
 }

@@ -3264,5 +3264,10 @@
 "Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)": "Effect bypassed: press to turn it on (long press / right-click: assign to a controller, a knob, a scene)",
 "Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)": "Effect on: press to bypass it (long press / right-click: assign to a controller, a knob, a scene)",
 "Réactiver l'effet (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)": "Turn the effect back on (long press / right-click: assign to a controller, a knob, a scene)",
-"Couper l'effet, contourné (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)": "Bypass the effect (long press / right-click: assign to a controller, a knob, a scene)"
+"Couper l'effet, contourné (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)": "Bypass the effect (long press / right-click: assign to a controller, a knob, a scene)",
+"★ Préréglages": "★ Presets",
+"Préréglages de l'effet : ceux d'usine et les vôtres (enregistrer, rappeler)": "Effect presets: factory ones and yours (save, recall)",
+"Préréglages de {1}": "Presets for {1}",
+"Préréglages de {1} (actuel : {2})": "Presets for {1} (current: {2})",
+"Préréglages de l'effet {1}": "Presets for effect {1}"
 }

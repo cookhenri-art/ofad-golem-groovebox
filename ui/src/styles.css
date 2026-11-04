@@ -3711,3 +3711,9 @@ html, body, #root { overflow: clip; }
    une façade : la page des modulations passe DEVANT (elle restait derrière l'effet ouvert) ; en la
    refermant, on retrouve l'effet tel qu'on l'avait laissé. */
 .face.face--modsrc { z-index: 80; }
+/* v0.47 : préréglages des effets (pédalier, fenêtre d'un module), comme ceux des synthés */
+.pd--skin .pd-presets { right: 70px; }
+.rk-presets { right: 36px; }
+.pedalboard > .pb-presets { top: 60px; right: 14px; bottom: 14px; z-index: 50; }
+.mp-overlay > .mp-presets { position: fixed; top: 16px; right: 16px; bottom: 16px; z-index: 5; }
+.mp-presets-btn.on { box-shadow: inset 0 0 0 2px var(--accent); }

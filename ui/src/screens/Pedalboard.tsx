@@ -13,6 +13,7 @@ import { channelName, toPlain, trackColor } from "../engine/params";
 import { paramAddress, useParam } from "../controls/bindings";
 import { Encoder, ParamMenuZone } from "../controls/Encoder";
 import { useBypass } from "../controls/useBypass";
+import { PresetPanel } from "../controls/PresetPanel";
 import { moduleSkinStyle, pedalKnobStyle, pedalSkin, rackSkinStyle } from "../skin/skins";
 import { ModulePanel, StepCell } from "./ModulePanel";
 
@@ -105,7 +106,7 @@ function LooperKeys({ global, state }: { global: number; state: number }) {
 }
 
 /** Un effet du pédalier : en pédale s'il a son boîtier illustré, sinon en rack (v0.35.1). */
-function Pedal(props: { channel: number; area?: "fx" | "pfx"; slot: number; label: string; m: ModuleDesc; values: number[]; bypassed: boolean; meter: number[]; onSwap?: () => void; onOpen?: () => void }) {
+function Pedal(props: { channel: number; area?: "fx" | "pfx"; slot: number; label: string; m: ModuleDesc; values: number[]; bypassed: boolean; meter: number[]; onSwap?: () => void; onOpen?: () => void; onPresets?: () => void; preset?: string }) {
   return props.m.form === "pedal" && pedalSkin(props.m.type) ? <PedalUnit {...props} /> : <RackUnit {...props} />;
 }
 
@@ -126,7 +127,7 @@ const MODULE_KNOBS: Record<string, { big: string[]; small: string[] }> = {
 /** Pédale (insert du canal : area « fx », slot 0..3 ; insert de pad : « pfx », slot = pad × 2 + n).
     Disposition des boîtiers du pack : nom dans le bandeau du haut, 6 boutons (2 colonnes × 3), les
     sélecteurs en petits boutons (une rangée de plus sur les boîtiers hauts), diode, vis, contacteur. */
-function PedalUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap }: { channel: number; area?: "fx" | "pfx"; slot: number; label: string; m: ModuleDesc; values: number[]; bypassed: boolean; meter: number[]; onSwap?: () => void }) {
+function PedalUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap, onPresets, preset }: { channel: number; area?: "fx" | "pfx"; slot: number; label: string; m: ModuleDesc; values: number[]; bypassed: boolean; meter: number[]; onSwap?: () => void; onPresets?: () => void; preset?: string }) {
   // v0.47 : contacteur assignable (MIDI, bouton assignable, scènes) : voir useBypass
   const { binding: bypBinding, bypassed, toggle } = useBypass(channel, area, slot, m.name);
   const addr = (id: string) => { const i = m.params.findIndex((p) => p.id === id); return i < 0 ? -1 : paramAddress(channel, area, slot, i); };
@@ -142,6 +143,7 @@ function PedalUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap
       <span className="pd-led" aria-hidden />
       <span className="pd-n">{label}</span>
       {onSwap && <button type="button" className="pd-swap" onClick={onSwap} title="Changer d'effet (vignettes par type)" aria-label={`Changer l'effet ${label}`}>⇄</button>}
+      {onPresets && <button type="button" className="pd-swap pd-presets" onClick={onPresets} title={`Préréglages de ${m.name}${preset ? ` (actuel : ${preset})` : ""}`} aria-label={`Préréglages de l'effet ${label}`}>★</button>}
       <div className="pd-name"><b>{m.name}</b><span>{m.role ?? m.family}</span></div>
       <div className="pd-knobs">
         {/* un bouton seul sur sa rangée est centré (nombre impair de commandes) */}
@@ -219,7 +221,7 @@ function Lcd({ global }: { global: number }) {
 
 /** Rack 19 pouces (v0.35.1) : oreilles vissées, façade, gros boutons pour les réglages principaux,
     petits boutons, sélecteurs à crans, vumètre ou afficheur, nom sérigraphié, interrupteur. */
-function RackUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap, onOpen }: { channel: number; area?: "fx" | "pfx"; slot: number; label: string; m: ModuleDesc; values: number[]; bypassed: boolean; meter: number[]; onSwap?: () => void; onOpen?: () => void }) {
+function RackUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap, onOpen, onPresets, preset }: { channel: number; area?: "fx" | "pfx"; slot: number; label: string; m: ModuleDesc; values: number[]; bypassed: boolean; meter: number[]; onSwap?: () => void; onOpen?: () => void; onPresets?: () => void; preset?: string }) {
   // v0.47 : interrupteur assignable (MIDI, bouton assignable, scènes) : voir useBypass
   const { binding: bypBinding, bypassed, toggle } = useBypass(channel, area, slot, m.name);
   const addr = (id: string) => { const i = m.params.findIndex((p) => p.id === id); return i < 0 ? -1 : paramAddress(channel, area, slot, i); };
@@ -235,6 +237,7 @@ function RackUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap,
       <div className="rk-face">
         <span className="rk-n">{label}</span>
         {onSwap && <button type="button" className="pd-swap rk-swap" onClick={onSwap} title="Changer d'effet (vignettes par type)" aria-label={`Changer l'effet ${label}`}>⇄</button>}
+        {onPresets && <button type="button" className="pd-swap rk-swap rk-presets" onClick={onPresets} title={`Préréglages de ${m.name}${preset ? ` (actuel : ${preset})` : ""}`} aria-label={`Préréglages de l'effet ${label}`}>★</button>}
         <div className="rk-controls">
           {c.big.length > 0 && <div className="rk-big">{c.big.map((id) => <Knob key={id} global={addr(kid(id))} label={klab(id)} />)}</div>}
           {c.lcdId && <Lcd global={addr(c.lcdId)} />}
@@ -286,6 +289,7 @@ export function Pedalboard() {
   }, [open]);
   const [pick, setPick] = useState<{ pad: number; k: number } | null>(null); // v0.34 : choix par vignettes (pad -1 = insert du canal)
   const [openMod, setOpenMod] = useState<{ area: "fx" | "pfx"; slot: number; type: string } | null>(null); // v0.35.2 : module ouvert
+  const [presetsFor, setPresetsFor] = useState<number | null>(null); // v0.47 : préréglages d'un insert du canal
   if (!open || !cat || !channel) return null;
   const L = cat.layout;
   const types = tracks.inserts[focus] ?? [];
@@ -306,7 +310,8 @@ export function Pedalboard() {
           const m = cat.effects.find((e) => e.type === types[slot]);
           return m
             ? <Pedal key={`${slot}:${m.type}`} channel={focus} slot={slot} label={String(slot + 1)} m={m} values={channel.fx[slot]?.values ?? []} bypassed={(channel.mix[6 + slot] ?? 0) > 0.5} meter={meters[slot] ?? []}
-                onSwap={() => setPick({ pad: -1, k: slot })} onOpen={() => setOpenMod({ area: "fx", slot, type: m.type })} />
+                onSwap={() => setPick({ pad: -1, k: slot })} onOpen={() => setOpenMod({ area: "fx", slot, type: m.type })}
+                onPresets={() => setPresetsFor(presetsFor === slot ? null : slot)} preset={tracks.insertPresets?.[focus]?.[slot] || undefined} />
             : <EmptyPedal key={slot} label={String(slot + 1)} onOpen={() => setPick({ pad: -1, k: slot })} />;
         })}
         <span className="pb-jack">▸ {focus === L.masterChannel ? "Sortie" : "Fader"}</span>
@@ -341,6 +346,18 @@ export function Pedalboard() {
           </div>
         </div>
       )}
+      {/* v0.47 : préréglages d'un effet (usine et les vôtres), comme pour les synthés */}
+      {presetsFor !== null && (() => {
+        const m = cat.effects.find((e) => e.type === types[presetsFor]);
+        if (!m) return null;
+        return (
+          <div className="face-presets pb-presets">
+            <PresetPanel key={`${focus}:${presetsFor}:${m.type}`} scope="fx" channel={focus} slot={presetsFor} pad={-1} title={`${presetsFor + 1} · ${m.name}`}
+              current={tracks.insertPresets?.[focus]?.[presetsFor] || undefined} factory={m.presets}
+              onPickFactory={(n) => void actions.applyPreset(focus, presetsFor, n)} onClose={() => setPresetsFor(null)} />
+          </div>
+        );
+      })()}
       {openMod && (() => {
         const m = cat.effects.find((e) => e.type === openMod.type);
         const still = openMod.area === "fx" ? types[openMod.slot] === openMod.type
