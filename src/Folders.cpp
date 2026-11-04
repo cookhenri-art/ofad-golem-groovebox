@@ -20,7 +20,10 @@ std::array<juce::String, Folders::numKinds> chosen; // chemins absolus choisis (
 
 juce::File base()
 {
-   #if JUCE_ANDROID || JUCE_IOS
+   #if JUCE_IOS
+    // v0.47 : iPhone / iPad : dans « Documents », visible dans l'app Fichiers (Sur mon iPhone › Groovebox)
+    return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("Groovebox");
+   #elif JUCE_ANDROID
     return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile ("Groovebox");
    #else
     return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("Groovebox");

@@ -1,0 +1,119 @@
+# Groovebox — OFAD — AGPL-3.0-or-later
+# v0.47 : compilation Apple sur les Mac de GitHub (gratuits pour un dépôt public).
+#  - Mac : application autonome, VST3 et AU (non signés : clic droit › Ouvrir au premier lancement) ;
+#  - iPhone / iPad : application NON SIGNÉE (Groovebox-iOS-non-signe.ipa). Elle ne s'installe pas telle
+#    quelle : il faut la signer avec un compte Apple (voir docs/IPHONE.md).
+name: Apple
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "ui/**"
+      - "resources/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/apple.yml"
+
+concurrency:
+  group: apple-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JUCE_TAG: "8.0.12"
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Interface React
+        working-directory: ui
+        run: |
+          npm ci || npm install
+          npm run build
+
+      - name: JUCE
+        run: git clone --depth 1 --branch "$JUCE_TAG" https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
+
+      - name: Projet Xcode (iPhone / iPad)
+        run: |
+          cmake -S . -B build-ios -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DGROOVEBOX_BUILD_TESTS=OFF \
+            -DJUCE_DIR="$RUNNER_TEMP/JUCE"
+
+      - name: Compilation (sans signature)
+        run: |
+          xcodebuild -project build-ios/Groovebox.xcodeproj -scheme Groovebox_Standalone \
+            -configuration Release -sdk iphoneos -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            -derivedDataPath build-ios/dd -quiet build
+
+      - name: Paquet .ipa non signé
+        run: |
+          APP=$(find build-ios -path "*Release-iphoneos*" -name "Groovebox.app" -type d | head -1)
+          echo "Application : $APP"
+          test -n "$APP"
+          mkdir -p out/Payload
+          cp -R "$APP" out/Payload/
+          (cd out && zip -qry Groovebox-iOS-non-signe.ipa Payload)
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Groovebox-iOS-non-signe
+          path: out/Groovebox-iOS-non-signe.ipa
+          retention-days: 30
+
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Interface React
+        working-directory: ui
+        run: |
+          npm ci || npm install
+          npm run build
+
+      - name: JUCE
+        run: git clone --depth 1 --branch "$JUCE_TAG" https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
+
+      - name: Compilation (Mac Apple Silicon et Intel)
+        run: |
+          cmake -S . -B build-mac -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DGROOVEBOX_BUILD_TESTS=OFF \
+            -DJUCE_DIR="$RUNNER_TEMP/JUCE"
+          cmake --build build-mac --parallel --target Groovebox_Standalone Groovebox_VST3 Groovebox_AU
+
+      - name: Paquet Mac
+        run: |
+          A=build-mac/Groovebox_artefacts/Release
+          mkdir -p out
+          ditto -c -k --keepParent "$A/Standalone/Groovebox.app" out/Groovebox-Mac-app.zip
+          ditto -c -k --keepParent "$A/VST3/Groovebox.vst3" out/Groovebox-Mac-VST3.zip
+          ditto -c -k --keepParent "$A/AU/Groovebox.component" out/Groovebox-Mac-AU.zip
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Groovebox-Mac-non-signe
+          path: out/*.zip
+          retention-days: 30

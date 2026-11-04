@@ -79,12 +79,25 @@ juce_add_binary_data(GrooveboxUiData
     SOURCES     ${GROOVEBOX_UI_FILES})
 
 # --- Plugin VST3 + application autonome ----------------------------------------------
+# v0.47 : Apple. Mac : VST3, AU et application autonome. iPhone / iPad (-G Xcode -DCMAKE_SYSTEM_NAME=iOS) :
+# l'application autonome seule, en paysage, plein écran, micro et MIDI Bluetooth autorisés, fichiers
+# visibles dans l'app Fichiers (dossier « Sur mon iPhone › Groovebox »).
+set(GROOVEBOX_IOS OFF)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(GROOVEBOX_IOS ON)
+    set(GROOVEBOX_FORMATS Standalone)
+elseif(APPLE)
+    set(GROOVEBOX_FORMATS VST3 AU Standalone)
+else()
+    set(GROOVEBOX_FORMATS VST3 Standalone)
+endif()
+
 juce_add_plugin(Groovebox
     COMPANY_NAME                "One For All Distribution"
     BUNDLE_ID                   OFAD.Groovebox
     PLUGIN_MANUFACTURER_CODE    Ofad
     PLUGIN_CODE                 Grvb
-    FORMATS                     VST3 Standalone
+    FORMATS                     ${GROOVEBOX_FORMATS}
     PRODUCT_NAME                "Groovebox"
     ICON_BIG                    "${CMAKE_CURRENT_SOURCE_DIR}/resources/golem/golem-icone-512.png"   # v0.46 fix6 : mascotte OFAD GOLEM
     ICON_SMALL                  "${CMAKE_CURRENT_SOURCE_DIR}/resources/golem/golem-buste-256.png"   # (petites tailles : le buste, plus lisible)
@@ -96,7 +109,21 @@ juce_add_plugin(Groovebox
     VST3_CATEGORIES             Instrument Synth Sampler
     NEEDS_WEB_BROWSER           TRUE      # Linux : WebKitGTK
     NEEDS_WEBVIEW2              TRUE      # Windows : WebView2 lié statiquement (paquet NuGet requis)
-    COPY_PLUGIN_AFTER_BUILD     FALSE)
+    COPY_PLUGIN_AFTER_BUILD     FALSE
+    # Apple (Mac, iPhone, iPad)
+    AU_MAIN_TYPE                kAudioUnitType_MusicDevice
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT  "OFAD GOLEM records your microphone or audio input only when you open it (audio input track, sampler)."
+    BLUETOOTH_PERMISSION_ENABLED TRUE
+    BLUETOOTH_PERMISSION_TEXT   "OFAD GOLEM connects to Bluetooth MIDI controllers."
+    BACKGROUND_AUDIO_ENABLED    TRUE
+    FILE_SHARING_ENABLED        TRUE
+    DOCUMENT_BROWSER_ENABLED    TRUE
+    STATUS_BAR_HIDDEN           TRUE
+    REQUIRES_FULL_SCREEN        TRUE
+    TARGETED_DEVICE_FAMILY      "1,2"
+    IPHONE_SCREEN_ORIENTATIONS  UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+    IPAD_SCREEN_ORIENTATIONS    UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight)
 
 juce_generate_juce_header(Groovebox)
 
@@ -113,7 +140,10 @@ target_sources(Groovebox PRIVATE
 target_sources(Groovebox_Standalone PRIVATE src/StandaloneHook.cpp)
 # v0.46 fix6 : application autonome d'OFAD GOLEM (écran de lancement avec la mascotte, fenêtre
 # ouverte agrandie) à la place de celle de JUCE : voir src/StandaloneHook.cpp
-target_compile_definitions(Groovebox_Standalone PRIVATE JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1)
+# (v0.47 : pas sur iPhone / iPad, qui gardent l'application de JUCE, comme Android)
+if(NOT GROOVEBOX_IOS)
+    target_compile_definitions(Groovebox_Standalone PRIVATE JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1)
+endif()
 target_link_libraries(Groovebox_Standalone PRIVATE GrooveboxUiData)
 
 target_compile_definitions(Groovebox PUBLIC
@@ -136,6 +166,9 @@ target_link_libraries(Groovebox
         juce::juce_recommended_warning_flags)
 
 # --- Outil de vérification : rendu hors temps réel du processeur dans un WAV ----------------
+if(GROOVEBOX_IOS)
+    return() # pas d'outil en ligne de commande sur iPhone / iPad
+endif()
 juce_add_console_app(groovebox_render PRODUCT_NAME "groovebox_render")
 target_sources(groovebox_render PRIVATE tools/RenderDemo.cpp src/PluginProcessor.cpp src/Recorder.cpp src/Montage.cpp)
 target_compile_definitions(groovebox_render PRIVATE
