@@ -10,7 +10,7 @@ import { busName } from "../engine/params";
 import { FolderBrowser } from "../controls/FolderBrowser";
 import { cleanName } from "../controls/PresetPanel";
 import { ROOTS, SCALE_GROUPS, SCALES } from "../engine/scales";
-import { LAUNCH_QUANTS, MIDI_BREAK, MIDI_FILL, MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_PLAY, MIDI_ROW_BASE, MIDI_ROW_NEXT, MIDI_ROW_PREV, MIDI_ROW_STOP, MIDI_PHOTO, MIDI_RECALL, MIDI_REC_MOVES, MIDI_RECORD, MIDI_SOLO_BASE, MIDI_SONG_MODE, MIDI_START, MIDI_STOP, MIDI_XFADE, MIDI_KNOB_BASE, MIDI_HOST_BASE, HOST_CTL, HOST_CTL_NAMES, isKnobCode, isHostCode, isUiCode } from "../engine/protocol";
+import { LAUNCH_QUANTS, MIDI_BREAK, MIDI_FILL, MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_PLAY, MIDI_ROW_BASE, PATTERN_NAMES, MIDI_ROW_NEXT, MIDI_ROW_PREV, MIDI_ROW_STOP, MIDI_PHOTO, MIDI_RECALL, MIDI_REC_MOVES, MIDI_RECORD, MIDI_SOLO_BASE, MIDI_SONG_MODE, MIDI_START, MIDI_STOP, MIDI_XFADE, MIDI_KNOB_BASE, MIDI_HOST_BASE, HOST_CTL, HOST_CTL_NAMES, isKnobCode, isHostCode, isUiCode } from "../engine/protocol";
 import { uiCtlName } from "../engine/ctl";
 import { describeGlobal } from "../engine/describe";
 import { steppedBinding } from "../controls/bindings";
@@ -25,8 +25,8 @@ const SPECIALS: { target: number; label: string; hint: string }[] = [
   { target: MIDI_STOP, label: "Arrêt", hint: "un pad ou un bouton" },
   { target: MIDI_RECORD, label: "Enregistrement", hint: "un pad ou un bouton (bascule)" },
   { target: MIDI_REC_MOVES, label: "Enregistrer les mouvements", hint: "morceau : un bouton (bascule)" },
-  { target: MIDI_ROW_PREV, label: "Rangée précédente", hint: "un pad ou un bouton : lance la rangée d'avant (B → A…)" },
-  { target: MIDI_ROW_NEXT, label: "Rangée suivante", hint: "un pad ou un bouton : lance la rangée d'après (A → B…)" },
+  { target: MIDI_ROW_PREV, label: "Rangée précédente", hint: "un pad ou un bouton : lance la rangée d'avant (B → A…), en sautant les rangées vides" },
+  { target: MIDI_ROW_NEXT, label: "Rangée suivante", hint: "un pad ou un bouton : lance la rangée d'après (A → B, H → I…), en sautant les rangées vides" },
   { target: MIDI_ROW_STOP, label: "Arrêter toutes les pistes", hint: "un pad ou un bouton" },
   { target: MIDI_PHOTO, label: "Photo des réglages", hint: "un pad ou un bouton" },
   { target: MIDI_RECALL, label: "Rappel de la photo", hint: "un pad ou un bouton" },
@@ -46,7 +46,7 @@ export function targetName(target: number): string {
   if (s) return s.label;
   if (target <= MIDI_SOLO_BASE && target > MIDI_SOLO_BASE - 16) return `Solo piste ${MIDI_SOLO_BASE - target + 1}`;
   if (target <= MIDI_MUTE_BASE && target > MIDI_MUTE_BASE - 16) return `Coupure piste ${MIDI_MUTE_BASE - target + 1}`;
-  if (target <= MIDI_ROW_BASE && target > MIDI_ROW_BASE - 8) return `Lancer la rangée ${"ABCDEFGH"[MIDI_ROW_BASE - target]}`;
+  if (target <= MIDI_ROW_BASE && target > MIDI_ROW_BASE - PATTERN_NAMES.length) return `Lancer la rangée ${PATTERN_NAMES[MIDI_ROW_BASE - target]}`;
   if (target <= MIDI_BUS_SOLO_BASE && target > MIDI_BUS_SOLO_BASE - 12) return `Solo ${busLabel(16 + MIDI_BUS_SOLO_BASE - target)}`;
   if (target <= MIDI_BUS_MUTE_BASE && target > MIDI_BUS_MUTE_BASE - 12) return `Coupure ${busLabel(16 + MIDI_BUS_MUTE_BASE - target)}`;
   // v0.46 fix24 : boutons assignables, réglages globaux, valeurs d'écran

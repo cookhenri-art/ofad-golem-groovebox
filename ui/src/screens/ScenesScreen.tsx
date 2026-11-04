@@ -54,20 +54,23 @@ function LockValue({ scene, g, v }: { scene: number; g: number; v: number }) {
   );
 }
 
-export function SlotCard({ slot, scene, copying, onCopy }: { slot: "A" | "B" | "Break"; scene: number; copying: boolean; onCopy: () => void }) {
+/** v0.46 fix29 : live = carte de la vue live, pour jouer : le nom et les réglages de la scène, sans Éditer,
+    ni Vider / Copier / Muette (on édite les scènes avant, dans l'écran SCÈNES). */
+export function SlotCard({ slot, scene, copying, onCopy, live = false }: { slot: "A" | "B" | "Break"; scene: number; copying: boolean; onCopy: () => void; live?: boolean }) {
   const data = useStore((s) => s.scenes[scene]);
   const editing = useStore((s) => (slot === "Break" ? s.ui.editBreak : s.ui.editSlot === slot));
   const locks = data?.locks ?? [];
   const toggle = () => setUi(slot === "Break" ? { editBreak: !editing, editSlot: null } : { editSlot: editing ? null : slot, editBreak: false });
   return (
-    <section className={`slot slot--${slot === "Break" ? "B" : slot}${editing ? " slot--editing" : ""}`}>
+    <section className={`slot slot--${slot === "Break" ? "B" : slot}${editing ? " slot--editing" : ""}${live ? " slot--live" : ""}`}>
       <header>
         <span className="slot-letter">{slot === "Break" ? "BRK" : slot}</span>
         <span className="slot-scene">{slot === "Break" ? "Scène Break" : `Scène ${scene + 1}`}{data?.muted ? " · muette" : ""}</span>
-        <button type="button" className={`touch${editing ? " touch--on" : ""}`} onClick={toggle} aria-pressed={editing}>{editing ? "Terminer" : "Éditer"}</button>
+        {live && <span className="slot-count tabular">{locks.length ? `${locks.length} réglage${locks.length > 1 ? "s" : ""}` : "vide"}</span>}
+        {!live && <button type="button" className={`touch${editing ? " touch--on" : ""}`} onClick={toggle} aria-pressed={editing}>{editing ? "Terminer" : "Éditer"}</button>}
       </header>
       {locks.length === 0
-        ? <p className="slot-empty">{slot === "Break" ? "Aucun réglage. « Éditer », puis tournez les encodeurs (SON, EFFETS, MIXEUR…)." : "Aucun réglage. Touchez « Éditer », puis tournez les encodeurs d'un écran (SON, EFFETS, MIXEUR…)."}</p>
+        ? (live ? null : <p className="slot-empty">{slot === "Break" ? "Aucun réglage. « Éditer », puis tournez les encodeurs (SON, EFFETS, MIXEUR…)." : "Aucun réglage. Touchez « Éditer », puis tournez les encodeurs d'un écran (SON, EFFETS, MIXEUR…)."}</p>)
         : (
           <ul className="slot-locks" aria-label={`${locks.length} réglage${locks.length > 1 ? "s" : ""} dans la scène`} tabIndex={0}>
             {locks.map(([g, v]) => {
@@ -76,20 +79,20 @@ export function SlotCard({ slot, scene, copying, onCopy }: { slot: "A" | "B" | "
                 <li key={g}>
                   <span title={describe(g)}>{describe(g)}</span>
                   {r ? <LockValue scene={scene} g={g} v={v} /> : <b />}
-                  <button type="button" className="x" onClick={() => void actions.scene("sceneClearLock", scene, g)} aria-label={`Retirer ${describe(g)}`}>×</button>
+                  {!live && <button type="button" className="x" onClick={() => void actions.scene("sceneClearLock", scene, g)} aria-label={`Retirer ${describe(g)}`}>×</button>}
                 </li>
               );
             })}
           </ul>
         )}
-      <div className="slot-actions">
+      {!live && <div className="slot-actions">
         {locks.length > 0 && <span className="slot-count tabular">{locks.length} réglage{locks.length > 1 ? "s" : ""}</span>}
         {locks.length > 0 && <button type="button" className="touch touch--quiet" onClick={() => void actions.scene("sceneClear", scene)}>Vider</button>}
         {locks.length > 0 && <button type="button" className={`touch${copying ? " touch--on" : " touch--quiet"}`} aria-pressed={copying} onClick={onCopy}
           title="Copier cette scène : touchez ensuite la scène de destination dans la grille">{copying ? "Annuler" : "Copier…"}</button>}
         <button type="button" className="touch touch--quiet" title={data?.muted ? "Réactiver la scène" : "Rendre la scène muette (elle ne joue plus, ses réglages restent)"}
           onClick={() => void actions.scene("sceneMute", scene, !data?.muted)}>{data?.muted ? "Réactiver" : "Muette"}</button>
-      </div>
+      </div>}
     </section>
   );
 }

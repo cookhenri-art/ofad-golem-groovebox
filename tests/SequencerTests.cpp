@@ -302,6 +302,29 @@ int main()
         check (seq.getPlaying (0) == 4 && seq.getPlaying (1) == -1 && seq.getPlaying (2) == -1, "rang\xC3\xA9" "e : case vide = piste arr\xC3\xAAt\xC3\xA9" "e");
     }
     {
+        // v0.46 fix29 : 16 patterns (A à P) : la rangée P (16e) se lance et joue ; la clé des extras tient sur 4 bits
+        Sequencer seq;
+        check (Sequencer::numPatterns == 16 && Sequencer::stopPattern == 16, "16 patterns par piste (A \xC3\xA0 P)");
+        seq.setStepP (0, 15, 0, 0, 100);
+        seq.setStepP (1, 9, 0, 4, 100);
+        check (seq.hasNotes (0, 15) && seq.hasNotesInLength (0, 15) && ! seq.hasNotesInLength (0, 14), "pattern P : notes vues");
+        seq.setPatternLength (1, 9, 4);
+        check (! seq.hasNotesInLength (1, 9) && seq.hasNotes (1, 9), "notes hors de la longueur : la rang\xC3\xA9" "e compte comme vide");
+        seq.requestPlay();
+        seq.launchRow (15);
+        long long done = 0;
+        int hitsP = 0;
+        for (; done < 96000 * 2; done += 512)
+        {
+            seq.beginBlock (512, sr, 120.0, 50.0, {});
+            seq.collect (nullptr, [&] (const SeqEvent& e) { if (e.track == 0) ++hitsP; });
+            seq.endBlock();
+        }
+        check (seq.getPlaying (0) == 15 && seq.getPlaying (1) == -1 && hitsP >= 1, "rang\xC3\xA9" "e P : jou\xC3\xA9" "e sur la piste \xC3\xA9" "crite, les autres arr\xC3\xAAt\xC3\xA9" "es");
+        check (PatternExtras::keyPattern (PatternExtras::key (3, 15, 2, 100)) == 15 && PatternExtras::keyTrack (PatternExtras::key (3, 15, 2, 100)) == 3,
+               "cl\xC3\xA9 des extras : pattern P et piste conserv\xC3\xA9s");
+    }
+    {
         // Copie de pattern et longueur par pattern
         Sequencer seq;
         seq.setPatternLength (0, 0, 32);

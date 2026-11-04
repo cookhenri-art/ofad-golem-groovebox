@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { actions, getState, setUi, showMessage, useStore } from "../engine/store";
-import { LAUNCH_QUANTS, PATTERN_NAMES, STEPS_PER_BAR, STOP_PATTERN } from "../engine/protocol";
+import { LAUNCH_QUANTS, PATTERN_NAMES, ROW_PAGE, ROW_PAGES, STEPS_PER_BAR, STOP_PATTERN, rowPageName } from "../engine/protocol";
 import { trackColor } from "../engine/params";
 import { steppedBinding } from "../controls/bindings";
 import { ScreenFrame } from "./ScreenFrame";
@@ -27,7 +27,11 @@ export function LaunchScreen() {
   const focus = useStore((s) => s.focus);
   const shift = useStore((s) => s.ui.shift);
   const [bank, setBank] = useState(Math.floor(Math.min(focus, 15) / 8));
-  const [row, setRow] = useState(0);
+  const [row, setRowState] = useState(0);
+  // v0.46 fix29 : la grille montre une page de 8 rangées (A–H ou I–P), la même que la bande des rangées
+  const rowPage = useStore((s) => s.ui.rowPage);
+  const setRow = (r: number) => { setRowState(r); const pg = Math.floor(r / ROW_PAGE); if (pg !== getState().ui.rowPage) setUi({ rowPage: pg }); };
+  const pageRows = Array.from({ length: ROW_PAGE }, (_, i) => rowPage * ROW_PAGE + i);
   const [copyFrom, setCopyFrom] = useState<{ track: number; pattern: number } | null>(null);
   const [rowCopy, setRowCopy] = useState<number | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -137,10 +141,10 @@ export function LaunchScreen() {
 
   const encoders = [
     steppedBinding("Piste", Array.from({ length: 16 }, (_, i) => i), ft, (t) => { void actions.focus(t); setBank(Math.floor(t / 8)); }, (t) => `${t + 1} · ${tracks[t]?.name ?? ""}`),
-    steppedBinding("Pattern édité", Array.from({ length: 8 }, (_, i) => i), editing, (p) => void actions.editPattern(ft, p), (p) => PATTERN_NAMES[p]),
+    steppedBinding("Pattern édité", PATTERN_NAMES.map((_, i) => i), editing, (p) => { void actions.editPattern(ft, p); const pg = Math.floor(p / ROW_PAGE); if (pg !== getState().ui.rowPage) setUi({ rowPage: pg }); }, (p) => PATTERN_NAMES[p]),
     steppedBinding("Lancement", [0, 1, 2, 3, 4], launch.quant, (q) => void actions.setLaunchQuant(q), (q) => LAUNCH_QUANTS[q]),
     all ? null : steppedBinding("Pistes", [0, 1], bank, setBank, (b) => (b === 0 ? "1 – 8" : "9 – 16")),
-    steppedBinding("Rangée", Array.from({ length: 8 }, (_, i) => i), row, setRow, (r) => PATTERN_NAMES[r]),
+    steppedBinding("Rangée", PATTERN_NAMES.map((_, i) => i), row, setRow, (r) => PATTERN_NAMES[r]),
     steppedBinding("Scène liée", scenes, launch.rowScenes[row] ?? -1, (s) => void actions.setRowScene(row, s), (s) => (s < 0 ? "aucune" : `scène ${s + 1}`)),
   ];
 
@@ -151,7 +155,12 @@ export function LaunchScreen() {
         <div className={`launch-hscroll${all ? " is-all" : ""}`} ref={hscroll} onScroll={syncMuteRow}
           onWheel={(e) => { const el = e.currentTarget; if (all && !e.shiftKey && el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) el.scrollLeft += e.deltaY; }}>
         <div className="launch-grid" style={{ gridTemplateColumns: all ? `64px repeat(16, 104px)` : `64px repeat(8, 1fr)` }}>
-          <span />
+          <span className="launch-pages" role="group" aria-label="Page de rangées">
+            {Array.from({ length: ROW_PAGES }, (_, pg) => (
+              <button key={pg} type="button" className={`launch-page${pg === rowPage ? " on" : ""}`} aria-pressed={pg === rowPage}
+                onClick={() => setUi({ rowPage: pg })} title={`Rangées ${rowPageName(pg)}`}>{rowPageName(pg)}</button>
+            ))}
+          </span>
           {cols.map((t) => (
             <button key={t} type="button" data-col={t} className={`launch-head${t === ft ? " is-focus" : ""}`} style={{ "--k": trackColor(tracks[t]?.color ?? 0) } as React.CSSProperties}
               onClick={() => void actions.focus(t)}>
@@ -160,7 +169,7 @@ export function LaunchScreen() {
             </button>
           ))}
 
-          {PATTERN_NAMES.map((name, p) => (
+          {pageRows.map((p) => { const name = PATTERN_NAMES[p]; return (
             <div key={p} className="launch-row" style={{ display: "contents" }}>
               <button type="button" className={`launch-rowbtn${row === p ? " is-sel" : ""}${rowCopy === p ? " is-source" : ""}${rowCopy !== null && rowCopy !== p ? " is-target" : ""}`}
                 onClick={() => {
@@ -192,7 +201,7 @@ export function LaunchScreen() {
                 );
               })}
             </div>
-          ))}
+          ); })}
 
           <span className="launch-foot-label">Arrêt</span>
           {cols.map((t) => {

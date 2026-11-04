@@ -52,7 +52,7 @@ vocodeurs, sampler de performance, échos à bande, réverbérations, compresseu
 **recréé de zéro** : son propre nom, sa propre façade, ses propres sons d'usine.
 
 - **Application Windows** (autonome), **plugin VST3** pour les logiciels de musique, **application Android** pour téléphone et tablette, avec **contrôleur MIDI** USB ou Bluetooth prêt à jouer.
-- **34 instruments**, **1249 sons d'usine**, **38 effets**, 16 pistes, 8 patterns par piste, 32 scènes.
+- **34 instruments**, **1249 sons d'usine**, **38 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
 - **Vue live** pour le jeu en direct : crossfader ou **pavé vectoriel** à quatre scènes (formes en mouvement, taille, hauteur, rotation), console des 16 pistes avec faders, FX et M / S, et les **16 boutons assignables** avec leurs propres modulations.
 - Logiciel **libre** (AGPL-3.0) : les sources de chaque version sont fournies avec elle.
 
@@ -138,7 +138,7 @@ contrôleur.
 - Gammes et toniques pour les pads des instruments mélodiques ; Fill, Break, Break temporisé.
 
 ### 🧮 Séquenceur — trois façons d'écrire, une seule séquence
-- **8 patterns** (A à H) par piste, jusqu'à 32 mesures ; division (binaire, ternaire) et vitesse par pattern ;
+- **16 patterns** (A à P) par piste, jusqu'à 32 mesures ; division (binaire, ternaire) et vitesse par pattern ;
   pages de 16 pas que l'on **tourne** (◀ ▶, pastilles, ou « Suivre » pour que la page avance avec la lecture).
 - **Séquenceur acide** sur la façade des basses et des synthés : pour chaque pas, la **note** (tirer ou
   molette : demi-ton, ▲ ▼ : octave), la vélocité, la durée, l'**accent** et le **glissé** (la note tient et
@@ -166,7 +166,7 @@ contrôleur.
   sens de lecture, longueur par pad (polyrythmes), accent.
 
 ### 🚀 Lancement, scènes, morceau
-- **Grille de lancement** façon clips, rangées A à H (chaque rangée peut lancer sa scène liée), arrêt par piste.
+- **Grille de lancement** façon clips, 16 rangées A à P en deux pages, −1 / +1 qui passent d'une page à l'autre (chaque rangée peut lancer sa scène liée), arrêt par piste.
 - **32 scènes** de réglages : une scène retient les réglages qu'on tourne (de n'importe quelle piste,
   effet ou mixeur). Une scène à gauche (A), une à droite (B), et le **crossfader** fait glisser tous ces
   réglages de l'une à l'autre en douceur.

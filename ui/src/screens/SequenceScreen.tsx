@@ -22,7 +22,7 @@ import { createPortal } from "react-dom";
 import { actions, baseValue, getState, resolveGlobal, ROLL_MAX, ROLL_MIN, setRollBase, setUi, showMessage, slots, useStore } from "../engine/store";
 import { StepAmountEditor, useLongPress, type StepAmountKind } from "../controls/StepAmount";
 import { allKeys, cellKey, flagMoves, getClipboard, getLockClip, laneOf, origin, payload, place, retarget, setClipboard, snapshot, stepOf, type CellData, type Plan } from "../engine/selection";
-import { condChoices, DIRECTIONS, RATCHET_CHOICES, condKey, condText, parseCond, ratchetKey, ratchetText, DIVISIONS, DIVISION_ORDER, PATTERN_NAMES, SPEEDS, STEPS_PER_BAR, FLAM_CHOICES, flamText, STEP_ACCENT, STEP_SLIDE, STEP_REC, STEP_TRIGLESS, type PatternData, hostCode } from "../engine/protocol";
+import { condChoices, DIRECTIONS, RATCHET_CHOICES, condKey, condText, parseCond, ratchetKey, ratchetText, DIVISIONS, DIVISION_ORDER, PATTERN_NAMES, ROW_PAGE, ROW_PAGES, rowPageName, SPEEDS, STEPS_PER_BAR, FLAM_CHOICES, flamText, STEP_ACCENT, STEP_SLIDE, STEP_REC, STEP_TRIGLESS, type PatternData, hostCode } from "../engine/protocol";
 import { inScale } from "../engine/scales";
 import { formatNorm, noteName, trackColor } from "../engine/params";
 import { rangeEntry, steppedBinding, valueBinding, withCtl } from "../controls/bindings";
@@ -119,6 +119,10 @@ export function SequenceScreen() {
   const gesture = useRef<Gesture | null>(null);
   useSelectionKeys(drum, t, hover, cursor);
 
+  // v0.46 fix29 : page des puces de pattern (A–H, I–P), calée sur le pattern édité
+  const editedPat = pattern?.pattern ?? 0;
+  const [chipPage, setChipPage] = useState(Math.floor(editedPat / ROW_PAGE));
+  useEffect(() => { setChipPage(Math.floor(editedPat / ROW_PAGE)); }, [editedPat, t]);
   if (!cat || !L || !pattern) return <ScreenFrame title="Séquence" encoders={[]}><div /></ScreenFrame>;
 
   const spb = STEPS_PER_BAR[pattern.division] ?? 16;
@@ -667,7 +671,10 @@ export function SequenceScreen() {
           </>}
           {getClipboard() && <button type="button" className="touch touch--quiet" onClick={() => void pasteAt(t, drum, cursor)} title="Ctrl+V">Coller</button>}
           <span className="pattern-chips" role="tablist" aria-label="Pattern édité">
-            {PATTERN_NAMES.map((name, p) => {
+            {/* v0.46 fix29 : 16 patterns (A à P) en deux pages de 8 ; la page suit le pattern édité */}
+            <PatternPageChip page={chipPage} other={PATTERN_NAMES.some((_, p) => Math.floor(p / ROW_PAGE) !== chipPage && ((live ? live[0] : pattern.playing) === p || live?.[1] === p))}
+              onTurn={() => setChipPage((chipPage + 1) % ROW_PAGES)} />
+            {PATTERN_NAMES.map((name, p) => Math.floor(p / ROW_PAGE) !== chipPage ? null : (() => {
               const isPlay = (live ? live[0] : pattern.playing) === p, isQueued = live?.[1] === p;
               return (
                 <button key={name} type="button" role="tab" aria-selected={p === pattern.pattern}
@@ -676,7 +683,7 @@ export function SequenceScreen() {
                   onContextMenu={(e) => { e.preventDefault(); void actions.launchPattern(t, p); }}
                   title={`Éditer le pattern ${name} (clic droit : le lancer)`}>{name}</button>
               );
-            })}
+            })())}
           </span>
           {(live ? live[0] : pattern.playing) !== pattern.pattern && (
             <button type="button" className="touch touch--small" onClick={() => void actions.launchPattern(t, pattern.pattern)}>▶ Lancer {PATTERN_NAMES[pattern.pattern]}</button>
@@ -1171,5 +1178,14 @@ function OctaLaneRoll({ t, T, first, stepsPerBeat, playStep }: { t: number; T: n
       })}
     </div>
     </>
+  );
+}
+
+/** v0.46 fix29 : bascule de la page des patterns (A–H ⇄ I–P) ; allumée quand le pattern joué est sur l'autre page. */
+function PatternPageChip({ page, other, onTurn }: { page: number; other: boolean; onTurn: () => void }) {
+  const next = (page + 1) % ROW_PAGES;
+  return (
+    <button type="button" className={`pchip pchip-page${other ? " playing" : ""}`} onClick={onTurn}
+      title={`Montrer les patterns ${rowPageName(next)}`} aria-label={`Patterns ${rowPageName(next)}`}>{rowPageName(next)}</button>
   );
 }

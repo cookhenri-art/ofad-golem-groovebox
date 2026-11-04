@@ -3599,3 +3599,66 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   .vecfull-xf .slot-empty { font-size: 10.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
   .vecfull-xf .slot-actions .touch { padding-block: 3px; }
 }
+
+/* v0.46 fix29 : pages de rangées (A–H, I–P) sur la bande de lancement */
+.rowlaunch-btn.rowlaunch-page { flex: 0 0 46px; font-size: 13px; }
+.rowlaunch-btn.rowlaunch-page small { color: var(--scr-muted); font-size: 10px; }
+.rowlaunch-btn.rowlaunch-page.is-elsewhere { box-shadow: inset 0 0 0 2px var(--accent); }
+.rowlaunch-btn.rowlaunch-page.is-elsewhere small { color: var(--accent); }
+/* v0.46 fix29 : grille de LANCEMENT — choix de la page de rangées (A–H, I–P) dans le coin */
+.launch-pages { display: flex; flex-direction: column; gap: 2px; min-width: 0; position: sticky; left: 0; z-index: 2; background: var(--scr-bg); }
+.launch-page { flex: 1 1 0; min-height: 0; border: 0; border-radius: 4px; padding: 1px 2px; font: inherit; font-size: 10.5px; font-weight: 750; cursor: pointer; background: var(--scr-raise); color: var(--scr-muted); }
+.launch-page.on { background: var(--accent); color: var(--scr-bg); }
+.pchip.pchip-page { width: auto; white-space: nowrap; font-size: 10px; padding-inline: 5px; min-width: 0; color: var(--scr-muted); box-shadow: inset 0 0 0 1px var(--scr-line); }
+/* v0.46 fix29 : 8 puces + la puce de page tiennent sur la ligne d'outils de SÉQUENCE */
+.seq-tools .pattern-chips { gap: 2px; }
+.seq-tools .pattern-chips .pchip:not(.pchip-page) { width: 23px; }
+
+/* v0.46 fix29 : liste des pistes de la vue live — une ligne ne descend plus sous la hauteur de ses boutons
+   M / S (sinon ils débordaient vers le bas, décalés de leur nom) : la liste défile plutôt que de se tasser */
+.vecfull-tracks { grid-auto-rows: minmax(24px, 1fr); align-content: start; }
+.vecfull-trk { align-items: stretch; }
+.vecfull-m, .vecfull-s { min-height: 0; }
+.vecfull-name { align-self: center; }
+/* la taille de texte d'Android (accessibilité) ne grossit pas l'interface au-delà de sa mise en page */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* v0.46 fix29 : vue live — « Pavé actif » à part du choix de la vue ; pavé arrêté = grisé (on le règle) */
+.vecfull .chip.vecfull-active { display: inline-flex; align-items: center; gap: 7px; background: oklch(1 0 0 / 0.08); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.18); }
+.vecfull .chip.vecfull-active i { width: 9px; height: 9px; border-radius: 50%; background: oklch(0.5 0.02 250); flex: none; }
+.vecfull .chip.vecfull-active.is-on { background: oklch(0.68 0.17 145); color: #0c140e; box-shadow: 0 0 14px oklch(0.68 0.17 145 / 0.5); }
+.vecfull .chip.vecfull-active.is-on i { background: #fff; box-shadow: 0 0 6px #fff; }
+.vecfull-pad.is-off .vec-pad { filter: saturate(0.45) brightness(0.8); }
+/* cartes de scène de la vue live : pour jouer (nom, nombre de réglages, liste) */
+.slot.slot--live header .slot-count { margin-right: 0; font-size: 11px; }
+.slot.slot--live .slot-locks li { padding-block: 2px; }
+
+/* v0.46 fix29 : vue live sur téléphone (toutes hauteurs d'écran) — barre du haut plus petite, crossfader fin,
+   scènes entières, liste des pistes alignée */
+.vecfull--phone { gap: 4px; padding: 5px 8px 6px; }
+.vecfull--phone .vecfull-top { flex-wrap: nowrap; gap: 5px; }
+.vecfull--phone .vecfull-back { padding: 5px 9px; font-size: 12px; border-radius: 8px; }
+.vecfull--phone .vecfull-transport { gap: 3px; padding: 2px; border-radius: 8px; }
+.vecfull--phone .vecfull-transport button { width: 32px; height: 28px; font-size: 13px; border-radius: 6px; }
+.vecfull--phone .vecfull-mode { padding: 2px; gap: 2px; border-radius: 8px; }
+.vecfull--phone .vecfull-mode button { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+.vecfull--phone .chip { padding: 5px 9px; font-size: 12px; white-space: nowrap; border-radius: 7px; }
+.vecfull--phone .vecfull-sel { max-width: 120px; padding: 4px 6px; font-size: 12px; }
+.vecfull--phone .vecfull-focus { padding: 4px 9px; font-size: 12px; max-width: 170px; border-radius: 7px; }
+.vecfull--phone .vecfull-rows button { min-height: 28px; font-size: 13px; }
+.vecfull--phone .vecfull-xf { gap: 5px; padding: 6px; }
+.vecfull--phone .livexf { grid-template-columns: 40px minmax(0, 1fr) 40px; gap: 6px; }
+.vecfull--phone .livexf-end { height: 34px; font-size: 16px; border-radius: 9px; }
+.vecfull--phone .livexf-track { gap: 1px; }
+.vecfull--phone .livexf-track input[type=range] { height: 26px; border-radius: 8px; }
+.vecfull--phone .livexf-track input[type=range]::-webkit-slider-thumb { width: 24px; height: 34px; border-radius: 6px; }
+.vecfull--phone .livexf-marks { font-size: 9.5px; }
+.vecfull--phone .vecfull-xf .slot { gap: 3px; padding: 5px 8px; }
+.vecfull--phone .vecfull-tracks { grid-auto-rows: minmax(28px, 1fr); gap: 3px; }
+.vecfull--phone .vecfull-trk { gap: 3px; padding: 0 3px 0 6px; }
+.vecfull--phone .vecfull-name { font-size: 12px; line-height: 1.15; }
+.vecfull--phone .vecfull-m, .vecfull--phone .vecfull-s { width: 34px; font-size: 12px; border-radius: 5px; }
+.vecfull--phone .vecfull-back { white-space: nowrap; min-width: 34px; }
+.vecfull--phone .vecfull-sel { max-width: 96px; }
+.vecfull--phone .vecfull-sel + .vecfull-sel { max-width: 70px; }
+.vecfull--phone .vecfull-focus { max-width: 130px; }

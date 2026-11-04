@@ -134,7 +134,7 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 4. Les lignes **Accent** et **Glissé** (et « Verrous seuls » : le pas pose ses réglages sans jouer).
    Appui long sur une case : sa valeur (voir « La valeur d'un pas »).
 5. Le **rouleau de notes** : chaque pas reçoit la note qu'on veut, jusqu'à 4 notes par pas (accords).
-6. **Sélection**, **Pinceau**, tout choisir, patterns **A à H**, dupliquer, effacer.
+6. **Sélection**, **Pinceau**, tout choisir, patterns **A à P** (8 à la fois ; la petite puce « I–P » / « A–H » montre l'autre page), dupliquer, effacer.
 7. **Notes / Courbes** : les mouvements de boutons enregistrés avec **ENR.** dans ce pattern.
 8. Les **réglages de la piste** quand aucun pas n'est choisi (swing, longueur, vitesse…) — voir « 3. Écrire
    une séquence ».
@@ -151,7 +151,8 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 <figure class="wide"><img src="img/lancement-reperes.jpg" alt="LANCEMENT › Grille"><figcaption>LANCEMENT › Grille</figcaption></figure>
 
 1. Les onglets **Grille**, **Morceau**, **Audio**.
-2. La **grille** : une colonne par piste, une case par pattern (A à H) ; ▶ lance une rangée, ■ arrête une piste.
+2. La **grille** : une colonne par piste, une case par pattern ; ▶ lance une rangée, ■ arrête une piste. Les 16 rangées (A à P)
+   se montrent 8 à la fois : **A–H** / **I–P** dans le coin en haut à gauche.
 3. Copier, effacer ou éditer le pattern ou la rangée choisis.
 4. Les valeurs du bas : piste, pattern édité, **quantification du lancement**, rangée, **scène liée**.
 
@@ -251,7 +252,7 @@ l'instrument, le transport (● ▶ ■), le choix de la piste (◀ ▶, M, S) e
 
 ### 3. Écrire une séquence
 
-Chaque piste a **8 patterns** (A à H), de 1 à 32 mesures. Une même séquence s'écrit de trois façons,
+Chaque piste a **16 patterns** (A à P), de 1 à 32 mesures. Une même séquence s'écrit de trois façons,
 au choix — c'est **toujours la même séquence** : un pas posé sur la façade apparaît aussitôt dans
 l'écran SÉQUENCE, et inversement.
 
@@ -364,7 +365,7 @@ choisi, les valeurs du bas de l'écran règlent **ce pas seulement** :
 2. **M / S** de la ligne : couper ou écouter seule une ligne.
 3. Le **pas choisi**.
 4. Les lignes **Accent** (ici « Accent total » : tous les sons du pas plus forts) et **Verrous seuls**.
-5. Les **outils** : Sélection, Pinceau, Tout sélect., patterns A à H (clic droit : le lancer), Dupliquer ×2,
+5. Les **outils** : Sélection, Pinceau, Tout sélect., patterns A à P (clic droit : le lancer), Dupliquer ×2,
    Effacer ligne, Effacer pattern, ◀ ▶ Décaler ; pour le pas choisi : « Verrouiller des réglages sur ce pas », « Fermer
    le pas », « Retirer condition et verrous ».
 6. Les **réglages du pas** :
@@ -436,6 +437,17 @@ Les gestes :
 Écran LANCEMENT › Grille : chaque case lance un pattern (au début de la mesure suivante) ;
 ▶ en tête de rangée lance la même lettre sur toutes les pistes ; ■ arrête une piste.
 
+**Les 16 rangées, en deux pages.** Chaque piste a 16 patterns : les rangées vont de **A à P**. La bande
+**Rangées** (Mixeur, Scènes, vue live) les montre sur une seule ligne, 8 à la fois :
+
+- **◀ / ▶** (sous-titrés « I–P » ou « A–H ») tournent la page. Ils s'entourent de jaune quand la rangée
+  qui joue est sur l'autre page.
+- **−1 / +1** lancent la rangée précédente ou suivante et **changent de page tout seuls** (de H, +1 passe
+  à I). Ils **sautent les rangées vides** : si I à P ne sont pas écrites, +1 depuis H revient à A.
+- La page suit la rangée lancée, aussi depuis le contrôleur MIDI ou le morceau, et c'est la même partout
+  (bande des rangées, grille de LANCEMENT).
+- Au contrôleur MIDI, chacune des 16 rangées s'apprend (clic droit sur son bouton), comme −1 / +1 et ■.
+
 ### 5. Régler le son
 
 **Un instrument, trois vues, les mêmes réglages.** Le son d'une piste se règle :
@@ -483,7 +495,7 @@ basculent au milieu). Seuls les réglages enregistrés dans A ou B bougent : le 
    droit : scène muette. Les valeurs « Scène A » / « Scène B » du bas choisissent aussi la scène de chaque côté.
 5. La **scène de Break** : appliquée tant que **Break** (ou la touche **B**) est tenu.
 6. Le **crossfader** du transport (aussi au contrôleur MIDI ; double-clic : retour au milieu).
-7. Les **rangées A à H** : lancer une rangée lance aussi sa **scène liée** (réglée dans LANCEMENT).
+7. Les **rangées A à P** : lancer une rangée lance aussi sa **scène liée** (réglée dans LANCEMENT).
 
 **Jouer avec plusieurs scènes, en chaîne** : crossfader à gauche sur la scène 1. **Maj** + scène 2 : elle
 se place en B. Poussez le crossfader vers la droite : le son glisse de la scène 1 à la scène 2. **Maj** +
@@ -518,12 +530,16 @@ point sur le pavé : au centre, les quatre à parts égales ; dans un coin, la s
 **⛶ Vue live** (bouton framboise à côté des onglets Crossfader / Vecteur) : tout le jeu sur un seul
 écran, la vitrine du direct. En haut : Retour, ● ▶ ■, le mode **Crossfader** ou **Vecteur** (avec, en
 Vecteur, le mouvement, la durée d'un tour, Dessiner), la piste choisie et **Ouvrir l'instrument** ; puis
-les **16 boutons assignables avec le nom de leur fonction** ; les **rangées A à H**.
+les **16 boutons assignables avec le nom de leur fonction** ; les **rangées** (voir ci-dessous).
 
 - **Mode Crossfader** : la scène A et ses réglages, un grand crossfader (A, B, double-clic : moitié), la
   scène B ; à côté, la grille des scènes (banques 1–16 / 17–32, toucher : lancer) et la scène Break.
 - **Mode Vecteur** : le pavé carré et tous ses réglages (coins, mouvement, durée, taille, hauteur,
-  rotation, dessin).
+  rotation, dessin). **Crossfader** et **Vecteur** choisissent la vue : passer au Crossfader arrête le
+  pavé, passer au Vecteur ne l'allume pas. On le règle (et on place même le point au doigt) sans que le
+  son bouge, puis **Pavé arrêté / Pavé actif** (vert quand il joue) le lance ou l'arrête.
+- Les **cartes de scène** de la vue live servent à jouer : nom de la scène et ses réglages. On les édite
+  avant, dans l'écran SCÈNES.
 - **Console** (PC) : les 16 pistes avec fader de volume, crête-mètre, **FX** (les effets de la piste, en
   pédales), **M / S** ; **Pistes / Groupes** montre les groupes du mixeur, et en vue Pistes les groupes
   utilisés prennent la place des pistes sans instrument. Toucher le nom ou le fader d'une piste la

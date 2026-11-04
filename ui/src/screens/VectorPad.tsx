@@ -107,7 +107,7 @@ export function VectorPad({ full = false }: { full?: boolean }) {
             }
             drag.current = { id: e.pointerId };
             if (drawing) { const p = toPad(e.clientX, e.clientY); stroke.current = p ? [p] : []; setPath(stroke.current); return; }
-            if (!on) actions.setGlobal("vecOn", 1); // toucher le pavé l'active
+            if (!on && !full) actions.setGlobal("vecOn", 1); // toucher le pavé l'active (v0.46 fix29 : pas en vue live, où on le prépare avant de l'allumer)
             if (moving) { grab.current = { id: e.pointerId, cx: e.clientX, cy: e.clientY, x, y, depth, rot, size: e.button === 2 }; return; }
             setXY(e.clientX, e.clientY);
           }}
@@ -147,7 +147,7 @@ export function VectorPad({ full = false }: { full?: boolean }) {
             setPath(pts);
             void actions.setVecPath(pts.map(([px0, py0]) => `${px0.toFixed(3)},${py0.toFixed(3)}`).join(";"));
             actions.setGlobal("vecOrbit", DRAWN);
-            if (!on) actions.setGlobal("vecOn", 1);
+            if (!on && !full) actions.setGlobal("vecOn", 1);
           }}
           onPointerCancel={(e) => { touches.current.delete(e.pointerId); pinch.current = null; grab.current = null; drag.current = null; }}
           onDoubleClick={() => { actions.setGlobal("vecX", 0.5); actions.setGlobal("vecY", 0.5); }}>
@@ -377,27 +377,39 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
     const queue = [...usedGroups];
     return tracks.slice(0, 16).map((tr, i) => (!tr.instrument && queue.length ? queue.shift()! : { kind: "track" as const, i }));
   })();
+  // v0.46 fix29 : Crossfader / Vecteur choisissent la VUE ; passer au crossfader arrête le pavé, passer au
+  // vecteur ne l'allume pas : on le règle d'abord, puis « Pavé actif » le lance (comme l'écran SCÈNES)
+  const phone = useStore((s) => s.ui.phone);
+  const [mode, setMode] = useState<"xf" | "vec">(on ? "vec" : "xf");
+  useEffect(() => { if (on) setMode("vec"); }, [on]);
+  const vecView = mode === "vec";
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); setUi({ vecFull: false }); } };
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
   }, []);
   return (
-    <div className="vecfull" role="dialog" aria-label="Pavé vectoriel en grand">
+    <div className={`vecfull${phone ? " vecfull--phone" : ""}`} role="dialog" aria-label="Pavé vectoriel en grand">
       <KnobLfoAssignBar />
       <header className="vecfull-top">
-        <button type="button" className="vecfull-back" onClick={() => setUi({ vecFull: false })} title="Revenir (Échap)">← Retour</button>
+        <button type="button" className="vecfull-back" onClick={() => setUi({ vecFull: false })} title="Revenir (Échap)">{phone ? "←" : "← Retour"}</button>
         <span className="vecfull-transport">
           <button type="button" className={`ft-rec${t.rec ? " on" : ""}`} onClick={actions.toggleRecord} aria-label="Enregistrer">●</button>
           <button type="button" className={`ft-play${t.playing ? " on" : ""}`} onClick={() => (t.playing ? actions.stop() : actions.play())} aria-label={t.playing ? "Arrêter" : "Lecture"}>{t.playing ? "❚❚" : "▶"}</button>
           <button type="button" className="ft-stop" onClick={actions.stop} aria-label="Arrêt">■</button>
         </span>
         {/* v0.46 fix28 : mode de la vue live : crossfader A / B ou pavé vectoriel */}
-        <span className="vecfull-mode" role="radiogroup" aria-label="Crossfader ou vecteur" data-ctl={hostCode("vecOn")} data-ctl-label="Pavé actif" data-ctl-norm={on ? 1 : 0}>
-          <button type="button" role="radio" aria-checked={!on} className={!on ? "on" : ""} onClick={() => actions.setGlobal("vecOn", 0)}>Crossfader</button>
-          <button type="button" role="radio" aria-checked={on} className={on ? "on" : ""} onClick={() => actions.setGlobal("vecOn", 1)}>Vecteur</button>
+        <span className="vecfull-mode" role="radiogroup" aria-label="Vue crossfader ou vecteur">
+          <button type="button" role="radio" aria-checked={!vecView} className={!vecView ? "on" : ""} onClick={() => { setMode("xf"); if (on) actions.setGlobal("vecOn", 0); }}
+            title="Vue crossfader : le crossfader A / B reprend la main (le pavé s'arrête)">Crossfader</button>
+          <button type="button" role="radio" aria-checked={vecView} className={vecView ? "on" : ""} onClick={() => setMode("vec")}
+            title="Vue vecteur : réglez le pavé, puis « Pavé actif » pour le lancer">Vecteur</button>
         </span>
-        {on && <>
+        {vecView && <button type="button" className={`chip vecfull-active${on ? " is-on" : ""}`} aria-pressed={on} onClick={() => actions.setGlobal("vecOn", on ? 0 : 1)}
+          data-ctl={hostCode("vecOn")} data-ctl-label="Pavé actif" data-ctl-norm={on ? 1 : 0}
+          title={on ? "Le pavé joue : toucher pour l'arrêter (le crossfader A / B reprend la main)" : "Le pavé est arrêté : réglez-le, puis touchez pour le lancer"}>
+          <i aria-hidden />{on ? "Pavé actif" : "Pavé arrêté"}</button>}
+        {vecView && <>
         <select className="vecfull-sel" value={orbit} onChange={(e) => actions.setGlobal("vecOrbit", Number(e.target.value))} aria-label="Mouvement"
           data-ctl={hostCode("vecOrbit")} data-ctl-label="Pavé : mouvement" data-ctl-norm={orbit / 8}>
           {VEC_ORBITS.map((o, i) => <option key={o} value={i}>{i === 0 ? "Sans mouvement" : o}</option>)}
@@ -406,22 +418,22 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
           data-ctl={hostCode("vecRate")} data-ctl-label="Pavé : un tour en" data-ctl-norm={rate / 8}>
           {VEC_RATES.map((r, i) => <option key={r} value={i}>{r}</option>)}
         </select>
-        <button type="button" className={`chip${drawing ? " chip--on" : ""}`} onClick={() => setDrawing(!drawing)}>✎ Dessiner</button>
+        <button type="button" className={`chip${drawing ? " chip--on" : ""}`} onClick={() => setDrawing(!drawing)} title="Dessiner une forme au doigt sur le pavé" aria-label="Dessiner une forme">{phone ? "✎" : "✎ Dessiner"}</button>
         </>}
         <span className="vecfull-spacer" />
         {/* v0.46 fix28 : piste choisie (toucher une tranche de la console) : son instrument, ses effets */}
         {focusName && <span className="vecfull-focus" style={{ "--k": focusColor } as React.CSSProperties}><i aria-hidden />{focusName}</span>}
         {focusIsTrack && <button type="button" className="chip chip--inst" onClick={() => setUi({ face: true })}
-          title="Ouvrir la façade de l'instrument de la piste choisie (✕ pour revenir à la vue live)">Ouvrir l'instrument</button>}
+          title="Ouvrir la façade de l'instrument de la piste choisie (✕ pour revenir à la vue live)">{phone && vecView ? "Instrument" : "Ouvrir l'instrument"}</button>}
       </header>
       {/* v0.46 fix26 : les 16 boutons assignables sur une seule rangée (le pavé garde sa hauteur) */}
       <div className="vecfull-knobs"><div className="vecfull-knobs-grid"><AssignKnobs /></div></div>
       {/* rangées A à H (lancement de tout un tableau de patterns), comme sur l'écran Lancement */}
       <div className="vecfull-rows"><RowLaunchBar /></div>
       <div className="vecfull-body">
-        {on ? <div className="vecfull-pad">{pad}</div> : (
+        {vecView ? <div className={`vecfull-pad${on ? "" : " is-off"}`}>{pad}</div> : (
           <div className="vecfull-pad vecfull-xf">
-            <SlotCard slot="A" scene={sceneA} copying={false} onCopy={() => setUi({ vecFull: false, screen: "scenes" })} />
+            <SlotCard live slot="A" scene={sceneA} copying={false} onCopy={() => setUi({ vecFull: false, screen: "scenes" })} />
             <div className="livexf" data-ctl={MIDI_XFADE} data-ctl-label="Crossfader" data-ctl-norm={gg.xfade}>
               <button type="button" className={`livexf-end a${gg.xfade <= 0.001 ? " on" : ""}`} onClick={() => actions.setGlobal("xfade", 0)}>A</button>
               <div className="livexf-track">
@@ -431,11 +443,11 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
               </div>
               <button type="button" className={`livexf-end b${gg.xfade >= 0.999 ? " on" : ""}`} onClick={() => actions.setGlobal("xfade", 1)}>B</button>
             </div>
-            <SlotCard slot="B" scene={sceneB} copying={false} onCopy={() => setUi({ vecFull: false, screen: "scenes" })} />
+            <SlotCard live slot="B" scene={sceneB} copying={false} onCopy={() => setUi({ vecFull: false, screen: "scenes" })} />
           </div>
         )}
         {/* v0.46 fix28 : grand écran (PC) : tous les réglages à côté (pavé, ou scènes du crossfader) */}
-        {on ? <div className="vecfull-settings vec-side">{settings}<LivePerf /></div> : (
+        {vecView ? <div className="vecfull-settings vec-side">{settings}<LivePerf /></div> : (
           <div className="vecfull-settings vec-side vecfull-scenes">
             <div className="vec-group">
               <span className="vec-label">Scènes · toucher : lancer (A ou B suivant le crossfader)</span>
@@ -455,7 +467,7 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
                 })}
               </div>
             </div>
-            <SlotCard slot="Break" scene={BREAK_SCENE} copying={false} onCopy={() => setUi({ vecFull: false, screen: "scenes" })} />
+            <SlotCard live slot="Break" scene={BREAK_SCENE} copying={false} onCopy={() => setUi({ vecFull: false, screen: "scenes" })} />
             <LivePerf />
           </div>
         )}

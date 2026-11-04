@@ -274,8 +274,13 @@ export const DIVISIONS = ["1/8", "1/8T", "1/16", "1/16T", "1/32", "1/4", "1/32T"
 export const STEPS_PER_BAR = [8, 12, 16, 24, 32, 4, 48, 64];
 export const DIVISION_ORDER = [5, 0, 1, 2, 3, 4, 6, 7];
 export const LAUNCH_QUANTS = ["Immédiat", "1 temps", "1 mesure", "2 mesures", "4 mesures"];
-export const PATTERN_NAMES = ["A", "B", "C", "D", "E", "F", "G", "H"];
-export const STOP_PATTERN = 8;
+// v0.46 fix29 : 16 patterns par piste (A à P), montrés en pages de 8 rangées (A–H, I–P)
+export const PATTERN_NAMES = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"];
+export const STOP_PATTERN = 16;
+export const ROW_PAGE = 8;
+export const ROW_PAGES = PATTERN_NAMES.length / ROW_PAGE;
+/** Nom d'une page de rangées : « A–H », « I–P ». */
+export const rowPageName = (page: number) => `${PATTERN_NAMES[page * ROW_PAGE]}–${PATTERN_NAMES[page * ROW_PAGE + ROW_PAGE - 1]}`;
 // Commandes MIDI spéciales (cibles négatives, voir PluginProcessor.h)
 export const MIDI_XFADE = -2, MIDI_BREAK = -3, MIDI_FILL = -4, MIDI_PLAY = -5;
 export const MIDI_START = -6, MIDI_STOP = -7, MIDI_RECORD = -8, MIDI_REC_MOVES = -9, MIDI_SONG_MODE = -10;
@@ -283,7 +288,7 @@ export const MIDI_START = -6, MIDI_STOP = -7, MIDI_RECORD = -8, MIDI_REC_MOVES =
 export const MIDI_MUTE_BASE = -100, MIDI_SOLO_BASE = -200;
 /** v0.46 : coupure d'un bus (retour, principal, groupe) : -300 - (canal - 16) ; solo d'un groupe : -400 - (canal - 16). */
 export const MIDI_BUS_MUTE_BASE = -300, MIDI_BUS_SOLO_BASE = -400;
-/** v0.46 : rangées au contrôleur : précédente, suivante, tout arrêter, et lancer A à H (-20 - rangée). */
+/** v0.46 : rangées au contrôleur : précédente, suivante, tout arrêter, et lancer A à P (-20 - rangée ; fix29 : I à P). */
 export const MIDI_ROW_PREV = -11, MIDI_ROW_NEXT = -12, MIDI_ROW_STOP = -13, MIDI_ROW_BASE = -20;
 /** v0.46 : photo des réglages et rappel de la photo au contrôleur. */
 export const MIDI_PHOTO = -14, MIDI_RECALL = -15;

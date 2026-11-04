@@ -8,7 +8,7 @@ import type {
   AudioRecStatus,
   Catalog, ChannelData, LaneData, LaunchData, SongData, PatternLanesData, MidiData, PatternData, PresetScope, SceneData, StepExtra, Tick, TracksData, UserPresetList, WaveData, MacroData, MontageData, MontageClip,
 } from "./protocol";
-import { PATTERN_NAMES } from "./protocol";
+import { PATTERN_NAMES, ROW_PAGE } from "./protocol";
 import { lastChannel, resolve, setBusNameSource, toNorm, type Resolved } from "./params";
 import { getLockClip, setLockClip } from "./selection";
 
@@ -55,6 +55,7 @@ export interface UiState {
   pedals: boolean;              // pédalier ouvert (les inserts du canal en pédales)
   fullscreen: boolean;          // application en plein écran
   launchView: "grid" | "song" | "audio";  // écran Lancement : grille des patterns, morceau ou montage audio
+  rowPage: number;              // v0.46 fix29 : page de rangées montrée (0 : A–H, 1 : I–P), la même partout
   seqView: "notes" | "auto";    // écran Séquence : notes ou courbes du pattern
   launchAll: boolean;           // grille de lancement : les 16 pistes en défilement (sinon 8 par écran)
   muteTarget: "pads" | "tracks"; // v0.31 : rôle Couper sur une batterie — ses pads (sons) ou les 16 pistes
@@ -147,7 +148,7 @@ let state: AppState = {
     screen: "sequence", page: 0, lane: 0, step: null, stepEdit: false, editSlot: null, editBreak: false,
     soundTab: "", soundSection: 0, fxSlot: 0, fxTab: "", fxSection: 0, modSlot: 0, mixerBank: 0, mixerFirst: 0,
     padMode: "play", octave: 0, scale: 0, root: 0, padLevels: false, rollBase: 36, shift: false, browserFamily: "Batteries", browserIndex: 0, sceneBank: 0, message: null, trackClip: null,
-    selection: [], selectMode: false, paint: false, copyDrag: false, modAssign: null, macroAssign: null, knobAssign: null, modPanel: null, knobLfoAssign: null, face: false, pedals: false, fullscreen: false, launchView: "grid", seqView: "notes", launchAll: readPref("launchAll", true), muteTarget: readPref("muteTracks", false) ? "tracks" : "pads", faceBig: readPref("faceBig", true),
+    selection: [], selectMode: false, paint: false, copyDrag: false, modAssign: null, macroAssign: null, knobAssign: null, modPanel: null, knobLfoAssign: null, face: false, pedals: false, fullscreen: false, launchView: "grid", rowPage: 0, seqView: "notes", launchAll: readPref("launchAll", true), muteTarget: readPref("muteTracks", false) ? "tracks" : "pads", faceBig: readPref("faceBig", true),
   },
 };
 
@@ -881,7 +882,12 @@ export const actions = {
   // Patterns et lancement ---------------------------------------------------------------
   async refreshLaunch() { await refreshLaunch(); },
   async launchPattern(track: number, pattern: number) { set({ launch: await callJson<LaunchData>("launchPattern", track, pattern) }); },
-  async launchRow(row: number) { set({ launch: await callJson<LaunchData>("launchRow", row) }); },
+  async launchRow(row: number) {
+    // v0.46 fix29 : la page de rangées suit la rangée lancée (H → I passe à la page I–P)
+    const page = Math.floor(row / ROW_PAGE);
+    if (page !== state.ui.rowPage) setUi({ rowPage: page });
+    set({ launch: await callJson<LaunchData>("launchRow", row) });
+  },
   async setLaunchQuant(q: number) { set({ launch: await callJson<LaunchData>("setLaunchQuant", q) }); },
   async setRowScene(row: number, scene: number) { set({ launch: await callJson<LaunchData>("setRowScene", row, scene) }); },
   // Morceau (arrangeur) ------------------------------------------------------------------

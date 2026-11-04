@@ -1237,7 +1237,17 @@ void GrooveboxProcessor::transportCommand (int target) noexcept
                 for (int t = 0; t < numTracks && cur < 0; ++t)
                     if (const auto p = seq.getPlaying (t); p >= 0 && p < Sequencer::numPatterns) cur = p;
             const auto n = Sequencer::numPatterns;
-            launchRow (cur < 0 ? 0 : (cur + (target == midiRowNext ? 1 : n - 1)) % n);
+            // v0.46 fix29 : 16 rangées (A à P) ; on saute les rangées vides (aucune piste n'a de notes) :
+            // la rangée suivante de H est I si elle est écrite, sinon on revient à A
+            auto used = [&seq, n] (int r) { for (int t = 0; t < numTracks; ++t) if (seq.hasNotesInLength (t, r)) return true; return false; };
+            int next = cur < 0 ? 0 : cur;
+            if (cur >= 0)
+                for (int k = 1; k <= n; ++k)
+                {
+                    const auto r = (cur + (target == midiRowNext ? k : n - k)) % n;
+                    if (used (r) || k == n) { next = r; break; }
+                }
+            launchRow (next);
             break;
         }
         case midiPhoto:  photoRequests.fetch_add (1); break;

@@ -231,8 +231,8 @@ public:
                       midiStart = -6, midiStop = -7, midiRecord = -8, midiRecMoves = -9, midiSongMode = -10,
                       midiRowPrev = -11, midiRowNext = -12, midiRowStop = -13, // v0.46 : rangée précédente / suivante, tout arrêter
                       midiPhoto = -14, midiRecall = -15, // v0.46 : prendre la photo des réglages, la rappeler
-                      midiRowBase = -20,      // v0.46 : -20 - rangée : lancer la rangée A à H (-20 à -27)
-                      midiLastSpecial = -27,
+                      midiRowBase = -20,      // v0.46 : -20 - rangée : lancer la rangée A à P (-20 à -35 ; fix29 : I à P)
+                      midiLastSpecial = -35,
                       midiMuteBase = -100,   // -100 - piste : coupure de la piste (pistes 1 à 16 : -100 à -115)
                       midiSoloBase = -200,   // -200 - piste : solo de la piste (-200 à -215)
                       midiBusMuteBase = -300, // v0.46 : -300 - (canal - 16) : coupure d'un retour, du principal ou d'un groupe

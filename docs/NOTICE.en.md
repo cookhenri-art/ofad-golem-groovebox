@@ -15,7 +15,7 @@ This manual covers the basics; the instruments and effects are described in deta
 | Assign to… · Free the knob · Learn MIDI | Assigner à… · Libérer le bouton · Apprendre MIDI |
 | Accent · Slide · Locks · Locks only | Accent · Glissé · Verrous · Verrous seuls |
 | Writing: Acid / Locks · Follow · Nudge · Hide / Show | Écriture : Acide / À verrous · Suivre · Décaler · Masquer / Afficher |
-| Edit · Done · Pad active · Corners · Size · Height · Rotation | Éditer · Terminer · Pavé actif · Coins · Taille · Hauteur · Rotation |
+| Edit · Done · Pad active / stopped · Corners · Size · Height · Rotation | Éditer · Terminer · Pavé actif / arrêté · Coins · Taille · Hauteur · Rotation |
 | Rec performance · Rec motion · Record a take · Arrange mode · Loop | Enr. le jeu · Enr. les mouvements · Enregistrer une prise · Mode montage · Boucle |
 
 ## Keyboard and mouse shortcuts
@@ -148,7 +148,7 @@ crossfader, scenes, vector pad and macros always respond.
 4. The **Accent** and **Slide** lines (and "Locks only": the step sets its settings without playing).
    Long press on a cell: its value (see "A step's value").
 5. The **piano roll**: each step gets whatever note you want, up to 4 notes per step (chords).
-6. **Select**, **Brush**, select all, patterns **A to H**, duplicate, clear.
+6. **Select**, **Brush**, select all, patterns **A to P** (8 at a time; the small "I–P" / "A–H" chip shows the other page), duplicate, clear.
 7. **Notes / Curves**: the knob movements recorded with **REC** in this pattern.
 8. The **track settings** when no step is selected (swing, length, speed…) — see "3. Writing a sequence".
 
@@ -164,7 +164,8 @@ crossfader, scenes, vector pad and macros always respond.
 <figure class="wide"><img src="img/lancement-reperes.jpg" alt="LAUNCH › Grid"><figcaption>LAUNCH › Grid</figcaption></figure>
 
 1. The **Grid**, **Song**, **Audio** tabs.
-2. The **grid**: one column per track, one cell per pattern (A to H); ▶ launches a row, ■ stops a track.
+2. The **grid**: one column per track, one cell per pattern; ▶ launches a row, ■ stops a track. The 16 rows (A to P)
+   are shown 8 at a time: **A–H** / **I–P** in the top left corner.
 3. Copy, clear or edit the selected pattern or row.
 4. The values at the bottom: track, edited pattern, **launch quantise**, row, **linked scene**.
 
@@ -263,7 +264,7 @@ the instrument has them), ⇄ Instrument, FX · Effects, Presets.
 
 ### 3. Writing a sequence
 
-Each track has **8 patterns** (A to H), from 1 to 32 bars. A sequence can be written in three ways, as
+Each track has **16 patterns** (A to P), from 1 to 32 bars. A sequence can be written in three ways, as
 you like — it is **always the same sequence**: a step set on the panel shows up at once in the SEQUENCE
 screen, and the other way round.
 
@@ -375,7 +376,7 @@ step selected, the values at the bottom of the screen set **that step only**:
 2. **M / S** of the line: mute or solo a line.
 3. The **selected step**.
 4. The **Accent** lines (here "Total accent": every sound of the step louder) and **Locks only**.
-5. The **tools**: Select, Brush, Select all, patterns A to H (right-click: launch it), Duplicate ×2,
+5. The **tools**: Select, Brush, Select all, patterns A to P (right-click: launch it), Duplicate ×2,
    Clear line, Clear pattern, ◀ ▶ Nudge; for the selected step: "Lock settings on this step", "Close
    the step", "Remove condition and locks".
 6. The **step settings**:
@@ -448,6 +449,17 @@ The gestures:
 LAUNCH › Grid screen: each cell launches a pattern (at the start of the next bar); ▶ at the head of a row
 launches the same letter on all tracks; ■ stops a track.
 
+**16 rows, on two pages.** Each track has 16 patterns: the rows go from **A to P**. The **Rows** bar
+(Mixer, Scenes, live view) shows them on a single line, 8 at a time:
+
+- **◀ / ▶** (labelled "I–P" or "A–H") turn the page. They get a yellow outline when the row that is
+  playing is on the other page.
+- **−1 / +1** launch the previous or next row and **turn the page by themselves** (from H, +1 goes to I).
+  They **skip empty rows**: if I to P are not written, +1 from H goes back to A.
+- The page follows the row launched, also from the MIDI controller or the song, and it is the same
+  everywhere (rows bar, LAUNCH grid).
+- From a MIDI controller, each of the 16 rows can be learned (right-click on its button), like −1 / +1 and ■.
+
 ### 5. Shaping the sound
 
 **One instrument, three views, the same settings.** A track's sound is set:
@@ -494,7 +506,7 @@ settings stored in A or B move: everything else stays as it is.
    mute scene. The "Scene A" / "Scene B" values at the bottom also choose the scene on each side.
 5. The **Break scene**: applied while **Break** (or the **B** key) is held.
 6. The transport **crossfader** (also from the MIDI controller; double-click: back to the middle).
-7. **Rows A to H**: launching a row also launches its **linked scene** (set in LAUNCH).
+7. **Rows A to P**: launching a row also launches its **linked scene** (set in LAUNCH).
 
 **Playing several scenes in a chain**: crossfader on the left on scene 1. **Shift** + scene 2: it goes to
 B. Push the crossfader to the right: the sound glides from scene 1 to scene 2. **Shift** + scene 3: it
@@ -527,12 +539,16 @@ dot on the pad: in the centre, all four in equal parts; in a corner, that corner
 **⛶ Live view** (raspberry button next to the Crossfader / Vector tabs): the whole performance on a
 single screen, the showcase for playing live. At the top: Back, ● ▶ ■, **Crossfader** or **Vector** mode
 (with, in Vector, the motion, cycle length, Draw), the selected track and **Open the instrument**; then
-the **16 assignable knobs with the name of their function**; **rows A to H**.
+the **16 assignable knobs with the name of their function**; the **rows** (see below).
 
 - **Crossfader mode**: scene A and its settings, a big crossfader (A, B, double-click: middle), scene B;
   next to it, the scene grid (banks 1–16 / 17–32, touch: launch) and the Break scene.
 - **Vector mode**: the square pad and all its settings (corners, motion, length, size, height, rotation,
-  drawing).
+  drawing). **Crossfader** and **Vector** choose the view: switching to Crossfader stops the pad, switching
+  to Vector does not start it. You set it up (you can even place the dot with your finger) without the
+  sound changing, then **Pad stopped / Pad active** (green while it plays) starts or stops it.
+- The live view's **scene cards** are for playing: the scene name and its settings. You edit them
+  beforehand, in the SCENES screen.
 - **Console** (PC): the 16 tracks with volume fader, peak meter, **FX** (the track's effects, as pedals),
   **M / S**; **Tracks / Groups** shows the mixer groups, and in Tracks view the groups in use take the
   place of tracks with no instrument. Touching a track's name or fader selects it (Open the instrument,

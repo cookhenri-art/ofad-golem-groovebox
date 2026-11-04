@@ -176,7 +176,7 @@ public:
     static constexpr int numTracks = 16;
     static constexpr int numLanes = 16;
     static constexpr int maxSteps = 512; // 32 mesures en double croches
-    static constexpr int numPatterns = 8;
+    static constexpr int numPatterns = 16; // v0.46 fix29 : A à P (deux pages de rangées) ; 16 au plus (clé des extras sur 4 bits)
     static constexpr int stopPattern = numPatterns; // valeur d'attente : arrêter la piste
     static constexpr int maxRatchet = 8;
     static constexpr int maxLength8 = 1024; // durée d'une note : 128 pas au plus (en huitièmes de pas)
@@ -309,6 +309,16 @@ public:
         if (! validT (t) || ! validP (p)) return false;
         for (auto& lane : pat (t, p).vel)
             for (auto& s : lane) if (s.load (std::memory_order_relaxed) > 0) return true;
+        return false;
+    }
+
+    /** v0.46 fix29 : le pattern a-t-il des notes dans sa longueur ? (bon marché : pour « rangée suivante » sur le fil audio) */
+    bool hasNotesInLength (int t, int p) const noexcept
+    {
+        if (! validT (t) || ! validP (p)) return false;
+        const auto n = std::clamp (pat (t, p).length.load (std::memory_order_relaxed), 1, maxSteps);
+        for (auto& lane : pat (t, p).vel)
+            for (int s = 0; s < n; ++s) if (lane[(size_t) s].load (std::memory_order_relaxed) > 0) return true;
         return false;
     }
 
