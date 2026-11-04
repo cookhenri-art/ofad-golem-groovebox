@@ -67,6 +67,14 @@ export function Welcome() {
           Afficher cet accueil au démarrage
           <span className="welcome-esc">Échap : reprendre</span>
         </label>
+        {/* v0.46 fix30 : langue de l'interface, dès l'accueil (les noms des langues ne se traduisent pas) */}
+        <div className="welcome-lang" translate="no" role="radiogroup" aria-label="Langue / Language">
+          {(["fr", "en"] as const).map((l) => (
+            <button key={l} type="button" role="radio" aria-checked={document.documentElement.lang === l} className={document.documentElement.lang === l ? "on" : ""}
+              onClick={() => { if (document.documentElement.lang === l) return; try { window.localStorage.setItem("groovebox.lang", l); } catch { /* rien */ } window.location.reload(); }}>
+              {l === "fr" ? "Français" : "English"}</button>
+          ))}
+        </div>
       </div>
     </div>
   );

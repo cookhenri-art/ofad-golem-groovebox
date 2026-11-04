@@ -54,10 +54,20 @@ async function start() {
   //   ordre : choix fait dans l'application > choix de l'installateur (Windows) > question au premier lancement
   let lang: "fr" | "en" | null = null;
   try { const v = window.localStorage.getItem("groovebox.lang"); if (v === "fr" || v === "en") lang = v; } catch { /* rien */ }
-  if (!lang) {
-    const init = (window.__JUCE__ as { initialisationData?: Record<string, unknown> } | undefined)?.initialisationData?.lang;
-    const v = String(Array.isArray(init) ? (init[0] ?? "") : (init ?? ""));
-    if (v === "fr" || v === "en") lang = v;
+  {
+    // langue de l'installateur (Windows) : une NOUVELLE installation l'impose (même si une autre langue avait
+    // été choisie avant dans l'application) ; un changement fait ensuite dans Réglages est gardé
+    const data = (window.__JUCE__ as { initialisationData?: Record<string, unknown> } | undefined)?.initialisationData;
+    const one = (x: unknown) => String(Array.isArray(x) ? (x[0] ?? "") : (x ?? ""));
+    const v = one(data?.lang), stamp = one(data?.langStamp);
+    if (v === "fr" || v === "en") {
+      let seen = "";
+      try { seen = window.localStorage.getItem("groovebox.langInstall") ?? ""; } catch { /* rien */ }
+      if (!lang || (stamp && stamp !== seen)) {
+        lang = v;
+        try { window.localStorage.setItem("groovebox.lang", v); window.localStorage.setItem("groovebox.langInstall", stamp); } catch { /* rien */ }
+      }
+    }
   }
   if (!lang) lang = mock ? "fr" : await askLanguage(); // maquette de développement : français (captures)
   document.documentElement.lang = lang;

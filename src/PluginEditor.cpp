@@ -99,6 +99,8 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         const auto v = f.existsAsFile() ? f.loadFileAsString().trim().toLowerCase() : juce::String();
         const juce::String lang = v.startsWith ("en") ? "en" : v.startsWith ("fr") ? "fr" : "";
         options = options.withInitialisationData ("lang", lang);
+        // v0.46 fix30 : « en 20261104050100 » : l'heure de l'installation — une nouvelle installation impose sa langue
+        options = options.withInitialisationData ("langStamp", v);
     }
 
     auto fn = [&options] (const char* name, std::function<void (const Args&, Completion)> f)

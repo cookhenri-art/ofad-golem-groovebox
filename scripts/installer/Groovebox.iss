@@ -116,7 +116,7 @@ begin
   if ActiveLanguage() = 'english' then code := 'en' else code := 'fr';
   dir := ExpandConstant('{commonappdata}\One For All Distribution\Groovebox');
   if ForceDirectories(dir) then
-    SaveStringToFile(dir + '\language.txt', code, False);
+    SaveStringToFile(dir + '\language.txt', code + ' ' + GetDateTimeString('yyyymmddhhnnss', #0, #0), False);
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

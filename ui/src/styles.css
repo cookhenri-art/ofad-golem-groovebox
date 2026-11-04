@@ -3673,3 +3673,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .lang-first-btns button { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 17px; font-weight: 750; min-width: 140px; padding: 14px 18px; border-radius: 12px; background: oklch(0.82 0.15 78); color: oklch(0.15 0.01 250); }
 .lang-first-btns button + button { background: oklch(1 0 0 / 0.12); color: inherit; }
 .lang-choice { display: inline-flex; gap: 4px; }
+/* v0.46 fix30 : choix de la langue sur l'accueil */
+.welcome-lang { display: flex; gap: 6px; margin-top: 10px; }
+.welcome-lang button { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 700; padding: 6px 14px; border-radius: 8px; background: oklch(1 0 0 / 0.08); color: var(--silk-dim, #bbb); }
+.welcome-lang button.on { background: oklch(0.82 0.15 78); color: oklch(0.15 0.01 250); }
