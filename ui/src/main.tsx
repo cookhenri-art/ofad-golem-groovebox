@@ -57,7 +57,7 @@ async function start() {
   if (!lang && !mock) { lang = await askLanguage(); await saveLang(lang); }
   if (!lang) lang = "fr"; // maquette de développement : français (captures)
   document.documentElement.lang = lang;
-  if (lang === "en") (await import("./i18n")).startI18n();
+  if (lang === "en") (await import("./i18n")).startI18n("en");
   const [{ connect }, { App }] = await Promise.all([import("./engine/store"), import("./App")]);
   createRoot(document.getElementById("root")!).render(
     <StrictMode>

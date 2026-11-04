@@ -131,9 +131,12 @@ function doTree(root: Node) {
   }
 }
 
-/** Lance la traduction de la page si la langue est l'anglais. */
-export function startI18n() {
-  const lang = currentLang();
+/** Lance la traduction de la page si la langue est l'anglais.
+    v0.46 fix30i : la langue est celle que l'application a donnée (main.tsx, lang.ts). Elle était relue ici dans
+    la mémoire de la page (localStorage), que la WebView d'Android ne garde pas : on retombait sur la langue du
+    téléphone (français) et l'interface restait en français même après avoir choisi English. */
+export function startI18n(chosen?: Lang) {
+  const lang = chosen ?? currentLang();
   document.documentElement.lang = lang;
   if (lang === "fr") return;
   doTree(document.body);
