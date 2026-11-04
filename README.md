@@ -49,7 +49,7 @@ monophoniques et polyphoniques à filtres en échelle ou qui crient, synthés FM
 vocodeurs, sampler de performance, échos à bande, réverbérations, compresseurs de studio… Chacun est
 **recréé de zéro** : son propre nom, sa propre façade, ses propres sons d'usine.
 
-- **Application Windows** (autonome), **plugin VST3** pour les logiciels de musique, **application Android** pour tablette.
+- **Application Windows** (autonome), **plugin VST3** pour les logiciels de musique, **application Android** pour téléphone et tablette, avec **contrôleur MIDI** USB ou Bluetooth prêt à jouer.
 - **34 instruments**, **1249 sons d'usine**, **38 effets**, 16 pistes, 8 patterns par piste, 32 scènes.
 - **Vue live** pour le jeu en direct : crossfader ou **pavé vectoriel** à quatre scènes (formes en mouvement, taille, hauteur, rotation), console des 16 pistes avec faders, FX et M / S, et les **16 boutons assignables** avec leurs propres modulations.
 - Logiciel **libre** (AGPL-3.0) : les sources de chaque version sont fournies avec elle.
@@ -95,6 +95,31 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
   <img src="docs/img/galerie/effets-3.jpg" alt="Effets : modulations et filtres">
   <img src="docs/img/galerie/effets-4.jpg" alt="Effets : multi-effet et boucleur">
 </p>
+
+---
+
+## 📱 Sur téléphone et tablette, avec un contrôleur MIDI
+
+Toute la groovebox tient dans un **téléphone ou une tablette Android** : les mêmes écrans que sur PC
+(lancement, séquence, son, effets, mixeur, scènes, morceau), une disposition pensée pour le doigt
+(onglets **Commandes** et **Pads**, rangées plus grandes, façades qui défilent), la **Vue live** et
+les **16 boutons assignables**. De quoi faire un live complet avec seulement le téléphone et un
+contrôleur.
+
+- **Contrôleur MIDI prêt à jouer** : un clavier ou un contrôleur **USB** est reconnu tout seul, sans
+  réglage (câble ou hub USB-C « OTG » ; on peut le brancher en cours de jeu). En **Bluetooth** :
+  Réglages › « Appairer un contrôleur Bluetooth… ».
+- **Tout s'apprend** : appui long sur un réglage, un bouton de synthé, une valeur, un M / S, le
+  crossfader, une rangée › **Apprendre MIDI**, puis on touche la commande du contrôleur. Les 16 boutons
+  assignables s'apprennent aussi : une rangée de boutons du contrôleur pilote tout ce qu'on leur confie.
+- Les notes jouent la piste choisie (les pads sur une batterie), avec molette, pitch bend et pédale.
+- Téléphone avec un seul port USB-C : un hub USB-C avec charge permet de brancher le clavier, la sortie
+  son vers la table de mixage et le chargeur en même temps.
+
+<table>
+<tr><td align="center"><a href="docs/img/mobile-scenes-crossfader.jpg"><img src="docs/img/mobile-scenes-crossfader.jpg" alt="Téléphone : écran Scènes, crossfader"></a><br><b>Téléphone : Scènes · crossfader</b></td><td align="center"><a href="docs/img/mobile-scenes-vecteur.jpg"><img src="docs/img/mobile-scenes-vecteur.jpg" alt="Téléphone : écran Scènes, pavé vectoriel"></a><br><b>Téléphone : Scènes · pavé vectoriel</b></td></tr>
+<tr><td align="center"><a href="docs/img/mobile-live-crossfader.jpg"><img src="docs/img/mobile-live-crossfader.jpg" alt="Téléphone : vue live, crossfader"></a><br><b>Téléphone : Vue live · crossfader</b></td><td align="center"><a href="docs/img/mobile-live-vecteur.jpg"><img src="docs/img/mobile-live-vecteur.jpg" alt="Téléphone : vue live, pavé vectoriel"></a><br><b>Téléphone : Vue live · pavé vectoriel</b></td></tr>
+</table>
 
 ---
 
