@@ -17,6 +17,10 @@ import { SlotCard } from "./ScenesScreen";
 import { KnobLfoAssignBar } from "./ModSourcesDialog";
 import { BREAK_SCENE, MIDI_XFADE } from "../engine/protocol";
 import { paramAddress, useParam } from "../controls/bindings";
+import { ParamMenuZone } from "../controls/Encoder";
+import { useLearnPress } from "../controls/useLearnPress";
+import { Learn } from "../device/Device";
+import { MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_SOLO_BASE } from "../engine/protocol";
 
 export const VEC_ORBITS = ["Arrêt", "Cercle", "Infini", "Losange", "Carré", "Triangle", "Ricochet", "Hasard", "Dessinée"] as const;
 const DRAWN = 8;
@@ -329,11 +333,16 @@ function LiveStrip({ ch, kind, g }: { ch: number; kind: "track" | "group"; g?: n
   const fxCount = useStore((s) => (s.tracks.inserts[ch] ?? []).filter((t) => !!t).length);
   // v0.46 fix28 : toucher le nom ou le fader choisit la piste (Ouvrir l'instrument, Effets, boutons assignables)
   const pick = () => { if (!picked) void actions.focus(ch); };
+  // v0.46 fix30 : comme dans le mixeur : appui long (clic droit) sur le fader : valeur exacte, modulation,
+  // Apprendre MIDI, bouton assignable ; sur M / S : affecter au contrôleur MIDI
+  const learn = useLearnPress();
+  const muteCode = kind === "track" ? MIDI_MUTE_BASE - ch : MIDI_BUS_MUTE_BASE - (ch - L.numTracks);
+  const soloCode = kind === "track" ? MIDI_SOLO_BASE - ch : MIDI_BUS_SOLO_BASE - (ch - L.numTracks);
   return (
     <div className={`lstrip${used ? "" : " is-empty"}${muted ? " is-muted" : ""}${solo ? " is-solo" : ""}${picked ? " is-picked" : ""}`} style={{ "--k": color } as React.CSSProperties}>
       <button type="button" className="lstrip-head" title={`${name} — toucher : choisir la piste`} onClick={pick}><b>{tag}</b><span>{name}</span></button>
       <div className="lstrip-fader" onPointerDownCapture={pick}>
-        <TouchFader binding={volume} label={`Volume ${name}`} />
+        <ParamMenuZone binding={volume} className="lstrip-fader-zone"><TouchFader binding={volume} label={`Volume ${name}`} /></ParamMenuZone>
         <span className="lstrip-meter" aria-hidden><span style={{ height: `${meter * 100}%` }} className={db > -1 ? "hot" : ""} /></span>
       </div>
       <span className="lstrip-db tabular">{volume?.text ?? ""}</span>
@@ -341,9 +350,9 @@ function LiveStrip({ ch, kind, g }: { ch: number; kind: "track" | "group"; g?: n
       <button type="button" className={`lstrip-fx${fxCount ? " has" : ""}`} title={fxCount ? `Effets de ${name} : ${fxCount} — ouvrir` : `Ajouter des effets à ${name}`}
         onClick={() => { void actions.focus(ch).then(() => setUi({ pedals: true })); }}>FX{fxCount ? <b className="tabular">{fxCount}</b> : null}</button>
       <div className="lstrip-ms">
-        <button type="button" className={`m${muted ? " on" : ""}`} aria-pressed={muted}
+        <button type="button" className={`m${muted ? " on" : ""}`} aria-pressed={muted} {...learn(muteCode, `Coupure de ${name}`)}
           onClick={() => void (kind === "track" ? actions.trackMute(ch, !muted) : actions.busMute(ch, !muted))}>M</button>
-        <button type="button" className={`s${solo ? " on" : ""}`} aria-pressed={solo}
+        <button type="button" className={`s${solo ? " on" : ""}`} aria-pressed={solo} {...learn(soloCode, `Solo de ${name}`)}
           onClick={() => void (kind === "track" ? actions.trackSolo(ch, !solo) : actions.busSolo(ch, !solo))}>S</button>
       </div>
     </div>
@@ -380,6 +389,7 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
   // v0.46 fix29 : Crossfader / Vecteur choisissent la VUE ; passer au crossfader arrête le pavé, passer au
   // vecteur ne l'allume pas : on le règle d'abord, puis « Pavé actif » le lance (comme l'écran SCÈNES)
   const phone = useStore((s) => s.ui.phone);
+  const learnMS = useLearnPress(); // v0.46 fix30 : M / S de la liste (téléphone) : affecter au contrôleur MIDI
   const [mode, setMode] = useState<"xf" | "vec">(on ? "vec" : "xf");
   useEffect(() => { if (on) setMode("vec"); }, [on]);
   const vecView = mode === "vec";
@@ -436,11 +446,14 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
             <SlotCard live slot="A" scene={sceneA} copying={false} onCopy={() => setUi({ vecFull: false, screen: "scenes" })} />
             <div className="livexf" data-ctl={MIDI_XFADE} data-ctl-label="Crossfader" data-ctl-norm={gg.xfade}>
               <button type="button" className={`livexf-end a${gg.xfade <= 0.001 ? " on" : ""}`} onClick={() => actions.setGlobal("xfade", 0)}>A</button>
+              {/* v0.46 fix30 : appui long immobile (clic droit) : affecter le crossfader au contrôleur MIDI */}
+              <Learn target={MIDI_XFADE} what="Crossfader">
               <div className="livexf-track">
                 <input type="range" min={0} max={1000} step={1} value={Math.round(gg.xfade * 1000)} aria-label="Crossfader"
                   onChange={(e) => actions.setGlobal("xfade", Number(e.target.value) / 1000)} onDoubleClick={() => actions.setGlobal("xfade", 0.5)} />
                 <span className="livexf-marks" aria-hidden><i>tout A</i><i>moitié</i><i>tout B</i></span>
               </div>
+              </Learn>
               <button type="button" className={`livexf-end b${gg.xfade >= 0.999 ? " on" : ""}`} onClick={() => actions.setGlobal("xfade", 1)}>B</button>
             </div>
             <SlotCard live slot="B" scene={sceneB} copying={false} onCopy={() => setUi({ vecFull: false, screen: "scenes" })} />
@@ -504,8 +517,8 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
                 return (
                   <div key={k} className={`vecfull-trk${tr.instrument ? "" : " is-empty"}`} style={{ "--k": trackColor(tr.color ?? sl.i) } as React.CSSProperties}>
                     <span className={`vecfull-name${focus === sl.i ? " is-picked" : ""}`} title={`${tr.name} — toucher : choisir la piste`} onClick={() => void actions.focus(sl.i)}>{sl.i + 1} · {tr.name}</span>
-                    <button type="button" className={`vecfull-m${tr.mute ? " on" : ""}`} aria-pressed={!!tr.mute} onClick={() => void actions.trackMute(sl.i, !tr.mute)}>M</button>
-                    <button type="button" className={`vecfull-s${tr.solo ? " on" : ""}`} aria-pressed={!!tr.solo} onClick={() => void actions.trackSolo(sl.i, !tr.solo)}>S</button>
+                    <button type="button" className={`vecfull-m${tr.mute ? " on" : ""}`} aria-pressed={!!tr.mute} {...learnMS(MIDI_MUTE_BASE - sl.i, `Coupure de la piste ${sl.i + 1}`)} onClick={() => void actions.trackMute(sl.i, !tr.mute)}>M</button>
+                    <button type="button" className={`vecfull-s${tr.solo ? " on" : ""}`} aria-pressed={!!tr.solo} {...learnMS(MIDI_SOLO_BASE - sl.i, `Solo de la piste ${sl.i + 1}`)} onClick={() => void actions.trackSolo(sl.i, !tr.solo)}>S</button>
                   </div>
                 );
               }
@@ -515,8 +528,8 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
               return (
                 <div key={k} className={`vecfull-trk vecfull-trk--group${sl.used ? "" : " is-empty"}`}>
                   <span className="vecfull-name" title={members ? `${name} : ${members}` : `${name} (aucune piste envoyée)`}>G{sl.g} · {name}</span>
-                  <button type="button" className={`vecfull-m${b?.mute ? " on" : ""}`} aria-pressed={!!b?.mute} onClick={() => void actions.busMute(sl.ch, !b?.mute)} title={`Couper le groupe ${name}`}>M</button>
-                  <button type="button" className={`vecfull-s${b?.solo ? " on" : ""}`} aria-pressed={!!b?.solo} onClick={() => void actions.busSolo(sl.ch, !b?.solo)} title={`Solo du groupe ${name}`}>S</button>
+                  <button type="button" className={`vecfull-m${b?.mute ? " on" : ""}`} aria-pressed={!!b?.mute} {...learnMS(MIDI_BUS_MUTE_BASE - (sl.ch - (L?.numTracks ?? 16)), `Coupure de ${name}`)} onClick={() => void actions.busMute(sl.ch, !b?.mute)} title={`Couper le groupe ${name}`}>M</button>
+                  <button type="button" className={`vecfull-s${b?.solo ? " on" : ""}`} aria-pressed={!!b?.solo} {...learnMS(MIDI_BUS_SOLO_BASE - (sl.ch - (L?.numTracks ?? 16)), `Solo de ${name}`)} onClick={() => void actions.busSolo(sl.ch, !b?.solo)} title={`Solo du groupe ${name}`}>S</button>
                 </div>
               );
             })}

@@ -628,7 +628,7 @@ const histMock = { undo: 3, redo: 0, photo: false };
     outlr: transport.playing ? [0.5 + Math.random() * 0.1, 0.4 + Math.random() * 0.1] : [0, 0], och: 2,
     pos: new Array(16).fill(-1), tpos: new Array(16).fill(-1), eff: [] as number[][], mac: macros.map((m) => m.v), mods: Array.from({ length: 6 }, (_, m) => [m === 0 ? Math.sin(performance.now() / 300) : (performance.now() / 500 % 1), Math.floor(performance.now() / 250) % 16]), fxm: [[3 + Math.random() * 2, 0.5, 0.4], [2, 0.5, 0.4], [0, 0, 0], [0, 0, 0]],
     pat: trackSeq.map((ts) => [ts.playing, ts.queued]), learn: midiLearn, midi: (() => { const d = midiDirty; midiDirty = false; return d; })(),
-    kv: knobs.map((k) => k[1]), ke: knobs.map(() => -1), kmods: Array.from({ length: 4 }, (_, m) => [Math.sin(performance.now() / (300 + m * 200)), Math.floor(performance.now() / 250) % 16]),
+    kv: knobs.map((k) => k[1]), ke: knobs.map((kn) => (kn[0] >= 0 ? values[Math.floor(kn[0] / L.slotsPerChannel)]?.[kn[0] % L.slotsPerChannel] ?? -1 : -1)), kmods: Array.from({ length: 4 }, (_, m) => [Math.sin(performance.now() / (300 + m * 200)), Math.floor(performance.now() / 250) % 16]),
     ko: knobs.map((k) => (k[0] !== -1 && k[2] > 0 ? Math.max(0, Math.min(1, k[1] + k[3] * Math.sin(performance.now() / 300))) : -1)), ...(ucOut.length ? { uc: ucOut.splice(0) } : {}),
     hist: [histMock.undo > 0 ? 1 : 0, histMock.redo > 0 ? 1 : 0, histMock.photo ? 1 : 0],
     // aperçu : un spectre de mix plausible (grave fort, pente vers l'aigu, bosses qui bougent)

@@ -273,15 +273,19 @@ function PerfMeter({ compact = false }: { compact?: boolean }) {
 }
 
 /** Zone apprenable au contrôleur MIDI : clic droit ou appui long sur le bouton qu'elle entoure. */
-function Learn({ target, what, children }: { target: number; what: string; children: React.ReactNode }) {
+export function Learn({ target, what, children }: { target: number; what: string; children: React.ReactNode }) {
   const press = useRef<number | null>(null);
+  const at = useRef<[number, number]>([0, 0]);
   const learn = () => { void actions.midiLearn(target); showMessage(`${what} : touchez un bouton ou un pad du contrôleur MIDI`); };
   const cancel = () => { if (press.current !== null) { window.clearTimeout(press.current); press.current = null; } };
+  // v0.46 fix30 : seul un appui IMMOBILE apprend (un crossfader glissé vite déclenchait l'apprentissage)
   return (
     <span className="learn-zone" title={`${what} — clic droit : affecter au contrôleur MIDI`} data-ctl={target} data-ctl-label={what} data-ctl-norm={0}
-      onContextMenu={(e) => { e.preventDefault(); learn(); }}
-      onPointerDown={(e) => { if (e.pointerType !== "mouse") press.current = window.setTimeout(() => { press.current = null; learn(); }, 600); }}
-      onPointerUp={cancel} onPointerLeave={cancel}>
+      onContextMenu={(e) => { e.preventDefault(); cancel(); learn(); }}
+      onPointerDownCapture={(e) => { if (e.pointerType !== "mouse") { at.current = [e.clientX, e.clientY]; cancel(); press.current = window.setTimeout(() => { press.current = null; learn(); }, 600); } }}
+      onPointerMoveCapture={(e) => { if (press.current !== null && Math.hypot(e.clientX - at.current[0], e.clientY - at.current[1]) > 8) cancel(); }}
+      onInputCapture={cancel} onChangeCapture={cancel}
+      onPointerUpCapture={cancel} onPointerCancelCapture={cancel} onPointerLeave={cancel}>
       {children}
     </span>
   );

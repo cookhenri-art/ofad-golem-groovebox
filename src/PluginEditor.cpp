@@ -1802,8 +1802,13 @@ void GrooveboxEditor::timerCallback()
     {
         const auto t = processor.getKnobTarget (k);
         float e = -1.0f;
+        // v0.46 fix30 : le bouton suit TOUJOURS la valeur de son réglage (tournée depuis le synthé, une scène,
+        // un verrou, une courbe, une modulation…), plus seulement quand elle est modulée
         if (t >= 0 && eng.describe (t) != nullptr)
-            if (const auto v = eng.getEffective (t); std::abs (v - eng.getParam (t)) > 1.0e-4f) e = v;
+        {
+            const auto v = eng.getEffective (t);
+            e = std::isfinite (v) && v >= 0.0f && v <= 1.0f ? v : eng.getParam (t);
+        }
         o += (k ? "," : "") + num (e);
     }
     o += "]";

@@ -16,7 +16,7 @@ export function openKnobMods() {
   const L = getState().catalog?.layout;
   if (L) setUi({ modPanel: { channel: L.masterChannel, scope: "sound", knobs: true }, modSlot: 0, knobLfoAssign: null });
 }
-import { MIDI_KNOB_BASE, NUM_KNOBS } from "../engine/protocol";
+import { MIDI_KNOB_BASE, MIDI_XFADE, NUM_KNOBS } from "../engine/protocol";
 import { uiCode } from "../engine/ctl";
 import { targetName } from "../screens/SettingsScreen";
 
@@ -63,7 +63,12 @@ function KnobMenu({ k, onDone }: { k: number; onDone: () => void }) {
 function AssignKnob({ k }: { k: number }) {
   const tickV = useStore((s) => s.tick.kv?.[k]);
   // v0.46 fix28 : le bouton bouge avec la modulation (LFO…) du réglage relié, comme les boutons des synthés
-  const played = useStore((s) => { const o = s.tick.ko?.[k]; if (o !== undefined && o >= 0) return Math.round(o * 1000) / 1000; const e = s.tick.ke?.[k]; return e !== undefined && e >= 0 ? Math.round(e * 1000) / 1000 : null; });
+  // v0.46 fix30 : le bouton suit TOUJOURS son réglage, d'où qu'il soit tourné (synthé, mixeur, scène…) ; le crossfader aussi
+  const played = useStore((s) => {
+    const o = s.tick.ko?.[k]; if (o !== undefined && o >= 0) return Math.round(o * 1000) / 1000;
+    if ((s.midi.knobs?.[k]?.[0] ?? -1) === MIDI_XFADE) return Math.round((s.tick.g.xfade ?? 0) * 1000) / 1000;
+    const e = s.tick.ke?.[k]; return e !== undefined && e >= 0 ? Math.round(e * 1000) / 1000 : null;
+  });
   // v0.46 fix28 : modulation propre au bouton (sources des 16 boutons)
   const lfo = useStore((s) => s.midi.knobs?.[k]?.[2] ?? 0);
   const depth = useStore((s) => s.midi.knobs?.[k]?.[3] ?? 0);
