@@ -215,7 +215,8 @@ function HistoryButtons() {
 /** v0.46 fix22 : pavé vectoriel en grand, par-dessus tout (hors de l'appareil mis à l'échelle). */
 function VectorFullLayer() {
   // v0.46 fix28 : la vue live s'efface le temps d'ouvrir un instrument ou des effets, puis revient
-  const open = useStore((s) => !!s.ui.vecFull && !s.ui.face && !s.ui.pedals);
+  // (et le temps du panneau des modulations ; pendant « Affecter à un bouton… », la vue live revient : ses 16 boutons se touchent)
+  const open = useStore((s) => !!s.ui.vecFull && !s.ui.face && !s.ui.pedals && (!s.ui.modPanel || s.ui.knobLfoAssign !== null));
   return open ? <VectorPad full /> : null;
 }
 

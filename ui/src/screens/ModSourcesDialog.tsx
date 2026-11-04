@@ -22,6 +22,20 @@ function SourceKnobs({ channel, scope }: { channel: number; scope: "sound" | "fx
   );
 }
 
+/** v0.46 fix28 : affectation d'une source des boutons : barre « Touchez les boutons… / Terminer »
+    (dans l'appareil, et aussi dans la vue live où les 16 boutons restent visibles). */
+export function KnobLfoAssignBar() {
+  const lfoAssign = useStore((s) => s.ui.knobLfoAssign);
+  if (lfoAssign === null) return null;
+  return (
+    <div className="modsrc-assignbar" role="status" style={{ "--mod": MOD_SOURCE_COLORS[lfoAssign - 1] } as React.CSSProperties}>
+      <span className="mod-dot" style={{ background: MOD_SOURCE_COLORS[lfoAssign - 1] }} />
+      Touchez les boutons assignables à moduler par la source {lfoAssign} (toucher à nouveau : retirer)
+      <button type="button" onClick={() => setUi({ knobLfoAssign: null })}>Terminer</button>
+    </div>
+  );
+}
+
 export function ModSourcesDialog() {
   const panel = useStore((s) => s.ui.modPanel);
   const cat = useStore((s) => s.catalog);
@@ -65,15 +79,7 @@ export function ModSourcesDialog() {
     };
   }
   // affectation aux boutons : le panneau s'efface pour laisser toucher les 16 boutons
-  if (panel.knobs && lfoAssign !== null) {
-    return (
-      <div className="modsrc-assignbar" role="status" style={{ "--mod": MOD_SOURCE_COLORS[lfoAssign - 1] } as React.CSSProperties}>
-        <span className="mod-dot" style={{ background: MOD_SOURCE_COLORS[lfoAssign - 1] }} />
-        Touchez les boutons assignables à moduler par la source {lfoAssign} (toucher à nouveau : retirer)
-        <button type="button" onClick={() => setUi({ knobLfoAssign: null })}>Terminer</button>
-      </div>
-    );
-  }
+  if (panel.knobs && lfoAssign !== null) return <KnobLfoAssignBar />;
   // v0.46 fix28 : même cadre que la façade d'un synthé (page « Modulations de la piste »), dans l'appareil
   const sk = faceSkinStyle("generic");
   return (

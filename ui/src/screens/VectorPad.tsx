@@ -14,6 +14,7 @@ import { busName, groupBase, groupChannels, trackColor } from "../engine/params"
 import { RowLaunchBar } from "./RowLaunchBar";
 import { TouchFader } from "./MixerScreen";
 import { SlotCard } from "./ScenesScreen";
+import { KnobLfoAssignBar } from "./ModSourcesDialog";
 import { BREAK_SCENE, MIDI_XFADE } from "../engine/protocol";
 import { paramAddress, useParam } from "../controls/bindings";
 
@@ -383,6 +384,7 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
   }, []);
   return (
     <div className="vecfull" role="dialog" aria-label="Pavé vectoriel en grand">
+      <KnobLfoAssignBar />
       <header className="vecfull-top">
         <button type="button" className="vecfull-back" onClick={() => setUi({ vecFull: false })} title="Revenir (Échap)">← Retour</button>
         <span className="vecfull-transport">
