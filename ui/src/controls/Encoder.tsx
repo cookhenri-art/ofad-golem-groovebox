@@ -406,22 +406,51 @@ export function useMenuPlacement(open: boolean, root: React.RefObject<HTMLElemen
     // v0.46 fix20 : sur téléphone, le menu est agrandi et posé au milieu de la partie visible
     // (comme une fenêtre), pour se lire et se toucher facilement ; sa liste défile s'il est haut.
     if (getState().ui.phone) {
+      // v0.46 fix28 : la zone visible tient aussi compte de la fenêtre réellement affichée (visualViewport)
+      const vv = window.visualViewport;
+      if (vv) { top = Math.max(top, vv.offsetTop); bottom = Math.min(bottom, vv.offsetTop + vv.height); leftB = Math.max(leftB, vv.offsetLeft); rightB = Math.min(rightB, vv.offsetLeft + vv.width); }
       const availW = rightB - leftB - 2 * edge, availH = bottom - top - 2 * edge;
-      const w0 = el.offsetWidth;
-      const z = Math.max(1, Math.min(360 / (w0 * scale), (availW * 0.9) / (w0 * scale)));
+      // v0.46 fix28 : l'échelle n'est plus déduite du bouton mais MESURÉE sur le menu lui-même, posé à
+      // l'origine sans agrandissement (certaines WebView Android l'affichaient ~1,2 fois plus grand que
+      // prévu : le bas de la liste sortait de l'écran et ne se laissait jamais atteindre en défilant)
       el.style.zoom = "";
       el.style.transformOrigin = "0 0";
-      el.style.transform = `scale(${z})`;
+      el.style.transform = "none";
       el.style.maxHeight = "";
       el.style.overflowY = "";
-      const fullH = el.scrollHeight * scale * z;
-      if (fullH > availH) { el.style.maxHeight = `${availH / (scale * z)}px`; el.style.overflowY = "auto"; }
-      const visW = w0 * scale * z, visH = Math.min(fullH, availH);
-      const vx = leftB + edge + (availW - visW) / 2, vy = top + edge + (availH - visH) / 2;
-      el.style.left = `${(vx - hostRect.left) / scale}px`;
-      el.style.top = `${(vy - hostRect.top) / scale}px`;
+      el.style.left = "0px";
+      el.style.top = "0px";
       el.style.bottom = "auto";
       el.classList.add("mod-menu--sheet");
+      const w0 = el.offsetWidth, h0 = el.scrollHeight;
+      const r0 = el.getBoundingClientRect();
+      const anc = w0 > 0 && r0.width > 0 ? r0.width / w0 : scale;
+      const z = Math.max(1, Math.min(360 / (w0 * anc), (availW * 0.9) / (w0 * anc)));
+      const k = anc * z;
+      el.style.transform = `scale(${z})`;
+      if (h0 * k > availH) { el.style.maxHeight = `${availH / k}px`; el.style.overflowY = "auto"; }
+      const visW = w0 * k, visH = Math.min(h0 * k, availH);
+      const vx = leftB + edge + (availW - visW) / 2, vy = top + edge + (availH - visH) / 2;
+      let left = (vx - r0.left) / anc, topPx = (vy - r0.top) / anc;
+      el.style.left = `${left}px`;
+      el.style.top = `${topPx}px`;
+      // contrôle final sur ce qui est vraiment affiché : le menu entier dans la zone visible
+      const r = el.getBoundingClientRect();
+      if (r.height > availH + 1) {
+        el.style.maxHeight = `${(el.clientHeight * availH) / r.height}px`;
+        el.style.overflowY = "auto";
+      }
+      const r2 = el.getBoundingClientRect();
+      const ratio = r2.width > 0 && el.offsetWidth > 0 ? r2.width / (el.offsetWidth * z) : anc;
+      let dy = 0, dx = 0;
+      if (r2.bottom > bottom - edge + 0.5) dy = (bottom - edge) - r2.bottom;
+      if (r2.top + dy < top + edge - 0.5) dy = (top + edge) - r2.top;
+      if (r2.right > rightB - edge + 0.5) dx = (rightB - edge) - r2.right;
+      if (r2.left + dx < leftB + edge - 0.5) dx = (leftB + edge) - r2.left;
+      topPx += dy / ratio;
+      left += dx / ratio;
+      el.style.left = `${left}px`;
+      el.style.top = `${topPx}px`;
       return;
     }
     // horizontal : centré sur le bouton, ramené dans la zone visible
