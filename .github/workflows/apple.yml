@@ -2,7 +2,7 @@
 # v0.47 : compilation Apple sur les Mac de GitHub (gratuits pour un dépôt public).
 #  - Mac : application autonome, VST3 et AU (non signés : clic droit › Ouvrir au premier lancement) ;
 #  - iPhone / iPad : application NON SIGNÉE (Groovebox-iOS-non-signe.ipa). Elle ne s'installe pas telle
-#    quelle : il faut la signer avec un compte Apple (voir docs/IPHONE.md).
+#    quelle : il faut la signer avec un compte Apple (signature automatique à ajouter ici).
 name: Apple
 
 on:
@@ -61,7 +61,8 @@ jobs:
 
       - name: Paquet .ipa non signé
         run: |
-          APP=$(find build-ios -path "*Release-iphoneos*" -name "Groovebox.app" -type d | head -1)
+          APP=$(find build-ios -name "Groovebox.app" -type d -path "*Standalone*" | head -1)
+          [ -n "$APP" ] || APP=$(find build-ios -name "Groovebox.app" -type d | head -1)
           echo "Application : $APP"
           test -n "$APP"
           mkdir -p out/Payload
