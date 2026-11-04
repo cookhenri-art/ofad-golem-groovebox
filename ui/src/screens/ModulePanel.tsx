@@ -785,7 +785,7 @@ function StepTools({ ctx }: { ctx: Ctx }) {
   return (
     <div className="mp-steptools">
       <div className="mp-seg">{[16, 32, 48, 64].map((n) => (
-        <button key={n} type="button" className={`mp-lb${len === n ? " on" : ""}`} onClick={() => lenB?.entry?.pick(n)}><i />{n / 16} mes.</button>
+        <button key={n} type="button" className={`mp-lb${len === n ? " on" : ""}`} onClick={() => lenB?.entry?.pick(n)}><i />{`${n / 16} mes.`}</button>
       ))}</div>
       <div className="mp-seg">
         <button type="button" className="mp-lb" disabled={len >= 64} onClick={dup} title="Recopier les pas à la suite et doubler la longueur (jusqu'à 64 pas)"><i />Dupliquer ×2</button>

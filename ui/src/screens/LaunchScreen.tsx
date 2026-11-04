@@ -196,7 +196,7 @@ export function LaunchScreen() {
                     onContextMenu={(e) => { e.preventDefault(); setCopyFrom({ track: t, pattern: p }); }}
                     aria-label={`Piste ${t + 1}, pattern ${name}${filled ? "" : " (vide)"}${isPlaying ? ", joué" : ""}${isQueued ? ", en attente" : ""}`}>
                     <span className="launch-letter">{name}</span>
-                    {filled && <span className="launch-len tabular">{Math.max(1, Math.round((lt?.length[p] ?? 16) / (STEPS_PER_BAR[lt?.division?.[p] ?? 2] ?? 16)))} mes.</span>}
+                    {filled && <span className="launch-len tabular">{`${Math.max(1, Math.round((lt?.length[p] ?? 16) / (STEPS_PER_BAR[lt?.division?.[p] ?? 2] ?? 16)))} mes.`}</span>}
                   </button>
                 );
               })}
