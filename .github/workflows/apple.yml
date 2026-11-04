@@ -104,6 +104,16 @@ jobs:
             -DJUCE_DIR="$RUNNER_TEMP/JUCE"
           cmake --build build-mac --parallel --target Groovebox_Standalone Groovebox_VST3 Groovebox_AU
 
+      - name: Signature locale (sans compte Apple)
+        run: |
+          # signature « ad hoc » : sans elle, macOS déclare l'appli « endommagée » au lieu de proposer
+          # « Ouvrir quand même » (la vraie signature, avec certificat Apple, viendra avec le compte)
+          A=build-mac/Groovebox_artefacts/Release
+          for b in "$A/Standalone/Groovebox.app" "$A/VST3/Groovebox.vst3" "$A/AU/Groovebox.component"; do
+            codesign --force --deep --sign - "$b"
+            codesign --verify --deep --strict "$b" && echo "signé : $b"
+          done
+
       - name: Paquet Mac
         run: |
           A=build-mac/Groovebox_artefacts/Release
