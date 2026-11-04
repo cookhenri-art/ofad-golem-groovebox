@@ -1,0 +1,13 @@
+# OFAD GOLEM — vidéo (secondes, rangée, pistes entendues, crossfader)
+7
+12 pistes=2
+14 pistes=1,2
+14 pistes=1,2,3
+16 pistes=1,2,3,5
+16
+14 xfade=0>1
+14 xfade=1>0
+14
+14
+12
+6

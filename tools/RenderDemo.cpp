@@ -103,6 +103,75 @@ int main (int argc, char* argv[])
         }
         return 0;
     }
+    // v0.47 : --script <projet.gbx> <scenario.txt> <sortie.wav> : joue un projet en enchaînant des passages
+    // (son des vidéos de présentation). Une ligne par passage : « secondes [rangee=B] [pistes=1,2,5] [xfade=0>1] » ;
+    // rangee : lance une rangée (comme en live, au début de la mesure suivante) ;
+    // pistes : celles qu'on entend (les autres sont coupées), « toutes » par défaut ; xfade : crossfader,
+    // fixe (0.5) ou glissé du début à la fin du passage (0>1). « # » : commentaire.
+    if (argc > 4 && juce::String (argv[1]) == "--script")
+    {
+        grv::GrooveboxProcessor pp;
+        constexpr int bs = 256; constexpr double sr = 48000.0;
+        pp.setPlayConfigDetails (2, 2, sr, bs);
+        pp.prepareToPlay (sr, bs);
+        juce::FileInputStream in (juce::File::getCurrentWorkingDirectory().getChildFile (argv[2]));
+        if (! in.openedOk()) { std::printf ("Projet introuvable\n"); return 2; }
+        if (const auto err = pp.readProjectFile (in); err.isNotEmpty()) { std::printf ("Erreur : %s\n", err.toRawUTF8()); return 3; }
+        juce::StringArray lines;
+        lines.addLines (juce::File::getCurrentWorkingDirectory().getChildFile (argv[3]).loadFileAsString());
+        double total = 0.0;
+        for (auto& l : lines) if (l.trim().isNotEmpty() && ! l.trim().startsWith ("#")) total += l.trim().getDoubleValue();
+        const int frames = (int) (total * sr);
+        juce::AudioBuffer<float> all (2, frames + bs);
+        all.clear();
+        auto& seq = pp.getEngine().sequencer();
+        seq.requestPlay();
+        juce::AudioBuffer<float> b (2, bs);
+        juce::MidiBuffer m;
+        int pos = 0;
+        float peak = 0.0f; bool finite = true;
+        for (auto& raw : lines)
+        {
+            const auto l = raw.trim();
+            if (l.isEmpty() || l.startsWith ("#")) continue;
+            auto tok = juce::StringArray::fromTokens (l, " ", "");
+            const double secs = tok[0].getDoubleValue();
+            juce::String tracks = "toutes", xf;
+            for (auto& t : tok)
+            {
+                if (t.startsWith ("rangee=")) pp.launchRow (t.fromFirstOccurrenceOf ("=", false, false).toUpperCase()[0] - 'A');
+                if (t.startsWith ("pistes=")) tracks = t.fromFirstOccurrenceOf ("=", false, false);
+                if (t.startsWith ("xfade=")) xf = t.fromFirstOccurrenceOf ("=", false, false);
+            }
+            juce::Array<int> on;
+            if (tracks != "toutes") for (auto& n : juce::StringArray::fromTokens (tracks, ",", "")) on.add (n.getIntValue() - 1);
+            for (int t = 0; t < grv::engine::numTracks; ++t) seq.setTrackMute (t, tracks != "toutes" && ! on.contains (t));
+            const float x0 = xf.isEmpty() ? -1.0f : xf.upToFirstOccurrenceOf (">", false, false).getFloatValue();
+            const float x1 = xf.contains (">") ? xf.fromFirstOccurrenceOf (">", false, false).getFloatValue() : x0;
+            const int n = (int) (secs * sr / bs);
+            for (int i = 0; i < n && pos + bs <= frames + bs; ++i)
+            {
+                if (x0 >= 0.0f) pp.setGlobal (grv::ParamID::xfade, x0 + (x1 - x0) * (float) i / (float) juce::jmax (1, n - 1));
+                b.clear(); pp.processBlock (b, m);
+                for (int c = 0; c < 2; ++c)
+                {
+                    all.copyFrom (c, pos, b, c, 0, bs);
+                    for (int k = 0; k < bs; ++k) { const auto v = b.getSample (c, k); finite = finite && std::isfinite (v); peak = std::max (peak, std::abs (v)); }
+                }
+                pos += bs;
+            }
+        }
+        const juce::File out (juce::File::getCurrentWorkingDirectory().getChildFile (argv[4]));
+        out.deleteFile();
+        juce::WavAudioFormat wav;
+        std::unique_ptr<juce::OutputStream> stream = std::make_unique<juce::FileOutputStream> (out);
+        auto writer = wav.createWriterFor (stream, juce::AudioFormatWriterOptions{}.withSampleRate (sr).withNumChannels (2).withBitsPerSample (24));
+        if (writer == nullptr) return 2;
+        writer->writeFromAudioSampleBuffer (all, 0, pos);
+        writer.reset();
+        std::printf ("Sc\xC3\xA9nario : %.1f s, cr\xC3\xAAte %.3f, fini %d\n", pos / sr, peak, (int) finite);
+        return finite ? 0 : 4;
+    }
     if (argc > 2 && juce::String (argv[1]) == "--project")
     {
         grv::GrooveboxProcessor pp;
