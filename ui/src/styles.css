@@ -3707,3 +3707,7 @@ html, body, #root { overflow: clip; }
 /* v0.47 : menu d'une commande d'un rack ou d'une pédale affiché en entier (au-dessus des unités voisines) */
 .rk:has(.mod-menu), .pd:has(.mod-menu) { overflow: visible; z-index: 30; }
 .rk-face:has(.mod-menu) { overflow: visible; }
+/* v0.47 : « Régler les sources (LFO, fonctions…) » ouvert depuis un effet (pédalier, fenêtre d'un module) ou
+   une façade : la page des modulations passe DEVANT (elle restait derrière l'effet ouvert) ; en la
+   refermant, on retrouve l'effet tel qu'on l'avait laissé. */
+.face.face--modsrc { z-index: 80; }
