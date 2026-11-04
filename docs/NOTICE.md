@@ -207,6 +207,8 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 - Au lancement, la mascotte s'affiche pendant le chargement, puis l'**accueil** : reprendre la dernière
   séance, nouveau projet vide, projet de démonstration, ouvrir un fichier, ou un projet du dossier.
   (Réglages › « Accueil au démarrage » pour l'afficher ou non.)
+- **Langue** : français ou anglais, choisie à l'installation (Windows) ou au premier lancement (Android) ;
+  elle se change à tout moment dans Réglages › Projet (**Français / English**).
 - Carte son : **Options** (en haut à gauche de la fenêtre) › Audio/MIDI Settings. Pour la latence la plus faible :
   pilote ASIO de la carte son ou « Windows Audio (Low Latency Mode) », tampon de 128 à 256 échantillons.
 

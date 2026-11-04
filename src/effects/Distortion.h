@@ -131,7 +131,7 @@ namespace dist
                 P ("postLow", "Sortie \xC2\xB7 graves", "dB", -12, 12, 0),
                 P ("postHigh", "Sortie \xC2\xB7 aigus", "dB", -12, 12, 0),
                 C ("dynMode", "Mode", { "Compresseur", "Multibande", "Limiteur" }),
-                C ("dynPos", "Position", { "Avant", "Apr\xC3\xA8s" }, 1),
+                C ("dynPos", "Position", { "Avant saturation", "Apr\xC3\xA8s saturation" }, 1), // v0.46 fix30 : libellés sans ambiguïté (traduction)
                 P ("dynAmount", "Quantit\xC3\xA9", "%", 0, 100, 0),
                 P ("feedback", "R\xC3\xA9injection", "%", 0, 100, 0),
                 P ("fbTime", "Temps", "ms", 0.1f, 40, 4, 0.5f),

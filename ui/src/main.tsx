@@ -23,10 +23,45 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 for (const g of ["gesturestart", "gesturechange", "gestureend"]) document.addEventListener(g, (e) => e.preventDefault(), { passive: false });
 
+/** v0.46 fix30 : premier lancement sans langue connue (APK, ou PC sans choix à l'installation) : on la demande. */
+function askLanguage(): Promise<"fr" | "en"> {
+  return new Promise((resolve) => {
+    const box = document.createElement("div");
+    box.className = "lang-first";
+    box.setAttribute("translate", "no");
+    box.innerHTML = `<div class="lang-first-card"><img src="golem/golem-128.png" alt="" width="96" height="96">
+      <b>OFAD GOLEM</b><span>Langue de l'interface · Interface language</span>
+      <div class="lang-first-btns"><button type="button" data-l="fr">Français</button><button type="button" data-l="en">English</button></div>
+      <small>Modifiable ensuite dans Réglages · You can change it later in Settings</small></div>`;
+    box.addEventListener("click", (e) => {
+      const l = (e.target as HTMLElement).closest("button")?.dataset.l;
+      if (l !== "fr" && l !== "en") return;
+      try { window.localStorage.setItem("groovebox.lang", l); } catch { /* stockage indisponible : choix gardé pour la séance */ }
+      box.remove();
+      resolve(l);
+    });
+    document.body.appendChild(box);
+  });
+}
+
 async function start() {
   // Dans un simple navigateur, le moteur simulé remplace le plugin (développement, captures).
-  if (typeof window.__JUCE__ === "undefined") (await import("./engine/mock")).installMockBackend();
+  const mock = typeof window.__JUCE__ === "undefined";
+  if (mock) (await import("./engine/mock")).installMockBackend();
   // la bibliothèque JUCE lit window.__JUCE__ dès son chargement : tout le reste est chargé ensuite
+  // v0.46 fix30 : interface en anglais (choix de Réglages, sinon la langue du système) : la traduction se fait à
+  // l'affichage ; en français, son dictionnaire n'est même pas chargé
+  //   ordre : choix fait dans l'application > choix de l'installateur (Windows) > question au premier lancement
+  let lang: "fr" | "en" | null = null;
+  try { const v = window.localStorage.getItem("groovebox.lang"); if (v === "fr" || v === "en") lang = v; } catch { /* rien */ }
+  if (!lang) {
+    const init = (window.__JUCE__ as { initialisationData?: Record<string, unknown> } | undefined)?.initialisationData?.lang;
+    const v = String(Array.isArray(init) ? (init[0] ?? "") : (init ?? ""));
+    if (v === "fr" || v === "en") lang = v;
+  }
+  if (!lang) lang = mock ? "fr" : await askLanguage(); // maquette de développement : français (captures)
+  document.documentElement.lang = lang;
+  if (lang === "en") (await import("./i18n")).startI18n();
   const [{ connect }, { App }] = await Promise.all([import("./engine/store"), import("./App")]);
   createRoot(document.getElementById("root")!).render(
     <StrictMode>

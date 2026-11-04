@@ -52,6 +52,7 @@ vocodeurs, sampler de performance, échos à bande, réverbérations, compresseu
 **recréé de zéro** : son propre nom, sa propre façade, ses propres sons d'usine.
 
 - **Application Windows** (autonome), **plugin VST3** pour les logiciels de musique, **application Android** pour téléphone et tablette, avec **contrôleur MIDI** USB ou Bluetooth prêt à jouer.
+- **Interface en français ou en anglais** (*English interface*) : la langue se choisit à l'installation sur Windows, au premier lancement sur Android, et se change dans Réglages.
 - **34 instruments**, **1249 sons d'usine**, **38 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
 - **Vue live** pour le jeu en direct : crossfader ou **pavé vectoriel** à quatre scènes (formes en mouvement, taille, hauteur, rotation), console des 16 pistes avec faders, FX et M / S, et les **16 boutons assignables** avec leurs propres modulations.
 - Logiciel **libre** (AGPL-3.0) : les sources de chaque version sont fournies avec elle.

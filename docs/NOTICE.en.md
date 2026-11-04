@@ -2,8 +2,10 @@
 
 This manual covers the basics; the instruments and effects are described in detail in the **Catalogue**.
 
-> **The interface is in French for now** — an English interface is on its way. This manual uses the
-> English names of the controls; the table below gives the French label you will see on screen.
+> **The interface is available in English.** Choose the language when you install on Windows, or at the
+> first launch on Android; change it at any time in Settings › Project (**Français / English**). This
+> manual uses the English names of the controls; if you use the French interface, the table below gives
+> the French label you will see on screen.
 
 | In this manual | On screen (French) |
 |---|---|
@@ -220,6 +222,8 @@ crossfader, scenes, vector pad and macros always respond.
 - At launch, the mascot shows while loading, then the **home screen**: resume the last session, new
   empty project, demo project, open a file, or a project from the folder. (Settings › "Home screen at
   startup" to show it or not.)
+- **Language**: French or English, chosen when installing (Windows) or at the first launch (Android); change
+  it at any time in Settings › Project (**Français / English**).
 - Sound card: **Options** (top left of the window) › Audio/MIDI Settings. For the lowest latency: the
   sound card's ASIO driver or "Windows Audio (Low Latency Mode)", buffer of 128 to 256 samples.
 

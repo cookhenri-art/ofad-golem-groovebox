@@ -100,7 +100,7 @@ const LAYOUTS: Record<string, Layout> = {
       { title: "Moteur B", ctl: [{ id: "typeB", as: "lcd" }, { id: "driveB", label: "Drive", size: "lg" }, { id: "toneB", label: "Tonalité" }, { id: "biasB", label: "Asymétrie" }, { id: "mixB", label: "Mélange" }], cols: 2, w: 236 },
       { title: "Filtres B · son distordu", ctl: [{ id: "preTypeB", as: "lcd", label: "Entrée" }, { id: "preFreqB", label: "Fréquence" }, { id: "preResoB", label: "Résonance" },
         { id: "postHpB", label: "Passe-haut" }, { id: "postLpB", label: "Passe-bas" }], cols: 2, w: 236 },
-      { title: "Dynamique", ctl: [{ id: "dynMode", as: "lcd" }, { id: "dynPos", short: ["Avant", "Après"] }, { id: "dynAmount", label: "Quantité" }], cols: 1, w: 190 },
+      { title: "Dynamique", ctl: [{ id: "dynMode", as: "lcd" }, { id: "dynPos", short: ["Pré", "Post"] }, { id: "dynAmount", label: "Quantité" }], cols: 1, w: 190 },
       { title: "Sortie", ctl: [{ id: "postLow", label: "Graves" }, { id: "postHigh", label: "Aigus" }, { id: "xover", label: "Séparation" }], cols: 1, grow: true },
     ], [modStrip(1), modStrip(2), modStrip(3), modStrip(4)]],
   },

@@ -248,18 +248,18 @@ inline ModuleDesc makeKitDesc (const std::string& type, const std::string& name,
             const auto& lab = dsp::machineCatalog()[(size_t) mi].labels;
             m.params.push_back (P (prefix + "x3", lab[6], "%", 0, 100, 50));
             m.params.push_back (C (prefix + "mach", "Machine", m.machineNames, mi));
-            m.params.push_back (C (prefix + "smode", "Ã" "chantillon", { "Remplace la machine", "SuperposÃ©" }, 1));
-            m.params.push_back (P (prefix + "slvl", "Niveau Ã©" "chantillon", "dB", -48, 6, 0));
-            m.params.push_back (P (prefix + "stune", "Accord Ã©" "chantillon", "dt", -24, 24, 0));
-            m.params.push_back (C (prefix + "lshape", "Forme du LFO", { "Sinus", "Triangle", "Scie montante", "Scie descendante", "CarrÃ©", "AlÃ©" "atoire", "Exponentielle" }));
+            m.params.push_back (C (prefix + "smode", "É" "chantillon", { "Remplace la machine", "Superposé" }, 1));
+            m.params.push_back (P (prefix + "slvl", "Niveau é" "chantillon", "dB", -48, 6, 0));
+            m.params.push_back (P (prefix + "stune", "Accord é" "chantillon", "dt", -24, 24, 0));
+            m.params.push_back (C (prefix + "lshape", "Forme du LFO", { "Sinus", "Triangle", "Scie montante", "Scie descendante", "Carré", "Alé" "atoire", "Exponentielle" }));
             m.params.push_back (P (prefix + "lrate", "Vitesse du LFO", "Hz", 0.05f, 30, 2, 0.4f));
             m.params.push_back (C (prefix + "lsync", "Synchro du LFO", synth::lfoSyncChoices()));
-            m.params.push_back (C (prefix + "ldest", "Destination du LFO", { "Aucune", "Accord", "DÃ©" "clin", "RÃ©glage 3", "RÃ©glage 4",
-                                                                            "RÃ©glage 5", "RÃ©glage 6", "RÃ©glage 7", "Coupure du filtre", "RÃ©sonance",
+            m.params.push_back (C (prefix + "ldest", "Destination du LFO", { "Aucune", "Accord", "Dé" "clin", "Réglage 3", "Réglage 4",
+                                                                            "Réglage 5", "Réglage 6", "Réglage 7", "Coupure du filtre", "Résonance",
                                                                             "Niveau", "Panoramique", "Saturation", "Envoi A", "Envoi B" }));
             m.params.push_back (P (prefix + "ldepth", "Profondeur du LFO", "%", -100, 100, 0));
             m.params.push_back (P (prefix + "lfade", "Fondu du LFO", "ms", 0, 4000, 0, 0.35f));
-            m.params.push_back (C (prefix + "lmode", "Mode du LFO", { "Libre", "RedÃ©" "clenchÃ©", "Une fois" }, 1));
+            m.params.push_back (C (prefix + "lmode", "Mode du LFO", { "Libre", "Redé" "clenché", "Une fois" }, 1));
         }
 
     // Pages par pad : Synthèse (onglet Pad), Filtre, Amplitude, Effet et envois (+ Échantillon, LFO)

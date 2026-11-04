@@ -125,6 +125,7 @@ export function SettingsScreen() {
             <button type="button" className="touch" disabled={!files} onClick={() => actions.saveProject(true)}
               title="Modèle : tous les réglages restent (sons, échantillons, effets, mixeur, scènes, macros, MIDI) ; patterns, notes, verrous de pas et morceau sont retirés">Enregistrer comme modèle…</button>
             {hasNative("appStart") && <WelcomeToggle />}
+            <LangChoice />
           </div>
           {folders && (<>
             <div className="project-save">
@@ -296,6 +297,23 @@ function BluetoothMidi() {
       </button>
       <small>Clavier ou contrôleur MIDI sans fil (Bluetooth MIDI). Le son peut sortir par la prise USB.</small>
     </div>
+  );
+}
+
+/** v0.46 fix30 : langue de l'interface (français / anglais), gardée sur cet appareil ; l'interface se recharge
+    (le projet en cours reste dans le moteur). Les noms des langues ne se traduisent pas. */
+function LangChoice() {
+  const cur = document.documentElement.lang === "en" ? "en" : "fr";
+  const pick = (l: "fr" | "en") => {
+    if (l === cur) return;
+    try { window.localStorage.setItem("groovebox.lang", l); } catch { /* stockage indisponible */ }
+    window.location.reload();
+  };
+  return (
+    <span className="lang-choice" role="radiogroup" aria-label="Langue / Language" translate="no">
+      <button type="button" role="radio" aria-checked={cur === "fr"} className={`touch touch--small${cur === "fr" ? " touch--on" : ""}`} onClick={() => pick("fr")}>Français</button>
+      <button type="button" role="radio" aria-checked={cur === "en"} className={`touch touch--small${cur === "en" ? " touch--on" : ""}`} onClick={() => pick("en")}>English</button>
+    </span>
   );
 }
 

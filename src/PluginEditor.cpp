@@ -90,6 +90,17 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         .withKeepPageLoadedWhenBrowserIsHidden()
         .withResourceProvider ([this] (const auto& url) { return getResource (url); });
 
+    // v0.46 fix30 : langue choisie à l'installation (Windows : l'installateur écrit « fr » ou « en » dans
+    // ProgramData\One For All Distribution\Groovebox\language.txt, lu par l'application et le plugin).
+    // L'interface la reçoit au démarrage ; un choix fait ensuite dans Réglages passe avant.
+    {
+        const auto f = juce::File::getSpecialLocation (juce::File::commonApplicationDataDirectory)
+                           .getChildFile ("One For All Distribution").getChildFile ("Groovebox").getChildFile ("language.txt");
+        const auto v = f.existsAsFile() ? f.loadFileAsString().trim().toLowerCase() : juce::String();
+        const juce::String lang = v.startsWith ("en") ? "en" : v.startsWith ("fr") ? "fr" : "";
+        options = options.withInitialisationData ("lang", lang);
+    }
+
     auto fn = [&options] (const char* name, std::function<void (const Args&, Completion)> f)
     {
         options = options.withNativeFunction (name, [f] (const Args& a, Completion done) { f (a, std::move (done)); });

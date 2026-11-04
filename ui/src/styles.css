@@ -3662,3 +3662,14 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .vecfull--phone .vecfull-sel { max-width: 96px; }
 .vecfull--phone .vecfull-sel + .vecfull-sel { max-width: 70px; }
 .vecfull--phone .vecfull-focus { max-width: 130px; }
+
+/* v0.46 fix30 : choix de la langue au premier lancement */
+.lang-first { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; background: radial-gradient(110% 90% at 50% 30%, oklch(0.22 0.02 250), oklch(0.12 0.008 250)); color: #e8ebf0; font-family: inherit; }
+.lang-first-card { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 26px 34px; border-radius: 18px; background: oklch(1 0 0 / 0.04); box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08); text-align: center; }
+.lang-first-card b { font-size: 22px; letter-spacing: 0.18em; }
+.lang-first-card span { font-size: 14px; opacity: 0.85; }
+.lang-first-card small { font-size: 11.5px; opacity: 0.6; }
+.lang-first-btns { display: flex; gap: 12px; margin: 6px 0; }
+.lang-first-btns button { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 17px; font-weight: 750; min-width: 140px; padding: 14px 18px; border-radius: 12px; background: oklch(0.82 0.15 78); color: oklch(0.15 0.01 250); }
+.lang-first-btns button + button { background: oklch(1 0 0 / 0.12); color: inherit; }
+.lang-choice { display: inline-flex; gap: 4px; }

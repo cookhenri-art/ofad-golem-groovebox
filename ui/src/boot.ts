@@ -49,6 +49,11 @@ if (window.__JUCE__?.initialisationData?.__juce__functions?.includes("uiLog")) {
   const cancel = () => { window.clearTimeout(timer); start = null; };
   window.addEventListener("pointerup", () => { cancel(); window.setTimeout(() => { touching = false; }, 0); }, true);
   window.addEventListener("pointercancel", cancel, true);
+  // v0.46 fix30 : un curseur natif (crossfader…) glissé vite ne transmet pas toujours les mouvements du doigt :
+  // dès que sa valeur bouge, ce n'est plus un appui immobile (pas d'apprentissage MIDI pendant le geste)
+  window.addEventListener("input", cancel, true);
+  window.addEventListener("change", cancel, true);
+  window.addEventListener("scroll", cancel, true);
   window.addEventListener("pointermove", (e) => {
     if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) cancel();
   }, true);

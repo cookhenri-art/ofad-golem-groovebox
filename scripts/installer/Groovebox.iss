@@ -37,12 +37,27 @@ UninstallDisplayIcon={app}\Groovebox.exe
 SetupIconFile={#Root}\resources\golem\golem.ico
 UninstallDisplayName=Groovebox {#AppVersion}
 CloseApplications=yes
+; v0.46 fix30 : l'installateur demande la langue (Français / English) au départ ; l'application et le
+; plugin démarrent ensuite dans cette langue (fichier language.txt dans ProgramData, voir [Code])
+ShowLanguageDialog=yes
+LanguageDetectionMethod=uilanguage
 
 [Languages]
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[CustomMessages]
+french.TaskVst3=Installer aussi le plugin VST3 (pour les logiciels de musique : Ableton, FL Studio, Reaper…)
+english.TaskVst3=Also install the VST3 plugin (for music software: Ableton, FL Studio, Reaper…)
+french.GroupPlugin=Plugin :
+english.GroupPlugin=Plugin:
+french.VcRedist=Installation des composants Microsoft Visual C++…
+english.VcRedist=Installing the Microsoft Visual C++ components…
+french.NoWebView2=Groovebox est installé, mais le composant Microsoft Edge WebView2 Runtime n'a pas été trouvé sur ce PC.%n%nSans lui, la fenêtre de Groovebox reste vide. Installez « Microsoft Edge WebView2 Runtime » (gratuit, Microsoft) puis relancez Groovebox.
+english.NoWebView2=Groovebox is installed, but the Microsoft Edge WebView2 Runtime was not found on this PC.%n%nWithout it, the Groovebox window stays empty. Install "Microsoft Edge WebView2 Runtime" (free, from Microsoft) and start Groovebox again.
 
 [Tasks]
-Name: "vst3"; Description: "Installer aussi le plugin VST3 (pour les logiciels de musique : Ableton, FL Studio, Reaper…)"; GroupDescription: "Plugin :"
+Name: "vst3"; Description: "{cm:TaskVst3}"; GroupDescription: "{cm:GroupPlugin}"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
@@ -71,7 +86,7 @@ Name: "{autodesktop}\Groovebox"; Filename: "{app}\Groovebox.exe"; Tasks: desktop
 
 [Run]
 #ifdef VCRedist
-Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installation des composants Microsoft Visual C++…"; Flags: waituntilterminated
+Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "{cm:VcRedist}"; Flags: waituntilterminated
 #endif
 Filename: "{app}\Groovebox.exe"; Description: "{cm:LaunchProgram,Groovebox}"; Flags: nowait postinstall skipifsilent
 
@@ -93,10 +108,20 @@ begin
       if (v <> '') and (v <> '0.0.0.0') then Result := True;
 end;
 
+// v0.46 fix30 : langue choisie au départ de l'installation, pour l'application et le plugin
+procedure SaveLanguage();
+var
+  dir, code: String;
+begin
+  if ActiveLanguage() = 'english' then code := 'en' else code := 'fr';
+  dir := ExpandConstant('{commonappdata}\One For All Distribution\Groovebox');
+  if ForceDirectories(dir) then
+    SaveStringToFile(dir + '\language.txt', code, False);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+  if CurStep = ssPostInstall then SaveLanguage();
   if (CurStep = ssPostInstall) and (not WebView2Present()) and (not WizardSilent()) then
-    MsgBox('Groovebox est installé, mais le composant Microsoft Edge WebView2 Runtime n''a pas été trouvé sur ce PC.'
-      + #13#10#13#10 + 'Sans lui, la fenêtre de Groovebox reste vide. Installez « Microsoft Edge WebView2 Runtime » (gratuit, Microsoft) puis relancez Groovebox.',
-      mbInformation, MB_OK);
+    MsgBox(CustomMessage('NoWebView2'), mbInformation, MB_OK);
 end;
