@@ -11,7 +11,8 @@ import { actions, setUi, useStore } from "../engine/store";
 import type { ModuleDesc } from "../engine/protocol";
 import { channelName, toPlain, trackColor } from "../engine/params";
 import { paramAddress, useParam } from "../controls/bindings";
-import { Encoder } from "../controls/Encoder";
+import { Encoder, ParamMenuZone } from "../controls/Encoder";
+import { useBypass } from "../controls/useBypass";
 import { moduleSkinStyle, pedalKnobStyle, pedalSkin, rackSkinStyle } from "../skin/skins";
 import { ModulePanel, StepCell } from "./ModulePanel";
 
@@ -125,14 +126,14 @@ const MODULE_KNOBS: Record<string, { big: string[]; small: string[] }> = {
 /** Pédale (insert du canal : area « fx », slot 0..3 ; insert de pad : « pfx », slot = pad × 2 + n).
     Disposition des boîtiers du pack : nom dans le bandeau du haut, 6 boutons (2 colonnes × 3), les
     sélecteurs en petits boutons (une rangée de plus sur les boîtiers hauts), diode, vis, contacteur. */
-function PedalUnit({ channel, area = "fx", slot, label, m, values, bypassed, meter, onSwap }: { channel: number; area?: "fx" | "pfx"; slot: number; label: string; m: ModuleDesc; values: number[]; bypassed: boolean; meter: number[]; onSwap?: () => void }) {
+function PedalUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap }: { channel: number; area?: "fx" | "pfx"; slot: number; label: string; m: ModuleDesc; values: number[]; bypassed: boolean; meter: number[]; onSwap?: () => void }) {
+  // v0.47 : contacteur assignable (MIDI, bouton assignable, scènes) : voir useBypass
+  const { binding: bypBinding, bypassed, toggle } = useBypass(channel, area, slot, m.name);
   const addr = (id: string) => { const i = m.params.findIndex((p) => p.id === id); return i < 0 ? -1 : paramAddress(channel, area, slot, i); };
   const sk = pedalSkin(m.type)!;
   const sw = switchIds(m).slice(0, 2);
   const knobs = knobIds(m, values).slice(0, sk.tall ? 6 : 6 - sw.length);
   const odd = (knobs.length + (sk.tall ? 0 : sw.length)) % 2 === 1; // la dernière commande, seule sur sa rangée, est centrée
-  const toggle = () => area === "fx" ? actions.setParam(paramAddress(channel, "mix", 0, 6 + slot), bypassed ? 0.25 : 0.75)
-    : actions.setParam(paramAddress(channel, "padbyp", slot, 0), bypassed ? 0.25 : 0.75);
   const loopState = Math.floor(meter[2] ?? 0), loopPhase = (meter[2] ?? 0) - loopState;
   return (
     <div className={`pd pd--skin sk-knobs${sk.tall ? " pd--tall" : ""}${bypassed ? " pd--off" : ""} pd--${m.type}`} style={sk.style}>
@@ -155,8 +156,10 @@ function PedalUnit({ channel, area = "fx", slot, label, m, values, bypassed, met
           <LooperKeys global={addr("action")} state={loopState} />
         </>
       )}
-      <button type="button" className="pd-foot" aria-pressed={!bypassed} onClick={toggle} aria-label={`${m.name} : ${bypassed ? "contourné" : "actif"}`}
-        title={bypassed ? "Effet contourné : appuyer pour l'activer" : "Effet actif : appuyer pour le contourner"} />
+      <ParamMenuZone binding={bypBinding} className="pm-zone--byp pm-zone--foot">
+        <button type="button" className="pd-foot" aria-pressed={!bypassed} onClick={toggle} aria-label={`${m.name} : ${bypassed ? "contourné" : "actif"}`}
+          title={bypassed ? "Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"} />
+      </ParamMenuZone>
     </div>
   );
 }
@@ -216,7 +219,9 @@ function Lcd({ global }: { global: number }) {
 
 /** Rack 19 pouces (v0.35.1) : oreilles vissées, façade, gros boutons pour les réglages principaux,
     petits boutons, sélecteurs à crans, vumètre ou afficheur, nom sérigraphié, interrupteur. */
-function RackUnit({ channel, area = "fx", slot, label, m, values, bypassed, meter, onSwap, onOpen }: { channel: number; area?: "fx" | "pfx"; slot: number; label: string; m: ModuleDesc; values: number[]; bypassed: boolean; meter: number[]; onSwap?: () => void; onOpen?: () => void }) {
+function RackUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap, onOpen }: { channel: number; area?: "fx" | "pfx"; slot: number; label: string; m: ModuleDesc; values: number[]; bypassed: boolean; meter: number[]; onSwap?: () => void; onOpen?: () => void }) {
+  // v0.47 : interrupteur assignable (MIDI, bouton assignable, scènes) : voir useBypass
+  const { binding: bypBinding, bypassed, toggle } = useBypass(channel, area, slot, m.name);
   const addr = (id: string) => { const i = m.params.findIndex((p) => p.id === id); return i < 0 ? -1 : paramAddress(channel, area, slot, i); };
   const mod = m.form === "module" ? MODULE_KNOBS[m.type] : undefined;
   const rs = rackSkinStyle(m.type, m.family);
@@ -224,8 +229,6 @@ function RackUnit({ channel, area = "fx", slot, label, m, values, bypassed, mete
   const style = mod ? moduleSkinStyle(m.type).style : rs.style;
   const c = mod ? { big: mod.big, small: mod.small, sel: [] as string[], lcdId: undefined as string | undefined } : rackControls(m, values, skin.lcd, !!skin.vu);
   const kid = (s: string) => s.split(":")[0], klab = (s: string) => s.split(":")[1];
-  const toggle = () => area === "fx" ? actions.setParam(paramAddress(channel, "mix", 0, 6 + slot), bypassed ? 0.25 : 0.75)
-    : actions.setParam(paramAddress(channel, "padbyp", slot, 0), bypassed ? 0.25 : 0.75);
   return (
     <div className={`rk sk-knobs${bypassed ? " rk--off" : ""} rk--${m.type}${mod ? " rk--module" : ""}`} style={style}>
       <span className="rk-ear rk-ear--l" aria-hidden><i /><i /></span>
@@ -245,10 +248,12 @@ function RackUnit({ channel, area = "fx", slot, label, m, values, bypassed, mete
         </div>
         {m.type === "stepfx" && <div className="rk-steps">{Array.from({ length: 16 }, (_, i) => <StepCell key={i} global={addr(`s${i + 1}`)} index={i} m={m} />)}</div>}
         <div className="rk-name"><b>{m.name}</b><span>{m.role ?? m.family}</span></div>
+        <ParamMenuZone binding={bypBinding} className="pm-zone--byp">
         <button type="button" className={`rk-power${bypassed ? "" : " on"}`} aria-pressed={!bypassed} onClick={toggle}
-          title={bypassed ? "Effet contourné : appuyer pour l'activer" : "Effet actif : appuyer pour le contourner"}>
+          title={bypassed ? "Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"}>
           <span className="rk-lamp" aria-hidden />{bypassed ? "Contourné" : "Actif"}
         </button>
+        </ParamMenuZone>
       </div>
       <span className="rk-ear rk-ear--r" aria-hidden><i /><i /></span>
     </div>

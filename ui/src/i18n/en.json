@@ -3259,5 +3259,10 @@
 "✂ Ciseaux": "✂ Scissors",
 "✂ Couper ici": "✂ Cut here",
 "✎ Dessiner": "✎ Draw",
-"✎ Dessiner une forme": "✎ Draw a shape"
+"✎ Dessiner une forme": "✎ Draw a shape",
+"{1} : actif / contourné": "{1}: on / bypassed",
+"Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)": "Effect bypassed: press to turn it on (long press / right-click: assign to a controller, a knob, a scene)",
+"Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)": "Effect on: press to bypass it (long press / right-click: assign to a controller, a knob, a scene)",
+"Réactiver l'effet (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)": "Turn the effect back on (long press / right-click: assign to a controller, a knob, a scene)",
+"Couper l'effet, contourné (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)": "Bypass the effect (long press / right-click: assign to a controller, a knob, a scene)"
 }

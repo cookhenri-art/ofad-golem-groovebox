@@ -11,7 +11,8 @@ import { actions, setUi, useStore } from "../engine/store";
 import { PresetPanel } from "../controls/PresetPanel";
 import { channelName, groupChannels, isGroup, toPlain, trackColor } from "../engine/params";
 import { paramAddress, useParam } from "../controls/bindings";
-import type { EncoderBinding } from "../controls/Encoder";
+import { ParamMenuZone, type EncoderBinding } from "../controls/Encoder";
+import { useBypass } from "../controls/useBypass";
 import type { ModuleDesc } from "../engine/protocol";
 import { ScreenFrame } from "./ScreenFrame";
 import { ModulePanel } from "./ModulePanel";
@@ -60,7 +61,6 @@ export function EffectsScreen() {
 
   if (!cat || !L || !channel) return <ScreenFrame title="Effets" encoders={[]}><div /></ScreenFrame>;
   const bypassed = (i: number) => (channel.mix[6 + i] ?? 0) > 0.5;
-  const toggleBypass = (i: number) => actions.setParam(paramAddress(focus, "mix", 0, 6 + i), bypassed(i) ? 0.25 : 0.75);
   const names = tracks.tracks.map((t) => t.name);
   const channels = [...Array.from({ length: L.numTracks }, (_, i) => i), ...groupChannels(L), ...Array.from({ length: L.numReturns }, (_, i) => L.numTracks + i), L.masterChannel];
 
@@ -94,8 +94,7 @@ export function EffectsScreen() {
                         onClick={() => { void actions.moveInsert(focus, i, i - 1); setUi({ fxSlot: i - 1 }); }}>↑</button>
                       <button type="button" className="fx-tool" disabled={i === types.length - 1} title="Descendre (après dans la chaîne)" aria-label={`Descendre l'effet ${i + 1}`}
                         onClick={() => { void actions.moveInsert(focus, i, i + 1); setUi({ fxSlot: i + 1 }); }}>↓</button>
-                      <button type="button" className={`fx-tool fx-tool--mute${bypassed(i) ? " on" : ""}`} aria-pressed={bypassed(i)}
-                        title={bypassed(i) ? "Réactiver l'effet" : "Couper l'effet (contourné)"} aria-label={`Couper l'effet ${i + 1}`} onClick={() => toggleBypass(i)}>M</button>
+                      <BypassTool channel={focus} slot={i} name={m.name} />
                       <button type="button" className="fx-tool fx-tool--trash" title="Retirer l'effet" aria-label={`Retirer l'effet ${i + 1}`}
                         onClick={() => void actions.setInsert(focus, i, "")}>
                         <svg viewBox="0 0 16 16" aria-hidden><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5M7 7v4M9 7v4" /></svg>
@@ -263,5 +262,17 @@ function EffectBrowser({ effects, onAssign, slotLabel }: { effects: ModuleDesc[]
         </div>
       </div>
     </section>
+  );
+}
+
+/** v0.47 : bouton « M » (contourner l'effet) d'un insert : assignable (MIDI, bouton assignable, scènes). */
+function BypassTool({ channel, slot, name }: { channel: number; slot: number; name: string }) {
+  const { binding, bypassed, toggle } = useBypass(channel, "fx", slot, name);
+  return (
+    <ParamMenuZone binding={binding} className="pm-zone--byp">
+      <button type="button" className={`fx-tool fx-tool--mute${bypassed ? " on" : ""}`} aria-pressed={bypassed}
+        title={bypassed ? "Réactiver l'effet (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Couper l'effet, contourné (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"}
+        aria-label={`Couper l'effet ${slot + 1}`} onClick={toggle}>M</button>
+    </ParamMenuZone>
   );
 }

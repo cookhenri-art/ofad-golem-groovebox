@@ -13,6 +13,7 @@ import type { ModuleDesc, ParamDesc } from "../engine/protocol";
 import { toPlain } from "../engine/params";
 import { paramAddress, useParam } from "../controls/bindings";
 import { Encoder, ParamMenuZone } from "../controls/Encoder";
+import { useBypass } from "../controls/useBypass";
 import { moduleSkinStyle } from "../skin/skins";
 import { DistCurve, eqBandDb } from "./Visuals";
 import type { EqBand } from "./Visuals";
@@ -814,7 +815,9 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
   const lay = LAYOUTS[m.type];
   const pad = area === "pfx" ? { pad: Math.floor(slot / 2), k: slot % 2 } : null;
   const raw = useStore((s) => (pad ? s.channels[channel]?.padfx?.find((f) => f.pad === pad.pad && f.slot === pad.k)?.values : s.channels[channel]?.fx[slot]?.values));
-  const bypassed = useStore((s) => (pad ? (s.channels[channel]?.padfx?.find((f) => f.pad === pad.pad && f.slot === pad.k)?.bypass ?? 0) > 0.5 : (s.channels[channel]?.mix[6 + slot] ?? 0) > 0.5));
+  // v0.47 : interrupteur Actif / Contourné assignable (MIDI, bouton assignable, scènes) : voir useBypass
+  const byp = useBypass(channel, pad ? "pfx" : "fx", slot, m.name);
+  const bypassed = byp.bypassed;
   const meters = useStore((s) => (!pad && s.focus === channel ? s.tick.fxm[slot] : undefined)) ?? [];
   const preset = useStore((s) => (pad ? undefined : s.tracks.insertPresets?.[channel]?.[slot])) || undefined;
   const [band, setBand] = useState(lay?.firstBand ?? 0);
@@ -847,8 +850,7 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
   const addr = (id: string) => { const i = idx(id); return i < 0 ? -1 : paramAddress(channel, area, slot, i); };
   const ctx: Ctx = { m, addr, vals: { plain, meters, preset }, channel, slot, area };
   const { style } = moduleSkinStyle(m.type);
-  const toggle = () => (pad ? actions.setParam(paramAddress(channel, "padbyp", slot, 0), bypassed ? 0.25 : 0.75)
-    : actions.setParam(paramAddress(channel, "mix", 0, 6 + slot), bypassed ? 0.25 : 0.75));
+  const toggle = byp.toggle;
   const lcd = lay.lcd ? norm(lay.lcd) : null;
   const body: ReactNode = (
     <>
@@ -871,8 +873,10 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
           {lcd ? <MLcd g={addr(lcd.id)} label="" wide prefix={lcd.label} /> : <div className="mp-lcd mp-lcd--wide"><div className="mp-lcd-box mp-lcd-box--text"><span>{lay.lcdText?.(ctx.vals) ?? preset ?? ""}</span></div></div>}
           {lay.leds && <span className="mp-tools">{lay.leds.map((c) => <MLed key={norm(c).id} g={addr(norm(c).id)} label={norm(c).label} />)}</span>}
           <span className="mp-role">{m.role ?? m.family}</span>
-          <button type="button" className={`mp-lb mp-power${bypassed ? "" : " on"}`} aria-pressed={!bypassed} onClick={toggle}
-            title={bypassed ? "Effet contourné : appuyer pour l'activer" : "Effet actif : appuyer pour le contourner"}><i />{bypassed ? "Contourné" : "Actif"}</button>
+          <ParamMenuZone binding={byp.binding} className="pm-zone--byp">
+            <button type="button" className={`mp-lb mp-power${bypassed ? "" : " on"}`} aria-pressed={!bypassed} onClick={toggle}
+              title={bypassed ? "Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"}><i />{bypassed ? "Contourné" : "Actif"}</button>
+          </ParamMenuZone>
           <button type="button" className="mp-close" aria-label="Fermer le module" onClick={onClose}>✕</button>
         </header>
         {body}

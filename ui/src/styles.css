@@ -3696,3 +3696,14 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
    propre défilement. */
 html, body, #root { overflow: clip; }
 .phone-scroll { overflow: clip; }
+/* v0.47 : interrupteurs Actif / Contourné des effets, assignables (menu au clic droit / appui long) */
+.pm-zone.pm-zone--byp { display: inline-grid; place-items: center; }
+/* contacteur de pédale et interrupteur de rack : la zone prend la place (absolue) du bouton */
+.pd--skin .pm-zone--foot { position: absolute; left: 50%; top: 376px; width: 62px; height: 62px; margin-left: -31px; z-index: 2; }
+.pd--tall .pm-zone--foot { top: 482px; }
+.pd--skin .pm-zone--foot > .pd-foot { position: static; margin: 0; }
+.rk .pm-zone--byp { position: absolute; right: 14px; bottom: 10px; z-index: 2; }
+.rk .pm-zone--byp > .rk-power { position: static; }
+/* v0.47 : menu d'une commande d'un rack ou d'une pédale affiché en entier (au-dessus des unités voisines) */
+.rk:has(.mod-menu), .pd:has(.mod-menu) { overflow: visible; z-index: 30; }
+.rk-face:has(.mod-menu) { overflow: visible; }
