@@ -52,7 +52,7 @@ figure.wide + ol, figure.wide { break-inside: avoid; }
 """
 
 
-def build(md_name, pdf_name, title, sub, note, golem_h, keys_section=None):
+def build(md_name, pdf_name, title, sub, note, golem_h, keys_section=None, lang="fr"):
     text = (DOCS / md_name).read_text(encoding="utf-8")
     # note pour les développeurs en tête du catalogue (« Fichier écrit par… ») : pas dans le PDF
     text = re.sub(r"^Fichier écrit par.*?\n\n", "", text, flags=re.S | re.M)
@@ -74,7 +74,7 @@ def build(md_name, pdf_name, title, sub, note, golem_h, keys_section=None):
         end = html.find("<h2>", start + 4)
         if start >= 0 and end > start:
             html = html[:start] + '<section class="keys">' + html[start:end] + "</section>" + html[end:]
-    page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><base href="{DOCS.as_uri()}/">
+    page = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><base href="{DOCS.as_uri()}/">
 <title>{title}</title><style>{CSS.replace("GOLEM_H", golem_h)}</style></head><body>
 <div class="cover"><img src="{GOLEM}" alt=""><div><div class="word">OFAD GOLEM</div><div class="sub">{sub}</div>
 <div class="note">{note}</div></div></div>{html}</body></html>"""
@@ -98,5 +98,9 @@ if __name__ == "__main__":
     build("NOTICE.md", "NOTICE.pdf", "OFAD GOLEM — Notice", "Notice de prise en main · raccourcis",
           "Groovebox à 16 pistes, logiciel libre (AGPL) de One For All Distribution.", "150px",
           keys_section="Raccourcis")
+    # v0.46 fix28 : notice en anglais (l'interface reste en français pour l'instant : table de correspondance en tête)
+    build("NOTICE.en.md", "NOTICE-EN.pdf", "OFAD GOLEM — Manual", "Getting started · shortcuts",
+          "16-track groovebox, free software (AGPL) by One For All Distribution.", "150px",
+          keys_section="Keyboard and mouse shortcuts", lang="en")
     build("CATALOGUE.md", "CATALOGUE.pdf", "OFAD GOLEM — Catalogue", "Catalogue des instruments et des effets",
           "Les noms sont propres au Groovebox ; chaque module reprend le principe d'une famille de machines, jamais son nom, sa façade ni ses sons.", "110px")

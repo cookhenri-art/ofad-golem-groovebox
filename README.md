@@ -19,12 +19,14 @@
 <p align="center">
   <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger-Windows_·_Android-F5A623?style=for-the-badge" alt="Télécharger pour Windows et Android"></a>
   <a href="docs/NOTICE.pdf"><img src="https://img.shields.io/badge/📘_Notice-PDF-2B2F3A?style=for-the-badge" alt="Notice de prise en main (PDF)"></a>
+  <a href="docs/NOTICE-EN.pdf"><img src="https://img.shields.io/badge/📘_Manual_(English)-PDF-2B2F3A?style=for-the-badge" alt="Manual in English (PDF)"></a>
   <a href="docs/CATALOGUE.pdf"><img src="https://img.shields.io/badge/🎹_Catalogue-PDF-2B2F3A?style=for-the-badge" alt="Catalogue des sons et effets (PDF)"></a>
 </p>
 
 <p align="center">
   <b><a href="../../releases/latest">Télécharger</a></b> ·
   <b><a href="docs/NOTICE.pdf">Notice de prise en main et raccourcis (PDF)</a></b> ·
+  <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
   <b><a href="docs/CATALOGUE.pdf">Catalogue des 34 instruments et 38 effets (PDF)</a></b>
 </p>
 
@@ -397,6 +399,7 @@ Le détail, avec les vignettes de chaque façade : [docs/CATALOGUE.md](docs/CATA
 
 Tous les raccourcis, écran par écran, et les bases de l'édition en images :
 **[Notice de prise en main (PDF)](docs/NOTICE.pdf)** · [version texte](docs/NOTICE.md).
+In English: **[Manual (PDF)](docs/NOTICE-EN.pdf)** · [text version](docs/NOTICE.en.md).
 
 ---
 
@@ -467,6 +470,7 @@ GROOVEBOX/
 | Document | Contenu |
 |---|---|
 | [Notice (PDF)](docs/NOTICE.pdf) | Prise en main, bases de l'édition, **raccourcis par écran** |
+| [Manual, English (PDF)](docs/NOTICE-EN.pdf) | La notice en anglais, avec la correspondance des libellés de l'interface |
 | [Catalogue (PDF)](docs/CATALOGUE.pdf) | Tous les instruments et effets, avec leurs façades |
 | [TECHNIQUE.md](docs/TECHNIQUE.md) | Compilation, organisation du code, latence, tests |
 

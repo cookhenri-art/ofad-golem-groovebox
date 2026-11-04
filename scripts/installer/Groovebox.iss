@@ -52,6 +52,7 @@ Source: "{#Root}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LISEZ-MOI.txt"; DestDir: "{app}"; Flags: ignoreversion
 ; v0.46 fix9 : notice (bases de l'édition, raccourcis) et catalogue, avec la mascotte
 Source: "{#Root}\docs\NOTICE.pdf"; DestDir: "{app}"; DestName: "Notice OFAD GOLEM.pdf"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#Root}\docs\NOTICE-EN.pdf"; DestDir: "{app}"; DestName: "Manual OFAD GOLEM (English).pdf"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#Root}\docs\CATALOGUE.pdf"; DestDir: "{app}"; DestName: "Catalogue OFAD GOLEM.pdf"; Flags: ignoreversion skipifsourcedoesntexist
 ; licence AGPL : les sources de cette version sont livrées avec le programme
 Source: "{#Root}\_livraisons\groovebox-v{#AppVersion}.tar.gz"; DestDir: "{app}\Sources"; Flags: ignoreversion skipifsourcedoesntexist
@@ -63,6 +64,7 @@ Source: "{#VCRedist}"; DestDir: "{tmp}"; DestName: "vc_redist.x64.exe"; Flags: d
 Name: "{group}\Groovebox"; Filename: "{app}\Groovebox.exe"
 Name: "{group}\Lisez-moi"; Filename: "{app}\LISEZ-MOI.txt"
 Name: "{group}\Notice et raccourcis"; Filename: "{app}\Notice OFAD GOLEM.pdf"
+Name: "{group}\Manual and shortcuts (English)"; Filename: "{app}\Manual OFAD GOLEM (English).pdf"
 Name: "{group}\Catalogue des sons et effets"; Filename: "{app}\Catalogue OFAD GOLEM.pdf"
 Name: "{group}\Désinstaller Groovebox"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\Groovebox"; Filename: "{app}\Groovebox.exe"; Tasks: desktopicon
