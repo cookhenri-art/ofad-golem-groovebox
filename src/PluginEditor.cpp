@@ -73,6 +73,19 @@ juce::var json (const std::string& s) { return juce::var (juce::String (s)); }
 } // namespace
 
 //==============================================================================
+/** v0.46 fix30 : langue choisie par l'utilisateur (données de l'application : %APPDATA% sous Windows,
+    dossier privé de l'application sous Android). */
+static juce::File userLangFile()
+{
+    return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile ("OFAD GOLEM").getChildFile ("language.txt");
+}
+/** v0.46 fix30 : langue choisie à l'installation (Windows). */
+static juce::File installLangFile()
+{
+    return juce::File::getSpecialLocation (juce::File::commonApplicationDataDirectory)
+               .getChildFile ("One For All Distribution").getChildFile ("Groovebox").getChildFile ("language.txt");
+}
+
 juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
 {
     using Options = juce::WebBrowserComponent::Options;
@@ -90,17 +103,23 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         .withKeepPageLoadedWhenBrowserIsHidden()
         .withResourceProvider ([this] (const auto& url) { return getResource (url); });
 
-    // v0.46 fix30 : langue choisie à l'installation (Windows : l'installateur écrit « fr » ou « en » dans
-    // ProgramData\One For All Distribution\Groovebox\language.txt, lu par l'application et le plugin).
-    // L'interface la reçoit au démarrage ; un choix fait ensuite dans Réglages passe avant.
+    // v0.46 fix30 : langue de l'interface, gardée par l'application (la WebView d'Android ne garde pas la mémoire
+    // de la page) :
+    //  - choix de l'utilisateur (accueil, Réglages, premier lancement) : <données de l'application>/OFAD GOLEM/language.txt,
+    //    « fr » ou « en » suivi de l'installation en cours au moment du choix ;
+    //  - choix de l'installateur (Windows) : ProgramData\One For All Distribution\Groovebox\language.txt,
+    //    « en 20261104050100 » (langue, heure de l'installation).
+    // Une nouvelle installation impose sa langue ; un choix fait ensuite dans l'application est gardé.
+    // Rien de connu : l'interface pose la question au premier lancement.
     {
-        const auto f = juce::File::getSpecialLocation (juce::File::commonApplicationDataDirectory)
-                           .getChildFile ("One For All Distribution").getChildFile ("Groovebox").getChildFile ("language.txt");
-        const auto v = f.existsAsFile() ? f.loadFileAsString().trim().toLowerCase() : juce::String();
-        const juce::String lang = v.startsWith ("en") ? "en" : v.startsWith ("fr") ? "fr" : "";
+        const auto inst = installLangFile().existsAsFile() ? installLangFile().loadFileAsString().trim().toLowerCase() : juce::String();
+        const auto user = userLangFile().existsAsFile() ? userLangFile().loadFileAsString().trim().toLowerCase() : juce::String();
+        const auto code = [] (const juce::String& v) -> juce::String { return v.startsWith ("en") ? "en" : v.startsWith ("fr") ? "fr" : ""; };
+        const auto stampOf = [] (const juce::String& v) { return v.fromFirstOccurrenceOf (" ", false, false).trim(); };
+        juce::String lang = code (user);
+        if (code (inst).isNotEmpty() && (lang.isEmpty() || stampOf (user) != stampOf (inst)))
+            lang = code (inst);
         options = options.withInitialisationData ("lang", lang);
-        // v0.46 fix30 : « en 20261104050100 » : l'heure de l'installation — une nouvelle installation impose sa langue
-        options = options.withInitialisationData ("langStamp", v);
     }
 
     auto fn = [&options] (const char* name, std::function<void (const Args&, Completion)> f)
@@ -120,6 +139,19 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
     fn ("getSpectrum", [&eng, C] (const Args& a, Completion done)
     { done (json (bridge::spectrumJson (eng, intArg (a, 0, 0, C, 0), intArg (a, 1, 0, numInserts - 1, 0), intArg (a, 2, 8, 200, 96)))); });
     fn ("getWave", [&eng, T] (const Args& a, Completion done) { done (json (bridge::waveJson (eng, intArg (a, 0, 0, T, 0), intArg (a, 1, 0, maxSamples - 1, 0), intArg (a, 2, 16, 2048, 400)))); });
+    // v0.46 fix30 : langue choisie dans l'application (gardée avec l'installation en cours)
+    fn ("setLang", [] (const Args& a, Completion done)
+    {
+        const auto l = a.size() > 0 ? a[0].toString() : juce::String();
+        if (l == "fr" || l == "en")
+        {
+            const auto inst = installLangFile().existsAsFile() ? installLangFile().loadFileAsString().trim().toLowerCase() : juce::String();
+            const auto f = userLangFile();
+            f.getParentDirectory().createDirectory();
+            f.replaceWithText (l + " " + inst.fromFirstOccurrenceOf (" ", false, false).trim());
+        }
+        done (juce::var (true));
+    });
     fn ("uiLog", [] (const Args& a, Completion done)
     {
         std::fprintf (stderr, "[interface] %s\n", (a.size() > 0 ? a[0].toString().substring (0, 2000) : juce::String()).toRawUTF8());

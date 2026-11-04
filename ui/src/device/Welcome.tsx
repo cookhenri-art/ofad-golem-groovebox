@@ -4,6 +4,7 @@
 // projet vide, le projet de démonstration ou un fichier. Échap ou « Reprendre » : on garde la séance
 // rouverte par l'application. Dans un logiciel hôte, pas d'accueil (le projet vient de la session).
 
+import { switchLang } from "../lang";
 import { useEffect, useState } from "react";
 import { FolderBrowser } from "../controls/FolderBrowser";
 import { actions, hasNative, readPref, useStore, writePref } from "../engine/store";
@@ -71,7 +72,7 @@ export function Welcome() {
         <div className="welcome-lang" translate="no" role="radiogroup" aria-label="Langue / Language">
           {(["fr", "en"] as const).map((l) => (
             <button key={l} type="button" role="radio" aria-checked={document.documentElement.lang === l} className={document.documentElement.lang === l ? "on" : ""}
-              onClick={() => { if (document.documentElement.lang === l) return; try { window.localStorage.setItem("groovebox.lang", l); } catch { /* rien */ } window.location.reload(); }}>
+              onClick={() => void switchLang(l)}>
               {l === "fr" ? "Français" : "English"}</button>
           ))}
         </div>

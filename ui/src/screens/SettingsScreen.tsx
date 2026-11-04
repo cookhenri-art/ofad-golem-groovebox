@@ -4,6 +4,7 @@
 // contrôleur MIDI (apprentissage des commandes du crossfader, de Break, de Fill et de la lecture,
 // liste de toutes les affectations), raccourcis du clavier.
 
+import { switchLang } from "../lang";
 import { useEffect, useRef, useState } from "react";
 import { actions, getState, hasNative, readPref, setUi, showMessage, useStore, writePref, type FolderKind } from "../engine/store";
 import { busName } from "../engine/params";
@@ -304,11 +305,7 @@ function BluetoothMidi() {
     (le projet en cours reste dans le moteur). Les noms des langues ne se traduisent pas. */
 function LangChoice() {
   const cur = document.documentElement.lang === "en" ? "en" : "fr";
-  const pick = (l: "fr" | "en") => {
-    if (l === cur) return;
-    try { window.localStorage.setItem("groovebox.lang", l); } catch { /* stockage indisponible */ }
-    window.location.reload();
-  };
+  const pick = (l: "fr" | "en") => { void switchLang(l); }; // gardée par l'application, puis rechargement
   return (
     <span className="lang-choice" role="radiogroup" aria-label="Langue / Language" translate="no">
       <button type="button" role="radio" aria-checked={cur === "fr"} className={`touch touch--small${cur === "fr" ? " touch--on" : ""}`} onClick={() => pick("fr")}>Français</button>

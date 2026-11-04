@@ -36,7 +36,6 @@ function askLanguage(): Promise<"fr" | "en"> {
     box.addEventListener("click", (e) => {
       const l = (e.target as HTMLElement).closest("button")?.dataset.l;
       if (l !== "fr" && l !== "en") return;
-      try { window.localStorage.setItem("groovebox.lang", l); } catch { /* stockage indisponible : choix gardé pour la séance */ }
       box.remove();
       resolve(l);
     });
@@ -51,25 +50,12 @@ async function start() {
   // la bibliothèque JUCE lit window.__JUCE__ dès son chargement : tout le reste est chargé ensuite
   // v0.46 fix30 : interface en anglais (choix de Réglages, sinon la langue du système) : la traduction se fait à
   // l'affichage ; en français, son dictionnaire n'est même pas chargé
-  //   ordre : choix fait dans l'application > choix de l'installateur (Windows) > question au premier lancement
-  let lang: "fr" | "en" | null = null;
-  try { const v = window.localStorage.getItem("groovebox.lang"); if (v === "fr" || v === "en") lang = v; } catch { /* rien */ }
-  {
-    // langue de l'installateur (Windows) : une NOUVELLE installation l'impose (même si une autre langue avait
-    // été choisie avant dans l'application) ; un changement fait ensuite dans Réglages est gardé
-    const data = (window.__JUCE__ as { initialisationData?: Record<string, unknown> } | undefined)?.initialisationData;
-    const one = (x: unknown) => String(Array.isArray(x) ? (x[0] ?? "") : (x ?? ""));
-    const v = one(data?.lang), stamp = one(data?.langStamp);
-    if (v === "fr" || v === "en") {
-      let seen = "";
-      try { seen = window.localStorage.getItem("groovebox.langInstall") ?? ""; } catch { /* rien */ }
-      if (!lang || (stamp && stamp !== seen)) {
-        lang = v;
-        try { window.localStorage.setItem("groovebox.lang", v); window.localStorage.setItem("groovebox.langInstall", stamp); } catch { /* rien */ }
-      }
-    }
-  }
-  if (!lang) lang = mock ? "fr" : await askLanguage(); // maquette de développement : français (captures)
+  //   ordre : choix fait dans l'application > choix d'une nouvelle installation (Windows) > question au premier
+  //   lancement ; la langue est gardée par l'application (src/PluginEditor.cpp, fonction setLang)
+  const { startLang, saveLang } = await import("./lang");
+  let lang: "fr" | "en" | null = startLang();
+  if (!lang && !mock) { lang = await askLanguage(); await saveLang(lang); }
+  if (!lang) lang = "fr"; // maquette de développement : français (captures)
   document.documentElement.lang = lang;
   if (lang === "en") (await import("./i18n")).startI18n();
   const [{ connect }, { App }] = await Promise.all([import("./engine/store"), import("./App")]);
