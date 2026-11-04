@@ -3687,3 +3687,6 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   flex: 0 1 auto; min-width: 0; max-width: 46ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vecfull--phone .vecfull-top .chip--learn { max-width: 24ch; font-size: 11px; }
 @keyframes live-learn-blink { 50% { background: oklch(0.95 0.03 240); box-shadow: 0 0 0 3px var(--scene-a, oklch(0.7 0.14 240)); } }
+/* v0.46 fix30g : menu d'un fader de la vue live (valeur, modulation, Learn MIDI, bouton assignable 1–16) : la tranche
+   coupe ce qui dépasse (lueur de couleur) ; menu ouvert, elle le laisse déborder et passe au-dessus des voisines. */
+.lstrip:has(.mod-menu) { overflow: visible; z-index: 30; }
