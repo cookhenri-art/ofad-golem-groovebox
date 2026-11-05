@@ -195,7 +195,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
     });
     fn ("montageExport", [&proc] (const Args& a, Completion done)
     {
-        const auto error = proc.montageExport (intArg (a, 0, 0, 1, 0));
+        const auto error = proc.montageExport (intArg (a, 0, 0, 1, 0), intArg (a, 1, 0, 1, 0) == 1);
         done (json (error.isEmpty() ? proc.montageJson() : juce::JSON::toString (error).toStdString()));
     });
     fn ("montagePeaks", [&proc] (const Args& a, Completion done) { done (juce::var (proc.montagePeaks (strArg (a, 0, 80)))); });
@@ -526,7 +526,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         if (err.isNotEmpty()) st = st.dropLastCharacters (1) + ",\"startError\":" + juce::JSON::toString (juce::var (err)) + "}";
         return json (st.toStdString());
     };
-    fn ("audioRecStart", [&proc, recState] (const Args& a, Completion done) { done (recState (proc.audioRecStart (intArg (a, 0, 0, 2, 0), intArg (a, 1, 0, 1, 0)))); });
+    fn ("audioRecStart", [&proc, recState] (const Args& a, Completion done) { done (recState (proc.audioRecStart (intArg (a, 0, 0, 2, 0), intArg (a, 1, 0, 1, 0), intArg (a, 2, 0, 2, 0)))); });
     fn ("audioRecStop", [&proc, recState] (const Args&, Completion done) { proc.audioRecStop(); done (recState ({})); });
     fn ("audioRecStatus", [recState] (const Args&, Completion done) { done (recState ({})); });
     fn ("audioRecReveal", [&proc] (const Args&, Completion done) { done (juce::var (proc.audioRecReveal())); });
@@ -740,6 +740,12 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
     {
         const auto t = intArg (a, 0, 0, T, -1);
         if (t >= 0) eng.previewSample (t, intArg (a, 1, -1, maxSamples - 1, -1), unitArg (a, 2, 0.0f), unitArg (a, 3, 1.0f));
+        done (juce::var());
+    });
+    fn ("instTouch", [&eng, T] (const Args& a, Completion done) // v0.47 : geste sur un écran d'instrument (piste, genre, a, b) ; valeurs bornées
+    {
+        const auto t = intArg (a, 0, 0, T, -1);
+        if (t >= 0) eng.touchInstrument (t, intArg (a, 1, 0, 7, 0), floatArg (a, 2, -8.0f, 8.0f, 0.0f), floatArg (a, 3, -8.0f, 8.0f, 0.0f));
         done (juce::var());
     });
     fn ("resetLanes", [&proc, &eng, T] (const Args& a, Completion done) // v0.43 : une piste interne (ou les 8 : -1) remise à l'origine
@@ -1118,6 +1124,40 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
             const auto error = proc.loadSample (t, i, name, std::move (bytes));
             if (error.isNotEmpty() && copy != juce::File()) copy.deleteFile();   // fichier refusé : pas gardé
             finishFile ("sample", error);
+        });
+    });
+
+    // v0.47.0 : importer des échantillons venus d'ailleurs (téléphone, Drive…) UNE fois : copiés dans le
+    // dossier des échantillons de l'application (sous-dossier « Importés »), puis chargés depuis la
+    // Bibliothèque sans repasser par le sélecteur du système. Jamais d'écrasement ; 64 Mo par fichier.
+    fn ("importSamples", [this] (const Args&, Completion done)
+    {
+        done (juce::var());
+        chooser = std::make_unique<juce::FileChooser> (juce::String::fromUTF8 ("Importer des échantillons"), Folders::get (Folders::samples), "*.wav;*.aif;*.aiff;*.flac;*.ogg");
+        chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::canSelectMultipleItems,
+                              [this] (const juce::FileChooser& fc)
+        {
+            const auto urls = fc.getURLResults();
+            if (urls.isEmpty()) return;
+            auto dir = Folders::get (Folders::samples).getChildFile (juce::String::fromUTF8 ("Import\xC3\xA9s"));
+            if (! dir.createDirectory()) { finishFile ("import", juce::String::fromUTF8 ("Dossier des échantillons inaccessible")); return; }
+            int copied = 0, refused = 0;
+            for (const auto& url : urls)
+            {
+                if (copied + refused >= 200) break;
+                const auto name = Folders::cleanFileName (juce::URL::removeEscapeChars (url.isLocalFile() ? url.getLocalFile().getFileName() : url.getFileName()));
+                auto f = dir.getChildFile (name);
+                if (name.isEmpty() || ! f.hasFileExtension ("wav;aif;aiff;flac;ogg")) { ++refused; continue; }
+                auto in = url.createInputStream (juce::URL::InputStreamOptions (juce::URL::ParameterHandling::inAddress));
+                if (in == nullptr) { ++refused; continue; }
+                juce::MemoryBlock bytes;
+                in->readIntoMemoryBlock (bytes, 64 * 1024 * 1024 + 1);
+                if (bytes.getSize() == 0 || bytes.getSize() > (size_t) 64 * 1024 * 1024) { ++refused; continue; }
+                if (f.exists()) f = f.getNonexistentSibling();
+                if (f.replaceWithData (bytes.getData(), bytes.getSize())) ++copied; else ++refused;
+            }
+            finishFile ("import", copied > 0 ? juce::String() : juce::String::fromUTF8 ("Aucun échantillon importé (formats : WAV, AIFF, FLAC, OGG ; 64 Mo au plus)"));
+            juce::ignoreUnused (refused);
         });
     });
 
@@ -1566,6 +1606,7 @@ GrooveboxEditor::GrooveboxEditor (GrooveboxProcessor& p)
       processor (p),
       browser (createOptions())
 {
+    grv::Folders::setRecordingsFolder (grv::Recorder::rootFolder()); // v0.47.0 : enregistrements dans la Bibliothèque
     addAndMakeVisible (browser);
     grv::startupMark ("vue web creee, chargement de la page");
 

@@ -116,6 +116,9 @@ public:
     /** v0.43 : écouter une partie (fractions a..b) d'un échantillon chargé (fil de l'interface : valeurs
         atomiques lues par le fil audio). index < 0 : arrêter l'écoute. */
     virtual void preview (int /*index*/, float /*a*/, float /*b*/) noexcept {}
+    /** v0.47 : geste sur un écran de l'instrument (pavé de la physique : tenir, lâcher, lancer) ;
+        fil de l'interface, valeurs atomiques lues par le fil audio. */
+    virtual void touch (int /*kind*/, float /*a*/, float /*b*/) noexcept {}
     /** v0.42 : copie du tampon de l'enregistreur d'une piste interne (fil de l'interface). */
     virtual bool copyRecording (int /*lane*/, std::vector<float>& /*l*/, std::vector<float>& /*r*/, double& /*rate*/) const { return false; }
 

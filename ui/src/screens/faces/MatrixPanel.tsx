@@ -71,7 +71,7 @@ export function MatrixPanel({ channel, module: m }: { channel: number; module: M
 }
 
 /** Une barre de pas : glisser verticalement règle la valeur (bipolaire si le réglage l'est). */
-function StepBar({ global, index }: { global: number; index: number }) {
+export function StepBar({ global, index }: { global: number; index: number }) {
   const b = useParam(global, `Pas ${index + 1}`);
   const ref = useRef<HTMLDivElement>(null);
   if (!b) return null;

@@ -6,6 +6,7 @@
 #include "UserPresets.h"
 #include "Folders.h"
 #include "engine/Catalog.h"
+#include "ParseGuard.h" // v0.46.1 (audit F3)
 
 #include <algorithm>
 #include <cmath>
@@ -16,6 +17,15 @@ namespace grv
 namespace
 {
 const char* const extension = ".gbp";
+
+/** v0.46.1 (audit F3) : un préréglage peut venir d'un tiers : lecture refusée si le JSON s'imbrique
+    sans fin (le lecteur de JUCE est récursif). */
+juce::var parsePresetFile (const juce::File& f)
+{
+    const auto text = f.loadFileAsString();
+    if (! jsonNestingWithin (text.toRawUTF8(), text.getNumBytesAsUTF8())) return {};
+    return juce::JSON::parse (text);
+}
 
 juce::File presetFile (const juce::String& moduleType, const juce::String& bank, const juce::String& name)
 {
@@ -103,7 +113,7 @@ void UserPresets::adoptLegacy (const juce::String& moduleType, const juce::File&
         for (const auto& f : bank.findChildFiles (juce::File::findFiles, false, juce::String ("*") + extension))
         {
             if (moved >= 4000 || f.getSize() > maxFileBytes) continue;
-            const auto v = juce::JSON::parse (f.loadFileAsString());
+            const auto v = parsePresetFile (f);
             if (! v.isObject() || v.getProperty ("module", {}).toString() != moduleType) continue;
             const auto target = dir.getChildFile (bank.getFileName()).getChildFile (f.getFileName());
             if (target.exists() || ! target.getParentDirectory().createDirectory()) continue;
@@ -142,7 +152,7 @@ std::vector<UserPresets::Entry> UserPresets::list (const juce::String& moduleTyp
             Entry e { bank, f.getFileNameWithoutExtension(), {} };
             // famille du pad, lue dans le fichier (petit) seulement pour les pads
             if (moduleType == "Pads" && f.getSize() <= maxFileBytes)
-                if (const auto v = juce::JSON::parse (f.loadFileAsString()); v.isObject())
+                if (const auto v = parsePresetFile (f); v.isObject())
                     e.kind = v.getProperty ("kind", {}).toString().substring (0, 20);
             out.push_back (std::move (e));
         }
@@ -182,7 +192,7 @@ bool UserPresets::load (const juce::String& moduleType, const juce::String& bank
     values.clear();
     const auto file = presetFile (moduleType, bank, name);
     if (! file.existsAsFile() || file.getSize() > maxFileBytes) return false;
-    const auto v = juce::JSON::parse (file.loadFileAsString());
+    const auto v = parsePresetFile (file);
     if (! v.isObject() || v.getProperty ("format", {}).toString() != "groovebox-preset") return false;
     kind = v.getProperty ("kind", {}).toString().substring (0, 20);
     if (fileVersion != nullptr) *fileVersion = (int) v.getProperty ("version", 1);

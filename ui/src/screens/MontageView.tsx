@@ -94,6 +94,8 @@ export function MontageView() {
 
   // raccourcis clavier : le gestionnaire du dernier rendu (posé plus bas)
   const keyRef = useRef<((e: KeyboardEvent) => void) | null>(null);
+  // v0.46.2 : export : la boucle ou tout le montage (question posée seulement s'il y a une boucle)
+  const [exportAsk, setExportAsk] = useState<number | null>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => keyRef.current?.(e);
     window.addEventListener("keydown", onKey);
@@ -168,8 +170,16 @@ export function MontageView() {
     commit(clips.map((c, i) => (sel.includes(i) ? (Object.assign([...c], { [k]: v }) as MontageClip) : c)), sel);
   };
 
+  const askExport = (f: number) => {
+    if (m.loop && m.loopB - m.loopA > 1e-6) setExportAsk(exportAsk === f ? null : f);
+    else void actions.montageExport(f, false);
+  };
+
   keyRef.current = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
+      // v0.46.2 : seuls les champs de texte gardent leurs touches (après le choix de l'aimant ou un curseur,
+      // Ctrl+A, Suppr… agissent encore sur les clips)
+      const t = e.target;
+      if (t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && !["range", "checkbox", "radio", "button"].includes(t.type))) return;
       const ctrl = e.ctrlKey || e.metaKey;
       if (e.key === "Delete" || e.key === "Backspace") { if (sel.length) { e.preventDefault(); removeSel(); } }
       else if (ctrl && e.code === "KeyZ") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
@@ -214,10 +224,25 @@ export function MontageView() {
     const at = rootAt(e.clientX, e.clientY);
     setCtx({ x: at.x, y: at.y, beat: beatAt(e.clientX), lane, clip });
   };
+  /** Au doigt : n'agit que sur un toucher bref sans glisser ; si le doigt glisse, le navigateur
+   *  fait défiler la vue (il envoie alors pointercancel) et rien n'est choisi. */
+  const onTap = (e: React.PointerEvent, act: () => void) => {
+    const el = e.currentTarget as HTMLElement;
+    const x0 = e.clientX, y0 = e.clientY;
+    let far = false;
+    const move = (ev: PointerEvent) => { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) far = true; };
+    const end = (ev: PointerEvent) => {
+      el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", end); el.removeEventListener("pointercancel", end);
+      if (ev.type === "pointerup" && !far) act();
+    };
+    el.addEventListener("pointermove", move); el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+  };
   // tirer dans le vide : rectangle de choix (Ctrl ou Maj : ajoute à ce qui est choisi)
   const onAreaDown = (e: React.PointerEvent) => {
     setCtx(null);
     if (e.button !== 0) return;
+    // au doigt : glisser fait défiler (comme la grille) ; toucher sans glisser enlève le choix
+    if (e.pointerType === "touch") { onTap(e, () => setSel([])); return; }
     const add = e.ctrlKey || e.metaKey || e.shiftKey;
     const p0 = contentAt(e.clientX, e.clientY);
     if (p0.x < LABEL_W || p0.y < RULER_H) return;
@@ -252,6 +277,9 @@ export function MontageView() {
     if (e.button !== 0) return;
     const c = clips[i];
     if (tool === "cut") { splitAt([i], snapB(beatAt(e.clientX))); return; }
+    // au doigt, un clip pas encore choisi : toucher le choisit, glisser fait défiler la vue.
+    // Une fois choisi, on le tire pour le déplacer (voir touch-action dans styles.css).
+    if (e.pointerType === "touch" && !sel.includes(i)) { onTap(e, () => setSel([i])); return; }
     let selected = sel;
     if (e.shiftKey || e.ctrlKey || e.metaKey) selected = sel.includes(i) ? sel.filter((k) => k !== i) : [...sel, i];
     else if (!sel.includes(i)) selected = [i];
@@ -291,15 +319,18 @@ export function MontageView() {
         });
         commit(next, selected);
       } else {
-        const rate = rateOf(c), total = takes.get(c[1])?.[3] ?? c[2] + c[3];
-        const dS = Math.round((dBeat * 60 / bpm) * rate);
-        let n: MontageClip;
-        if (kind === "left") {
-          const src = Math.max(0, c[2] + dS);
-          const realD = src - c[2];
-          n = [c[0], c[1], src, c[3] - realD, c[4] + (realD / rate) * (bpm / 60), c[5], c[6], c[7]];
-        } else n = [c[0], c[1], c[2], Math.max(64, Math.min(total - c[2], c[3] + dS)), c[4], c[5], c[6], c[7]];
-        commit(clips.map((k, j) => (j === i ? n : k)), [i]);
+        // v0.46.2 : bord tiré : tous les clips choisis bougent du même bord, de la même quantité
+        const resize = (k: MontageClip): MontageClip => {
+          const rate = rateOf(k), total = takes.get(k[1])?.[3] ?? k[2] + k[3];
+          const dS = Math.round((dBeat * 60 / bpm) * rate);
+          if (kind === "left") {
+            const src = Math.max(0, Math.min(k[2] + k[3] - 64, k[2] + dS));
+            const realD = src - k[2];
+            return [k[0], k[1], src, k[3] - realD, k[4] + (realD / rate) * (bpm / 60), k[5], k[6], k[7]];
+          }
+          return [k[0], k[1], k[2], Math.max(64, Math.min(total - k[2], k[3] + dS)), k[4], k[5], k[6], k[7]];
+        };
+        commit(clips.map((k, j) => (selected.includes(j) ? resize(k) : k)), selected);
       }
     };
     el.addEventListener("pointermove", move);
@@ -413,8 +444,16 @@ export function MontageView() {
           <button type="button" className="touch touch--small" onClick={fit}>Tout voir</button>
           <button type="button" className="touch touch--small" onClick={() => zoomBy(1)} aria-label="Zoomer">+</button>
         </span>
-        <button type="button" className="touch touch--small" disabled={!clips.length || busy} onClick={() => void actions.montageExport(0)} title="Exporter le montage en WAV 24 bits (en temps réel, dans le dossier des enregistrements)">Export WAV</button>
-        <button type="button" className="touch touch--small" disabled={!clips.length || busy} onClick={() => void actions.montageExport(1)} title="Exporter le montage en MP3 320 kbit/s">MP3</button>
+        <button type="button" className={`touch touch--small${exportAsk === 0 ? " touch--on" : ""}`} disabled={!clips.length || busy} onClick={() => askExport(0)} title="Exporter en WAV 24 bits (en temps réel, dans le dossier des enregistrements) : la boucle ou tout le montage">Export WAV</button>
+        <button type="button" className={`touch touch--small${exportAsk === 1 ? " touch--on" : ""}`} disabled={!clips.length || busy} onClick={() => askExport(1)} title="Exporter en MP3 320 kbit/s : la boucle ou tout le montage">MP3</button>
+        {exportAsk !== null && (
+          <span className="mt-export-ask" role="group" aria-label="Que faut-il exporter ?">
+            <button type="button" className="touch touch--small touch--on" onClick={() => { void actions.montageExport(exportAsk, true); setExportAsk(null); }}>
+              La boucle (mes. {Math.floor(m.loopA / 4) + 1} à {Math.round(m.loopB / 4)})</button>
+            <button type="button" className="touch touch--small" onClick={() => { void actions.montageExport(exportAsk, false); setExportAsk(null); }}>Tout le montage</button>
+            <button type="button" className="touch touch--small touch--quiet" onClick={() => setExportAsk(null)}>Annuler</button>
+          </span>
+        )}
         {hasNative("audioRecReveal") && /export/i.test(m.status) && !busy && <button type="button" className="touch touch--small touch--quiet" onClick={() => void actions.audioRecReveal()}>Ouvrir le dossier</button>}
         <button type="button" className={`touch touch--small${help ? " touch--on" : ""}`} onClick={() => setHelp(!help)} aria-expanded={help}>?</button>
         {m.status && <span className="mt-status">{m.status}</span>}
@@ -444,7 +483,13 @@ export function MontageView() {
           {/* voies */}
           {lanes.map((l, row) => (
             <div key={l} className="mt-lane" style={{ top: RULER_H + row * LANE_H, height: LANE_H, "--k": laneColor(l) } as React.CSSProperties}>
-              <span className="mt-lab" style={{ width: LABEL_W }} title={laneName(l)}><i style={{ background: laneColor(l) }} />{laneName(l)}</span>
+              <span className="mt-lab" style={{ width: LABEL_W }} title={`${laneName(l)} — toucher : choisir tous ses clips (Ctrl / Maj : en plus)`}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  const mine = clips.map((c, i) => (c[0] === l ? i : -1)).filter((i) => i >= 0);
+                  if (e.pointerType === "touch") { onTap(e, () => setSel(mine)); return; }
+                  setSel(e.ctrlKey || e.metaKey || e.shiftKey ? [...new Set([...sel, ...mine])] : mine);
+                }}><i style={{ background: laneColor(l) }} />{laneName(l)}</span>
             </div>
           ))}
           {/* clips */}
@@ -455,8 +500,8 @@ export function MontageView() {
             let b0 = c[4], lb = lenB(c), r = row;
             if (drag && isSel) {
               if (drag.kind === "move") { b0 += drag.dBeat; r = Math.max(0, Math.min(lanes.length - 1, row + drag.dLane)); }
-              else if (drag.kind === "left" && sel.length && sel[0] === i) { b0 += drag.dBeat; lb -= drag.dBeat; }
-              else if (drag.kind === "right" && sel[0] === i) lb += drag.dBeat;
+              else if (drag.kind === "left") { b0 += drag.dBeat; lb -= drag.dBeat; }
+              else if (drag.kind === "right") lb += drag.dBeat;
             }
             const w = Math.max(3, lb * pxb);
             const rate = rateOf(c);

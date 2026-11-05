@@ -157,6 +157,16 @@ void MontagePlayer::requestAt (juce::int64 start) noexcept
     } while (! req.compare_exchange_weak (r, next));
 }
 
+bool MontagePlayer::primed() const noexcept
+{
+    const auto gen = genOf (req.load (std::memory_order_acquire));
+    const auto r0 = rd.load (std::memory_order_acquire), w0 = wr.load (std::memory_order_acquire);
+    int ready = 0;
+    for (auto v = r0; v < w0; ++v)
+        if (ring[(size_t) (v % ringChunks)].gen == gen) ++ready;
+    return ready >= 20; // 20 × 256 échantillons ≈ 0,1 s
+}
+
 //==============================================================================
 // Fil audio
 void MontagePlayer::pull (bool playing, int n, float (*laneL)[controlBlock], float (*laneR)[controlBlock],
@@ -369,6 +379,35 @@ juce::File audioFolderFor (const juce::File& projectFile)
     return projectFile.getSiblingFile (projectFile.getFileNameWithoutExtension() + " - audio");
 }
 
+/** v0.46.1 (audit F1/F2) : un projet reçu d'un tiers ne doit pas faire lire ni copier n'importe quel
+    fichier. Une prise du montage n'est acceptée que si c'est un fichier audio (FLAC ou WAV) rangé
+    dans le dossier du projet ou dans les dossiers d'enregistrement de GOLEM ; jamais un chemin réseau
+    (« \\serveur\partage » : Windows y enverrait l'empreinte du mot de passe de la session), jamais
+    de remontée « .. ». */
+bool takeFileAllowed (const juce::File& f, const juce::File& projectFolder)
+{
+    if (f == juce::File()) return false;
+    const auto path = f.getFullPathName();
+    if (path.startsWith ("\\\\") || path.startsWith ("//")) return false;
+    for (const auto& part : juce::StringArray::fromTokens (path.replaceCharacter ('\\', '/'), "/", ""))
+        if (part == "..") return false;
+    if (! f.hasFileExtension ("flac;wav")) return false;
+    juce::File root;
+    if (projectFolder != juce::File() && f.isAChildOf (projectFolder)) root = projectFolder;
+    else if (f.isAChildOf (Recorder::rootFolder())) root = Recorder::rootFolder();
+    else if (f.isAChildOf (sessionFolder().getParentDirectory())) root = sessionFolder().getParentDirectory();
+    else return false;
+   #if ! JUCE_WINDOWS
+    // contre-vérification v0.46.1 : une archive de projet (zip, tar) peut contenir un lien symbolique
+    // nommé « .wav » qui pointe vers un fichier privé : ni la prise ni ses dossiers ne doivent en être.
+    // (Pas sous Windows : JUCE y prend tout « point d'analyse » pour un lien, dont les fichiers OneDrive ;
+    // une archive n'y crée pas de lien sans droits d'administration.)
+    for (auto p = f; p != root && p.isAChildOf (root); p = p.getParentDirectory())
+        if (p.isSymbolicLink()) return false;
+   #endif
+    return true;
+}
+
 juce::ValueTree toTree (const MontageDoc& doc, const juce::File& projectFile)
 {
     juce::ValueTree m ("MONTAGE");
@@ -432,6 +471,7 @@ MontageDoc fromTree (const juce::ValueTree& m, const juce::File& projectFile)
             }
             else if (juce::File::isAbsolutePath (path)) t.file = juce::File (path);
             else continue;
+            if (! takeFileAllowed (t.file, base)) continue; // v0.46.1 (audit F1/F2)
             t.lane = juce::jlimit (0, numMontageLanes - 1, (int) c.getProperty ("lane", 0));
             t.rate = std::clamp ((double) c.getProperty ("rate", 48000.0), 8000.0, 384000.0);
             t.length = std::max<juce::int64> (0, (juce::int64) c.getProperty ("len", 0));
@@ -608,6 +648,10 @@ TakeResult analyseTake (const juce::File& folder, double placeBeat, double takeB
             c.len = std::min<juce::int64> (total, (juce::int64) e * win) - c.src;
             c.beat = res.startBeat + (double) c.src / rate * docBpm / 60.0;
             c.fadeIn = c.fadeOut = 0.004f;
+            // v0.46.2 : début de la prise (rien avant) : pas de fondu, l'attaque reste entière ; prise de
+            // boucle : la fin tombe pile sur la fin de la boucle, pas de fondu non plus (pas de creux au bouclage)
+            if (c.src == 0) c.fadeIn = 0.0f;
+            if (wholeSpan) c.fadeOut = 0.0f;
             if (c.len > 0) res.clips.push_back (c);
         }
     }
@@ -656,6 +700,8 @@ void bindToProject (MontageDoc& doc, const juce::File& projectFile)
     const auto dest = audioFolderFor (projectFile);
     for (auto& t : doc.takes)
     {
+        // v0.46.1 (audit F2) : seules les prises autorisées sont recopiées à côté du projet
+        if (! takeFileAllowed (t.file, projectFile.getParentDirectory())) continue;
         if (! t.file.existsAsFile() || t.file.isAChildOf (dest)) continue;
         // « Prise … / P01.flac » garde son dossier de prise
         auto target = dest.getChildFile (t.file.getParentDirectory().getFileName()).getChildFile (t.file.getFileName());

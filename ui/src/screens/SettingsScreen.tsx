@@ -90,13 +90,25 @@ export function SettingsScreen() {
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [listKey, setListKey] = useState(0);
   const [asTemplate, setAsTemplate] = useState(false); // v0.46 : la demande de remplacement concerne un modèle
-  const saveNamed = async (overwrite: boolean, tpl = asTemplate) => {
-    const name = cleanName(projectName);
+  const saveNamed = async (overwrite: boolean, tpl = asTemplate, given?: string) => {
+    const name = cleanName(given ?? projectName);
     if (!name) return;
     setAsTemplate(tpl);
     const r = await actions.saveProjectNamed(name, overwrite, tpl);
     setConfirmReplace(r === "exists");
-    if (r === "ok") setListKey((k) => k + 1);
+    if (r === "ok") { setListKey((k) => k + 1); showMessage(`${tpl ? "Modèle" : "Projet"} « ${name} » enregistré : il est dans la liste ci-dessous`); }
+    else if (r !== "exists") showMessage("Enregistrement impossible");
+  };
+  // v0.46.2 : tablette et téléphone : Enregistrer / Ouvrir restent DANS l'application (dossier des
+  // projets et sa liste). Le sélecteur du système (qui sortait de l'application) ne sert plus qu'à
+  // exporter une copie ou importer un fichier venu d'ailleurs.
+  const inApp = !!folders && !folders.canChoose;
+  const listRef = useRef<HTMLDivElement>(null);
+  const quickSave = (tpl: boolean) => {
+    const d = new Date(), z = (n: number) => String(n).padStart(2, "0");
+    const name = cleanName(projectName) || `Projet ${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}h${z(d.getMinutes())}`;
+    setProjectName(name);
+    void saveNamed(false, tpl, name);
   };
 
   const quantSteps = [0, 25, 50, 75, 100];
@@ -120,30 +132,42 @@ export function SettingsScreen() {
               onClick={() => press("demo", () => actions.newProject(false), "Projet de démonstration chargé")}>Projet de démonstration</button>
             <button type="button" className={`touch${lit === "empty" ? " touch--on" : ""}`}
               onClick={() => press("empty", () => actions.newProject(true), "Nouveau projet vide")}>Nouveau projet vide</button>
+            {inApp ? <>
+              <button type="button" className="touch touch--on" onClick={() => quickSave(false)}
+                title="Enregistre le projet dans l'application, sous le nom écrit plus bas (ou la date)">Enregistrer</button>
+              <button type="button" className="touch" onClick={() => quickSave(true)}
+                title="Modèle : tous les réglages restent (sons, échantillons, effets, mixeur, scènes, macros, MIDI) ; patterns, notes, verrous de pas et morceau sont retirés">Enregistrer comme modèle</button>
+              <button type="button" className="touch" onClick={() => listRef.current?.scrollIntoView({ block: "center" })}>Ouvrir</button>
+              <button type="button" className="touch touch--quiet" disabled={!files} onClick={() => press("open", () => actions.openProject())}
+                title="Ouvrir un projet venu d'ailleurs (Téléchargements, Drive…) avec le sélecteur du système">Importer un fichier…</button>
+              <button type="button" className="touch touch--quiet" disabled={!files} onClick={() => actions.saveProject()}
+                title="Enregistrer une copie hors de l'application (Téléchargements, Drive…) avec le sélecteur du système">Exporter une copie…</button>
+            </> : <>
             <button type="button" className={`touch${lit === "open" ? " touch--on" : ""}`} disabled={!files}
               onClick={() => press("open", () => actions.openProject())}>Ouvrir…</button>
             <button type="button" className="touch touch--on" disabled={!files} onClick={() => actions.saveProject()}>Enregistrer…</button>
             <button type="button" className="touch" disabled={!files} onClick={() => actions.saveProject(true)}
               title="Modèle : tous les réglages restent (sons, échantillons, effets, mixeur, scènes, macros, MIDI) ; patterns, notes, verrous de pas et morceau sont retirés">Enregistrer comme modèle…</button>
+            </>}
             {hasNative("appStart") && <WelcomeToggle />}
             <LangChoice />
           </div>
           {folders && (<>
             <div className="project-save">
-              <input type="text" value={projectName} maxLength={60} placeholder="Nom du projet" aria-label="Nom du projet à enregistrer dans le dossier des projets"
+              <input type="text" value={projectName} maxLength={60} placeholder={inApp ? "Nom du projet (sinon : la date)" : "Nom du projet"} aria-label="Nom du projet à enregistrer dans le dossier des projets"
                 onChange={(e) => { setProjectName(e.target.value); setConfirmReplace(false); }}
                 onKeyDown={(e) => { if (e.key === "Enter") void saveNamed(false); }} />
               {confirmReplace
                 ? <><span className="settings-note">« {cleanName(projectName)} » existe déjà.</span>
                     <button type="button" className="touch touch--small touch--on" onClick={() => void saveNamed(true)}>Remplacer</button>
                     <button type="button" className="touch touch--small touch--quiet" onClick={() => setConfirmReplace(false)}>Annuler</button></>
-                : <>
+                : inApp ? null : <>
                     <button type="button" className="touch touch--small touch--on" disabled={!cleanName(projectName)} onClick={() => void saveNamed(false, false)}>Enregistrer dans le dossier</button>
                     <button type="button" className="touch touch--small" disabled={!cleanName(projectName)} onClick={() => void saveNamed(false, true)}
                       title="Modèle : mêmes réglages et sons, sans patterns, verrous ni morceau">Comme modèle</button>
                   </>}
             </div>
-            <FolderBrowser key={listKey} kind="projects" title="Projets du dossier" compact onPick={(rel) => actions.openProjectFile(rel)} />
+            <div ref={listRef}><FolderBrowser key={listKey} kind="projects" title={inApp ? "Projets enregistrés (toucher pour ouvrir)" : "Projets du dossier"} compact onPick={(rel) => actions.openProjectFile(rel)} /></div>
           </>)}
           <p className="settings-note">Un projet (.gbx) contient tout : pistes, réglages, patterns, scènes, échantillons. Dans un logiciel hôte, le projet est aussi enregistré avec la session. Toucher un projet de la liste l'ouvre.</p>
         </section>
@@ -158,6 +182,9 @@ export function SettingsScreen() {
                 <span className="folder-actions">
                   {folders.canChoose && <button type="button" className="touch touch--small" onClick={() => actions.chooseFolder(kind)}>Choisir…</button>}
                   {hasNative("revealFolder") && <button type="button" className="touch touch--small touch--quiet" onClick={() => actions.revealFolder(kind)}>Ouvrir</button>}
+                  {kind === "samples" && !folders.canChoose && hasNative("importSamples") && (
+                    <button type="button" className="touch touch--small" onClick={() => actions.importSamples()}
+                      title="Copier des échantillons du téléphone dans l'application (une fois) : ils sont ensuite dans la Bibliothèque, dossier Importés">Importer…</button>)}
                   {folders[kind].custom && <button type="button" className="touch touch--small touch--quiet" onClick={() => void actions.resetFolder(kind)}>Par défaut</button>}
                 </span>
               </div>

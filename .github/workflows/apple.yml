@@ -22,26 +22,34 @@ concurrency:
 
 env:
   JUCE_TAG: "8.0.12"
+  JUCE_SHA: "29396c22c93392d6738e021b83196283d6e4d850" # v0.46.1 (audit F6) : commit attendu pour cette étiquette
+
+# v0.46.1 (audit F6) : jeton GitHub en lecture seule ; actions épinglées par empreinte de commit
+# (une étiquette « v4 » peut être déplacée, une empreinte non) ; dépendances npm du fichier verrou seulement.
+permissions:
+  contents: read
 
 jobs:
   ios:
     runs-on: macos-15
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
 
       - name: Interface React
         working-directory: ui
         run: |
-          npm ci || npm install
+          npm ci
           npm run build
 
       - name: JUCE
-        run: git clone --depth 1 --branch "$JUCE_TAG" https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
+        run: |
+          git clone --depth 1 --branch "$JUCE_TAG" https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
+          test "$(git -C "$RUNNER_TEMP/JUCE" rev-parse HEAD)" = "$JUCE_SHA"
 
       - name: Projet Xcode (iPhone / iPad)
         run: |
@@ -67,33 +75,41 @@ jobs:
           test -n "$APP"
           mkdir -p out/Payload
           cp -R "$APP" out/Payload/
-          (cd out && zip -qry Groovebox-iOS-non-signe.ipa Payload)
+          # v0.47.0 : noms de publication avec la version (lue dans CMakeLists.txt)
+          VER=$(sed -n 's/^project(Groovebox VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          test -n "$VER"
+          (cd out && zip -qry "OFAD-GOLEM-$VER-iOS-non-signe.ipa" Payload)
+          (cd out && shasum -a 256 *.ipa > SHA256SUMS-iOS.txt && cat SHA256SUMS-iOS.txt) # v0.46.1 (audit F4)
           ls -la out
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: Groovebox-iOS-non-signe
-          path: out/Groovebox-iOS-non-signe.ipa
+          path: |
+            out/*.ipa
+            out/SHA256SUMS-iOS.txt
           retention-days: 30
 
   macos:
     runs-on: macos-15
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
 
       - name: Interface React
         working-directory: ui
         run: |
-          npm ci || npm install
+          npm ci
           npm run build
 
       - name: JUCE
-        run: git clone --depth 1 --branch "$JUCE_TAG" https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
+        run: |
+          git clone --depth 1 --branch "$JUCE_TAG" https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
+          test "$(git -C "$RUNNER_TEMP/JUCE" rev-parse HEAD)" = "$JUCE_SHA"
 
       - name: Compilation (Mac Apple Silicon et Intel)
         run: |
@@ -118,13 +134,19 @@ jobs:
         run: |
           A=build-mac/Groovebox_artefacts/Release
           mkdir -p out
-          ditto -c -k --keepParent "$A/Standalone/Groovebox.app" out/Groovebox-Mac-app.zip
-          ditto -c -k --keepParent "$A/VST3/Groovebox.vst3" out/Groovebox-Mac-VST3.zip
-          ditto -c -k --keepParent "$A/AU/Groovebox.component" out/Groovebox-Mac-AU.zip
+          # v0.47.0 : noms de publication avec la version (lue dans CMakeLists.txt)
+          VER=$(sed -n 's/^project(Groovebox VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          test -n "$VER"
+          ditto -c -k --keepParent "$A/Standalone/Groovebox.app" "out/OFAD-GOLEM-$VER-Mac-app.zip"
+          ditto -c -k --keepParent "$A/VST3/Groovebox.vst3" "out/OFAD-GOLEM-$VER-Mac-VST3.zip"
+          ditto -c -k --keepParent "$A/AU/Groovebox.component" "out/OFAD-GOLEM-$VER-Mac-AU.zip"
+          (cd out && shasum -a 256 *.zip > SHA256SUMS-Mac.txt && cat SHA256SUMS-Mac.txt) # v0.46.1 (audit F4)
           ls -la out
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: Groovebox-Mac-non-signe
-          path: out/*.zip
+          path: |
+            out/*.zip
+            out/SHA256SUMS-Mac.txt
           retention-days: 30

@@ -65,6 +65,26 @@ public:
     /** Fil de l'interface. Arrête la prise, ferme les fichiers ; en MP3, lance la conversion. */
     void stop();
 
+    /** v0.46.2 : prise calée sur la lecture (à régler AVANT start) : rien n'est écrit tant que la
+        lecture ne joue pas ; la prise part au premier échantillon joué (ou à « startPpq » si la
+        lecture tourne déjà : début du prochain tour de boucle), et s'arrête d'elle-même, à
+        l'échantillon près, quand la lecture s'arrête (fin du morceau, ARRÊT) ou à la fin du tour
+        de boucle demandé par requestStopAtCycle. takeFull() dit alors qu'il faut la ranger. */
+    void setFollowPlayback (bool on, double startPpq = -1.0) noexcept { onlyWhilePlaying = on; startAt.store (on ? startPpq : -1.0); loopMode.store (false); }
+    /** v0.46.2 : « boucle parfaite » (à régler AVANT start, avec setFollowPlayback) : la prise attend
+        qu'on lui donne le début d'un tour (setLoopStart, fil de l'interface, lecture en cours), laisse
+        donc passer un tour d'élan (queues d'échos, compression en place), puis enregistre exactement
+        un tour et s'arrête d'elle-même. */
+    void setLoopTake (bool on) noexcept { loopMode.store (on); startAt.store (-1.0); }
+    bool wantsLoopStart() const noexcept { return active.load() && loopMode.load() && firstPpq.load() < 0.0 && startAt.load() < 0.0; }
+    void setLoopStart (double startPpq, double cycleQuarters) noexcept { loopLen.store (cycleQuarters); startAt.store (startPpq); }
+    bool followsPlayback() const noexcept { return followMode.load(); }
+    /** Fil de l'interface : la prise calée s'arrêtera à la fin du tour de boucle en cours (durée du
+        tour en noires, comptée depuis le début de la prise ; ≤ 0 : la mesure). Faux si la prise n'a
+        pas encore commencé ou n'est pas calée : il faut alors l'arrêter tout de suite. */
+    bool requestStopAtCycle (double cycleQuarters) noexcept;
+    bool stopPending() const noexcept { return stopAtPpq.load() >= 0.0; }
+
     bool isRecording() const noexcept { return active.load(); }
     bool isEncoding() const noexcept { return encoding.load(); }
 
@@ -87,7 +107,13 @@ public:
 
     // engine::AudioTap (fil audio)
     bool wantsStems() const noexcept override { return active.load (std::memory_order_relaxed) && stems; }
-    void tapPosition (double ppq, double ppqEnd, bool playing) noexcept override { blockPpq = ppq; blockPpqEnd = ppqEnd; blockPlaying = playing; }
+    void tapPosition (double ppq, double ppqEnd, bool playing) noexcept override
+    {
+        blockPpq = ppq; blockPpqEnd = ppqEnd; blockPlaying = playing;
+        nowPpq.store (ppq, std::memory_order_relaxed); nowPlaying.store (playing, std::memory_order_relaxed);
+    }
+    /** v0.46.2 : fin du morceau à cette position (fil audio, avant tapPosition/tapBlock du bloc). */
+    void tapStopAt (double ppq) noexcept override;
     void tapBlock (const float* outL, const float* outR,
                    const float* const* tracksL, const float* const* tracksR, std::uint32_t trackMask,
                    const float* const* returnsL, const float* const* returnsR, int n) noexcept override;
@@ -116,6 +142,18 @@ private:
     std::atomic<bool> full { false };
     double blockPpq = 0.0, blockPpqEnd = 0.0;          // fil audio
     bool blockPlaying = false;
+    std::atomic<double> startAt { -1.0 };              // v0.46.2 : début prévu (prise calée, boucle parfaite)
+    std::atomic<bool> loopMode { false };              // v0.46.2 : boucle parfaite (un tour d'élan, un tour pris)
+    std::atomic<double> loopLen { 0.0 };
+    std::atomic<std::int64_t> loopFrames { -1 };       // v0.46.2 : longueur exacte d'un tour (échantillons)
+    std::atomic<std::int64_t> loopExtra { 0 };         // v0.46.2 : prise un peu plus longue : de quoi fondre la jonction
+    /** v0.46.2 : jonction sans saut : les premiers échantillons de la boucle passent en fondu depuis la
+        vraie suite du dernier (prise au-delà du tour), puis le fichier est ramené à un tour exact. */
+    static bool seamLoop (const juce::File& wavFile, std::int64_t frames, std::int64_t extra);
+    std::atomic<bool> followMode { false };            // v0.46.2 : prise calée en cours
+    std::atomic<double> stopAtPpq { -1.0 };            // v0.46.2 : arrêt demandé (noires) ; < 0 : aucun
+    std::atomic<double> nowPpq { 0.0 };                // v0.46.2 : position lue par le fil de l'interface
+    std::atomic<bool> nowPlaying { false };
 
     std::atomic<bool> active { false };
     std::atomic<int> busy { 0 };                       // blocs du fil audio en cours d'écriture

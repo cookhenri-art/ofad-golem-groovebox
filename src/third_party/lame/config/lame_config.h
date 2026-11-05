@@ -1,4 +1,4 @@
-/* Groovebox — configuration portable de LAME 3.99.5 (encodeur MP3, LGPL), sans assembleur ni SSE :
+/* Groovebox — configuration portable de LAME 3.100 (encodeur MP3, LGPL), sans assembleur ni SSE :
    Windows (MSVC), Linux (GCC/Clang), Android (NDK). Remplace le config.h produit par « configure ». */
 #ifndef LAME_CONFIG_H
 #define LAME_CONFIG_H
@@ -12,8 +12,8 @@
 #define HAVE_MEMCPY 1
 #define LAME_LIBRARY_BUILD 1
 #define PACKAGE "lame"
-#define PACKAGE_VERSION "3.99.5"
-#define VERSION "3.99.5"
+#define PACKAGE_VERSION "3.100"
+#define VERSION "3.100"
 #define USE_FAST_LOG 1
 #include <stdint.h>
 #include <inttypes.h>

@@ -135,8 +135,12 @@ public:
     void keepVoiceCaptures();
 
     // v0.32 : enregistrement audio de ce qu'on joue (master, pistes séparées ou les deux ; WAV ou MP3)
-    juce::String audioRecStart (int mode, int format);   // vide si la prise a démarré, sinon le message
-    void audioRecStop() { recorder.stop(); }
+    /** v0.46.2 : follow : prise calée sur la lecture (démarre avec elle, s'arrête pile à la fin du
+        morceau, à l'ARRÊT, ou à la fin du tour de boucle quand on rappuie sur « ■ Audio »). */
+    juce::String audioRecStart (int mode, int format, int follow);   // follow : 0 libre, 1 calée, 2 boucle parfaite ; vide si la prise a démarré, sinon le message
+    void audioRecStop();
+    /** v0.46.2 : fil de l'interface (minuteur) : range la prise calée finie d'elle-même. */
+    void audioRecTick();
     juce::String audioRecStatus() const { return recorder.statusJson(); }
     bool audioRecReveal();                               // ouvre le dossier de la dernière prise (ordinateur)
 
@@ -146,7 +150,7 @@ public:
     void montageSetFlags (bool on, bool loop, double loopA, double loopB);
     void montageSetPlayhead (double beat);
     juce::String montageRecord (bool start);             // vide si c'est parti, sinon le message
-    juce::String montageExport (int format);             // 0 WAV, 1 MP3 ; vide si c'est parti
+    juce::String montageExport (int format, bool loopOnly = false); // 0 WAV, 1 MP3 ; boucle seule ou tout ; vide si c'est parti
     juce::String montagePeaks (const juce::String& takeId) const;
     bool montageRecording() const noexcept { return montageTakeOn; }
     bool montageIsOn() const noexcept { return montagePlayer.isActive(); }
@@ -460,6 +464,7 @@ private:
     juce::File projectContext;
     juce::File montageTakeFolder;
     bool montageTakeOn = false, montageExportOn = false, montageExportLoop = false;
+    int montageExportWait = -1; // v0.46.2 : export armé, lecture pas encore lancée (début en préparation)
     double montageTakeBpm = 120.0, montageTakeAt = 0.0; // fix11 : point de départ de la prise (noires, sur une mesure)
     bool montageTakeLoop = false; // fix12 : prise limitée à la boucle (s'arrête seule à sa fin)
     juce::String montageStatus;
@@ -512,6 +517,10 @@ private:
     int inputStartTicks = 0;  // v0.46 fix16 : fermeture du micro au démarrage (-1 : faite)
     double lastUserActivity = 0.0; // v0.46 fix21 : dernier toucher de l'interface (ms)
     bool screenKeptOn = false;     // v0.46 fix21 : écran gardé allumé
+    int bgTicks = 0;               // v0.46.2 : battements sans la main (Android)
+   #endif
+    std::atomic<bool> inBackground { false }; // v0.46.2 : appli derrière une autre : calcul suspendu
+   #if JUCE_ANDROID
    #endif
 
     // déplacements de pistes dans l'historique (v0.23) : ce que la copie d'historique ne porte pas

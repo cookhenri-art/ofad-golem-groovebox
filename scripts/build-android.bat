@@ -14,7 +14,8 @@ if "%JAVA_HOME%"=="" (
 )
 
 pushd "%ROOT%\ui" || exit /b 1
-call npm install --no-audit --no-fund || exit /b 1
+rem v0.46.1 (audit F6) : versions exactes du fichier verrou (package-lock.json), jamais d autres
+call npm ci --no-audit --no-fund || exit /b 1
 call npm run build || exit /b 1
 popd
 

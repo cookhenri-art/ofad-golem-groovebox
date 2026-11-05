@@ -59,6 +59,13 @@ public:
     /** Contenu d'un sous-dossier (dossiers puis fichiers des extensions données), trié, plafonné. */
     static std::vector<Item> list (Kind k, const juce::String& relative, const juce::StringArray& extensions, bool& ok);
 
+    /** v0.47.0 : les enregistrements audio (dossier de l'enregistreur) apparaissent dans la Bibliothèque des
+        échantillons comme un dossier « Mes enregistrements » (lecture seule, chemins vérifiés comme les
+        autres) : une boucle enregistrée se charge sans quitter l'application (le sélecteur du système
+        faisait planter l'application sur Android). À régler au démarrage. */
+    static void setRecordingsFolder (const juce::File& dir);
+    static juce::String recordingsName();
+
     /** Nom de fichier sûr (sans chemin, sans caractère interdit), ou vide. */
     static juce::String cleanFileName (const juce::String& raw);
 

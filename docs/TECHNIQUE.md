@@ -51,6 +51,15 @@ Node.js, et JUCE 8.0.12 au même endroit que pour Windows.
   (`Projucer --resave android/Groovebox.jucer` après un ajout de fichier source).
 - Installation sur la tablette : copier l'APK et l'ouvrir (autoriser les sources inconnues), ou
   `adb install -r <fichier.apk>` avec le débogage USB activé.
+- **Signature (v0.46.1)** : la version « release » est signée avec la clé de publication de GOLEM si
+  `%USERPROFILE%\.ofad-golem\keystore.properties` existe (créé une fois par `scripts\creer-cle-android.bat`),
+  sinon avec la clé de débogage (message « ATTENTION » pendant la compilation). La clé reste hors du projet ;
+  la sauvegarder (clé USB + gestionnaire de mots de passe) : sans elle, aucune mise à jour ne s'installe
+  par-dessus. Le premier APK signé avec la clé de publication demande de désinstaller une fois l'ancien.
+  Si le Projucer régénère `app/build.gradle`, reporter le bloc « golemRelease ».
+- Sauvegarde Android : laissée active (`allowBackup` par défaut) : projets et échantillons rangés dans les
+  données de l'application suivent la sauvegarde Google de l'utilisateur (son propre compte), ce qui
+  permet de les retrouver en changeant de téléphone. Les enregistrements sont dans Musique/Groovebox.
 - Audio : Oboe (AAudio), mode faible latence. Permission demandée : microphone (piste « Entrée audio »).
   Aucun accès réseau. Le projet en cours est enregistré automatiquement toutes les 15 secondes s'il a changé.
 - Sur l'écran tactile, un appui long vaut un clic droit (modulation, apprentissage MIDI, édition d'un pas).
@@ -321,6 +330,21 @@ Tout est sauvegardé avec le projet : pistes, réglages, effets, modulations, s�
 - Interface : chaque argument venant de l'interface est contrôlé (type, plage, longueur).
   La WebView ne charge que les fichiers embarqués ; ni accès disque, ni accès réseau.
 - Projets chargés : tailles plafonnées (échantillons, textes, nombre d'éléments) ; un projet illisible est ignoré, un élément inconnu est sauté.
+- **Audit de sécurité du 4 novembre 2026 (v0.46.1)** :
+  - montage : une prise d'un projet n'est acceptée que si c'est un fichier FLAC ou WAV du dossier du projet
+    ou des dossiers d'enregistrement de GOLEM (`montage::takeFileAllowed`) : jamais de chemin réseau
+    `\\serveur\partage` (fuite de l'empreinte du mot de passe Windows), jamais de « .. », et rien n'est
+    recopié depuis l'extérieur à l'enregistrement ;
+  - projets, états de séance (logiciel hôte), préréglages et réglages : profondeur des balises XML et du
+    JSON plafonnée à 64 avant la lecture (`src/ParseGuard.h`) — un fichier piégé ne fait plus planter ;
+    projets plafonnés à 256 Mo sur téléphone et tablette (600 Mo sur ordinateur) ;
+  - page de l'interface : politique de sécurité du contenu (CSP, ajoutée par `ui/vite.config.ts` à la
+    compilation) — aucun script, cadre, objet ni connexion venant d'ailleurs que l'interface embarquée ;
+  - binaires : Control Flow Guard (Windows), protection de pile et `_FORTIFY_SOURCE` (Linux), LAME 3.100 ;
+  - distribution : `scripts\empreintes-release.bat` (appelé par `CREER-INSTALLATEUR.bat`) écrit
+    `_livraisons\SHA256SUMS.txt`, à joindre à chaque release ; la CI Apple publie les siennes ;
+  - CI : jeton GitHub en lecture seule, actions épinglées par empreinte, `npm ci` seul, commit de JUCE vérifié.
+  - Rapport complet : `AUDIT-SECURITE-v0.46.md` (projet Claude).
 
 ## Tests
 
@@ -332,6 +356,9 @@ Tout est sauvegardé avec le projet : pistes, réglages, effets, modulations, s�
 
 - mesures : intensité (sinus de référence à -20 LUFS à 44,1, 48 et 96 kHz), crête vraie, seuil, limiteur en crête vraie.
 
+- sécurité (v0.46.1, `groovebox_SecurityTests`) : projets piégés (balises imbriquées sans fin, prises du
+  montage hors du projet, chemins réseau, « .. »), 150 projets abîmés au hasard relus sans plantage.
+
 `groovebox_InstrumentTests <dossier>` écrit en plus un fichier WAV par instrument et par effet, pour l'écoute.
 `groovebox_render --check` vérifie la sauvegarde complète du projet (patterns, lancement, MIDI, chaînes).
 
@@ -339,4 +366,4 @@ Tout est sauvegardé avec le projet : pistes, réglages, effets, modulations, s�
 
 - `ui/src/juce/` : bibliothèque d'interface de JUCE 8 (AGPLv3).
 - `ui/src/assets/fonts/` : police Inter (SIL Open Font License, voir `OFL-Inter.txt`).
-- `src/third_party/lame/` : encodeur MP3 LAME 3.99.5 (GNU LGPL 2, voir `COPYING` et `LISEZMOI.md`), pour l'enregistrement audio en MP3.
+- `src/third_party/lame/` : encodeur MP3 LAME 3.100 (GNU LGPL 2, voir `COPYING` et `LISEZMOI.md`), pour l'enregistrement audio en MP3.

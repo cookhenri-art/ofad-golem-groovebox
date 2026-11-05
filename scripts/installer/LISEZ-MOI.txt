@@ -19,6 +19,10 @@ Windows peut afficher « Windows a protégé votre ordinateur » : le programme 
 encore signé par un certificat payant. Cliquez sur « Informations complémentaires » puis
 « Exécuter quand même ».
 
+Téléchargez Groovebox uniquement depuis la page GitHub officielle (ofad-golem-groovebox,
+rubrique Releases). Chaque version y publie un fichier SHA256SUMS.txt : l'empreinte de votre
+installateur (PowerShell : Get-FileHash <fichier> -Algorithm SHA256) doit être identique.
+
 Dans Groovebox, réglez la carte son dans Options (en haut à gauche) > Audio/MIDI Settings.
 Pour la latence la plus faible : pilote ASIO de votre carte son, ou « Windows Audio
 (Low Latency Mode) », tampon de 128 à 256 échantillons. Le Bluetooth ajoute beaucoup de

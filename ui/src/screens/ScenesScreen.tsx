@@ -14,7 +14,7 @@ import { BREAK_SCENE, MIDI_XFADE, hostCode } from "../engine/protocol";
 import { formatNorm, toNorm, toPlain } from "../engine/params";
 import { useRef } from "react";
 import { useValueDrag } from "../controls/useValueDrag";
-import type { EncoderBinding } from "../controls/Encoder";
+import { ParamMenuZone, type EncoderBinding } from "../controls/Encoder";
 import { rangeEntry, steppedBinding, valueBinding, withCtl } from "../controls/bindings";
 import { RowLaunchBar } from "./RowLaunchBar";
 import { ScreenFrame } from "./ScreenFrame";
@@ -46,11 +46,19 @@ function LockValue({ scene, g, v }: { scene: number; g: number; v: number }) {
     // réglage à crans : la valeur glisse d'un cran à l'autre
     onChange: (n) => send(stepped ? toNorm(d, Math.round(toPlain(d, n))) : n),
     reset: () => void actions.scene("sceneClearLock", scene, g),
+    // v0.46.2 : appui long (clic droit sur ordinateur) : saisie de la valeur exacte
+    entry: {
+      plain: toPlain(d, v), min: d.min, max: d.max, unit: d.unit, integer: !!d.integer, choices: d.choices,
+      set: (plain) => { if (Number.isFinite(plain)) void actions.scene("sceneSetLock", scene, g, toNorm(d, Math.min(d.max, Math.max(d.min, plain)))); },
+      pick: (i) => void actions.scene("sceneSetLock", scene, g, toNorm(d, i)),
+    },
   } : null;
   const { handlers } = useValueDrag(binding);
   return (
-    <b className="tabular slot-lock-value drag-value" role="slider" aria-label={`${describe(g)} dans la scène`} aria-valuetext={binding?.text}
-      title="Glisser pour régler la valeur de la scène (vers le haut ou la droite = plus)" {...handlers}>{binding?.text ?? ""}</b>
+    <ParamMenuZone binding={binding} className="pm-zone--lock">
+      <b className="tabular slot-lock-value drag-value" role="slider" aria-label={`${describe(g)} dans la scène`} aria-valuetext={binding?.text}
+        title="Glisser pour régler la valeur de la scène (vers le haut ou la droite = plus) — appui long ou clic droit : valeur exacte ; double toucher : retirer" {...handlers}>{binding?.text ?? ""}</b>
+    </ParamMenuZone>
   );
 }
 

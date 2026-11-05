@@ -1591,4 +1591,109 @@ const sp: FaceLayout = {
   ],
 };
 
-export const FACE_LAYOUTS: Record<string, FaceLayout> = { mono, acid, drumA, drum80, drum90, poly5, polyj, hybrid, morph, pads, octa, ms20, sh101, blo, ob6, orbit, fm6, fm4, fmx, muse, hots, lyra, bitm, drumImp, drumNrv, dfam, voc16, vocstr, vocspec, vocsyn, sampler, keys, sp };
+/** Glutamake (v0.47, principe des synthés à tables d'ondes avec physique de mouvement) : ABS noir,
+    boutons noirs lisses, arcs braise ; la bille et les oscillateurs en tête, puis filtre, enveloppes,
+    LFO et boutons de modulation ; la physique, la séquence de mouvement et la matrice en pages. */
+const GL_ENVS = [{ label: "Ampli", value: "a" }, { label: "Filtre", value: "f" }, { label: "Hauteur", value: "p" }];
+const GL_LANES = [{ label: "A", value: "a" }, { label: "B", value: "b" }, { label: "C", value: "c" }, { label: "D", value: "d" }];
+const GL_PHYS: Panel[] = [
+  { title: "Surface et bosse", cols: 5, grow: 1.6, ctl: [
+    { id: "phon", label: "Physique", on: 1 }, { id: "tiltx", label: "Inclin. X" }, { id: "tilty", label: "Inclin. Y" }, { id: "fric", label: "Frottement" }, { id: "ptime", label: "Temps" },
+    { id: "bumph", k: "big", label: "Bosse" }, { id: "bumpx", label: "Bosse X" }, { id: "bumpy", label: "Bosse Y" }, { id: "bumpw", label: "Largeur" },
+    { id: "bumpshape", k: "vswitch", label: "Forme", short: ["Cloche", "Cône", "Plateau", "Anneau"] },
+  ] },
+  { title: "Bords · − absorbe, + relance", cols: 3, grow: 1, ctl: [
+    { id: "edget", label: "Haut" }, { id: "edgeb", label: "Bas" }, { id: "wrap", label: "Traverser", on: 1 },
+    { id: "edgel", label: "Gauche" }, { id: "edger", label: "Droite" },
+  ] },
+  { title: "Lancement", cols: 3, grow: 1.2, ctl: [
+    { id: "lsrc", k: "vswitch", label: "Lancer", short: ["Geste", "Note", "Départ", "Séq. A"] },
+    { id: "lforce", k: "big", label: "Force" }, { id: "langle", label: "Angle" }, { id: "lrand", k: "small", label: "Hasard" },
+    { id: "startx", k: "small", label: "Départ X" }, { id: "starty", k: "small", label: "Départ Y" },
+  ] },
+];
+const gluta: FaceLayout = {
+  theme: "braise",
+  wheels: true,
+  pages: [
+    {
+      id: "sound", label: "Son",
+      rows: [
+        [
+          { title: "Physique · la bille", ctl: [], custom: "glutapad", grow: 0.85 },
+          { title: "Oscillateur", banks: [{ label: "1", value: "1" }, { label: "2", value: "2" }], cols: 7, grow: 2.4, custom: "glutaosc:{b}", ctl: [
+            { id: "o{b}taba", k: "menu", label: "Table A" }, { id: "o{b}tabb", k: "menu", label: "Table B" },
+            { id: "o{b}mtype", k: "menu", label: "Morph" }, { id: "o{b}modif", k: "menu", label: "Modificateur" },
+            { id: "o{b}oct", k: "small", label: "Octave" }, { id: "o{b}semi", k: "small", label: "Demi-tons" }, { id: "o{b}fine", k: "small", label: "Fin" },
+            { id: "o{b}pos", k: "big", label: "Position" }, { id: "o{b}ab", label: "Mélange A/B" }, { id: "o{b}morph", k: "big", label: "Morph" },
+            { id: "o{b}lvl", label: "Niveau" }, { id: "sub", k: "small", label: "Sous-osc." }, { id: "noise", k: "small", label: "Bruit" },
+          ] },
+          { title: "Filtre", cols: 4, grow: 1.3, ctl: [
+            { id: "ftype", k: "menu", label: "Type" }, { id: "cutoff", k: "big", label: "Coupure" }, { id: "reso", label: "Résonance" }, { id: "fenv", label: "Enveloppe" },
+            { id: "fkey", k: "small", label: "Clavier" }, { id: "fvel", k: "small", label: "Vélocité" }, { id: "fdrive", k: "small", label: "Gain" }, { id: "fmulti", k: "small", label: "Fondu multi" },
+          ] },
+        ],
+        [
+          { title: "Enveloppe", banks: GL_ENVS, cols: 5, grow: 1.3, tone: "oklch(0.72 0.17 45)", ctl: [
+            { id: "{b}a", k: "fader", label: "A" }, { id: "{b}d", k: "fader", label: "D" }, { id: "{b}s", k: "fader", label: "S" }, { id: "{b}r", k: "fader", label: "R" },
+            { id: "pamt", k: "small", label: "Hauteur" },
+          ] },
+          { title: "Env.", banks: [{ label: "4", value: "1" }, { label: "5", value: "2" }], cols: 4, grow: 1.1, ctl: [
+            { id: "me{b}_att", label: "Attaque" }, { id: "me{b}_dec", label: "Déclin" }, { id: "me{b}_sus", label: "Niveau" }, { id: "me{b}_rel", label: "Relâch." },
+            { id: "me{b}_dly", k: "small", label: "Retard" }, { id: "me{b}_hld", k: "small", label: "Tenue" },
+            { stack: [{ id: "me{b}_loop", label: "Boucle" }, { id: "me{b}_sync", label: "Tempo" }] }, { id: "me{b}_vel", k: "small", label: "Vélocité" },
+          ] },
+          { title: "LFO", banks: [{ label: "1", value: "1" }, { label: "2", value: "2" }], cols: 2, grow: 0.7, ctl: [
+            { id: "l{b}rate", k: "big", label: "Vitesse" }, { id: "l{b}shape", k: "vswitch", label: "Forme", short: ["Sin.", "Tri.", "Scie", "Carré", "A&M"] },
+            { id: "l{b}sync", k: "small", label: "Synchro" }, { id: "l{b}delay", k: "small", label: "Retard" },
+          ] },
+          { title: "Mod", cols: 2, grow: 0.6, ctl: [{ id: "macro1", label: "Mod 1" }, { id: "macro2", label: "Mod 2" }, { id: "macro3", label: "Mod 3" }, { id: "macro4", label: "Mod 4" }] },
+          { title: "Voix et sortie", cols: 3, grow: 1, ctl: [
+            { id: "vmode", k: "vswitch", label: "Jeu", short: ["Poly", "Mono", "Unisson"] }, { id: "level", k: "big", label: "Volume" }, { id: "glide", k: "small", label: "Glisse" },
+            { id: "voices", k: "small", label: "Voix" }, { id: "univoices", k: "small", label: "Unisson" }, { id: "unidetune", k: "small", label: "Désacc." },
+            { id: "spread", k: "small", label: "Largeur" }, { id: "tune", k: "small", label: "Accord" }, { id: "velamp", k: "small", label: "Vél. ampli" },
+          ] },
+        ],
+      ],
+    },
+    {
+      id: "physics", label: "Physique",
+      rows: [
+        [{ title: "La bille · tenir au doigt, lâcher d'un geste", ctl: [], custom: "glutapad", grow: 1.1 }, GL_PHYS[0]],
+        [GL_PHYS[1], GL_PHYS[2]],
+      ],
+    },
+    {
+      id: "motion", label: "Séquence de mouvement",
+      rows: [
+        [
+          { title: "Couloir · sources Séq. A à D de la matrice", banks: GL_LANES, cols: 3, grow: 2.6, custom: "glutalane:{b}", ctl: [
+            { id: "sq{b}start", label: "Début" }, { id: "sq{b}end", label: "Fin" },
+            { id: "sq{b}dir", k: "vswitch", label: "Sens", short: ["Avant", "Arrière", "A-R", "Hasard"] },
+            { id: "sq{b}div", k: "menu", label: "Division" }, { id: "sq{b}smooth", label: "Lissage" }, { id: "sq{b}prob", label: "Probabilité" },
+          ] },
+          { title: "Séquence", cols: 1, grow: 0.6, ctl: [{ id: "seqon", label: "En marche", on: 1 }, { id: "seqretrig", k: "vswitch", label: "Départ", short: ["Libre", "Note"] }] },
+        ],
+      ],
+    },
+    {
+      id: "matrix", label: "Matrice et arpège",
+      rows: [
+        [{ title: "Matrice de modulation · 32 routages (la bille et les couloirs sont des sources)", ctl: [], custom: "matrix", grow: 2 }],
+        [
+          { title: "LFO à pas", banks: [{ label: "3", value: "3" }, { label: "4", value: "4" }, { label: "5", value: "5" }], cols: 4, grow: 1.6, custom: "steps:lf{b}_s:lf{b}_steps", ctl: [
+            { id: "lf{b}_shape", label: "Forme" }, { id: "lf{b}_rate", label: "Vitesse" }, { id: "lf{b}_steps", k: "small", label: "Pas" }, { id: "lf{b}_sync", k: "small", label: "Synchro" },
+            { id: "lf{b}_mode", k: "small", label: "Mode" }, { id: "lf{b}_delay", k: "small", label: "Retard" },
+          ] },
+          { title: "Arpège", cols: 4, grow: 1, ctl: [
+            { stack: [{ id: "arp_on", label: "En marche" }, { id: "arp_mode", label: "Mode" }] }, { id: "arp_rate", label: "Division" }, { id: "arp_gate", k: "small", label: "Durée" }, { id: "arp_swing", k: "small", label: "Swing" },
+            { id: "arp_hold", label: "Maintien" }, { id: "arp_oct", k: "switch", label: "Octaves" }, { id: "arp_steps", k: "small", label: "Pas" },
+          ] },
+          { title: "Pas de l'arpège", banks: [{ label: "Transposition", value: "t" }, { label: "Vélocité", value: "v" }], ctl: [], custom: "steps:arp_{b}:arp_steps", grow: 1.4 },
+        ],
+      ],
+    },
+  ],
+};
+
+export const FACE_LAYOUTS: Record<string, FaceLayout> = { mono, acid, drumA, drum80, drum90, poly5, polyj, hybrid, morph, pads, octa, ms20, sh101, blo, ob6, orbit, fm6, fm4, fmx, muse, hots, lyra, bitm, drumImp, drumNrv, dfam, voc16, vocstr, vocspec, vocsyn, sampler, keys, sp, gluta };

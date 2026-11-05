@@ -22,6 +22,7 @@ import { useLearnPress } from "../controls/useLearnPress";
 import { Learn } from "../device/Device";
 import { LearnChips, LiveToast } from "./ScreenFrame";
 import { MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_SOLO_BASE } from "../engine/protocol";
+import { StripSends } from "./MixerScreen"; // v0.46.2 : envois A–D
 
 export const VEC_ORBITS = ["Arrêt", "Cercle", "Infini", "Losange", "Carré", "Triangle", "Ricochet", "Hasard", "Dessinée"] as const;
 const DRAWN = 8;
@@ -322,6 +323,7 @@ function LiveStrip({ ch, kind, g }: { ch: number; kind: "track" | "group"; g?: n
   const peak = useStore((s) => s.tick.peaks[ch] ?? 0);
   const volume = useParam(paramAddress(ch, "mix", 0, 0), "Volume");
   const used = useStore((s) => (kind === "group" ? s.tracks.tracks.some((t) => t.instrument && t.out === g) : !!s.tracks.tracks[ch]?.instrument));
+  const mix = useStore((s) => s.channels[ch]?.mix); // v0.46.2 : envois A–D
   if (!L) return null;
   const name = kind === "track" ? info?.name ?? `Piste ${ch + 1}` : busName(L, ch);
   const tag = kind === "track" ? String(ch + 1) : `G${g}`;
@@ -347,6 +349,8 @@ function LiveStrip({ ch, kind, g }: { ch: number; kind: "track" | "group"; g?: n
         <span className="lstrip-meter" aria-hidden><span style={{ height: `${meter * 100}%` }} className={db > -1 ? "hot" : ""} /></span>
       </div>
       <span className="lstrip-db tabular">{volume?.text ?? ""}</span>
+      {/* v0.46.2 : envois vers les retours A–D, sur deux rangées comme dans le mixeur */}
+      {mix && mix.length > 11 && <StripSends channel={ch} name={name} mix={mix} grid />}
       {/* v0.46 fix28 : FX comme dans le mixeur : ouvre directement les effets de cette piste (✕ : retour à la vue live) */}
       <button type="button" className={`lstrip-fx${fxCount ? " has" : ""}`} title={fxCount ? `Effets de ${name} : ${fxCount} — ouvrir` : `Ajouter des effets à ${name}`}
         onClick={() => { void actions.focus(ch).then(() => setUi({ pedals: true })); }}>FX{fxCount ? <b className="tabular">{fxCount}</b> : null}</button>

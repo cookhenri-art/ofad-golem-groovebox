@@ -5,6 +5,7 @@
 
 #include "Folders.h"
 #include "UserPresets.h"
+#include "ParseGuard.h" // v0.46.1 (audit F3)
 
 #include <algorithm>
 #include <array>
@@ -88,7 +89,9 @@ static void loadSettings()
     loaded = true;
     const auto f = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile ("Groovebox").getChildFile ("dossiers.json");
     if (! f.existsAsFile() || f.getSize() > 16 * 1024) return;
-    const auto v = juce::JSON::parse (f.loadFileAsString());
+    const auto text = f.loadFileAsString();
+    if (! jsonNestingWithin (text.toRawUTF8(), text.getNumBytesAsUTF8())) return; // v0.46.1 (audit F3)
+    const auto v = juce::JSON::parse (text);
     if (! v.isObject()) return;
     for (int i = 0; i < Folders::numKinds; ++i)
     {
@@ -158,14 +161,27 @@ juce::String Folders::cleanFileName (const juce::String& raw)
     return UserPresets::cleanName (raw);
 }
 
+static juce::File& recordingsRoot() { static juce::File f; return f; }
+void Folders::setRecordingsFolder (const juce::File& dir) { const juce::ScopedLock sl (lock); recordingsRoot() = dir; }
+juce::String Folders::recordingsName() { return juce::String::fromUTF8 ("Mes enregistrements"); }
+
 bool Folders::resolve (Kind k, const juce::String& relative, juce::File& out)
 {
-    const auto root = get (k);
-    auto f = root;
+    auto root = get (k);
     juce::StringArray parts;
     parts.addTokens (relative.substring (0, 2048).replaceCharacter ('\\', '/'), "/", "");
     parts.removeEmptyStrings();
     if (parts.size() > maxDepth) return false;
+    // v0.47.0 : « Mes enregistrements » (premier élément) : le dossier de l'enregistreur
+    if (k == samples && parts.size() > 0 && parts[0] == recordingsName())
+    {
+        juce::File rec;
+        { const juce::ScopedLock sl (lock); rec = recordingsRoot(); }
+        if (rec == juce::File() || ! rec.isDirectory() || rec.isSymbolicLink()) return false;
+        root = rec;
+        parts.remove (0);
+    }
+    auto f = root;
     for (const auto& p : parts)
     {
         // chaque élément doit être un nom simple et déjà propre : pas de « .. », pas de lecteur, pas de caractère interdit
@@ -200,6 +216,14 @@ std::vector<Folders::Item> Folders::list (Kind k, const juce::String& relative, 
         if (a.folder != b.folder) return a.folder;
         return a.name.compareNatural (b.name) < 0;
     });
+    // v0.47.0 : à la racine des échantillons, le dossier des enregistrements en premier
+    if (k == samples && relative.trim().isEmpty())
+    {
+        juce::File rec;
+        { const juce::ScopedLock sl (lock); rec = recordingsRoot(); }
+        if (rec != juce::File() && rec.isDirectory() && ! rec.isSymbolicLink() && rec != dir)
+            out.insert (out.begin(), { recordingsName(), true, 0 });
+    }
     return out;
 }
 

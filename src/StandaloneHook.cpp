@@ -16,6 +16,8 @@
 
 #include "StandaloneInput.h"
 
+#include <vector>
+
 #if JUCE_ANDROID
 namespace grv
 {
@@ -41,6 +43,124 @@ void androidKeepScreenOn (bool on)
     }
     if (env->ExceptionCheck()) env->ExceptionClear();
     env->DeleteLocalRef (actCls);
+}
+
+// v0.46.2 : toutes les vues de la fenêtre (vue web comprise) : ni effet d'étirement au bord
+// (OVER_SCROLL_NEVER), ni barres de défilement. La vue web est créée après l'activité : on repasse
+// de temps en temps (quelques vues : coût négligeable).
+// v0.46.2 : vues gardées (références globales) pour les ramener à leur place à chaque battement
+static std::vector<jobject> pinnedViews;
+
+void androidPinViews()
+{
+    auto* env = juce::getEnv();
+    auto activity = juce::getMainActivity();
+    if (env == nullptr || activity.get() == nullptr) return;
+    auto actCls = env->GetObjectClass (activity.get());
+    const auto getWindow = env->GetMethodID (actCls, "getWindow", "()Landroid/view/Window;");
+    jobject window = getWindow != nullptr ? env->CallObjectMethod (activity.get(), getWindow) : nullptr;
+    env->DeleteLocalRef (actCls);
+    if (env->ExceptionCheck()) { env->ExceptionClear(); return; }
+    if (window == nullptr) return;
+    auto winCls = env->GetObjectClass (window);
+    const auto getDecor = env->GetMethodID (winCls, "getDecorView", "()Landroid/view/View;");
+    jobject decor = getDecor != nullptr ? env->CallObjectMethod (window, getDecor) : nullptr;
+    env->DeleteLocalRef (winCls);
+    env->DeleteLocalRef (window);
+    if (env->ExceptionCheck()) { env->ExceptionClear(); return; }
+    if (decor == nullptr) return;
+
+    auto viewCls = env->FindClass ("android/view/View");
+    auto groupCls = env->FindClass ("android/view/ViewGroup");
+    if (env->ExceptionCheck()) { env->ExceptionClear(); return; }
+    const auto setOverScroll = env->GetMethodID (viewCls, "setOverScrollMode", "(I)V");
+    const auto setVBar = env->GetMethodID (viewCls, "setVerticalScrollBarEnabled", "(Z)V");
+    const auto setHBar = env->GetMethodID (viewCls, "setHorizontalScrollBarEnabled", "(Z)V");
+    const auto childCount = env->GetMethodID (groupCls, "getChildCount", "()I");
+    const auto childAt = env->GetMethodID (groupCls, "getChildAt", "(I)Landroid/view/View;");
+    if (env->ExceptionCheck() || setOverScroll == nullptr || childCount == nullptr || childAt == nullptr)
+    {
+        env->ExceptionClear();
+        env->DeleteLocalRef (decor); env->DeleteLocalRef (viewCls); env->DeleteLocalRef (groupCls);
+        return;
+    }
+    // vue web : pas de zoom, pas d'agrandissement du texte par le système (la disposition reste celle prévue)
+    auto webCls = env->FindClass ("android/webkit/WebView");
+    if (env->ExceptionCheck()) { env->ExceptionClear(); webCls = nullptr; }
+    jmethodID getSettings = webCls != nullptr ? env->GetMethodID (webCls, "getSettings", "()Landroid/webkit/WebSettings;") : nullptr;
+    if (env->ExceptionCheck()) { env->ExceptionClear(); getSettings = nullptr; }
+    for (auto g : pinnedViews) env->DeleteGlobalRef (g);
+    pinnedViews.clear();
+    // parcours en largeur, borné (pas de récursion : pile courte)
+    if (env->EnsureLocalCapacity (600) != 0) { env->ExceptionClear(); }
+    std::vector<jobject> todo { decor };
+    for (size_t i = 0; i < todo.size() && i < 512; ++i)
+    {
+        jobject v = todo[i];
+        env->CallVoidMethod (v, setOverScroll, (jint) 2); // View.OVER_SCROLL_NEVER
+        if (setVBar != nullptr) env->CallVoidMethod (v, setVBar, (jboolean) JNI_FALSE);
+        if (setHBar != nullptr) env->CallVoidMethod (v, setHBar, (jboolean) JNI_FALSE);
+        if (pinnedViews.size() < 64) pinnedViews.push_back (env->NewGlobalRef (v));
+        if (webCls != nullptr && getSettings != nullptr && env->IsInstanceOf (v, webCls))
+            if (jobject st = env->CallObjectMethod (v, getSettings); st != nullptr)
+            {
+                auto stCls = env->GetObjectClass (st);
+                auto callBool = [&] (const char* name, bool on) { if (auto m = env->GetMethodID (stCls, name, "(Z)V")) env->CallVoidMethod (st, m, (jboolean) (on ? JNI_TRUE : JNI_FALSE)); if (env->ExceptionCheck()) env->ExceptionClear(); };
+                callBool ("setSupportZoom", false);
+                callBool ("setBuiltInZoomControls", false);
+                callBool ("setDisplayZoomControls", false);
+                if (auto m = env->GetMethodID (stCls, "setTextZoom", "(I)V")) env->CallVoidMethod (st, m, (jint) 100);
+                if (env->ExceptionCheck()) env->ExceptionClear();
+                env->DeleteLocalRef (stCls);
+                env->DeleteLocalRef (st);
+            }
+        if (env->IsInstanceOf (v, groupCls))
+        {
+            const auto n = env->CallIntMethod (v, childCount);
+            for (jint c = 0; c < n && todo.size() < 512; ++c)
+                if (jobject ch = env->CallObjectMethod (v, childAt, c); ch != nullptr) todo.push_back (ch);
+        }
+        if (env->ExceptionCheck()) env->ExceptionClear();
+    }
+    for (auto v : todo) env->DeleteLocalRef (v);
+    env->DeleteLocalRef (viewCls);
+    env->DeleteLocalRef (groupCls);
+    if (webCls != nullptr) env->DeleteLocalRef (webCls);
+}
+
+bool androidHasWindowFocus()
+{
+    auto* env = juce::getEnv();
+    auto activity = juce::getMainActivity();
+    if (env == nullptr || activity.get() == nullptr) return true;
+    auto cls = env->GetObjectClass (activity.get());
+    const auto m = env->GetMethodID (cls, "hasWindowFocus", "()Z");
+    const bool focus = m == nullptr || env->CallBooleanMethod (activity.get(), m) != JNI_FALSE;
+    if (env->ExceptionCheck()) env->ExceptionClear();
+    env->DeleteLocalRef (cls);
+    return focus;
+}
+
+// v0.46.2 : à chaque battement (25 par seconde) : une vue déplacée (défilement natif de la vue web,
+// panoramique du système) revient en (0, 0). L'interface ne défile jamais dans son ensemble.
+void androidResetViewScroll()
+{
+    if (pinnedViews.empty()) return;
+    auto* env = juce::getEnv();
+    if (env == nullptr) return;
+    auto viewCls = env->FindClass ("android/view/View");
+    if (env->ExceptionCheck() || viewCls == nullptr) { env->ExceptionClear(); return; }
+    const auto getX = env->GetMethodID (viewCls, "getScrollX", "()I");
+    const auto getY = env->GetMethodID (viewCls, "getScrollY", "()I");
+    const auto scrollTo = env->GetMethodID (viewCls, "scrollTo", "(II)V");
+    if (getX != nullptr && getY != nullptr && scrollTo != nullptr)
+        for (auto v : pinnedViews)
+        {
+            if (env->CallIntMethod (v, getX) != 0 || env->CallIntMethod (v, getY) != 0) env->CallVoidMethod (v, scrollTo, (jint) 0, (jint) 0);
+            if (env->ExceptionCheck()) env->ExceptionClear();
+        }
+    if (env->ExceptionCheck()) env->ExceptionClear();
+    env->DeleteLocalRef (viewCls);
 }
 } // namespace grv
 #endif

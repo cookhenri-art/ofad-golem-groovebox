@@ -25,6 +25,11 @@ fs.mkdirSync(out, { recursive: true });
     await p.locator(".face").first().waitFor({ state: "visible", timeout: 5000 });
     const tabs = p.locator(".face-pages [role=tab], .face-pages button");
     if (await tabs.count()) { await tabs.first().click(); await p.waitForTimeout(500); }
+    // v0.47 : miniature en taille ajustée (toute la façade dans l'image, comme les autres)
+    const big = p.getByRole("button", { name: /^Taille : grande$/ }).first();
+    if (await big.count()) { await big.click(); await p.waitForTimeout(600); }
+    const hide = p.getByRole("button", { name: /^Masquer ▾$/ }).first(); // rangée de pas masquée : la façade seule, comme les autres
+    if (await hide.count()) { await hide.click(); await p.waitForTimeout(600); }
     await p.screenshot({ path: path.join(out, `${inst.type}.png`) });
     await p.getByRole("button", { name: /fermer/i }).first().click().catch(() => {}); await p.waitForTimeout(300);
   }

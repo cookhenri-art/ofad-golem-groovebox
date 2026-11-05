@@ -2,13 +2,26 @@
 # Moteur C++ / JUCE 8 + interface React unique (WebView), VST3 + application autonome.
 
 cmake_minimum_required(VERSION 3.22)
-project(Groovebox VERSION 0.46.0 LANGUAGES C CXX)
+project(Groovebox VERSION 0.47.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(GROOVEBOX_BUILD_PLUGIN "Compiler le plugin et l'application autonome (nécessite JUCE)" ON)
 option(GROOVEBOX_BUILD_TESTS  "Compiler les tests du moteur audio"                          ON)
+
+# --- v0.46.1 (audit F9) : durcissement des binaires ----------------------------------------
+# Windows : contrôle des appels indirects (Control Flow Guard). Linux, Mac, iPhone : protection de
+# la pile et contrôles des fonctions de la bibliothèque C (version optimisée seulement).
+if(MSVC)
+    add_compile_options(/guard:cf)
+    add_link_options(/guard:cf)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-fstack-protector-strong)
+    if(NOT APPLE)
+        add_compile_options($<$<NOT:$<CONFIG:Debug>>:-U_FORTIFY_SOURCE> $<$<NOT:$<CONFIG:Debug>>:-D_FORTIFY_SOURCE=2>)
+    endif()
+endif()
 
 # --- Moteur audio pur (sans JUCE) : testable seul -----------------------------
 add_library(groovebox_engine STATIC
@@ -26,7 +39,7 @@ else()
     target_compile_options(groovebox_engine PRIVATE -Wall -Wextra -Wshadow -ffp-contract=fast)
 endif()
 
-# --- Encodeur MP3 (LAME 3.99.5, LGPL, sources dans src/third_party/lame) : v0.32 ---------------
+# --- Encodeur MP3 (LAME 3.100, LGPL, sources dans src/third_party/lame) : v0.32 ---------------
 file(GLOB GROOVEBOX_LAME_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/third_party/lame/unites/*.c)
 if(NOT GROOVEBOX_LAME_SOURCES)
     message(FATAL_ERROR "Sources de l'encodeur MP3 introuvables : src/third_party/lame/unites/*.c")
@@ -183,3 +196,22 @@ target_link_libraries(groovebox_render PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp
     juce::juce_recommended_config_flags)
+
+# --- v0.46.1 : tests de sécurité (audit du 4 novembre 2026) : projets piégés, montage, fichiers abîmés ----
+if(GROOVEBOX_BUILD_TESTS)
+    juce_add_console_app(groovebox_SecurityTests PRODUCT_NAME "groovebox_SecurityTests")
+    target_sources(groovebox_SecurityTests PRIVATE tools/SecurityTests.cpp src/PluginProcessor.cpp src/Recorder.cpp src/Montage.cpp)
+    target_compile_definitions(groovebox_SecurityTests PRIVATE
+        JucePlugin_Name="Groovebox"
+        GROOVEBOX_NO_EDITOR=1
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0)
+    juce_generate_juce_header(groovebox_SecurityTests)
+    target_link_libraries(groovebox_SecurityTests PRIVATE
+        groovebox_engine
+        groovebox_lame
+        juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_recommended_config_flags)
+    add_test(NAME SecurityTests COMMAND groovebox_SecurityTests)
+endif()

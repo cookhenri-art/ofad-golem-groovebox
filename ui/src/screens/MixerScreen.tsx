@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { actions, setUi, useStore } from "../engine/store";
 import { busName, busTag, groupBase, groupChannels, isGroup, numGroups, trackColor } from "../engine/params";
 import { paramAddress, useParam } from "../controls/bindings";
-import type { EncoderBinding } from "../controls/Encoder";
+import { ParamMenuZone, type EncoderBinding } from "../controls/Encoder";
 import { RowLaunchBar } from "./RowLaunchBar";
 import { ScreenFrame } from "./ScreenFrame";
 import { SpectrumPanel } from "./SpectrumPanel";
@@ -45,7 +45,7 @@ export function TouchFader({ binding, label }: { binding: EncoderBinding | null;
 
 /** Petit bouton rotatif de la tranche (on le tire vers le haut ou le bas ; double-clic : valeur
     d'origine). Bipolaire : l'arc part du milieu (gains de l'égaliseur). */
-function MiniKnob({ global, label, short, bipolar }: { global: number; label: string; short: string; bipolar?: boolean }) {
+export function MiniKnob({ global, label, short, bipolar }: { global: number; label: string; short: string; bipolar?: boolean }) {
   const b = useParam(global, label);
   const v = b?.normalised ?? (bipolar ? 0.5 : 0);
   const a0 = -135, a = a0 + 270 * v, from = bipolar ? 0 : a0;
@@ -56,7 +56,9 @@ function MiniKnob({ global, label, short, bipolar }: { global: number; label: st
   };
   const [px, py] = pt(a, 6);
   const flat = bipolar && Math.abs(v - 0.5) < 0.004;
+  // v0.46.2 : appui long (clic droit sur ordinateur) : valeur exacte, modulation, MIDI ; double toucher : valeur d'origine
   return (
+    <ParamMenuZone binding={b} className="pm-zone--mknob">
     <DragParam global={global} label={label} className={`mknob${flat ? " flat" : ""}`}>
       <svg viewBox="0 0 24 24" aria-hidden>
         <path d={arc(a0, a0 + 270)} className="mknob-track" />
@@ -66,6 +68,7 @@ function MiniKnob({ global, label, short, bipolar }: { global: number; label: st
       </svg>
       <span className="mknob-label">{short}</span>
     </DragParam>
+    </ParamMenuZone>
   );
 }
 
@@ -86,6 +89,23 @@ function StripEq({ channel, name, mix }: { channel: number; name: string; mix: n
     </div>
   );
 }
+
+/** v0.46.2 : envois vers les retours A, B, C, D (boutons) et PRÉ/POST. « grid » : deux rangées
+    (A B / C D), à la place de l'égaliseur des pistes ; sinon une rangée sous l'égaliseur (groupes). */
+export function StripSends({ channel, name, mix, grid }: { channel: number; name: string; mix: number[]; grid: boolean }) {
+  const pre = (mix[11] ?? 0) > 0.5;
+  return (
+    <div className={`strip-sends2${grid ? " is-grid" : ""}`} role="group" aria-label={`Envois ${name}`}>
+      {[0, 1, 2, 3].map((r) => <MiniKnob key={r} global={paramAddress(channel, "mix", 0, 2 + r)} label={`Envoi ${"ABCD"[r]} ${name}`} short={"ABCD"[r]} />)}
+      <button type="button" className={`strip-pre${pre ? " on" : ""}`}
+        title={pre ? "Envois avant le fader (touchez pour les mettre après)" : "Envois après le fader (touchez pour les mettre avant)"}
+        onClick={() => actions.setParam(paramAddress(channel, "mix", 0, 11), pre ? 0.25 : 0.75)}>{pre ? "PRÉ" : "POST"}</button>
+    </div>
+  );
+}
+
+/** v0.46.2 : égaliseur à plat (graves, médiums, aigus au milieu). */
+const eqFlat = (mix: number[]) => [12, 13, 15].every((i) => Math.abs((mix[i] ?? 0.5) - 0.5) < 0.004);
 
 function Strip({ channel }: { channel: number }) {
   const cat = useStore((s) => s.catalog)!;
@@ -116,8 +136,13 @@ function Strip({ channel }: { channel: number }) {
   const muted = isTrack ? !!info?.mute : !!bus?.mute;
   const db = peak > 0 ? 20 * Math.log10(peak) : -90;
   const meter = Math.max(0, Math.min(1, (db + 60) / 66));
+  // v0.46.2 : pas d'égaliseur sur les pistes (les envois A–D prennent sa place) ; gardé sur les
+  // groupes, les retours et le principal. Une piste d'un ancien projet dont l'égaliseur n'est pas
+  // à plat le garde affiché (son inchangé) jusqu'à ce qu'on le remette à plat.
+  const eqShown = !!mix && mix.length > 15 && (!isTrack || !eqFlat(mix));
+  const sendsShown = hasSends && !!mix;
   return (
-    <div className={`strip${focus ? " strip--selected" : ""}${muted ? " strip--muted" : ""}${channel === L.masterChannel ? " strip--master" : ""}${group ? " strip--group" : ""}`}
+    <div className={`strip${focus ? " strip--selected" : ""}${eqShown && sendsShown ? " strip--eq-sends" : ""}${muted ? " strip--muted" : ""}${channel === L.masterChannel ? " strip--master" : ""}${group ? " strip--group" : ""}`}
       style={{ "--k": isTrack ? trackColor(info?.color ?? 0) : "var(--accent)" } as React.CSSProperties}>
       {renaming ? (
         <input className="strip-rename" autoFocus defaultValue={bus?.name || name} maxLength={40} aria-label={`Nom du ${busTag(L, channel)}`}
@@ -135,7 +160,8 @@ function Strip({ channel }: { channel: number }) {
         <span style={{ left: `${(pan?.normalised ?? 0.5) * 100}%` }} />
       </DragParam>
       <span className="strip-pan-text tabular">{pan?.text}</span>
-      {mix && mix.length > 15 && <StripEq channel={channel} name={name} mix={mix} />}
+      {eqShown && mix && <StripEq channel={channel} name={name} mix={mix} />}
+      {sendsShown && mix && <StripSends channel={channel} name={name} mix={mix} grid={!eqShown} />}
       <div className="strip-fader">
         <TouchFader binding={volume} label={`Volume ${name}`} />
         {channel === L.masterChannel ? <MasterLR /> :
@@ -166,18 +192,6 @@ function Strip({ channel }: { channel: number }) {
           <option value={0}>→ Princ.</option>
           {Array.from({ length: numGroups(L) }, (_, g) => <option key={g} value={g + 1}>→ G{g + 1}</option>)}
         </select>
-      )}
-      {hasSends && mix && (
-        <div className="strip-sends" aria-label="Envois">
-          {[0, 1, 2, 3].map((r) => (
-            <DragParam key={r} global={paramAddress(channel, "mix", 0, 2 + r)} label={`Envoi ${String.fromCharCode(65 + r)} ${name}`}>
-              <i style={{ height: `${Math.round((mix[2 + r] ?? 0) * 100)}%` }} />
-            </DragParam>
-          ))}
-          <button type="button" className={`strip-pre${(mix[11] ?? 0) > 0.5 ? " on" : ""}`}
-            title={(mix[11] ?? 0) > 0.5 ? "Envois avant le fader (touchez pour les mettre après)" : "Envois après le fader (touchez pour les mettre avant)"}
-            onClick={() => actions.setParam(paramAddress(channel, "mix", 0, 11), (mix[11] ?? 0) > 0.5 ? 0.25 : 0.75)}>{(mix[11] ?? 0) > 0.5 ? "PRÉ" : "POST"}</button>
-        </div>
       )}
       <button type="button" className={`strip-fx${fxCount ? " has" : ""}`} title={fxCount ? `Effets : ${fxNames.join(", ")} — ouvrir EFFETS` : "Aucun effet — ouvrir EFFETS pour en ajouter"}
         onClick={() => { void actions.focus(channel); setUi({ screen: "effects" }); }}>

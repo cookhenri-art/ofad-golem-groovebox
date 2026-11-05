@@ -64,7 +64,17 @@ export function isPhoneViewport(w: number, h: number) { return h <= 540 && w / h
 function useFitScale() {
   const [fit, setFit] = useState({ scale: 1, phone: false, ghost: 1, ghostW: DESIGN_W, ghostH: DESIGN_H, areaW: 0, areaH: 0 });
   useEffect(() => {
+    // v0.46.2 : clavier du téléphone ouvert (saisie d'une valeur, d'un nom) : la zone visible rétrécit ;
+    // on ne recalcule PAS la disposition (sinon tout grossit ou glisse et peut le rester). On la
+    // recalcule quand la saisie se ferme.
+    const typing = () => {
+      const a = document.activeElement as HTMLElement | null;
+      return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.isContentEditable);
+    };
+    let laidOut = false;
     const update = () => {
+      if (laidOut && typing()) return;
+      laidOut = true;
       // v0.46 fix16 : la plus petite des tailles annoncées (fenêtre, zone visible, page) : certaines
       // WebView Android annoncent une fenêtre plus grande que la partie réellement visible
       const vv = window.visualViewport, de = document.documentElement;
@@ -82,13 +92,25 @@ function useFitScale() {
       const tablet = Math.min(w / DESIGN_W, h / DESIGN_H);
       // fenêtres de tablette sur un téléphone : hauteur de dessin gardée, largeur étirée à celle de l'écran
       const ghost = phone ? w / PHONE_FACE_W : h / DESIGN_H;
+      // v0.46.4 : taille réellement visible, pour ce qui se pose hors de l'appareil (menus du téléphone) :
+      // pas d'unités vh (certaines vues web Android les calculent mal)
+      document.documentElement.style.setProperty("--app-w", `${Math.floor(w)}px`);
+      document.documentElement.style.setProperty("--app-h", `${Math.floor(h)}px`);
       setFit({ scale: (phone ? Math.min(w / PHONE_W, h / PHONE_H) : tablet) * 0.995, phone, ghost, ghostW: phone ? PHONE_FACE_W : Math.round(DESIGN_H * w / h), ghostH: phone ? Math.floor(h / ghost) : DESIGN_H, areaW, areaH });
     };
     update();
+    // fin de saisie : le clavier se referme, on recalcule (deux fois : le système finit de rendre la place)
+    let t1 = 0, t2 = 0;
+    const afterTyping = () => { window.clearTimeout(t1); window.clearTimeout(t2); t1 = window.setTimeout(update, 250); t2 = window.setTimeout(update, 800); };
     window.addEventListener("resize", update);
     window.addEventListener("orientationchange", update);
     window.visualViewport?.addEventListener("resize", update);
-    return () => { window.removeEventListener("resize", update); window.removeEventListener("orientationchange", update); window.visualViewport?.removeEventListener("resize", update); };
+    document.addEventListener("focusout", afterTyping);
+    return () => {
+      window.clearTimeout(t1); window.clearTimeout(t2);
+      window.removeEventListener("resize", update); window.removeEventListener("orientationchange", update);
+      window.visualViewport?.removeEventListener("resize", update); document.removeEventListener("focusout", afterTyping);
+    };
   }, []);
   return fit;
 }

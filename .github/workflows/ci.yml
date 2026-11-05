@@ -6,11 +6,16 @@ on:
   push:
   pull_request:
 
+# v0.46.1 (audit F6) : jeton GitHub en lecture seule ; actions épinglées par empreinte de commit
+# (une étiquette « v4 » peut être déplacée, une empreinte non) ; dépendances npm du fichier verrou seulement.
+permissions:
+  contents: read
+
 jobs:
   linux:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Dépendances système (JUCE + WebKitGTK)
         run: |
@@ -19,19 +24,22 @@ jobs:
             libfontconfig1-dev libwebkit2gtk-4.1-dev libgtk-3-dev libx11-dev libxrandr-dev \
             libxinerama-dev libxcursor-dev libglu1-mesa-dev
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
 
       - name: Interface React
         working-directory: ui
         run: |
-          npm ci || npm install
+          npm ci
           npm run typecheck
           npm run build
 
       - name: JUCE 8.0.12
-        run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
+        run: |
+          git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
+          # v0.46.1 (audit F6) : l'étiquette doit toujours désigner le même commit
+          test "$(git -C "$RUNNER_TEMP/JUCE" rev-parse HEAD)" = "29396c22c93392d6738e021b83196283d6e4d850"
 
       - name: Compilation
         run: |

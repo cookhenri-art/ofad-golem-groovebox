@@ -45,6 +45,7 @@ const FACES: Record<string, { accent: string; panel: string; cheeks?: boolean; t
   blo:     { accent: "oklch(0.82 0.1 230)",  panel: "oklch(0.42 0.006 250)", tag: "Poly à tables d'ondes" },
   ob6:     { accent: "oklch(0.92 0.01 90)",  panel: "oklch(0.12 0.003 250)", cheeks: true, tag: "Poly à filtre d'état" },
   orbit:   { accent: "oklch(0.78 0.15 230)", panel: "oklch(0.15 0.012 260)", tag: "Synthèse vectorielle à orbite" },
+  gluta:   { accent: "oklch(0.72 0.19 42)",  panel: "oklch(0.14 0.004 40)",  tag: "Tables d'ondes et physique de mouvement" },
   fm6:     { accent: "oklch(0.8 0.12 175)",  panel: "oklch(0.16 0.008 40)",  cheeks: true, tag: "FM à 6 opérateurs" },
   fm4:     { accent: "oklch(0.82 0.15 300)", panel: "oklch(0.17 0.012 290)", tag: "FM à 4 opérateurs" },
   fmx:     { accent: "oklch(0.8 0.16 55)",   panel: "oklch(0.16 0.01 50)",   tag: "FM à 6 opérateurs, matrice libre" },

@@ -135,6 +135,8 @@ bool Recorder::start (Mode m, Format f, double sampleRate, const std::vector<Tra
     samples.store (0); dropped.store (0); encodeProgress.store (0.0f);
     firstPpq.store (-1.0);
     full.store (false);
+    stopAtPpq.store (-1.0);
+    followMode.store (onlyWhilePlaying && fixedFolder == juce::File()); // la prise du montage a sa propre fin
     active.store (true); // en dernier : le fil audio peut écrire
     return true;
 }
@@ -160,15 +162,45 @@ void Recorder::tapBlock (const float* outL, const float* outR,
     // début d'une mesure (dans ce bloc, à l'échantillon près) : la prise est calée en rythme
     if (onlyWhilePlaying)
     {
-        if (! blockPlaying) { busy.fetch_sub (1); return; }
+        if (! blockPlaying)
+        {
+            // v0.46.2 : prise calée : la lecture s'est arrêtée (ARRÊT) : la prise est finie
+            if (followMode.load (std::memory_order_relaxed) && firstPpq.load (std::memory_order_relaxed) >= 0.0) full.store (true);
+            else if (startAt.load (std::memory_order_relaxed) >= 0.0) startAt.store (-1.0, std::memory_order_relaxed); // arrêtée avant le départ prévu : on repartira avec la lecture
+            busy.fetch_sub (1); return;
+        }
+        if (full.load (std::memory_order_relaxed)) { busy.fetch_sub (1); return; } // déjà finie : on attend qu'on la range
         if (firstPpq.load (std::memory_order_relaxed) < 0.0)
         {
-            const auto bar = std::ceil (blockPpq / 4.0 - 1.0e-7) * 4.0;
+            auto bar = std::ceil (blockPpq / 4.0 - 1.0e-7) * 4.0;
+            auto at = startAt.load (std::memory_order_relaxed);
+            // v0.46.2 : boucle parfaite : on attend le début de tour donné par le fil de l'interface ; s'il
+            // est déjà passé (rare : lecture qui saute), on prend le tour suivant
+            if (loopMode.load (std::memory_order_relaxed))
+            {
+                if (at < 0.0) { busy.fetch_sub (1); return; }
+                const auto len = loopLen.load (std::memory_order_relaxed);
+                if (len > 1.0e-6) while (at < blockPpq - 1.0e-7) at += len;
+                startAt.store (at, std::memory_order_relaxed);
+            }
+            // v0.46.2 : prise calée armée pendant la lecture : départ au prochain tour de boucle
+            if (at >= 0.0 && at >= blockPpq - 1.0e-7) bar = at;
             const auto span = blockPpqEnd - blockPpq;
-            if (std::abs (blockPpq - bar) < 1.0e-7 || blockPpq < 1.0e-7) from = 0;
+            if (at <= -1.5) { from = 0; bar = blockPpq; } // export : dès le premier échantillon joué
+            else if (std::abs (blockPpq - bar) < 1.0e-7 || (blockPpq < 1.0e-7 && at < 0.0)) from = 0;
             else if (span > 0.0 && bar < blockPpqEnd) from = std::clamp ((int) std::lround ((bar - blockPpq) / span * n), 0, n - 1);
             else { busy.fetch_sub (1); return; } // on attend la mesure suivante
-            firstPpq.store (std::max (0.0, blockPpq < 1.0e-7 ? 0.0 : bar), std::memory_order_relaxed);
+            firstPpq.store (std::max (0.0, blockPpq < 1.0e-7 && at < 0.0 ? 0.0 : bar), std::memory_order_relaxed);
+            // boucle parfaite : exactement un tour, plus 10 ms (la suite réelle, pour fondre la jonction)
+            if (loopMode.load (std::memory_order_relaxed))
+                if (const auto len = loopLen.load (std::memory_order_relaxed); len > 1.0e-6 && span > 0.0)
+                {
+                    const auto framesPerQ = (double) n / span;
+                    const auto extra = (std::int64_t) std::llround (0.010 * rate);
+                    loopFrames.store ((std::int64_t) std::llround (len * framesPerQ), std::memory_order_relaxed);
+                    loopExtra.store (extra, std::memory_order_relaxed);
+                    stopAtPpq.store (firstPpq.load (std::memory_order_relaxed) + len + (double) extra / framesPerQ, std::memory_order_relaxed);
+                }
         }
     }
     // v0.46 fix12 : prise limitée (boucle du montage) : on n'écrit que jusqu'au dernier échantillon
@@ -179,6 +211,16 @@ void Recorder::tapBlock (const float* outL, const float* outR,
         if (left <= 0) { full.store (true); busy.fetch_sub (1); return; }
         if (left <= count) { count = (int) left; full.store (true); }
     }
+    // v0.46.2 : arrêt demandé (fin du tour de boucle, fin du morceau) : pile à l'échantillon
+    if (onlyWhilePlaying)
+        if (const auto stopAt = stopAtPpq.load (std::memory_order_relaxed); stopAt >= 0.0 && blockPpqEnd > stopAt + 1.0e-9)
+        {
+            const auto span = blockPpqEnd - blockPpq;
+            const int end = stopAt <= blockPpq || span <= 0.0 ? 0 : std::clamp ((int) std::lround ((stopAt - blockPpq) / span * n), 0, n);
+            full.store (true);
+            count = std::min (count, end - from);
+            if (count <= 0) { busy.fetch_sub (1); return; }
+        }
     std::int64_t lost = 0;
     auto put = [&] (int s, const float* l, const float* r)
     {
@@ -202,6 +244,69 @@ void Recorder::tapBlock (const float* outL, const float* outR,
     busy.fetch_sub (1);
 }
 
+bool Recorder::requestStopAtCycle (double cycleQuarters) noexcept
+{
+    if (! active.load() || ! followMode.load() || ! nowPlaying.load()) return false;
+    const auto first = firstPpq.load();
+    if (first < 0.0) return false;
+    const auto cycle = cycleQuarters > 1.0e-6 ? cycleQuarters : 4.0;
+    // le tour en cours se finit ; une prise d'au moins un tour entier
+    const auto k = std::max (1.0, std::ceil ((nowPpq.load() - first) / cycle - 1.0e-7));
+    const auto target = first + k * cycle;
+    const auto prev = stopAtPpq.load();
+    stopAtPpq.store (prev >= 0.0 ? std::min (prev, target) : target);
+    return true;
+}
+
+void Recorder::tapStopAt (double ppq) noexcept
+{
+    if (! active.load (std::memory_order_relaxed) || ! followMode.load (std::memory_order_relaxed)
+        || firstPpq.load (std::memory_order_relaxed) < 0.0) return;
+    const auto prev = stopAtPpq.load (std::memory_order_relaxed);
+    stopAtPpq.store (prev >= 0.0 ? std::min (prev, ppq) : ppq, std::memory_order_relaxed);
+}
+
+bool Recorder::seamLoop (const juce::File& wavFile, std::int64_t frames, std::int64_t extra)
+{
+    juce::WavAudioFormat wav;
+    std::unique_ptr<juce::AudioFormatReader> reader (wav.createReaderFor (wavFile.createInputStream().release(), true));
+    if (reader == nullptr || frames <= 0 || reader->lengthInSamples < frames || frames > (std::int64_t) 64 * 1024 * 1024) return false;
+    const auto total = reader->lengthInSamples;
+    const auto channels = (int) juce::jlimit (1u, 2u, reader->numChannels);
+    juce::AudioBuffer<float> buf (channels, (int) total);
+    reader->read (&buf, 0, (int) total, 0, true, channels > 1);
+    const auto sr = reader->sampleRate;
+    const auto bits = (int) reader->bitsPerSample;
+    reader.reset();
+    // fondu de la jonction : au début, la vraie suite de la fin (échantillons au-delà du tour) cède la
+    // place, en k échantillons, au début du tour : la fin s'enchaîne sur le début sans saut
+    const auto k = (int) std::min<std::int64_t> ({ extra, total - frames, frames / 2 });
+    for (int c = 0; c < channels; ++c)
+    {
+        auto* d = buf.getWritePointer (c);
+        for (int i = 0; i < k; ++i)
+        {
+            const auto w = 0.5f - 0.5f * std::cos (juce::MathConstants<float>::pi * ((float) i + 0.5f) / (float) k);
+            d[i] = d[(size_t) frames + (size_t) i] * (1.0f - w) + d[i] * w;
+        }
+    }
+    const auto tmp = wavFile.getSiblingFile (wavFile.getFileNameWithoutExtension() + ".tmp");
+    bool ok = false;
+    {
+        std::unique_ptr<juce::OutputStream> os = tmp.createOutputStream();
+        if (os != nullptr)
+        {
+            auto options = juce::AudioFormatWriterOptions{}.withSampleRate (sr).withNumChannels (channels).withBitsPerSample (bits > 0 ? bits : 24)
+                                                           .withMetadata (juce::WavAudioFormat::bwavOriginator, "OFAD GOLEM");
+            if (auto w = wav.createWriterFor (os, options))
+                ok = w->writeFromAudioSampleBuffer (buf, 0, (int) frames);
+        }
+    }
+    ok = ok && tmp.moveFileTo (wavFile);
+    if (! ok) tmp.deleteFile();
+    return ok;
+}
+
 void Recorder::stop()
 {
     if (! active.exchange (false)) return;
@@ -209,10 +314,19 @@ void Recorder::stop()
     for (int i = 0; busy.load() != 0 && i < 2000; ++i) std::this_thread::sleep_for (std::chrono::microseconds (100));
 
     juce::StringArray names;
-    for (const auto& s : streams) names.add (s.file.getFileName());
+    juce::Array<juce::File> written;
+    for (const auto& s : streams) { names.add (s.file.getFileName()); written.add (s.file); }
     closeAll(); // vide les files et ferme les fichiers (en-têtes WAV complets)
+    // v0.46.2 : boucle parfaite : jonction fondue, longueur ramenée à un tour exact
+    if (loopMode.load() && loopFrames.load() > 0 && format != Format::flac)
+        for (const auto& f : written) seamLoop (f, loopFrames.load(), loopExtra.load());
+    loopFrames.store (-1);
     onlyWhilePlaying = false;
     takeLimit = -1;
+    startAt.store (-1.0);
+    loopMode.store (false);
+    followMode.store (false);
+    stopAtPpq.store (-1.0);
     {
         const juce::ScopedLock sl (lock);
         files = names;
@@ -295,8 +409,12 @@ bool Recorder::encodeMp3 (const juce::File& wavFile, const juce::File& mp3File, 
     lame_set_brate (gf, 320);
     lame_set_quality (gf, 2);                              // 0 = le plus lent, 2 = très bonne qualité
     lame_set_mode (gf, channels == 2 ? JOINT_STEREO : MONO);
-    lame_set_bWriteVbrTag (gf, 0);                         // débit constant : pas d'en-tête Xing à réécrire
+    // v0.46.2 : en-tête « Info » de LAME (réécrit à la fin) : il dit le retard de l'encodeur et le
+    // remplissage final ; les logiciels qui le lisent rendent le MP3 sans blanc ajouté (boucles).
+    // Étiquette ID3 v1 seulement (à la fin) : l'en-tête reste au tout début du fichier.
+    lame_set_bWriteVbrTag (gf, 1);
     id3tag_init (gf);
+    id3tag_v1_only (gf);
     id3tag_set_title (gf, mp3File.getFileNameWithoutExtension().toRawUTF8());
     id3tag_set_comment (gf, "OFAD GOLEM");
     if (lame_init_params (gf) < 0) { lame_close (gf); error = juce::String::fromUTF8 ("Réglages MP3 refusés"); return false; }
@@ -323,6 +441,17 @@ bool Recorder::encodeMp3 (const juce::File& wavFile, const juce::File& mp3File, 
     {
         const auto bytes = lame_encode_flush (gf, mp3.data(), (int) mp3.size());
         if (bytes < 0 || ! out->write (mp3.data(), (size_t) bytes)) { ok = false; error = juce::String::fromUTF8 ("Erreur de l'encodeur MP3"); }
+    }
+    if (ok)
+    {
+        // l'en-tête « Info » prend la place de la trame vide réservée au début du fichier
+        std::vector<unsigned char> tag (2880);
+        const auto tagBytes = lame_get_lametag_frame (gf, tag.data(), tag.size());
+        if (tagBytes > 0 && tagBytes <= tag.size())
+        {
+            out->flush();
+            if (! out->setPosition (0) || ! out->write (tag.data(), tagBytes)) { ok = false; error = juce::String::fromUTF8 ("Écriture du MP3 impossible"); }
+        }
     }
     lame_close (gf);
     out->flush();
@@ -382,6 +511,9 @@ juce::String Recorder::statusJson() const
          + ",\"dropped\":" + juce::String (dropped.load() > 0 ? (double) dropped.load() / rate : 0.0, 3)
          + ",\"mode\":" + juce::String ((int) mode)
          + ",\"format\":\"" + juce::String (format == Format::mp3 ? "mp3" : "wav") + "\""
+         + ",\"follow\":" + juce::String (followMode.load() ? "true" : "false")
+         + ",\"waiting\":" + juce::String (active.load() && followMode.load() && firstPpq.load() < 0.0 ? "true" : "false")
+         + ",\"stopping\":" + juce::String (active.load() && stopAtPpq.load() >= 0.0 ? "true" : "false")
          + ",\"folder\":" + jsonEscape (shown)
          + ",\"files\":[" + fl + "]"
          + ",\"error\":" + jsonEscape (err)

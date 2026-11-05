@@ -497,7 +497,7 @@ int main (int argc, char* argv[])
         juce::MidiBuffer m;
         auto take = [&] (int fmt, double secs)
         {
-            const auto err = proc.audioRecStart (2, fmt);
+            const auto err = proc.audioRecStart (2, fmt, 0);
             if (err.isNotEmpty()) { std::printf ("ECHEC demarrage : %s\n", err.toRawUTF8()); return false; }
             const int blocks = (int) (secs * sr / block);
             double peak = 0.0;
@@ -513,10 +513,91 @@ int main (int argc, char* argv[])
             return true;
         };
         if (! take (0, 6.0) || ! take (1, 6.0)) return 1;
+        // v0.46.2 : prise calée sur la lecture : armée à l'arrêt, elle part avec la lecture ; « ■ »
+        // au milieu du 3e tour : elle finit pile à la fin du 3e tour de la boucle la plus longue
+        int followFail = 0;
+        juce::int64 followExpected = 0;
+        {
+            auto& seq = proc.getEngine().sequencer();
+            seq.requestStop();
+            for (int i = 0; i < 64; ++i) { b.clear(); proc.processBlock (b, m); }
+            const auto err = proc.audioRecStart (0, 0, 1);
+            if (err.isNotEmpty()) { std::printf ("ECHEC demarrage cale : %s\n", err.toRawUTF8()); return 1; }
+            for (int i = 0; i < 40; ++i) { b.clear(); proc.processBlock (b, m); } // rien n'est écrit à l'arrêt
+            seq.requestPlay();
+            double loopQ = 0.0;
+            for (int i = 0; i < 4; ++i) { b.clear(); proc.processBlock (b, m); }
+            { double ph = 0.0; loopQ = seq.longestLoop (seq.getPpq(), ph); }
+            if (loopQ <= 0.0) loopQ = 4.0;
+            const auto cycleSecs = loopQ * 60.0 / proc.getCurrentBpm();
+            followExpected = (juce::int64) std::llround (3.0 * loopQ * 60.0 / proc.getCurrentBpm() * sr);
+            const int blocks = (int) (2.5 * cycleSecs * sr / block);
+            for (int i = 0; i < blocks; ++i) { b.clear(); proc.processBlock (b, m); if (i % 8 == 7) juce::Thread::sleep (2); }
+            proc.audioRecStop(); // demande : fin du tour en cours
+            if (! proc.audioRecStatus().contains ("\"active\":true")) { std::printf ("ECHEC : la prise calee s'est arretee tout de suite\n"); ++followFail; }
+            for (int i = 0; i < (int) (2.0 * cycleSecs * sr / block) && proc.audioRecStatus().contains ("\"active\":true"); ++i)
+            {
+                b.clear(); proc.processBlock (b, m);
+                if (i % 8 == 7) juce::Thread::sleep (2);
+                proc.audioRecTick(); // finie d'elle-même : rangée par le minuteur de l'appli
+            }
+            seq.requestStop();
+            std::printf ("Prise calee : boucle %.2f noires, attendu %lld echantillons\n%s\n", loopQ, (long long) followExpected, proc.audioRecStatus().toRawUTF8());
+        }
+        // v0.46.2 : boucle parfaite : armée à l'arrêt ; un tour d'élan, puis exactement un tour, arrêt seul
+        juce::int64 loopExpected = 0;
+        {
+            auto& seq = proc.getEngine().sequencer();
+            for (int i = 0; i < 64; ++i) { b.clear(); proc.processBlock (b, m); }
+            juce::Thread::sleep (400); // la prise précédente est rangée
+            const auto err = proc.audioRecStart (0, 0, 2);
+            if (err.isNotEmpty()) { std::printf ("ECHEC demarrage boucle : %s\n", err.toRawUTF8()); return 1; }
+            seq.requestPlay();
+            double loopQ = 0.0;
+            for (int i = 0; i < 8; ++i) { b.clear(); proc.processBlock (b, m); }
+            { double ph = 0.0; loopQ = seq.longestLoop (seq.getPpq(), ph); }
+            if (loopQ <= 0.0) loopQ = 4.0;
+            loopExpected = (juce::int64) std::llround (loopQ * 60.0 / proc.getCurrentBpm() * sr);
+            const int maxBlocks = (int) (3.5 * loopQ * 60.0 / proc.getCurrentBpm() * sr / block);
+            for (int i = 0; i < maxBlocks && proc.audioRecStatus().contains ("\"active\":true"); ++i)
+            {
+                b.clear(); proc.processBlock (b, m);
+                proc.audioRecTick(); // le minuteur de l'appli (ici : à chaque bloc)
+                if (i % 8 == 7) juce::Thread::sleep (2);
+            }
+            seq.requestStop();
+            std::printf ("Boucle parfaite : attendu %lld echantillons\n%s\n", (long long) loopExpected, proc.audioRecStatus().toRawUTF8());
+        }
         // contrôle : relire le master WAV de la première prise
         const auto root = grv::Recorder::rootFolder();
         auto dirs = root.findChildFiles (juce::File::findDirectories, false);
         std::sort (dirs.begin(), dirs.end(), [] (const juce::File& x, const juce::File& y) { return x.getFileName() < y.getFileName(); });
+        if (dirs.size() >= 4)
+        {
+            juce::WavAudioFormat wavF;
+            if (std::unique_ptr<juce::AudioFormatReader> r (wavF.createReaderFor (dirs.getLast().getChildFile ("Master.wav").createInputStream().release(), true)); r != nullptr)
+            {
+                const auto got = r->lengthInSamples;
+                std::printf ("Boucle parfaite : %lld echantillons (attendu %lld) : %s\n", (long long) got, (long long) loopExpected,
+                             std::llabs (got - loopExpected) <= 1 ? "OK" : "ECHEC");
+                if (std::llabs (got - loopExpected) > 1) ++followFail;
+            }
+            else { std::printf ("ECHEC : boucle parfaite illisible\n"); ++followFail; }
+            dirs.removeLast();
+        }
+        if (dirs.size() >= 3)
+        {
+            juce::WavAudioFormat wavF;
+            if (std::unique_ptr<juce::AudioFormatReader> r (wavF.createReaderFor (dirs.getLast().getChildFile ("Master.wav").createInputStream().release(), true)); r != nullptr)
+            {
+                const auto got = r->lengthInSamples;
+                std::printf ("Prise calee : %lld echantillons (attendu %lld) : %s\n", (long long) got, (long long) followExpected,
+                             std::llabs (got - followExpected) <= 1 ? "OK" : "ECHEC");
+                if (std::llabs (got - followExpected) > 1) ++followFail;
+            }
+            else { std::printf ("ECHEC : prise calee illisible\n"); ++followFail; }
+            dirs.removeLast();
+        }
         if (dirs.size() >= 2)
         {
             const auto wavDir = dirs[dirs.size() - 2], mp3Dir = dirs[dirs.size() - 1];
@@ -532,7 +613,7 @@ int main (int argc, char* argv[])
                 for (const auto& f : d.findChildFiles (juce::File::findFiles, false))
                     std::printf ("  %s/%s  %lld octets\n", d.getFileName().toRawUTF8(), f.getFileName().toRawUTF8(), (long long) f.getSize());
         }
-        return 0;
+        return followFail > 0 ? 1 : 0;
     }
 
     if (argc > 1 && juce::String (argv[1]) == "--bench")

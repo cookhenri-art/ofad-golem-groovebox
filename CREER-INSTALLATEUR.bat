@@ -1,7 +1,8 @@
 @echo off
 rem Groovebox - OFAD - AGPL-3.0-or-later
 rem Double-clic : compile tout (comme COMPILER-ET-LANCER), puis fabrique l installateur
-rem _livraisons\Groovebox-Installation-<version>.exe a envoyer a d autres PC.
+rem _livraisons\OFAD-GOLEM-<version>\OFAD-GOLEM-<version>-Windows-installateur.exe a envoyer a d autres PC.
+rem v0.47.0 : chaque version a son dossier de publication (installateur, APK, Mac, sources, empreintes).
 rem Prerequis en plus de la compilation : Inno Setup 7 ou 6 (gratuit). S il manque, ce script
 rem dit comment l installer.
 title Groovebox - fabrication de l installateur
@@ -22,8 +23,8 @@ if not defined VER (
 
 rem 3. Archive des sources de cette version (licence AGPL : elles accompagnent le programme)
 if not exist "%ROOT%_livraisons" mkdir "%ROOT%_livraisons"
-if not exist "%ROOT%_livraisons\groovebox-v%VER%.tar.gz" (
-  echo Archive des sources groovebox-v%VER%.tar.gz absente de _livraisons : l installateur sera fait sans.
+if not exist "%ROOT%_livraisons\OFAD-GOLEM-%VER%-sources.tar.gz" (
+  echo Archive des sources OFAD-GOLEM-%VER%-sources.tar.gz absente de _livraisons : l installateur sera fait sans.
 )
 
 rem 4. Inno Setup 7 (ou 6) : version 7 cherchee d abord, puis 6
@@ -54,17 +55,26 @@ echo Composants Visual C++ : "%REDIST%"
 "%ISCC%" /DAppVersion=%VER% "/DVCRedist=%REDIST%" "%ROOT%scripts\installer\Groovebox.iss"
 if errorlevel 1 goto :fail
 goto :done
+
 :noredist
 echo Composants Visual C++ introuvables : l installateur sera fait sans eux.
 "%ISCC%" /DAppVersion=%VER% "%ROOT%scripts\installer\Groovebox.iss"
 if errorlevel 1 goto :fail
 
 :done
+rem 6. v0.46.1 (audit F4) : empreintes SHA-256 des fichiers a publier (SHA256SUMS.txt, a joindre a la release)
+rem    (contre-verification : place apres :done, sinon jamais execute)
+rem    v0.47.0 : seulement le dossier de CETTE version (plus les anciens fichiers de _livraisons)
+set "REL=%ROOT%_livraisons\OFAD-GOLEM-%VER%"
+if exist "%ROOT%_livraisons\OFAD-GOLEM-%VER%-sources.tar.gz" copy /y "%ROOT%_livraisons\OFAD-GOLEM-%VER%-sources.tar.gz" "%REL%\" >nul
+if exist "%ROOT%_livraisons\OFAD-GOLEM-%VER%-Android.apk" copy /y "%ROOT%_livraisons\OFAD-GOLEM-%VER%-Android.apk" "%REL%\" >nul
+call "%ROOT%scripts\empreintes-release.bat" "%REL%"
 
 echo.
-echo Installateur pret : _livraisons\Groovebox-Installation-%VER%.exe
-echo C est ce fichier qu il faut envoyer.
-explorer /select,"%ROOT%_livraisons\Groovebox-Installation-%VER%.exe"
+echo Installateur pret : _livraisons\OFAD-GOLEM-%VER%\OFAD-GOLEM-%VER%-Windows-installateur.exe
+echo Le dossier _livraisons\OFAD-GOLEM-%VER% contient tout ce qu il faut joindre a la release GitHub.
+echo Fichiers Mac : les deposer dans ce dossier puis relancer scripts\empreintes-release.bat "%REL%".
+explorer "%REL%"
 pause
 exit /b 0
 

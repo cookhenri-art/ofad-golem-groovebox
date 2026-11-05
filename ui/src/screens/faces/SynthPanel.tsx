@@ -22,6 +22,7 @@ import { MatrixPanel, StepsEditor } from "./MatrixPanel";
 import { OctaPanel } from "./OctaPanel";
 import { WaveScanPanel } from "./WaveScanPanel";
 import { OrbiterPanel, OrbWavesPanel } from "./OrbiterPanel";
+import { GlutaLane, GlutaOsc, GlutaPad } from "./GlutaPanel";
 import { DfamSeqPanel, DfamTransport } from "./DfamPanel";
 import { ImpactOut, ImpactStrips } from "./ImpactPanel";
 import { NervePads, NervePattern } from "./NervePanel";
@@ -47,6 +48,10 @@ const CUSTOM: Record<string, (p: { channel: number; module: ModuleDesc; args: st
   accent: () => <AccentKnob />,
   wavescan: ({ channel, module }) => <WaveScanPanel channel={channel} module={module} />,
   orbiter: ({ channel, module }) => <OrbiterPanel channel={channel} module={module} />,
+  // v0.47 : Glutamake — pavé de la physique, écran d'un oscillateur (« glutaosc:1 »), couloir (« glutalane:a »)
+  glutapad: ({ channel, module }) => <GlutaPad channel={channel} module={module} />,
+  glutaosc: ({ channel, module, args }) => <GlutaOsc channel={channel} module={module} osc={args[0] ?? "1"} />,
+  glutalane: ({ channel, module, args }) => <GlutaLane channel={channel} module={module} lane={args[0] ?? "a"} />,
   dfamseq: ({ channel, module }) => <DfamSeqPanel channel={channel} module={module} />,
   dfamtransport: ({ channel, module }) => <DfamTransport channel={channel} module={module} />,
   impstrips: ({ channel, module }) => <ImpactStrips channel={channel} module={module} />,

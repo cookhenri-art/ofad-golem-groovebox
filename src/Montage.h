@@ -90,6 +90,11 @@ public:
     /** Export : la boucle est ignorée et la fin du montage (+ traîne) est signalée. */
     void setExporting (bool on) noexcept { exporting.store (on); endReached.store (false); }
     bool exportFinished() const noexcept { return endReached.load(); }
+    /** v0.46.2 : le fil de lecture a déjà préparé le début (≈ 0,1 s) depuis le point de départ demandé :
+        on peut lancer la lecture sans manquer l'attaque du premier son. */
+    bool primed() const noexcept;
+    /** v0.46.2 : fin du dernier clip (échantillons depuis le début de la ligne de temps). */
+    juce::int64 endFrames() const noexcept { return endPos.load(); }
     void stopReading();
 
     // engine::MontageFeed (fil audio) ----------------------------------------------------
@@ -163,6 +168,9 @@ namespace montage
 juce::File sessionFolder();
 /** Dossier audio d'un projet : « <nom> - audio » à côté du fichier. */
 juce::File audioFolderFor (const juce::File& projectFile);
+/** v0.46.1 (audit F1/F2) : fichier de prise acceptable dans un projet (audio, dans le dossier du
+    projet ou dans ceux de GOLEM, jamais de chemin réseau ni de « .. »). */
+bool takeFileAllowed (const juce::File& file, const juce::File& projectFolder);
 
 juce::ValueTree toTree (const MontageDoc& doc, const juce::File& projectFile);
 MontageDoc fromTree (const juce::ValueTree& tree, const juce::File& projectFile);

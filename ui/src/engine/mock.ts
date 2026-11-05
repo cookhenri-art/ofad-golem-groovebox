@@ -63,7 +63,7 @@ export function installMockBackend() {
   const instDesc = (t: number) => cat.instruments.find((i) => i.type === tracks[t]?.instrument);
   const fxDesc = (ch: number, s: number) => cat.effects.find((e) => e.type === inserts[ch][s]);
   const mockFolders = () => ({
-    canChoose: true,
+    canChoose: !/Android/i.test(navigator.userAgent), // maquette : comme sur la tablette quand on l'imite
     samples: { path: "Documents/Groovebox/Échantillons", custom: false },
     projects: { path: "Documents/Groovebox/Projets", custom: false },
     presets: { path: "Documents/Groovebox/Préréglages", custom: false },
@@ -129,7 +129,7 @@ export function installMockBackend() {
   setInstrument(0, "drumA"); tracks[0].name = "Batterie";
   setInstrument(1, "acid"); tracks[1].name = "Basse acide";
   setInstrument(2, "polyj"); tracks[2].name = "Accords"; tracks[2].preset = "Accords house";
-  setInstrument(3, "fm6"); tracks[3].name = "Old Metal"; // aperçu : FM 6 opérateurs
+  setInstrument(3, "gluta"); tracks[3].name = "Glutamake"; // aperçu : bille et tables d'ondes (v0.47)
   // aperçu seulement : une piste par instrument pour voir les façades
   ["mono", "poly5", "hybrid", "morph", "drumImp", "drumNrv", "octa", "dfam", "sh101", "blo", "ob6", "orbit"].forEach((type, k) => { setInstrument(4 + k, type); });
   samples[12][0] = "Boucle de batterie.wav";
@@ -493,7 +493,8 @@ export function installMockBackend() {
     undo: () => { const ok = histMock.undo > 0; if (ok) { histMock.undo--; histMock.redo++; } return [ok, histMock.undo > 0, histMock.redo > 0, histMock.photo]; },
     redo: () => { const ok = histMock.redo > 0; if (ok) { histMock.redo--; histMock.undo++; } return [ok, histMock.undo > 0, histMock.redo > 0, histMock.photo]; },
     // v0.32 : enregistrement audio simulé (aperçu dans le navigateur)
-    audioRecStart: (mode: number, format: number) => { audioRecMock.active = true; audioRecMock.mode = mode; audioRecMock.format = format ? "mp3" : "wav"; audioRecMock.t0 = Date.now(); audioRecMock.files = []; return JSON.stringify(recState()); },
+    instTouch: (_t: number, kind: number, a: number, b: number) => { glutaHold = kind === 0 ? [a, b] : null; return ""; },
+    audioRecStart: (mode: number, format: number, _follow?: number) => { audioRecMock.active = true; audioRecMock.mode = mode; audioRecMock.format = format ? "mp3" : "wav"; audioRecMock.t0 = Date.now(); audioRecMock.files = []; return JSON.stringify(recState()); },
     audioRecStop: () => {
       audioRecMock.active = false; audioRecMock.secs = (Date.now() - audioRecMock.t0) / 1000;
       const ext = audioRecMock.format; audioRecMock.files = [...(audioRecMock.mode !== 1 ? [`Master.${ext}`] : []), ...(audioRecMock.mode !== 0 ? [`P01 Batterie.${ext}`, `P02 Basse acide.${ext}`] : [])];
@@ -611,16 +612,25 @@ export function installMockBackend() {
 const recState = () => ({ active: audioRecMock.active, encoding: false, progress: 1, seconds: audioRecMock.active ? (Date.now() - audioRecMock.t0) / 1000 : audioRecMock.secs, dropped: 0,
   mode: audioRecMock.mode, format: audioRecMock.format, folder: "Groovebox/Enregistrements/2026-10-30 18h52m03", files: audioRecMock.files, error: "", canReveal: false });
 const histMock = { undo: 3, redo: 0, photo: false };
+let glutaHold: [number, number] | null = null; // v0.47 : bille tenue au doigt (maquette)
   const vocCapTick = () => {
     const el = (Date.now() - vocCap.t0) / 1000;
     if (vocCap.st === 1 && el > 1.2) vocCap.st = 2;
     if (vocCap.st === 2 && el > 3.4) { vocCap.st = 0; vocCap.has = true; }
     return [vocCap.st, vocCap.st === 2 ? el - 1.2 : vocCap.has ? 2.2 : 0, vocCap.has ? ((Date.now() / 2450) % 1) : 0, vocCap.has ? 1 : 0, Math.floor(Date.now() / 600) % 6, vocCap.st >= 1 ? 0.3 : 0];
   };
+  const glutaTick = () => {
+    const t = Date.now() / 1000;
+    const x = glutaHold ? glutaHold[0] : 0.7 * Math.sin(t * 1.3), y = glutaHold ? glutaHold[1] : 0.55 * Math.sin(t * 1.9 + 1);
+    const st = Math.floor(t * 8);
+    return [x, y, st % 16, st % 12, Math.floor(st / 2) % 7, st % 14, Math.floor(t * 3) % 1000, 1, Math.max(0, Math.sin(t * 4)), Math.sin(t), Math.cos(t * 0.7), 0.3, -0.2];
+  };
   const baseTick = () => ({
     // v0.42 : Pieuvre 8 — piste jouée, puis 5 valeurs par piste interne
     inst: tracks[focus]?.instrument === "octa" ? [0, ...Array.from({ length: 8 }, (_, k) => [k === 0 ? recMock : 0, k === 0 && recMock ? 1.5 : 0, transport.playing ? (transport.ppq % 4) / 4 : 0, 0, Math.round(toPlainLocal(focus, `t${k + 1}_machine`))]).flat()]
       // vocodeurs : 16 bandes qui bougent comme une voix
+      // Glutamake (v0.47) : bille qui tourne, pas des couloirs au tempo
+      : tracks[focus]?.instrument === "gluta" ? glutaTick()
       : (tracks[focus]?.instrument ?? "").startsWith("voc") ? [16, (Date.now() / 900) % 1 > 0.8 ? 0.7 : 0.1, ...Array.from({ length: 16 }, (_, k) => Math.max(0, 0.75 - Math.abs(Math.sin(Date.now() / 300 + k * 0.5)) * 0.5 - k * 0.02)), ...vocCapTick()]
       : [],
     t: { ...transport, bpm: globals.bpm, lq: transport.playing ? 32 : 0, lp: transport.playing ? (Math.max(0, transport.ppq) % 32) / 32 : 0 }, g: { ...globals }, hits: [] as number[][],

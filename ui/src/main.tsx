@@ -23,6 +23,64 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 for (const g of ["gesturestart", "gesturechange", "gestureend"]) document.addEventListener(g, (e) => e.preventDefault(), { passive: false });
 
+// v0.46.2 : l'appareil reste fixe, quoi qu'il arrive : ni la page ni la zone de l'appareil (téléphone) ne
+// défilent, ni au doigt ni par un champ qui prend la main (clavier) ; les listes et panneaux gardent
+// leur propre défilement.
+const pinned = (el: Element | null) => !!el && (el === document.scrollingElement || el === document.documentElement || el === document.body
+  || (el instanceof HTMLElement && (el.classList.contains("phone-scroll") || el.classList.contains("stage") || el.id === "root")));
+document.addEventListener("scroll", (e) => {
+  const t = e.target === document ? document.scrollingElement : (e.target as Element | null);
+  if (t && pinned(t) && (t.scrollTop !== 0 || t.scrollLeft !== 0)) { t.scrollTop = 0; t.scrollLeft = 0; }
+}, { capture: true, passive: true });
+// v0.47.0 : le geste qui ferait bouger l'écran est arrêté AVANT qu'il bouge (la remise en place après coup
+// faisait trembler l'écran une seconde). Un glissé au doigt n'est laissé au navigateur que si une liste
+// ou un panneau sous le doigt peut défiler dans ce sens ; sinon, rien ne défile (les commandes, qui lisent
+// les évènements de pointeur, continuent de recevoir le geste).
+{
+  let x0 = 0, y0 = 0, decided = false, allow = true;
+  const canScroll = (from: EventTarget | null, dx: number, dy: number) => {
+    for (let el = from instanceof Element ? from : null; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+      if (!(el instanceof HTMLElement) || pinned(el)) continue;
+      const st = getComputedStyle(el);
+      const vertical = Math.abs(dy) >= Math.abs(dx);
+      const ov = vertical ? st.overflowY : st.overflowX;
+      if (ov !== "auto" && ov !== "scroll") continue;
+      if (vertical) {
+        if (el.scrollHeight - el.clientHeight < 1) continue;
+        // le doigt monte (dy < 0) : la liste descend, il faut de la place en bas ; et inversement
+        if ((dy < 0 && el.scrollTop + el.clientHeight < el.scrollHeight - 1) || (dy > 0 && el.scrollTop > 0)) return true;
+      } else {
+        if (el.scrollWidth - el.clientWidth < 1) continue;
+        if ((dx < 0 && el.scrollLeft + el.clientWidth < el.scrollWidth - 1) || (dx > 0 && el.scrollLeft > 0)) return true;
+      }
+    }
+    return false;
+  };
+  document.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; decided = false; allow = true;
+  }, { passive: true, capture: true });
+  document.addEventListener("touchmove", (e) => {
+    if (e.touches.length !== 1 || !e.cancelable) return;
+    if (!decided) {
+      const dx = e.touches[0].clientX - x0, dy = e.touches[0].clientY - y0;
+      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+      decided = true;
+      allow = canScroll(e.target, dx, dy);
+    }
+    if (!allow) e.preventDefault();
+  }, { passive: false, capture: true });
+}
+// v0.46.2 : la zone visible (téléphone) ne doit pas glisser non plus : hors saisie, on la ramène en (0, 0)
+{
+  const vv = window.visualViewport;
+  const typing = () => { const a = document.activeElement as HTMLElement | null; return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.isContentEditable); };
+  const back = () => { if (vv && !typing() && (Math.abs(vv.offsetTop) > 0.5 || Math.abs(vv.offsetLeft) > 0.5)) window.scrollTo(0, 0); };
+  vv?.addEventListener("scroll", back);
+  vv?.addEventListener("resize", back);
+  document.addEventListener("focusout", () => window.setTimeout(back, 300));
+}
+
 /** v0.46 fix30 : premier lancement sans langue connue (APK, ou PC sans choix à l'installation) : on la demande. */
 function askLanguage(): Promise<"fr" | "en"> {
   return new Promise((resolve) => {

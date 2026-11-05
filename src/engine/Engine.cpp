@@ -2707,6 +2707,7 @@ void Engine::songBlock (const Song& sg) noexcept
     {
         for (int t = 0; t < numTracks; ++t) seq->forceSwitch (t, Sequencer::stopPattern, at);
         seq->requestStop();
+        if (auto* tp = audioTap.load (std::memory_order_acquire)) tp->tapStopAt (at); // v0.46.2 : prise coupée pile
         songStoppedAtEnd = true;
         songRowNow = -1;
     };

@@ -4,8 +4,10 @@
     silence après relâchement, coût de calcul. Écrit un WAV par module si un dossier est donné.
 */
 
+#include <set>
 #include "instruments/HybridPoly.h"
 #include "instruments/WaveMorph.h"
+#include "instruments/Glutamake.h"
 #include "instruments/Pads.h"
 #include "instruments/Octa.h"
 #include "instruments/MS20.h"
@@ -446,6 +448,117 @@ static void testHybridMatrix()
             for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); }
         }
         CHECK (finite && peak > 0.05f && peak < 2.0f, fx == 0 ? "synchro dure (table)" : "densit\xC3\xA9 (table)");
+    }
+}
+
+// v0.47 : Glutamake — chaque table, morph, modificateur et filtre sonne sans exploser ; la bille bouge
+// et ses sorties modulent ; les couloirs avancent ; la liste des sources des autres instruments ne change pas
+static void testGlutamake()
+{
+    const std::string name = "glutamake : tables, morphs, filtres, physique, couloirs";
+    const auto& d = *[] { for (const auto* x : instrumentCatalog()) if (x->type == "gluta") return x; return (const ModuleDesc*) nullptr; }();
+    CHECK (d.hubSlots == 32 && d.hubMacros == 4 && d.hubEnvs == 2 && d.hubLfos == 3, "description");
+    CHECK (d.waveShapes.size() == 96, "8 tables de 12 ondes");
+    CHECK (d.params[(size_t) d.indexOf ("mx1_src")].choices.size() == 26 + 13, "sources de la matrice : 13 sources propres");
+    {
+        const auto& dm = *[] { for (const auto* x : instrumentCatalog()) if (x->type == "morph") return x; return (const ModuleDesc*) nullptr; }();
+        CHECK (dm.params[(size_t) dm.indexOf ("mx1_src")].choices.size() == 26, "wave morph : liste des sources inchang\xC3\xA9" "e");
+    }
+    CHECK (d.indexOf ("sqdprob") == grv::instruments::gluta::numSlots - 1 && d.indexOf ("seqretrig") == grv::instruments::gluta::laneBase - 1, "positions des r\xC3\xA9glages");
+    auto run = [&] (std::initializer_list<std::pair<const char*, float>> set, int blocks = 1500) {
+        auto inst = createInstrument ("gluta");
+        inst->prepare (48000.0, 32);
+        auto p = defaults (d);
+        for (const auto& [id, v] : set) p[(size_t) d.indexOf (id)] = v;
+        std::vector<float> L (32), R (32);
+        inst->noteOn (48, 1.0f); inst->noteOn (60, 1.0f);
+        float peak = 0.0f; bool finite = true;
+        for (int k = 0; k < blocks; ++k)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); }
+        }
+        return finite && peak > 0.01f && peak < 2.5f;
+    };
+    for (int t = 0; t < 8; ++t)
+        for (float pos : { 0.0f, 55.0f, 100.0f }) CHECK (run ({ { "o1taba", (float) t }, { "o1pos", pos } }), (std::string ("table ") + std::to_string (t)).c_str());
+    for (int m = 1; m < 13; ++m)
+        CHECK (run ({ { "o1mtype", (float) m }, { "o1morph", 90.0f }, { "o2lvl", 50.0f }, { "o1ab", 50.0f } }), (std::string ("morph ") + std::to_string (m)).c_str());
+    for (int m = 1; m < 13; ++m) CHECK (run ({ { "o2mtype", (float) m }, { "o2morph", 90.0f }, { "o2lvl", 70.0f } }), (std::string ("morph osc. 2 ") + std::to_string (m)).c_str());
+    for (int m = 1; m < 7; ++m) CHECK (run ({ { "o1modif", (float) m } }), (std::string ("modificateur ") + std::to_string (m)).c_str());
+    for (int f = 0; f < 10; ++f) CHECK (run ({ { "ftype", (float) f }, { "reso", 95.0f }, { "fdrive", 18.0f } }), (std::string ("filtre ") + std::to_string (f)).c_str());
+    CHECK (run ({ { "vmode", 2.0f }, { "univoices", 8.0f }, { "sub", 80.0f }, { "noise", 50.0f } }), "unisson, sous-osc., bruit");
+
+    // la bille bouge (lancée à la note) et reste sur la surface ; ses sorties modulent la position
+    {
+        auto inst = createInstrument ("gluta");
+        inst->prepare (48000.0, 32);
+        auto p = defaults (d);
+        p[(size_t) d.indexOf ("mx1_src")] = 26.0f; // bille X
+        p[(size_t) d.indexOf ("mx1_amt")] = 80.0f;
+        std::vector<float> L (32), R (32), st (48);
+        inst->noteOn (60, 1.0f);
+        float minX = 9.0f, maxX = -9.0f; bool inside = true;
+        for (int k = 0; k < 6000; ++k)
+        {
+            inst->render (L.data(), R.data(), 32, p.data());
+            const auto n = inst->status (st.data(), 48);
+            if (n < 13) { inside = false; break; }
+            minX = std::min (minX, st[0]); maxX = std::max (maxX, st[0]);
+            inside = inside && std::abs (st[0]) <= 1.0001f && std::abs (st[1]) <= 1.0001f;
+        }
+        CHECK (inside && maxX - minX > 0.3f, "la bille roule sur la surface");
+        // geste : tenir la bille en un point
+        inst->touch (0, 0.5f, -0.25f);
+        inst->render (L.data(), R.data(), 32, p.data());
+        inst->status (st.data(), 48);
+        CHECK (std::abs (st[0] - 0.5f) < 1.0e-4f && std::abs (st[1] + 0.25f) < 1.0e-4f, "tenue au doigt");
+        inst->touch (1, 2.0f, 0.0f);
+        for (int k = 0; k < 120; ++k) inst->render (L.data(), R.data(), 32, p.data()); // 80 ms
+        inst->status (st.data(), 48);
+        CHECK (st[0] > 0.6f, "l\xC3\xA2" "ch\xC3\xA9" "e avec la vitesse du geste");
+    }
+    // couloirs : le couloir A (1/16) avance au tempo ; « à chaque note » avance avec les notes
+    {
+        auto inst = createInstrument ("gluta");
+        inst->prepare (48000.0, 32);
+        inst->setTempo (120.0);
+        auto p = defaults (d);
+        p[(size_t) d.indexOf ("sqbdiv")] = 7.0f; // B : à chaque note
+        std::vector<float> L (32), R (32), st (48);
+        inst->noteOn (60, 1.0f);
+        std::set<int> seenA;
+        for (int k = 0; k < 3000; ++k) // 2 s à 120 : 16 pas de 1/16
+        {
+            inst->render (L.data(), R.data(), 32, p.data());
+            inst->status (st.data(), 48);
+            seenA.insert ((int) st[2]);
+        }
+        CHECK (seenA.size() == 16, "couloir A : 16 pas parcourus");
+        const auto b0 = (int) st[3];
+        inst->noteOn (62, 1.0f); inst->render (L.data(), R.data(), 32, p.data());
+        inst->noteOn (64, 1.0f); inst->render (L.data(), R.data(), 32, p.data());
+        inst->status (st.data(), 48);
+        CHECK ((int) st[3] == (b0 + 2) % 12, "couloir B : un pas par note (fin au pas 12)");
+    }
+    // sons d'usine : tous finis et audibles
+    for (const auto& pr : d.presets)
+    {
+        auto inst = createInstrument ("gluta");
+        inst->prepare (48000.0, 32);
+        auto p = defaults (d);
+        for (const auto& [id, v] : pr.values) { const auto i = d.indexOf (id); if (i >= 0) p[(size_t) i] = v; }
+        std::vector<float> L (32), R (32);
+        inst->noteOn (55, 0.9f); inst->noteOn (62, 0.9f);
+        float peak = 0.0f; bool finite = true;
+        for (int k = 0; k < 2500; ++k)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); }
+        }
+        CHECK (finite && peak > 0.01f && peak < 2.5f, (std::string ("son d'usine ") + pr.name).c_str());
     }
 }
 
@@ -3197,6 +3310,7 @@ int main (int argc, char** argv)
     testMachines();
     testPolyExpression();
     testHybridMatrix();
+    testGlutamake();
     testMorphModes();
     testOcta();
     testPedalEffects();

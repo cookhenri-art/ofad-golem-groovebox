@@ -8,6 +8,7 @@
 import { padNote } from "../engine/scales";
 import { useEffect, useState, useRef } from "react";
 import { actions, getState, setUi, showMessage, useStore } from "../engine/store";
+import { beginStepPaint } from "../controls/stepPaint";
 import { noteName } from "../engine/params";
 
 const KEY_CODES: Record<string, number> = {
@@ -131,7 +132,7 @@ export function PadGrid() {
   });
 
   return (
-    <div className="padgrid" role="grid" aria-label="Pads">
+    <div className="padgrid" role="grid" aria-label="Pads" data-paint-row>
       {ROWS.flat().map((pad) => {
         const note = padNote(pad, drumPads, octave, scale, root);
         const kind = mode === "play" || padMute ? (drumPads ? module?.padKinds[pad] ?? "sample" : padMute ? "sample" : "melodic") : mode === "mute" ? "track" : "sample";
@@ -163,13 +164,24 @@ export function PadGrid() {
         const caption = mode === "steps" ? `Pas ${page * 16 + pad + 1}` : mode === "scenes" ? `Scène ${scene + 1}` : padMute ? `${module?.padNames[pad] ?? ""}${(laneFlags[pad] ?? 0) & 2 ? " · solo" : ""}` : mode === "mute" ? tracks[pad]?.name ?? "" : !module ? "" : levels ? `Vélocité ${Math.round(((pad + 1) / 16) * 127)}` : drumPads ? module.padNames[pad] ?? "" : noteName(note);
 
         return (
-          <button key={pad} type="button" className={classes.join(" ")}
+          <button key={pad} type="button" className={classes.join(" ")} data-paint-step={mode === "steps" ? page * 16 + pad : undefined}
             aria-label={mode === "scenes" ? `Lancer la scène ${scene + 1}` : `Pad ${pad + 1} : ${caption}`}
             onPointerDown={(e) => {
               if (e.button !== 0) return;
               e.currentTarget.setPointerCapture(e.pointerId);
               const rect = e.currentTarget.getBoundingClientRect();
               const v = 1 - (e.clientY - rect.top) / rect.height;
+              // v0.46.2 : mode Pas : glisser sur les pads voisins pose (ou retire) tous ces pas
+              if (mode === "steps") {
+                const st = page * 16 + pad, lane = getState().ui.lane;
+                const velOf = (x: number) => getState().pattern?.lanes[lane]?.vel[x] ?? 0;
+                const len = getState().pattern?.length ?? 0;
+                if (st < len) beginStepPaint(e, st, {
+                  originWasOn: velOf(st) > 0,
+                  isOn: (x) => velOf(x) > 0,
+                  toggle: (x) => { if (x < (getState().pattern?.length ?? 0)) actions.toggleStep(lane, x); },
+                });
+              }
               press(pad, Math.min(1, Math.max(0.2, 0.4 + v * 0.6)));
             }}
             onPointerUp={() => release(pad)}

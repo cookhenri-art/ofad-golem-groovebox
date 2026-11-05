@@ -6,6 +6,11 @@
 import { useRef } from "react";
 import type { EncoderBinding } from "./Encoder";
 
+/** v0.46.2 : instant où un appui long a ouvert un menu : le glissé commencé avant s'arrête (la valeur
+    ne bouge plus sous le menu). */
+let longPressAt = 0;
+export function markLongPress() { longPressAt = performance.now(); }
+
 /** Pixels de déplacement avant qu'un appui devienne un glissé (un clic reste un clic). */
 const DEAD_ZONE = 3;
 
@@ -15,7 +20,7 @@ const DEAD_ZONE = 3;
 const stepCount = (en: NonNullable<EncoderBinding["entry"]>) => (en.choices ? en.choices.length : Math.round(en.max - en.min) + 1);
 
 export function useValueDrag(binding: EncoderBinding | null, opts?: { span?: () => number; startAt?: (e: React.PointerEvent<HTMLElement>) => number | null }) {
-  const drag = useRef<{ x: number; y: number; value: number; acc: number; moved: boolean; id: number; index: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; value: number; acc: number; moved: boolean; id: number; index: number; t0: number } | null>(null);
   const wheelAcc = useRef(0);
   const lastTap = useRef(0);
 
@@ -38,7 +43,7 @@ export function useValueDrag(binding: EncoderBinding | null, opts?: { span?: () 
         if (binding.kind === "continuous" && opts?.startAt) { const v = opts.startAt(e); if (v !== null) { start = Math.min(1, Math.max(0, v)); binding.onChange(start); } }
         const en = binding.entry;
         const startIndex = en ? (en.choices ? Math.round(en.plain) : Math.round(en.plain - en.min)) : 0;
-        drag.current = { x: e.clientX, y: e.clientY, value: start, acc: 0, moved: false, id: e.pointerId, index: startIndex };
+        drag.current = { x: e.clientX, y: e.clientY, value: start, acc: 0, moved: false, id: e.pointerId, index: startIndex, t0: performance.now() };
         // double tape au doigt = valeur d'origine (le double-clic n'existe pas au toucher) : deux
         // touchers SANS glissé à moins de 300 ms (un glissé rapide n'est pas un toucher)
         if (e.pointerType === "touch" && performance.now() - lastTap.current < 300) { binding.reset?.(); drag.current = null; lastTap.current = 0; }
@@ -46,6 +51,7 @@ export function useValueDrag(binding: EncoderBinding | null, opts?: { span?: () 
       onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
         const d = drag.current;
         if (!d || !binding || e.pointerId !== d.id) return;
+        if (longPressAt >= d.t0) { drag.current = null; return; } // un menu s'est ouvert : plus de glissé
         // v0.46 : vers le haut OU vers la droite = plus (l'axe le plus parcouru l'emporte) : un
         // panoramique ou une barre horizontale se règle en glissant de gauche à droite
         const ux = e.clientX - d.x, uy = d.y - e.clientY;

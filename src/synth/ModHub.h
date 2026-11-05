@@ -211,11 +211,14 @@ struct HubSpec
     // du hub) : leurs noms, dans l'ordre. La voix les fournit par modSources().
     std::vector<std::string> extEnvs, extLfos;
     int macros = 0;          // macros : boutons libres, sources de la matrice (0..8)
+    // v0.47 : sources propres à l'instrument, calculées pour tout l'instrument (physique de la bille,
+    // couloirs de séquence…), placées APRÈS les macros : la liste des autres instruments ne change pas
+    std::vector<std::string> extraSources;
 };
 
 /** Nombre de places d'enveloppes et de LFO parmi les sources (celles de l'instrument puis celles
     du hub), de macros (sources réglées à la main). */
-constexpr int hubEnvMax = 5, hubLfoMax = 5, hubMacroMax = 8;
+constexpr int hubEnvMax = 5, hubLfoMax = 5, hubMacroMax = 8, hubExtraMax = 16;
 
 enum HubSource { srcNone = 0, srcEnv1, srcEnv2, srcEnv3, srcEnv4, srcEnv5, srcLfo1, srcLfo2, srcLfo3, srcLfo4, srcLfo5,
                  srcVelocity, srcNote, srcWheel, srcPressure, srcBend, srcRandom, srcConstant,
@@ -232,6 +235,7 @@ inline std::vector<std::string> hubSourceNames (const HubSpec& s)
         v.push_back (i < nl ? s.extLfos[(size_t) i] : i - nl < s.lfos ? "LFO " + std::to_string (s.firstLfo + i - nl) : "\xE2\x80\x94");
     for (const char* n : { "V\xC3\xA9locit\xC3\xA9", "Note", "Molette", "Pression", "Pitch bend", "Al\xC3\xA9" "atoire", "Constante" }) v.push_back (n);
     for (int i = 0; i < hubMacroMax; ++i) v.push_back (i < s.macros ? "Macro " + std::to_string (i + 1) : "\xE2\x80\x94");
+    for (int i = 0; i < std::min ((int) s.extraSources.size(), hubExtraMax); ++i) v.push_back (s.extraSources[(size_t) i]); // v0.47
     return v;
 }
 
@@ -509,6 +513,9 @@ public:
     }
     bool wantsExternal() const noexcept { return active && (extEnvs > 0 || extLfos > 0); }
 
+    /** v0.47 : valeurs des sources propres à tout l'instrument (HubSpec::extraSources), pour ce bloc. */
+    void setExtra (int k, double value) noexcept { if (k >= 0 && k < hubExtraMax) extra[(size_t) k] = value; }
+
     /** Début de bloc : lissage des commandes d'expression, valeurs de base des destinations,
         hauteur du pitch bend. Renvoie les réglages communs (bend appliqué à l'accord). */
     const float* beginBlock (const float* p, int n, double bpm) noexcept
@@ -548,7 +555,8 @@ public:
     {
         if (! active || i < 0 || i >= N) return common;
         auto& v = voice[(size_t) i];
-        double src[numHubSources] {};
+        double src[numHubSources + hubExtraMax] {};
+        constexpr int srcCount = numHubSources + hubExtraMax;
         for (int e = 0; e < envs; ++e)
         {
             const auto b = envBase + e * envStride;
@@ -588,6 +596,7 @@ public:
         src[srcBend] = bend;
         src[srcRandom] = v.random;
         src[srcConstant] = 1.0;
+        for (int k = 0; k < hubExtraMax; ++k) src[numHubSources + k] = extra[(size_t) k];
         if (numActive == 0) return common;
 
         auto& out = v.params;
@@ -596,8 +605,8 @@ public:
         for (int k = 0; k < numActive; ++k)
         {
             const auto& a = act[(size_t) k];
-            auto amt = (double) a.amount * src[std::clamp (a.src, 0, (int) numHubSources - 1)];
-            if (a.via > srcNone) amt *= src[std::clamp (a.via, 0, (int) numHubSources - 1)];
+            auto amt = (double) a.amount * src[std::clamp (a.src, 0, srcCount - 1)];
+            if (a.via > srcNone) amt *= src[std::clamp (a.via, 0, srcCount - 1)];
             v.offsets[(size_t) k] = amt;
         }
         for (int k = 0; k < numActive; ++k)
@@ -642,6 +651,7 @@ private:
     std::array<Voice, N> voice;
     std::array<HubLfo, hubLfoMax> globalLfo;
     std::array<double, hubLfoMax> globalValue {};
+    std::array<double, hubExtraMax> extra {};
     std::array<float, grv::engine::instrumentSlots> shared {};
     std::array<Active, 32> act {};
     int numActive = 0, envs = 0, lfos = 0, slots = 0, extEnvs = 0, extLfos = 0, macros = 0, macroBase = -1, envBase = -1, lfoBase = -1, slotBase = -1, bendRange = -1, tune = -1, count = 0, blockN = 32;

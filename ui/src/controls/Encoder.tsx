@@ -6,10 +6,11 @@
 // macro, MIDI. En mode « affectation » (onglet Modulation), toucher l'encodeur le module.
 
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MatrixMenuRow, SectionMenuContext, SectionMenuRow } from "./sectionMenu";
 import { actions, getState, globalOf, setUi, showMessage, useStore } from "../engine/store";
 import { MOD_SOURCE_COLORS, modSourceName } from "../engine/params";
-import { useValueDrag } from "./useValueDrag";
+import { markLongPress, useValueDrag } from "./useValueDrag";
 import { MOD_SCOPE_SOURCES, modScopeOf } from "../engine/modScopes";
 import { bindingCode, peekUiCode, resolveCode } from "../engine/ctl";
 import { NUM_KNOBS } from "../engine/protocol";
@@ -161,7 +162,7 @@ export function Encoder({ binding, variant = "hw" }: { binding: EncoderBinding |
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
       handlers.onPointerDown(e);
       if (e.pointerType === "touch" && hasMenu)
-        press.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { press.current = null; handlers.onPointerCancel(); setMenu(true); }, 550) };
+        press.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { press.current = null; handlers.onPointerCancel(); markLongPress(); setMenu(true); }, 550) };
     },
     onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
       if (press.current && Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > 6) cancelPress();
@@ -172,7 +173,7 @@ export function Encoder({ binding, variant = "hw" }: { binding: EncoderBinding |
   };
 
   useMenuPlacement(menu, root, menuRef, variant === "knob");
-  useMenuDismiss(menu, root, () => setMenu(false));
+  useMenuDismiss(menu, root, () => setMenu(false), menuRef);
 
 
   const n = binding?.normalised ?? 0;
@@ -253,9 +254,9 @@ export function Encoder({ binding, variant = "hw" }: { binding: EncoderBinding |
       )}
 
       {menu && hasMenu && (
-        <div ref={menuRef} className="mod-menu" role="menu" aria-label={`Réglage ${binding?.label ?? ""}`}>
+        <MenuShell menuRef={menuRef} label={binding?.label ?? ""}>
           <ParamMenuBody binding={binding} onDone={() => setMenu(false)} />
-        </div>
+        </MenuShell>
       )}
     </div>
   );
@@ -390,6 +391,7 @@ export function useMenuPlacement(open: boolean, root: React.RefObject<HTMLElemen
   useLayoutEffect(() => {
     const el = menuRef.current, host = root.current;
     if (!open || !el || !host) return;
+    if (el.classList.contains("mod-menu--phone")) return; // v0.46.2 : téléphone : menu hors de l'appareil, placé en CSS
     const hostRect = host.getBoundingClientRect();
     const scale = host.offsetWidth > 0 ? hostRect.width / host.offsetWidth : 1;
     // zone visible : la fenêtre, réduite par chaque ancêtre qui coupe son contenu
@@ -425,10 +427,14 @@ export function useMenuPlacement(open: boolean, root: React.RefObject<HTMLElemen
       const w0 = el.offsetWidth, h0 = el.scrollHeight;
       const r0 = el.getBoundingClientRect();
       const anc = w0 > 0 && r0.width > 0 ? r0.width / w0 : scale;
-      const z = Math.max(1, Math.min(360 / (w0 * anc), (availW * 0.9) / (w0 * anc)));
+      // v0.46.2 : même taille partout (écran, façade, pédalier) : largeur visible fixe (au plus 9/10 de
+      // l'écran), et la liste défile toujours si elle dépasse (avant : agrandi ×1 au moins, d'où des
+      // menus tantôt énormes, tantôt petits, et parfois plus hauts que l'écran)
+      const z = Math.min(300, availW * 0.9) / (w0 * anc);
       const k = anc * z;
       el.style.transform = `scale(${z})`;
-      if (h0 * k > availH) { el.style.maxHeight = `${availH / k}px`; el.style.overflowY = "auto"; }
+      el.style.overflowY = "auto";
+      if (h0 * k > availH * 0.94) el.style.maxHeight = `${(availH * 0.94) / k}px`;
       const visW = w0 * k, visH = Math.min(h0 * k, availH);
       const vx = leftB + edge + (availW - visW) / 2, vy = top + edge + (availH - visH) / 2;
       let left = (vx - r0.left) / anc, topPx = (vy - r0.top) / anc;
@@ -475,19 +481,35 @@ export function useMenuPlacement(open: boolean, root: React.RefObject<HTMLElemen
 }
 
 /** Ferme le menu : appui ailleurs, ou Échap (en capture : avant le reste de l'écran). */
-export function useMenuDismiss(open: boolean, root: React.RefObject<HTMLElement | null>, close: () => void) {
+export function useMenuDismiss(open: boolean, root: React.RefObject<HTMLElement | null>, close: () => void, menuRef?: React.RefObject<HTMLElement | null>) {
   const closeRef = useRef(close);
   closeRef.current = close;
   useEffect(() => {
     if (!open) return;
     const onEvent = (e: PointerEvent | KeyboardEvent) => {
       if (e instanceof KeyboardEvent) { if (e.key === "Escape") { e.preventDefault(); closeRef.current(); } }
-      else if (!root.current?.contains(e.target as Node)) closeRef.current();
+      else if (!root.current?.contains(e.target as Node) && !menuRef?.current?.contains(e.target as Node)) closeRef.current();
     };
     window.addEventListener("pointerdown", onEvent, true);
     window.addEventListener("keydown", onEvent, true);
     return () => { window.removeEventListener("pointerdown", onEvent, true); window.removeEventListener("keydown", onEvent, true); };
   }, [open, root]);
+}
+
+/** v0.46.2 : coque des menus de réglage. Sur téléphone, le menu sort de l'appareil (mis à l'échelle) et
+    se pose par-dessus tout, au milieu de l'écran, à sa taille normale (pixels de l'écran) : même taille
+    partout, et sa liste défile au doigt. Un toucher à côté le referme. */
+export function MenuShell({ menuRef, label, children }: { menuRef: React.RefObject<HTMLDivElement | null>; label: string; children: React.ReactNode }) {
+  const phone = useStore((s) => !!s.ui.phone);
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+  const menu = (
+    <div ref={menuRef} className={`mod-menu${phone ? " mod-menu--phone" : ""}`} role="menu" aria-label={`Réglage ${label}`}
+      onPointerDown={stop} onDoubleClick={stop} onWheel={stop} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+      {children}
+    </div>
+  );
+  if (!phone) return menu;
+  return createPortal(<div className="mod-menu-veil" onPointerDown={stop}>{menu}</div>, document.body);
 }
 
 /** Modulation d'un réglage du moteur : sources (LFO, fonctions…, vélocité), retrait, matrice. Partagé
@@ -574,19 +596,41 @@ export function ParamMenuZone({ binding, className, children, preferBelow = true
   const section = useContext(SectionMenuContext);
   const hasMenu = !!(bindingHasMenu(binding) || section);
   useMenuPlacement(open, root, menuRef, preferBelow);
-  useMenuDismiss(open, root, () => setOpen(false));
+  useMenuDismiss(open, root, () => setOpen(false), menuRef);
   const cancel = () => { if (press.current) { window.clearTimeout(press.current.timer); press.current = null; } };
+  // v0.46.2 : le relâché et le glissé sont suivis sur la fenêtre : quand un parent capture le pointeur
+  // (ligne de valeur de l'écran SON / EFFETS), ils n'arrivent pas jusqu'ici, et chaque toucher ouvrait
+  // le menu comme un appui long (et le glissé continuait sous le menu)
+  const watch = (id: number) => {
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== id) return;
+      if (press.current && Math.hypot(ev.clientX - press.current.x, ev.clientY - press.current.y) > 6) stop();
+    };
+    const up = (ev: PointerEvent) => { if (ev.pointerId === id) stop(); };
+    const stop = () => {
+      cancel();
+      window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("pointerup", up, true);
+      window.removeEventListener("pointercancel", up, true);
+    };
+    window.addEventListener("pointermove", move, true);
+    window.addEventListener("pointerup", up, true);
+    window.addEventListener("pointercancel", up, true);
+  };
   return (
     <div ref={root} className={`pm-zone${className ? ` ${className}` : ""}`} {...ctlAttrs(binding)}
       onContextMenu={(e) => { if (!hasMenu) return; e.preventDefault(); e.stopPropagation(); cancel(); setOpen(true); }}
-      onPointerDownCapture={(e) => { if (e.pointerType === "touch" && hasMenu) press.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { press.current = null; setOpen(true); }, 550) }; }}
-      onPointerMoveCapture={(e) => { if (press.current && Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > 6) cancel(); }}
-      onPointerUpCapture={cancel} onPointerCancelCapture={cancel}>
+      onPointerDownCapture={(e) => {
+        if (e.pointerType !== "touch" || !hasMenu || open) return;
+        cancel();
+        press.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { press.current = null; markLongPress(); setOpen(true); }, 550) };
+        watch(e.pointerId);
+      }}>
       {children}
       {open && hasMenu && (
-        <div ref={menuRef} className="mod-menu" role="menu" aria-label={`Réglage ${binding?.label ?? ""}`}>
+        <MenuShell menuRef={menuRef} label={binding?.label ?? ""}>
           <ParamMenuBody binding={binding} onDone={() => setOpen(false)} />
-        </div>
+        </MenuShell>
       )}
     </div>
   );

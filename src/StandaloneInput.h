@@ -45,6 +45,13 @@ inline void startupMark (const char* what)
 #if JUCE_ANDROID
 /** v0.46 fix21 : écran gardé allumé (Android, src/StandaloneHook.cpp). Fil des messages. */
 void androidKeepScreenOn (bool on);
+/** v0.46.2 : aucune vue de la fenêtre ne « tire » au doigt (effet d'étirement d'Android 12+ au bord,
+    défilement de la vue web) : l'écran reste fixe. Fil des messages. */
+void androidPinViews();
+/** v0.46.2 : remet en (0, 0) toute vue de la fenêtre qui a défilé (appelée à chaque battement). */
+void androidResetViewScroll();
+/** v0.46.2 : la fenêtre de l'appli a la main (faux : une autre appli ou le sélecteur de fichiers devant). */
+bool androidHasWindowFocus();
 #endif
 
 inline std::function<void()>& uiReadyHook()

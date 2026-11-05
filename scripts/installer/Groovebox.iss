@@ -22,8 +22,8 @@ VersionInfoVersion={#AppVersion}
 DefaultDirName={autopf}\One For All Distribution\Groovebox
 DefaultGroupName=Groovebox
 DisableProgramGroupPage=yes
-OutputDir={#Root}\_livraisons
-OutputBaseFilename=Groovebox-Installation-{#AppVersion}
+OutputDir={#Root}\_livraisons\OFAD-GOLEM-{#AppVersion}
+OutputBaseFilename=OFAD-GOLEM-{#AppVersion}-Windows-installateur
 LicenseFile={#Root}\LICENSE
 Compression=lzma2/max
 SolidCompression=yes
@@ -70,7 +70,7 @@ Source: "{#Root}\docs\NOTICE.pdf"; DestDir: "{app}"; DestName: "Notice OFAD GOLE
 Source: "{#Root}\docs\NOTICE-EN.pdf"; DestDir: "{app}"; DestName: "Manual OFAD GOLEM (English).pdf"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#Root}\docs\CATALOGUE.pdf"; DestDir: "{app}"; DestName: "Catalogue OFAD GOLEM.pdf"; Flags: ignoreversion skipifsourcedoesntexist
 ; licence AGPL : les sources de cette version sont livrées avec le programme
-Source: "{#Root}\_livraisons\groovebox-v{#AppVersion}.tar.gz"; DestDir: "{app}\Sources"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#Root}\_livraisons\OFAD-GOLEM-{#AppVersion}-sources.tar.gz"; DestDir: "{app}\Sources"; Flags: ignoreversion skipifsourcedoesntexist
 #ifdef VCRedist
 Source: "{#VCRedist}"; DestDir: "{tmp}"; DestName: "vc_redist.x64.exe"; Flags: deleteafterinstall
 #endif

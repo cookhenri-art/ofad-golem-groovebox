@@ -74,6 +74,7 @@ public:
                 hub.start (i, note, velocity, lg, hubParams);
                 v.start (note, velocity, lg, prev);
             }
+            lastVoice = 0;
             return;
         }
         const auto i = alloc.noteOn (note, polyphony, [this] (int k) { return voices[(size_t) k].isActive(); });
@@ -81,6 +82,7 @@ public:
         if (voices[(size_t) i].isActive()) declick[(size_t) i].arm(); // voix volée ou note rejouée
         hub.start (i, note, velocity, false, hubParams);
         voices[(size_t) i].start (note, velocity, false, prev);
+        lastVoice = i;
     }
 
     void noteOff (int note) noexcept override
@@ -125,6 +127,7 @@ public:
         hubParams = p;
         // modulation commune : pitch bend sur l'accord, puis réglages modulés voix par voix
         const auto* common = hub.beginBlock (p, n, bpm);
+        blockStart (common, n); // v0.47 : calculs propres à tout l'instrument (sources de la matrice)
         const auto count = mono ? std::max (1, unison) : polyphony;
         for (int i = 0; i < N; ++i)
         {
@@ -132,7 +135,9 @@ public:
             if (! v.isActive()) continue;
             if (i >= count) { v.release(); hub.release (i); } // polyphonie réduite pendant le jeu
             float vL[voiceBlock] {}, vR[voiceBlock] {};
-            v.render (vL, vR, n, hub.voiceParams (i, common));
+            const auto* vp = hub.voiceParams (i, common);
+            v.render (vL, vR, n, vp);
+            voiceDone (i, vp);
             declick[(size_t) i].process (vL, vR, n);
             for (int k = 0; k < n; ++k) { L[k] += vL[k]; R[k] += vR[k]; }
             // enveloppes et LFO de la voix offerts à la matrice (bloc suivant)
@@ -165,6 +170,12 @@ protected:
                 scratch[(size_t) rs[0]] = (float) lfoSyncHz ((int) p[rs[1]], p[rs[0]], bpm);
         return scratch.data();
     }
+
+    /** v0.47 : début de bloc, après la modulation commune et avant les voix (ex. physique d'une bille
+        offerte à la matrice par hub.setExtra). */
+    virtual void blockStart (const float* /*common*/, int /*n*/) noexcept {}
+    /** v0.47 : la voix i vient d'être rendue avec ces réglages (modulés). */
+    virtual void voiceDone (int /*i*/, const float* /*vp*/) noexcept {}
 
     /** Effet propre à l'instrument (chorus intégré…), sur le rendu de toutes les voix. */
     virtual void postProcess (float*, float*, int, const float*) noexcept {}
@@ -210,7 +221,7 @@ protected:
     double sr = 48000.0, bpm = 120.0;
     std::array<float, grv::engine::instrumentSlots> scratch {};
     bool mono = false, legato = true, configured = false;
-    int polyphony = N, unison = 1, lastNote = -1;
+    int polyphony = N, unison = 1, lastNote = -1, lastVoice = 0; // lastVoice : voix de la dernière note (v0.47)
     float lastVelocity = 0.8f;
 };
 

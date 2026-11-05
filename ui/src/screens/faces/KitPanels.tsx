@@ -9,7 +9,8 @@
 import { useState } from "react";
 import { STEP_ACCENT } from "../../engine/protocol";
 import type { ModuleDesc, SectionDesc } from "../../engine/protocol";
-import { actions, setUi, useStore } from "../../engine/store";
+import { actions, getState, setUi, useStore } from "../../engine/store";
+import { beginStepPaint, justPainted } from "../../controls/stepPaint";
 import { paramAddress, steppedBinding, useParam } from "../../controls/bindings";
 import { Encoder } from "../../controls/Encoder";
 import { SectionVisual, TAB_LABELS, sectionsFor } from "../ModuleView";
@@ -124,16 +125,25 @@ export function StepKeys({ palette }: { palette: "boum" | "club" | "machine" | "
         <span className="stepkey-lamp" aria-hidden />
         <span className="stepkey-num">AC</span>
       </button>
-      <div className={`stepkeys stepkeys--${palette}${accentMode ? " stepkeys--acc" : ""}`}>
+      <div className={`stepkeys stepkeys--${palette}${accentMode ? " stepkeys--acc" : ""}`} data-paint-row>
         {Array.from({ length: 16 }, (_, i) => {
           const s = pg * 16 + i;
           const on = accentMode ? acc(s) : (ln?.vel[s] ?? 0) > 0;
           const out = s >= pattern.length;
           const here = playing && (accentMode ? playStep : pos[lane] ?? -1) === s;
           return (
-            <button key={i} type="button" disabled={out} aria-pressed={on} aria-label={accentMode ? `Accent du pas ${s + 1}` : `Pas ${s + 1}`}
+            <button key={i} type="button" disabled={out} aria-pressed={on} aria-label={accentMode ? `Accent du pas ${s + 1}` : `Pas ${s + 1}`} data-paint-step={s}
+              onPointerDown={(e) => beginStepPaint(e, s, {
+                // v0.46.2 : pinceau : glisser sur les touches voisines pose (ou retire) tous ces pas
+                isOn: (x) => { const p = getState().pattern; return accentMode ? ((p?.flags[x] ?? 0) & STEP_ACCENT) !== 0 : (p?.lanes[lane]?.vel[x] ?? 0) > 0; },
+                toggle: (x) => {
+                  const p = getState().pattern;
+                  if (accentMode) void actions.seq("seqStepsFlag", JSON.stringify([x]), STEP_ACCENT, ((p?.flags[x] ?? 0) & STEP_ACCENT) === 0);
+                  else void actions.seq("seqSetStep", lane, x, (p?.lanes[lane]?.vel[x] ?? 0) > 0 ? 0 : 100);
+                },
+              })}
               className={`stepkey g${Math.floor(i / 4)}${on ? " on" : ""}${here ? " here" : ""}${!accentMode && acc(s) ? " has-acc" : ""}`}
-              onClick={() => accentMode ? void actions.seq("seqStepsFlag", JSON.stringify([s]), STEP_ACCENT, !acc(s))
+              onClick={() => justPainted() ? undefined : accentMode ? void actions.seq("seqStepsFlag", JSON.stringify([s]), STEP_ACCENT, !acc(s))
                 : void actions.seq("seqSetStep", lane, s, on ? 0 : 100)}>
               <span className="stepkey-lamp" aria-hidden />
               <span className="stepkey-num">{s + 1}</span>

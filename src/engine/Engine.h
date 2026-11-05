@@ -119,6 +119,8 @@ struct AudioTap
     virtual bool wantsStems() const noexcept = 0;
     /** v0.46 fix8 : position du bloc qui suit (noires, début et fin) et lecture en cours, juste avant tapBlock. */
     virtual void tapPosition (double /*ppq*/, double /*ppqEnd*/, bool /*playing*/) noexcept {}
+    /** v0.46.2 : le morceau finit à cette position (noires), dans le bloc qui suit. */
+    virtual void tapStopAt (double /*ppq*/) noexcept {}
     /** tracksL/R : numTracks pointeurs (une piste non jouée dans ce bloc : mask à 0, données à ignorer). */
     virtual void tapBlock (const float* outL, const float* outR,
                            const float* const* tracksL, const float* const* tracksR, std::uint32_t trackMask,
@@ -194,6 +196,8 @@ public:
     /** v0.43 : écoute d'une partie d'un échantillon de la piste (fil de l'interface). */
     void previewSample (int track, int index, float a, float b) noexcept
     { if (track >= 0 && track < numTracks && instruments[(size_t) track] != nullptr) instruments[(size_t) track]->preview (index, a, b); }
+    void touchInstrument (int track, int kind, float a, float b) noexcept // v0.47
+    { if (track >= 0 && track < numTracks && instruments[(size_t) track] != nullptr) instruments[(size_t) track]->touch (kind, a, b); }
     void setPlayLane (int track, int lane) noexcept { if (track >= 0 && track < numTracks) playLane[(size_t) track].store (std::clamp (lane, 0, 15), std::memory_order_relaxed); }
     int getPlayLane (int track) const noexcept { return track >= 0 && track < numTracks ? playLane[(size_t) track].load (std::memory_order_relaxed) : 0; }
 

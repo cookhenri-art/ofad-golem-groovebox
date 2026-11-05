@@ -407,14 +407,29 @@ In English: **[Manual (PDF)](docs/NOTICE-EN.pdf)** · [text version](docs/NOTICE
 ## 📥 Téléchargement
 
 Les versions prêtes à installer sont publiées dans les **[Releases](../../releases)** du dépôt :
-- **Windows** : `Groovebox-Installation-<version>.exe` — application, plugin VST3 (au choix), notice et catalogue, sources.
-- **Android** : `Groovebox-<version>.apk` (tablette).
+- **Windows** : `OFAD-GOLEM-<version>-Windows-installateur.exe` — application, plugin VST3 (au choix), notice et catalogue, sources.
+- **Android** : `OFAD-GOLEM-<version>-Android.apk` (tablette, téléphone).
+- **Mac** : `OFAD-GOLEM-<version>-Mac-app.zip` (application), `-Mac-VST3.zip` et `-Mac-AU.zip` (plugins) — voir « Sur Mac » plus bas.
+- **Sources** : `OFAD-GOLEM-<version>-sources.tar.gz` (licence AGPL-3.0).
 
 Ou compiler depuis les sources (voir plus bas).
 
+### 🔒 Vérifier votre téléchargement · Verify your download
+
+Téléchargez GOLEM **uniquement depuis cette page GitHub** : une copie reçue par un autre chemin (forum,
+groupe, messagerie, miroir) peut avoir été modifiée. Chaque release contient un fichier **`SHA256SUMS.txt`**
+avec l'empreinte de chaque fichier ; comparez-la avec celle de votre fichier :
+- Windows (PowerShell) : `Get-FileHash .\OFAD-GOLEM-<version>-Windows-installateur.exe -Algorithm SHA256`
+- Mac : `shasum -a 256 OFAD-GOLEM-<version>-Mac-app.zip` · Linux : `sha256sum <fichier>`
+
+Si les deux empreintes diffèrent, n'installez pas le fichier.
+
+*Download GOLEM **only from this GitHub page**. Each release includes a `SHA256SUMS.txt` file: compare it
+with the hash of your file (commands above). If they differ, do not install it.*
+
 ## 📦 Installation — Windows
 
-1. Lancer `Groovebox-Installation-<version>.exe`. Windows peut afficher « Windows a protégé votre ordinateur » :
+1. Lancer `OFAD-GOLEM-<version>-Windows-installateur.exe`. Windows peut afficher « Windows a protégé votre ordinateur » :
    le programme n'est pas encore signé — « Informations complémentaires » puis « Exécuter quand même ».
 2. Cocher « plugin VST3 » pour l'utiliser dans un logiciel de musique (Ableton, FL Studio, Reaper…).
 3. Au premier lancement : **Options** (en haut à gauche) › Audio/MIDI Settings. Pour la latence la plus faible :
@@ -426,6 +441,17 @@ Ou compiler depuis les sources (voir plus bas).
 | Affichage de l'interface | Microsoft Edge WebView2 Runtime | (fourni avec Windows 11) |
 | Audio | Carte son intégrée | Interface audio avec pilote ASIO |
 | Écran | 1280 × 800 | 1920 × 1080 |
+
+## 🍎 Sur Mac
+
+L'application et les plugins ne sont pas encore signés par Apple. Au premier lancement, macOS refuse de les
+ouvrir : **clic droit sur l'application › Ouvrir**, puis **Ouvrir** dans la fenêtre qui s'affiche (une seule
+fois). Si macOS indique que l'application est « endommagée », dans le Terminal :
+`xattr -dr com.apple.quarantine /Applications/Groovebox.app`. Plugins : copier `Groovebox.vst3` dans
+`~/Library/Audio/Plug-Ins/VST3` et `Groovebox.component` dans `~/Library/Audio/Plug-Ins/Components`.
+
+*On Mac, the app and plugins are not signed by Apple yet: right-click the app › Open, then Open (once). If
+macOS says the app is damaged, run the `xattr` command above in Terminal.*
 
 ## 📱 Android
 
@@ -486,7 +512,7 @@ GROOVEBOX/
 **GNU AGPL-3.0-or-later** (fichier [LICENSE](LICENSE)). Les sources de chaque version sont fournies avec elle.
 
 - JUCE 8 : AGPLv3 (ou licence commerciale de JUCE).
-- Encodeur MP3 LAME 3.99.5 : GNU LGPL 2 (`src/third_party/lame/`).
+- Encodeur MP3 LAME 3.100 : GNU LGPL 2 (`src/third_party/lame/`).
 - Police Inter : SIL Open Font License.
 
 ## 🙏 Crédits

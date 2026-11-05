@@ -877,9 +877,6 @@ button { font: inherit; color: inherit; }
 .strip-meter--lr::before { left: 0; } .strip-meter--lr::after { left: 6px; }
 .mono-warning { border-color: var(--led-amber); }
 .mono-warning h4 { color: var(--led-amber); }
-.strip-sends { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; width: 70%; height: 16px; }
-.strip-sends span { position: relative; border-radius: 2px; background: var(--scr-bg); overflow: hidden; }
-.strip-sends i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--accent); opacity: 0.8; }
 .tfader--blank { visibility: hidden; }
 .scenes { grid-template-rows: minmax(0, 1fr) auto; }
 .scenes-bottom { display: grid; grid-template-columns: 1fr 260px; gap: 10px; }
@@ -1662,6 +1659,37 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .face--t-onde .fc-toggle { border-radius: 4px; background: oklch(0.12 0.01 285); text-transform: uppercase; font-size: 9px; }
 .face--t-onde .fp-banks { background: transparent; }
 .face--t-onde .face-head .face-stripe { background: var(--fp-led); box-shadow: 0 0 12px var(--fp-led); }
+/* --- habillage « braise » (Glutamake, v0.47) : ABS noir, sérigraphie claire, arcs et valeurs braise */
+.face--t-braise { --face-panel: oklch(0.14 0.004 40); --face-accent: oklch(0.72 0.19 42); --fp-line: oklch(0.7 0.15 42 / 0.22); --fp-text: oklch(0.93 0.01 60); --fp-led: oklch(0.7 0.2 40); --fp-led-off: oklch(0.27 0.05 40); }
+.face--t-braise .fp { border-radius: 8px; border: 0; background: oklch(0 0 0 / 0.28); box-shadow: inset 0 0 0 1px oklch(0.7 0.15 42 / 0.16); padding-top: 22px; }
+.face--t-braise .fp-title { background: transparent; color: oklch(0.82 0.1 50); letter-spacing: 0.08em; }
+.face--t-braise .fp-head { top: 3px; }
+.face--t-braise .knob-arc { stroke: var(--fp-led); filter: drop-shadow(0 0 3px oklch(0.7 0.2 40 / 0.7)); }
+.face--t-braise .knob-track { stroke: oklch(0.3 0.04 40); }
+.face--t-braise .knob-value { color: oklch(0.8 0.15 50); }
+.face--t-braise .knob-label { text-transform: uppercase; letter-spacing: 0.05em; font-size: 8.5px; color: oklch(0.86 0.03 60); }
+.face--t-braise .fc-toggle { border-radius: 4px; background: oklch(0.12 0.006 40); text-transform: uppercase; font-size: 9px; }
+.face--t-braise .fp-banks { background: transparent; }
+.face--t-braise .face-head .face-stripe { background: var(--fp-led); box-shadow: 0 0 12px var(--fp-led); }
+.gl-pad { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.gl-pad-cv { display: block; width: 100%; max-width: min(240px, calc(var(--app-h, 900px) * 0.5)); aspect-ratio: 1 / 1; margin: 0 auto; border-radius: 6px; box-shadow: inset 0 0 0 1px oklch(0 0 0), 0 0 0 1px oklch(0.7 0.15 42 / 0.25); touch-action: none; cursor: grab; }
+.gl-pad-cv:active { cursor: grabbing; }
+.gl-pad-outs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.gl-out { background: oklch(0.1 0.004 40); border-radius: 4px; padding: 2px 5px; font: 600 9.5px ui-monospace, Consolas, monospace; color: oklch(0.8 0.02 60); display: grid; grid-template-columns: 1fr auto; }
+.gl-out b { font-weight: 600; color: oklch(0.82 0.15 50); }
+.gl-out i { grid-column: 1 / -1; position: relative; height: 3px; margin-top: 2px; border-radius: 2px; background: oklch(0.22 0.01 40); overflow: hidden; }
+.gl-out em, .gl-lane-val em { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, oklch(0.62 0.2 35), oklch(0.8 0.16 60)); }
+.gl-pad-row { display: flex; align-items: center; gap: 8px; }
+.gl-pad-info { font-size: 10px; color: oklch(0.75 0.03 60); }
+.gl-osc { position: relative; height: 92px; margin-bottom: 6px; border-radius: 6px; background: oklch(0.11 0.006 150); box-shadow: inset 0 0 10px oklch(0 0 0), 0 0 0 1px oklch(0 0 0); overflow: hidden; }
+.gl-osc svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gl-osc-axis { stroke: oklch(1 0 0 / 0.07); stroke-width: 1; }
+.gl-osc-ghost { fill: none; stroke: oklch(0.7 0.16 45 / 0.14); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.gl-osc-wave { fill: none; stroke: oklch(0.82 0.16 60); stroke-width: 2; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 3px oklch(0.7 0.2 40 / 0.8)); }
+.gl-osc-t, .gl-osc-b { position: absolute; left: 8px; font: 600 10px ui-monospace, Consolas, monospace; color: oklch(0.95 0.01 80); }
+.gl-osc-t { top: 5px; } .gl-osc-b { bottom: 5px; color: oklch(0.72 0.03 160); }
+.gl-lane .gl-lane-now .stepbar { box-shadow: 0 0 0 2px oklch(0.85 0.14 70), 0 0 10px oklch(0.7 0.2 40 / 0.7); }
+.gl-lane-val { position: relative; height: 4px; margin-top: 6px; border-radius: 2px; background: oklch(0.22 0.01 40); overflow: hidden; }
 .fp .steps-ed { padding-top: 4px; }
 
 /* --- habillage « nappes » : bleu ardoise, panneaux biseautés, boutons gris clair à arc bleu,
@@ -3016,7 +3044,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .mt { display: flex; flex-direction: column; gap: 8px; height: 100%; padding: 10px 12px; min-height: 0; }
 .mt-bar { gap: 6px; }
 .mt-status { font-size: 12px; color: var(--accent); margin-left: 4px; white-space: nowrap; }
-.mt-scroll { position: relative; flex: 1 1 auto; overflow: auto; min-height: 0; border-radius: 6px; background: var(--scr-bg); box-shadow: inset 0 0 0 1px var(--scr-line); touch-action: none; }
+.mt-scroll { position: relative; flex: 1 1 auto; overflow: auto; min-height: 0; border-radius: 6px; background: var(--scr-bg); box-shadow: inset 0 0 0 1px var(--scr-line); touch-action: pan-x pan-y; overscroll-behavior: contain; }
+/* au doigt : glisser sur un clip non choisi fait défiler ; un clip choisi (ou les ciseaux) se tire */
+.mt-clip, .mt-lab { touch-action: pan-x pan-y; }
+.mt-clip.is-sel, .mt-clip.is-cut, .mt-ruler { touch-action: none; }
 .mt-inner { position: relative; }
 .mt-ruler { position: sticky; top: 0; z-index: 5; background: var(--scr-raise); border-bottom: 1px solid var(--scr-line); cursor: pointer; }
 .mt-corner { position: sticky; left: 0; z-index: 6; display: inline-flex; align-items: center; height: 100%; padding: 0 8px; font-size: 11px; font-weight: 700; color: var(--scr-subtle); background: var(--scr-raise); border-right: 1px solid var(--scr-line); }
@@ -3137,8 +3168,9 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .face-transport .ft-rec.on { background: oklch(0.6 0.21 25); color: #fff; }
 .face-transport .ft-play.on { background: oklch(0.68 0.17 145); color: #0c140e; }
 
-/* v0.46 fix16 : téléphone — l'appareil défile s'il dépasse (au doigt, dans les deux sens) */
-.phone-scroll { position: absolute; inset: 0; overflow: auto; display: flex; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: thin; }
+/* v0.46 fix16 : téléphone — v0.46.2 : l'appareil ne défile plus */
+/* v0.46.2 : fixe (l'utilisateur ne doit jamais perdre l'écran) : la taille calculée fait tenir l'appareil */
+.phone-scroll { position: absolute; inset: 0; overflow: hidden; display: flex; overscroll-behavior: none; }
 .phone-box { position: relative; flex: none; margin: auto; }
 .phone-box > .device--phone { left: 0; top: 0; transform-origin: 0 0; }
 .perf-meter--compact { margin: 0 0 0 auto; padding: 3px 6px; }
@@ -3717,3 +3749,55 @@ html, body, #root { overflow: clip; }
 .pedalboard > .pb-presets { top: 60px; right: 14px; bottom: 14px; z-index: 50; }
 .mp-overlay > .mp-presets { position: fixed; top: 16px; right: 16px; bottom: 16px; z-index: 5; }
 .mp-presets-btn.on { box-shadow: inset 0 0 0 2px var(--accent); }
+
+/* v0.46.2 : envois A–D en boutons. Pistes : deux rangées (A B / C D) à la place de l'égaliseur ;
+   groupes : une rangée sous l'égaliseur ; vue live : deux rangées sous le niveau. */
+.strip--eq-sends { grid-template-rows: auto 10px auto auto auto minmax(0, 1fr) auto auto auto auto; }
+.strip-sends2 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; justify-items: center; width: 92%; row-gap: 0;
+  padding: 3px 0 2px; border-radius: 4px; background: color-mix(in oklch, var(--scr-bg) 60%, transparent); }
+.strip-sends2 .mknob { width: 100%; max-width: 22px; } .strip-sends2 .mknob svg { width: 19px; height: 19px; }
+.strip-sends2 .strip-pre { width: 70%; justify-self: center; }
+.strip-sends2.is-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 3px 8px; }
+.strip-sends2.is-grid .mknob { max-width: 24px; } .strip-sends2.is-grid .mknob svg { width: 24px; height: 24px; }
+.lstrip .strip-sends2 { width: 100%; flex: none; padding: 2px 4px; }
+.lstrip .strip-sends2 .mknob { max-width: 22px; } .lstrip .strip-sends2 .mknob svg { width: 22px; height: 22px; }
+/* v0.46.2 : appui long sur les petits boutons et les valeurs des scènes : menu de la valeur exacte */
+.pm-zone.pm-zone--mknob { display: flex; justify-content: center; width: 100%; }
+.pm-zone.pm-zone--lock { display: inline-grid; flex: none; }
+/* v0.46.2 : pinceau des rangées de pas : glisser à l'horizontale ne fait pas défiler la façade */
+[data-paint-row] [data-paint-step] { touch-action: pan-y; }
+.padgrid[data-paint-row] [data-paint-step] { touch-action: none; }
+
+/* v0.46.2 : téléphone : la saisie d'une valeur exacte remonte en haut de l'écran pendant qu'on tape
+   (la fenêtre ne glisse plus sous le clavier : elle reste fixe) */
+:is(.device--phone, .device--ghost-phone) .mod-menu:has(.entry-row input:focus) {
+  position: fixed !important; top: 8px !important; bottom: auto !important; left: 50% !important; right: auto !important;
+  transform: translateX(-50%); max-height: 45% !important; z-index: 500;
+}
+
+/* v0.46.2 : menu des réglages sur téléphone : la liste défile au doigt (rien ne capture le glissé) */
+.mod-menu.mod-menu--sheet { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+.mod-menu.mod-menu--sheet * { touch-action: pan-y; }
+.mod-menu.mod-menu--sheet input { touch-action: manipulation; }
+/* v0.46.2 : export du montage : la boucle ou tout */
+.mt-export-ask { display: inline-flex; gap: 4px; align-items: center; padding: 2px 4px; border-radius: 6px; background: var(--scr-raise); }
+
+/* v0.46.2 : menus des réglages sur téléphone : hors de l'appareil, au milieu de la partie visible, à taille
+   normale. Tailles en pixels de la zone visible (--app-w / --app-h, posées par la mise à l'échelle) : jamais
+   d'unités vh (mal calculées par certaines vues web Android : menu écrasé en une barre). */
+.mod-menu-veil { position: fixed; left: 0; top: 0; width: var(--app-w, 100%); height: var(--app-h, 100%); z-index: 2000;
+  display: flex; align-items: center; justify-content: center; background: oklch(0 0 0 / 0.35); }
+.mod-menu.mod-menu--phone {
+  position: relative !important; inset: auto !important; transform: none !important; zoom: 1 !important;
+  flex: none; box-sizing: border-box; width: min(380px, calc(var(--app-w, 400px) * 0.88)); height: auto; min-height: 0;
+  max-height: calc(var(--app-h, 400px) * 0.86); overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; touch-action: pan-y; animation: none;
+  font-size: 14px; padding: 8px; border-radius: 12px;
+  box-shadow: 0 18px 60px oklch(0 0 0 / 0.75), inset 0 0 0 1px oklch(0.42 0.02 245);
+}
+.mod-menu.mod-menu--phone * { touch-action: pan-y; }
+.mod-menu.mod-menu--phone input { touch-action: manipulation; font-size: 16px; }
+.mod-menu.mod-menu--phone .mod-menu-title { font-size: 12px; }
+.mod-menu.mod-menu--phone button { font-size: 14px; padding: 9px 10px; }
+.mod-menu-veil:has(input:focus) { align-items: flex-start; padding-top: 6px; box-sizing: border-box; }
+.mod-menu-veil:has(input:focus) .mod-menu--phone { max-height: calc(var(--app-h, 400px) * 0.46); }

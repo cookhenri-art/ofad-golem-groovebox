@@ -363,6 +363,9 @@ export interface AudioRecStatus {
   files: string[];
   error: string;
   canReveal: boolean;     // ouvrir le dossier (ordinateur)
+  follow?: boolean;       // v0.46.2 : prise calée sur la lecture
+  waiting?: boolean;      // v0.46.2 : armée, attend la lecture (ou le début du prochain tour)
+  stopping?: boolean;     // v0.46.2 : s'arrêtera pile à la fin du tour de boucle
   startError?: string;
 }
 

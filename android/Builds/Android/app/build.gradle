@@ -1,5 +1,16 @@
 apply plugin: 'com.android.application'
 
+// v0.46.1 (audit F5) : clé de publication de GOLEM, gardée HORS du dépôt, dans le dossier de
+// l'utilisateur : %USERPROFILE%\.ofad-golem\keystore.properties (créée par scripts\creer-cle-android.bat).
+// Sans ce fichier, la version « release » reste signée avec la clé de débogage (comme avant) et la
+// compilation le signale. Attention : passer de l'une à l'autre oblige à désinstaller l'ancienne APK
+// une fois. Ce bloc est à reporter si Projucer régénère ce fichier.
+def golemKeyFile = new File(System.properties['user.home'], ".ofad-golem${File.separator}keystore.properties")
+def golemKey = new Properties()
+if (golemKeyFile.exists()) golemKeyFile.withInputStream { golemKey.load(it) }
+def golemHasKey = golemKeyFile.exists() && golemKey['storeFile'] && new File(golemKey['storeFile'].toString()).exists()
+if (!golemHasKey) println "ATTENTION : clé de publication absente (${golemKeyFile}) : APK signée avec la clé de débogage."
+
 def ndkVersionString = "28.1.13356709"
 
 android {
@@ -19,6 +30,15 @@ android {
             keyAlias      "androiddebugkey"
             keyPassword   "android"
             storeType     "jks"
+        }
+        golemRelease {
+            if (golemHasKey) {
+                storeFile     file(golemKey['storeFile'])
+                storePassword golemKey['storePassword'] ?: System.getenv("GOLEM_KEY_PASSWORD")
+                keyAlias      golemKey['keyAlias'] ?: "golem"
+                keyPassword   golemKey['keyPassword'] ?: golemKey['storePassword'] ?: System.getenv("GOLEM_KEY_PASSWORD")
+                storeType     golemKey['storeType'] ?: "pkcs12"
+            }
         }
     }
 
@@ -44,7 +64,7 @@ android {
              initWith release
              debuggable    false
              jniDebuggable false
-             signingConfig signingConfigs.juceSigning
+             signingConfig golemHasKey ? signingConfigs.golemRelease : signingConfigs.juceSigning
          }
     }
 

@@ -23,6 +23,7 @@ import { toNorm, toPlain, trackColor } from "../../engine/params";
 import { SampleView } from "../Visuals";
 import { StepsEditor } from "./MatrixPanel";
 import { ShiftButtons } from "./ShiftButtons";
+import { beginStepPaint, justPainted } from "../../controls/stepPaint";
 
 const MACHINES = ["Flex", "Pickup"];
 const MACHINE_HINTS = [
@@ -443,7 +444,7 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
     press.current = null;
     if (!p || p.step !== step) return;
     window.clearTimeout(p.timer);
-    if (p.long) return;
+    if (p.long || justPainted()) return;
     if (lockMode) choose(step);
     // v0.46 fix28 (synthés) : un pas qui porte des notes d'accord (piano roll) se retire en entier
     else if (melodic && T === 0 && stepLanes(pattern, step).length > 0) void actions.clearStepLanes(step);
@@ -505,7 +506,7 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
           onClick={() => { setLockMode(!lockMode); if (lockMode) setUi({ step: null, stepEdit: false }); }}
           title="Mode verrous : toucher un pas le choisit (sans le poser ni l'enlever) ; les boutons écrivent alors dans ce pas. Sinon : appui long sur un pas.">Verrous</button>
       </div>
-      <div className="ot-steps-keys">
+      <div className="ot-steps-keys" data-paint-row>
         {Array.from({ length: 16 }, (_, k) => {
           const s = shown * 16 + k;
           const out = s >= len;
@@ -524,8 +525,20 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
           // v0.43.4 : emplacement verrouillé sur ce pas (lecture d'un autre son à ce pas)
           const slotLock = ex?.locks.find(([g]) => g === slotAddr)?.[1];
           return (
-            <button key={k} type="button" className={cls.join(" ")} disabled={out}
-              onPointerDown={() => down(s)} onPointerUp={() => up(s)} onPointerLeave={() => { if (press.current?.step === s) { window.clearTimeout(press.current.timer); press.current = null; } }}
+            <button key={k} type="button" className={cls.join(" ")} disabled={out} data-paint-step={s}
+              onPointerDown={(e) => {
+                down(s);
+                // v0.46.2 : pinceau (glisser sur les pas voisins) ; pas en mode Verrous
+                if (!lockMode) beginStepPaint(e, s, {
+                  isOn: (x) => { const p = getState().pattern; return !!p && ((p.lanes[T]?.vel[x] ?? 0) > 0 || (melodic && T === 0 && stepLanes(p, x).length > 0)); },
+                  toggle: (x) => {
+                    const p = getState().pattern;
+                    if (p && melodic && T === 0 && stepLanes(p, x).length > 0) void actions.clearStepLanes(x);
+                    else actions.toggleStep(T, x, melodic && played.note >= 0 ? played.note : undefined);
+                  },
+                  onStart: () => { if (press.current) { window.clearTimeout(press.current.timer); press.current = null; } },
+                });
+              }} onPointerUp={() => up(s)} onPointerLeave={() => { if (press.current?.step === s) { window.clearTimeout(press.current.timer); press.current = null; } }}
               title={`Pas ${s + 1}${on ? ` (posé${melodic ? `, ${noteName(pattern.lanes[ml]?.note[s] ?? 60)}${more > 0 ? ` + ${more} note${more > 1 ? "s" : ""} d'accord` : ""}` : ""})` : ""}${ex && ex.locks.length ? ` · ${ex.locks.length} verrou${ex.locks.length > 1 ? "s" : ""}` : ""} — toucher : poser / retirer ; appui long : verrous`}>
               <span className="fc-led" aria-hidden /><i>{melodic && on ? noteName(pattern.lanes[ml]?.note[s] ?? 60) : s + 1}{more > 0 && <sup className="step303-chord">+{more}</sup>}</i>
               {slotLock !== undefined && slotName && <em className="ot-step-slot" title="Emplacement joué sur ce pas">{slotName(slotLock)}</em>}

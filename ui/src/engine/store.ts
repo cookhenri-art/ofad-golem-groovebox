@@ -452,6 +452,7 @@ function onFileDone(payload: unknown) {
   if (r.kind === "open") { showMessage("Projet ouvert"); void refreshEverything(); }
   else if (r.kind === "save") showMessage("Projet enregistré");
   else if (r.kind === "folder") { showMessage("Dossier choisi"); void actions.refreshFolders(); }
+  else if (r.kind === "import") showMessage("Échantillons importés : Bibliothèque › Importés");
   else if (r.kind === "sample") {
     showMessage("Échantillon chargé");
     void (async () => {
@@ -494,7 +495,7 @@ export function stepLanes(p: PatternData | null | undefined, step: number): numb
 
 export const actions = {
   // v0.32 : enregistrement audio (master, pistes séparées ou les deux ; WAV ou MP3)
-  audioRecStart(mode: number, format: number) { return callJson<AudioRecStatus>("audioRecStart", mode, format); },
+  audioRecStart(mode: number, format: number, follow = 0) { return callJson<AudioRecStatus>("audioRecStart", mode, format, follow); },
   audioRecStop() { return callJson<AudioRecStatus>("audioRecStop"); },
   audioRecStatus() { return callJson<AudioRecStatus>("audioRecStatus"); },
   async audioRecReveal() { return !!(await call("audioRecReveal")); },
@@ -627,6 +628,8 @@ export const actions = {
   },
   /** v0.43 : Pieuvre 8 — écouter une partie (a..b) d'un emplacement ; index -1 : arrêter. */
   previewSample(track: number, index: number, a: number, b: number) { void call("previewSample", track, index, a, b); },
+  /** v0.47 : geste sur un écran d'instrument (pavé de la physique : 0 tenir en (a, b), 1 lâcher avec la vitesse (a, b), 2 lancer). */
+  instTouch(track: number, kind: number, a: number, b: number) { void call("instTouch", track, kind, a, b); },
   /** v0.43 : Pieuvre 8 — une piste interne (ou les 8 : -1) remise à ses réglages d'origine. */
   async resetLanes(track: number, lane: number) {
     const r = await callJson<TracksData | string>("resetLanes", track, lane);
@@ -904,8 +907,8 @@ export const actions = {
     set({ montage: r });
     return "";
   },
-  async montageExport(format: number): Promise<string> {
-    const r = await callJson<MontageData | string>("montageExport", format);
+  async montageExport(format: number, loopOnly = false): Promise<string> {
+    const r = await callJson<MontageData | string>("montageExport", format, loopOnly ? 1 : 0);
     if (typeof r === "string") { showMessage(r); return r; }
     set({ montage: r });
     return "";
@@ -1028,6 +1031,8 @@ export const actions = {
     return (await callJson<FolderList | null>("listFolder", kind, relative)) ?? { ok: false, items: [] };
   },
   loadSampleFile(track: number, index: number, relative: string) { void call("loadSampleFile", track, index, relative); },
+  /** v0.47.0 : copie des échantillons choisis dans le dossier de l'application (une fois). */
+  importSamples() { void call("importSamples"); },
   openProjectFile(relative: string) { void call("openProjectFile", relative); },
   /** asTemplate (v0.46) : modèle — réglages, sons et effets gardés ; patterns, verrous et morceau retirés. */
   async saveProjectNamed(name: string, overwrite: boolean, asTemplate = false): Promise<string> {

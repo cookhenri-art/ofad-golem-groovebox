@@ -10,3 +10,9 @@ android/Builds/Android/app/build/
 android/Builds/Android/app/.cxx/
 android/Builds/Android/local.properties
 __pycache__/
+# v0.46.1 (audit F5) : clés de signature et leurs réglages, jamais dans le dépôt
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.properties

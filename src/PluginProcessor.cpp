@@ -4,6 +4,7 @@
 
 #include "PluginProcessor.h"
 #include "StandaloneInput.h" // v0.46 fix11 : journal du démarrage
+#include "ParseGuard.h"       // v0.46.1 (audit F3)
 
 #include <set>
 #include <map>
@@ -285,6 +286,7 @@ void GrooveboxProcessor::timerCallback()
     if (const auto sc = engine.takeSongScene(); sc >= 0) launchScene (sc, false);
     keepVoiceCaptures(); // v0.33 : prises de son des vocodeurs gardées avec le projet
     montageTick();       // v0.46 fix8 : prise du montage rangée, export terminé
+    audioRecTick();      // v0.46.2 : prise calée finie d'elle-même
     historyTick();
    #if JUCE_ANDROID
     perfHint.service();
@@ -300,6 +302,16 @@ void GrooveboxProcessor::timerCallback()
         if (const auto& hook = standaloneInputHook()) hook (2);
     }
     if (++autosaveTicks >= 375) { autosaveTicks = 0; autosaveIfChanged(); } // 15 s
+    // v0.46.2 : écran fixe (pas d'étirement au bord ni de défilement des vues Android) : 1 s, 2 s, 5 s,
+    // puis toutes les 10 s (la vue web peut être recréée)
+    {
+        static int pinTicks = 0;
+        ++pinTicks;
+        if (pinTicks == 25 || pinTicks == 50 || pinTicks == 125 || pinTicks % 250 == 0) androidPinViews();
+        androidResetViewScroll();
+        // v0.46.4 : plus de suspension du calcul quand la fenêtre perd la main : une liste déroulante du
+        // système (choix de la piste…) la fait perdre aussi, et le son se coupait en plein jeu
+    }
    #endif
 
     // v0.46 fix24 : réglages globaux pilotés (MIDI, boutons assignables) : écrits ici, sur le fil de l'interface
@@ -1296,6 +1308,15 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     juce::ScopedNoDenormals noDenormals;
     const auto n = buffer.getNumSamples();
     if (n <= 0) return;
+    // v0.46.2 (Android) : l'application est passée derrière une autre (Ouvrir, Exporter, autre appli) :
+    // le système y ralentit le calcul, d'où craquements et ralentis. On rend du silence sans rien
+    // calculer (la lecture reprend où elle était au retour), sauf pendant un enregistrement audio.
+    if (inBackground.load (std::memory_order_relaxed) && ! recorder.isRecording())
+    {
+        buffer.clear();
+        midi.clear();
+        return;
+    }
     // Charge du calcul (v0.46 fix16) : temps passé dans cette fonction / temps réellement écoulé
     // entre deux appels, compté par fenêtres d'un quart de seconde. Mesurer contre l'horloge
     // (et non contre « échantillons / fréquence ») donne la vraie part du fil audio occupée,
@@ -3538,6 +3559,10 @@ void GrooveboxProcessor::setStateInformation (const void* data, int sizeInBytes)
     if (restoredFromAutosave && nowMs() - constructedAt < 10000.0) { restoredFromAutosave = false; return; }
    #endif
     grv::startupMark ("derniere seance : lecture");
+    // v0.46.1 (audit F3) : état venu d'une session d'un logiciel hôte (peut avoir été échangée) :
+    // profondeur des balises vérifiée avant la lecture (format de JUCE : « VC2! », taille, texte)
+    if (data == nullptr || sizeInBytes <= 8) return;
+    if (! xmlNestingWithin (static_cast<const char*> (data) + 8, (std::size_t) sizeInBytes - 8)) return;
     auto xml = getXmlFromBinary (data, sizeInBytes);
     if (xml == nullptr || ! xml->hasTagName (state.state.getType())) return;
     auto tree = juce::ValueTree::fromXml (*xml);
@@ -3590,14 +3615,23 @@ bool GrooveboxProcessor::writeProjectFile (juce::OutputStream& out, bool asTempl
 
 juce::String GrooveboxProcessor::readProjectFile (juce::InputStream& in)
 {
-    // 600 Mo au plus : 16 pistes d'échantillons encodés en base 64
+    // 600 Mo au plus : 16 pistes d'échantillons encodés en base 64.
+    // v0.46.1 (audit F3) : 256 Mo sur téléphone et tablette (le fichier est copié plusieurs fois en
+    // mémoire pendant la lecture : au-delà, l'application serait arrêtée par le système)
+   #if JUCE_ANDROID || JUCE_IOS
+    constexpr size_t limit = (size_t) 256 * 1024 * 1024;
+   #else
     constexpr size_t limit = (size_t) 600 * 1024 * 1024;
+   #endif
     const auto size = in.getTotalLength();
     if (size > (juce::int64) limit) return "Projet trop lourd";
     // lecture bornée, même si la taille du flux est inconnue
     juce::MemoryBlock raw;
     in.readIntoMemoryBlock (raw, (int) (limit + 1)); // 600 Mo tiennent dans un int
     if (raw.getSize() > limit) return "Projet trop lourd";
+    // v0.46.1 (audit F3) : balises imbriquées sans fin (fichier piégé) : refusé avant la lecture
+    if (! xmlNestingWithin (static_cast<const char*> (raw.getData()), raw.getSize()))
+        return juce::String::fromUTF8 ("Ce fichier n'est pas un projet Groovebox");
     const auto text = raw.toString();
     raw.reset();
     if (text.isEmpty()) return "Fichier vide";
@@ -3793,7 +3827,7 @@ void GrooveboxProcessor::songFromTree (const juce::ValueTree& tree, double t)
 
 //==============================================================================
 // v0.32 : enregistrement audio
-juce::String GrooveboxProcessor::audioRecStart (int mode, int format)
+juce::String GrooveboxProcessor::audioRecStart (int mode, int format, int follow)
 {
     std::vector<Recorder::TrackInfo> tracks;
     for (int t = 0; t < numTracks; ++t)
@@ -3807,9 +3841,68 @@ juce::String GrooveboxProcessor::audioRecStart (int mode, int format)
             if (! type.empty()) returnsUsed[(size_t) r] = true;
     juce::String error;
     const auto sr = getSampleRate() > 0.0 ? getSampleRate() : 48000.0;
-    recorder.start ((Recorder::Mode) juce::jlimit (0, 2, mode), format == 1 ? Recorder::Format::mp3 : Recorder::Format::wav,
-                    sr, tracks, returnsUsed, error);
+    if (montageTakeOn || montageExportOn) return juce::String::fromUTF8 ("Un enregistrement est déjà en cours");
+    // v0.46.2 : prise calée sur la lecture. Lecture en cours : départ au début du prochain tour de
+    // la boucle la plus longue (ou de la prochaine mesure si rien ne boucle)
+    if (follow == 2)
+    {
+        // v0.46.2 : boucle parfaite : un tour d'élan, puis exactement un tour (début donné par audioRecTick)
+        recorder.setFollowPlayback (true, -1.0);
+        recorder.setLoopTake (true);
+    }
+    else if (follow == 1)
+    {
+        auto& seq = engine.sequencer();
+        double startPpq = -1.0;
+        if (seq.isRunning())
+        {
+            const auto now = seq.getPpq();
+            double phase = 0.0;
+            const auto loopQ = seq.longestLoop (now, phase);
+            startPpq = loopQ > 1.0e-6 ? now + (1.0 - phase) * loopQ : std::ceil (now / 4.0 + 1.0e-7) * 4.0;
+        }
+        recorder.setFollowPlayback (true, startPpq);
+    }
+    if (! recorder.start ((Recorder::Mode) juce::jlimit (0, 2, mode), format == 1 ? Recorder::Format::mp3 : Recorder::Format::wav,
+                          sr, tracks, returnsUsed, error))
+        recorder.setFollowPlayback (false);
     return error;
+}
+
+void GrooveboxProcessor::audioRecTick()
+{
+    // boucle parfaite : lecture en cours, on donne le début du prochain tour de la boucle la plus
+    // longue (le tour en cours sert d'élan) ; rien ne boucle : la mesure suivante
+    if (recorder.wantsLoopStart())
+    {
+        auto& seq = engine.sequencer();
+        if (seq.isRunning())
+        {
+            const auto now = seq.getPpq();
+            double phase = 0.0;
+            auto loopQ = seq.longestLoop (now, phase);
+            if (loopQ <= 1.0e-6) { loopQ = 4.0; phase = now / 4.0 - std::floor (now / 4.0); }
+            recorder.setLoopStart (now + (1.0 - phase) * loopQ, loopQ);
+        }
+    }
+    // prise calée finie d'elle-même (fin du morceau, ARRÊT, fin du tour de boucle)
+    if (! montageTakeOn && ! montageExportOn && recorder.isRecording() && recorder.followsPlayback() && recorder.takeFull())
+        recorder.stop();
+}
+
+void GrooveboxProcessor::audioRecStop()
+{
+    // v0.46.2 : prise calée, en lecture : elle s'arrête à la fin du tour de boucle en cours (à
+    // l'échantillon près, rangée par audioRecTick) ; sinon tout de suite
+    // (un 2e appui pendant l'attente de la fin du tour : arrêt tout de suite)
+    if (recorder.isRecording() && recorder.followsPlayback() && ! recorder.takeFull() && ! recorder.stopPending())
+    {
+        auto& seq = engine.sequencer();
+        double phase = 0.0;
+        const auto loopQ = seq.isRunning() ? seq.longestLoop (seq.getPpq(), phase) : 0.0;
+        if (recorder.requestStopAtCycle (loopQ)) return;
+    }
+    recorder.stop();
 }
 
 bool GrooveboxProcessor::audioRecReveal()
@@ -3926,7 +4019,7 @@ juce::String GrooveboxProcessor::montageRecord (bool start)
     return {};
 }
 
-juce::String GrooveboxProcessor::montageExport (int format)
+juce::String GrooveboxProcessor::montageExport (int format, bool loopOnly)
 {
     if (montageDoc.clips.empty()) return juce::String::fromUTF8 ("Le montage est vide");
     if (recorder.isRecording() || montageTakeOn) return juce::String::fromUTF8 ("Un enregistrement est déjà en cours");
@@ -3936,15 +4029,27 @@ juce::String GrooveboxProcessor::montageExport (int format)
     engine.sequencer().requestStop();
     montagePlayer.setActive (true);
     montagePlayer.setExporting (true);
-    montagePlayer.setPlayhead (0.0);
+    // v0.46.2 : l'export part au premier échantillon joué et finit pile : à la fin de la mesure qui
+    // contient la fin du dernier clip (tout le montage), ou à la fin de la boucle (boucle seule)
+    const auto rate = getSampleRate() > 0.0 ? getSampleRate() : 48000.0;
+    const auto bpm = getCurrentBpm() > 0.0 ? getCurrentBpm() : 120.0;
+    const auto barFrames = 4.0 * 60.0 / bpm * rate;
+    const bool loop = loopOnly && montageDoc.loopB - montageDoc.loopA > 1.0e-6;
+    montagePlayer.setPlayhead (loop ? montageDoc.loopA : 0.0);
+    const auto frames = loop ? (montageDoc.loopB - montageDoc.loopA) * 60.0 / bpm * rate
+                             : std::max (1.0, std::ceil ((double) montagePlayer.endFrames() / barFrames - 1.0e-6)) * barFrames;
+    recorder.setFollowPlayback (true, -2.0);
+    recorder.setTakeLimit ((std::int64_t) std::llround (frames));
     if (! recorder.start (Recorder::Mode::master, format == 1 ? Recorder::Format::mp3 : Recorder::Format::wav,
-                          getSampleRate() > 0.0 ? getSampleRate() : 48000.0, none, noReturns, error))
+                          rate, none, noReturns, error))
     {
+        recorder.setFollowPlayback (false);
+        recorder.setTakeLimit (-1);
         montagePlayer.setExporting (false);
         return error;
     }
     montageExportOn = true;
-    engine.sequencer().requestPlay();
+    montageExportWait = 0; // la lecture part quand le début est prêt (montageTick) : l'attaque n'est pas manquée
     return {};
 }
 
@@ -3979,7 +4084,13 @@ void GrooveboxProcessor::montageTick()
         montageJobResult.reset();
         projectVersion.fetch_add (1);
     }
-    if (montageExportOn && (montagePlayer.exportFinished() || ! engine.sequencer().isRunning()))
+    // v0.46.2 : export : départ quand le fil de lecture a préparé le début (au plus 1 s d'attente)
+    if (montageExportOn && montageExportWait >= 0)
+    {
+        if (montagePlayer.primed() || ++montageExportWait > 25) { montageExportWait = -1; engine.sequencer().requestPlay(); }
+        return;
+    }
+    if (montageExportOn && (recorder.takeFull() || montagePlayer.exportFinished() || ! engine.sequencer().isRunning()))
     {
         montageExportOn = false;
         engine.sequencer().requestStop();
