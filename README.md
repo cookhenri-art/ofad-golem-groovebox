@@ -45,7 +45,7 @@
 - **Au moins 90 sons d'usine par synthé** (plus de 2 400) et **au moins 20 réglages par effet** (plus de 770), tous mis au même niveau.
 - **Menu du pas**, en écriture **Acide** comme **À verrous** : **clic droit** sur PC, **appui long** au doigt : note, octave, **Accent** et **Glissé** en grand, vélocité, durée, décalage, condition, probabilité, répétitions.
 - **Valeur d'un pas** : appui long (ou clic droit) sur Acc. / Gl. : **force de l'accent** et **durée du glissé** réglées pas par pas ; **verrous** de réglages sur chaque pas ; **pinceau** pour poser plusieurs pas d'un geste.
-- **Durée des notes visible** (Acide et À verrous) : une note longue est encadrée sur toute sa longueur ; **un pas retiré repart de zéro** (plus d'anciens réglages qui traînent).
+- **Durée des notes visible** (Acide et À verrous) : une note longue est encadrée sur toute sa longueur ; **un pas retiré repart de zéro** (plus d'anciens réglages qui traînent) ; **pas choisi entouré en orange**, et le clavier ne change plus la note d'un pas déjà posé.
 - **Pieuvre 8** : la note jouée s'écrit sur le pas, durée des notes au glisser.
 - **Enregistrement audio calé** sur la lecture et **boucle parfaite** (un tour d'élan, puis exactement un tour, sans clic) ; **MP3 sans blanc** ; montage : export de la boucle ou de tout le montage, réglage de plusieurs clips d'un coup.
 - **Bibliothèque** : **MP3** acceptés partout ; sur tablette, « Échantillon… » range le son dans **Bibliothèque › Importés**, **Dossier perso…** remplit **Bibliothèque › Perso**, vos prises sont dans **Mes enregistrements**.
@@ -455,7 +455,7 @@ Settings). Free software (AGPL-3.0).
 - **At least 90 factory sounds per synth** (over 2,400) and **20 settings per effect** (over 770), all levelled.
 - **Step menu** in Acid and Locks writing (**right-click** on a computer, **long press** on touch screens): note, octave, large Accent and Slide, velocity, length, offset, condition, probability, repeats.
 - **Step amount**: accent strength and slide time set step by step; parameter **locks** on every step; **paint** several steps in one gesture.
-- **Visible note lengths** (Acid and Locks): a long note is framed along its whole length; **a removed step starts from scratch** (no leftover settings).
+- **Visible note lengths** (Acid and Locks): a long note is framed along its whole length; **a removed step starts from scratch** (no leftover settings); **selected step framed in orange**, and the keyboard no longer changes a step already set.
 - **Pieuvre 8**: the note played is written to the step; drag to lengthen notes.
 - Audio recording **locked to playback** and **perfect loops** (one run-up loop, then exactly one loop, click-free); gapless MP3; export the loop or the whole montage; edit several clips at once.
 - **Library**: MP3 everywhere; on tablets "Sample…" stores the sound in Library › Imported, "Personal folder…" fills Library › Custom, your takes are in "My recordings".

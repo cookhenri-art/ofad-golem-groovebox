@@ -293,8 +293,10 @@ l'écran SÉQUENCE, et inversement.
 
 **Le menu d'un pas** : un **appui long** sur la note d'un pas posé ouvre son menu sous la rangée, en
 grand (pratique au téléphone) : **Accent** et **Glissé** (toucher : allumer / éteindre ; « … » : leur
-valeur), **Octave** ▼ ▲, **note**, vélocité, durée, décalage, condition, probabilité, répétitions. La
-touche jouée au clavier pendant que le menu est ouvert devient la note du pas. ✕ ferme le menu.
+valeur), **Octave** ▼ ▲, **note**, vélocité, durée, décalage, condition, probabilité, répétitions. Le
+pas choisi est **entouré en orange** et « **Pas 3 choisi ✕** » s'allume au-dessus de la rangée : ses
+réglages ne changent que ce pas. Le clavier ne change pas sa note (pour ça : **Note** ◀ ▶, ou tirer la note
+vers le haut ou le bas) ; il choisit la note des pas posés ensuite. ✕, ou toucher un autre pas, ferme le menu.
 
 <figure class="wide"><img src="img/menu-pas-acide.jpg" alt="Écriture Acide : le menu du pas 3 ouvert par un appui long, Accent et Glissé en grand"><figcaption>Appui long sur un pas : son menu, Accent et Glissé en grand</figcaption></figure>
 
@@ -308,13 +310,16 @@ effets…), en plus de sa note.
 3. **Mesures** : longueur de la ligne, 1 à 4 mesures (le pattern s'allonge si besoin).
 4. Un **pas choisi** (appui long sur le pas, ou bouton **Verrous** puis toucher le pas) : tournez
    n'importe quel bouton de la façade, du pédalier ou de l'écran SON — la valeur est **verrouillée sur
-   ce pas** seulement. Un bandeau le rappelle ; Échap ou « Terminer » en sort.
+   ce pas** seulement. Le pas est entouré en orange et le bouton **Verrous** s'allume avec son numéro
+   (« **Verrous · pas 5 ✕** », visible même au téléphone) ; un bandeau le rappelle aussi en haut. Toucher
+   Verrous, Échap ou « Terminer » libère le pas ; poser ou retirer une note sur un autre pas aussi.
 5. **Copier / Coller / Effacer** les verrous du pas choisi (« Sans verrous » : tous ceux de la ligne).
 
 Sur les synthés, la rangée à verrous écrit **la dernière note jouée** (pads, clavier de la façade, ou
 clavier MIDI à l'arrêt) : elle est affichée (« **Note** Fa1 ») et chaque pas posé montre sa note à la
-place de son numéro. Un pas choisi (appui long) prend la note de la touche jouée ensuite, et ouvre
-son **menu** sous la rangée : note, vélocité, durée, décalage, condition, probabilité, répétitions.
+place de son numéro. Un pas choisi (appui long) ouvre son **menu** sous la rangée : note, vélocité, durée,
+décalage, condition, probabilité, répétitions. Le clavier ne change pas la note d'un pas déjà posé :
+**Note** ◀ ▶ dans son menu.
 
 <figure class="wide"><img src="img/v047/menu-pas-verrous.jpg" alt="Écriture À verrous : le menu du pas 5"><figcaption>Écriture « À verrous » : le menu du pas choisi</figcaption></figure>
 
@@ -665,7 +670,7 @@ dossier « &lt;nom du projet&gt; - audio » à côté du fichier.
   Sous-oscillateur et bruit avec leur propre sortie ; **deux filtres** (14 types) en **série** ou en
   **parallèle** ; distorsion par voix ; matrice de 32 routages et 8 macros.
 - **Pieuvre 8** (sampler de performance à 8 lignes T1 à T8) : la dernière note jouée (clavier, pads, MIDI à
-  l'arrêt) s'écrit sur le pas choisi ; on **allonge une note** en tirant le bord droit d'un pas ; un pas choisi
+  l'arrêt) s'écrit sur les pas qu'on pose ; on **allonge une note** en tirant le bord droit d'un pas ; un pas choisi
   ouvre son **menu** (note, vélocité, durée, décalage, condition, probabilité, répétitions, verrous).
 
 <figure><img src="img/v047/good-doctor.jpg" alt="Good Doctor : trois oscillateurs à tables, deux déformations chacun, deux filtres"><figcaption>Good Doctor : trois oscillateurs à tables, deux déformations chacun, deux filtres</figcaption></figure>

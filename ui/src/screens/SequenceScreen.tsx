@@ -146,21 +146,12 @@ export function SequenceScreen() {
     if (played.n === lastPlayed.current) return;
     lastPlayed.current = played.n;
     if ((drum && !octa) || played.note < 0 || played.track !== t) return;
-    const u = getState().ui, p = getState().pattern;
-    if (!p) return;
-    const single = u.selection.length === 1 ? u.selection[0] : null;
-    const l = single !== null ? laneOf(single) : u.lane;
-    const s = single !== null ? stepOf(single) : u.step;
+    // v0.47 (5 nov. après-midi) : le clavier ne change plus la note du pas choisi ; il choisit seulement la note des
+    // pas qu'on pose ensuite (Pieuvre 8 : sur la ligne T de sa zone). Note d'un pas posé : Note ◀ ▶ de son menu.
     if (octa) {
       const mapped = octaLaneNote(played.note);
       if (mapped) octaWrite.current = mapped;
-      if (s === null || l > 7) return;
-      const m = octaLaneNote(played.note, l);
-      if (!m) return;
-      if ((p.lanes[l]?.vel[s] ?? 0) > 0 && p.lanes[l]?.note[s] !== m.note) void actions.seq("seqSetNote", l, s, m.note);
-      return;
     }
-    if (s !== null && (p.lanes[l]?.vel[s] ?? 0) > 0 && p.lanes[l]?.note[s] !== played.note) void actions.seq("seqSetNote", l, s, played.note);
   }, [played]); // eslint-disable-line react-hooks/exhaustive-deps
   /** Note écrite par un pas posé sur la ligne T de Pieuvre 8 (undefined : la note de la ligne reste). */
   const octaNewNote = (row: number) => (octa && octaWrite.current && octaWrite.current.lane === row ? octaWrite.current.note : undefined);

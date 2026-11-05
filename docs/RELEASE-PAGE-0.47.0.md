@@ -36,7 +36,7 @@
 - **Au moins 20 réglages d'usine pour chacun des 38 effets** (plus de 770).
 
 #### Séquenceurs
-- **Pieuvre 8** : la dernière note jouée s'écrit sur le pas choisi ; on allonge une note en tirant le bord d'un pas ; un pas sélectionné ouvre son menu.
+- **Pieuvre 8** : la dernière note jouée s'écrit sur les pas qu'on pose ; on allonge une note en tirant le bord d'un pas ; un pas sélectionné ouvre son menu.
 - **Menu du pas, en écriture Acide comme À verrous** : **clic droit** sur PC, **appui long** au doigt sur téléphone et tablette, sur la note d'un pas : note, octave, **Accent** et **Glissé** (en grand, avec leur force), vélocité, durée, décalage, condition, probabilité, répétitions — fini les petites cases au téléphone.
 
 <table>
@@ -48,6 +48,7 @@
 
 - **La durée des notes se voit** : en écriture Acide comme À verrous, une note qui dure plusieurs pas est entourée d'un grand cadre sur toute sa longueur, l'intérieur rempli, et les pas qu'elle couvre rappellent sa note. On voit tout de suite qu'une note est encore en train de sonner, et on peut en poser une autre par-dessus.
 - **Un pas retiré repart de zéro** : effacer une note remet son pas à neuf (durée, décalage, accent, glissé, condition, probabilité, répétitions, verrous). La note posée ensuite au même endroit ne garde plus les anciens réglages.
+- **Pas choisi bien visible et protégé** : entouré en orange ; « Pas N choisi ✕ » en Acide, bouton **Verrous** allumé avec le numéro du pas en À verrous (visible au téléphone sans remonter l'écran). Le clavier ne change plus la note d'un pas déjà posé : il choisit la note des pas suivants.
 - **Interface en anglais complétée** : Glutamake, Good Doctor, enregistrement, export, Bibliothèque, Pieuvre 8… (plus de 160 textes ajoutés).
 
 <table>
@@ -282,7 +283,7 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 - **At least 20 factory settings for each of the 38 effects** (over 770).
 
 #### Sequencers
-- **Pieuvre 8**: the last note played is written to the selected step; drag a step's edge to lengthen a note; a selected step opens its menu.
+- **Pieuvre 8**: the last note played is written to the steps you place; drag a step's edge to lengthen a note; a selected step opens its menu.
 - **Step menu, in Acid and Locks writing**: **right-click** on a computer, **long press** on a phone or tablet, on a step's note: note, octave, large **Accent** and **Slide** (with their amount), velocity, length, offset, condition, probability, repeats — no more tiny boxes on a phone.
 
 <table>
@@ -294,6 +295,7 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 
 - **Note lengths are visible**: in Acid and Locks writing, a note lasting several steps gets a large frame along its whole length, filled inside, and the steps it covers show its note. You see at once that a note is still sounding, and you can place another one on top.
 - **A removed step starts from scratch**: deleting a note resets its step (length, offset, accent, slide, condition, probability, repeats, locks). The next note placed there no longer keeps the old settings.
+- **Selected step clearly visible and protected**: orange frame; "Step N selected ✕" in Acid, **Locks** button lit with the step number in Locks writing (visible on a phone without scrolling up). The keyboard no longer changes the note of a step already set: it picks the note of the next steps.
 - **English interface completed**: Glutamake, Good Doctor, recording, export, Library, Pieuvre 8… (over 160 texts added).
 
 <table>
@@ -358,7 +360,7 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 - **Step amount**: long press (or right-click) on **Acc.** or **Sl.** sets the **accent strength** (1 to 100 %) and the **slide time** (1 to 100 % of the step) of that step only; without a value, the step uses the track's.
 - **Locks**: a selected step keeps its own settings (cutoff, resonance, effects…) on top of its note; the Locks row writes the last note played.
 - **Paint**: press a step and slide across its neighbours to set (or clear) them in one gesture (drum machines, Locks row, pads in Step mode).
-- **Pieuvre 8**: the note played is written to the selected step; drag a step's edge to lengthen a note.
+- **Pieuvre 8**: the note played is written to the steps you place; drag a step's edge to lengthen a note.
 
 #### Mixer and scenes
 - **Sends A, B, C, D** as knobs, in the mixer and the live view (tracks: in place of the EQ; groups: EQ and sends).

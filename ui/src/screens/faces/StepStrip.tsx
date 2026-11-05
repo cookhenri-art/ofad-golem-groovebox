@@ -4,7 +4,7 @@
 // l'octave haut / bas. Toucher la case pose ou retire la note ; la tirer vers le haut ou le bas
 // change la note d'un demi-ton ; ▲ ▼ changent d'octave. C'est la séquence de la piste (ligne 1).
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { StepAmountEditor, useLongPress, type StepAmountKind } from "../../controls/StepAmount";
 import { actions, getState, setUi, stepLanes, useStore } from "../../engine/store";
 import { STEP_ACCENT, STEP_SLIDE } from "../../engine/protocol";
@@ -51,18 +51,12 @@ export function StepStrip() {
   const played = useStore((st) => st.played);
   // v0.47 (maj. 5 nov.) : appui long sur la note d'un pas posé : le menu du pas (grandes touches pour le doigt) —
   // note, accent, glissé et leurs valeurs, vélocité, durée, décalage, condition, probabilité, répétitions
+  // v0.47 (5 nov. après-midi) : toucher un AUTRE pas ferme le menu — sinon les notes jouées en réglant cet autre pas
+  // (tirer la note, ▲ ▼, touche du clavier) étaient aussi écrites sur le pas du menu resté ouvert
   const [menu, setMenu] = useState<number | null>(null);
   const hold = useRef<{ timer: number; fired: boolean } | null>(null);
-  const lastPlayed = useRef(played.n);
-  useEffect(() => {
-    if (played.n === lastPlayed.current) return;
-    lastPlayed.current = played.n;
-    const p = getState().pattern;
-    if (menu === null || !p || played.note < 0 || played.track !== p.track) return;
-    const ls = stepLanes(p, menu);
-    const l = ls.includes(0) ? 0 : ls[0];
-    if (l !== undefined && p.lanes[l]?.note[menu] !== played.note) void actions.seq("seqSetNote", l, menu, played.note);
-  }, [played, menu]);
+  // v0.47 (5 nov. après-midi) : le clavier ne change plus la note du pas dont le menu est ouvert (il choisit seulement
+  // la note des pas qu'on pose ensuite) ; la note d'un pas posé se change par Note ◀ ▶ du menu ou en la tirant
   if (!pattern) return null;
   const pages = Math.max(1, Math.ceil(pattern.length / 16));
   const pg = Math.min(page, pages - 1);
@@ -86,6 +80,10 @@ export function StepStrip() {
         {Array.from({ length: pages }, (_, i) => (
           <button key={i} type="button" className={i === pg ? "on" : ""} onClick={() => setUi({ page: i })}>{i + 1}</button>
         ))}
+        {menu !== null && (
+          <button type="button" className="steps303-selchip" onClick={() => setMenu(null)}
+            title="Le menu de ce pas est ouvert : ses réglages changent ce pas seulement. Toucher pour le fermer.">{`Pas ${menu + 1} choisi ✕`}</button>
+        )}
       </div>
       <div className="steps303-row">
         {Array.from({ length: 16 }, (_, i) => {
@@ -100,7 +98,9 @@ export function StepStrip() {
           const lane = pattern.lanes[ml];
           const here = playing && (pos[0] ?? -1) === s;
           return (
-            <div key={i} className={`step303${on ? " on" : ""}${out ? " out" : ""}${here ? " here" : ""}${i % 4 === 0 ? " beat" : ""}${menu === s ? " sel" : ""}${spanClass(spans, s)}`}>
+            <div key={i} className={`step303${on ? " on" : ""}${out ? " out" : ""}${here ? " here" : ""}${i % 4 === 0 ? " beat" : ""}${menu === s ? " sel" : ""}${spanClass(spans, s)}`}
+              onPointerDownCapture={() => { if (menu !== null && menu !== s) setMenu(null); }}
+              onWheelCapture={() => { if (menu !== null && menu !== s) setMenu(null); }}>
               <button type="button" className="step303-key" disabled={out} aria-pressed={on}
                 aria-label={`Pas ${s + 1}${on ? `, ${noteName(note)}${more > 0 ? ` + ${more} note${more > 1 ? "s" : ""} d'accord` : ""}` : ", silence"} (tirer : note)`}
                 title={more > 0 ? `Accord de ${held.length} notes (piano roll) : toucher retire tout le pas` : undefined}

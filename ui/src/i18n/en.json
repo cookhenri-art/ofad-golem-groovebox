@@ -3557,5 +3557,10 @@
 "1 pas": "1 step",
 "Importés": "Imported",
 "Mes enregistrements": "My recordings",
-"La boucle": "The loop"
+"La boucle": "The loop",
+"Pas # choisi ✕": "Step # selected ✕",
+"Le menu de ce pas est ouvert : ses réglages changent ce pas seulement. Toucher pour le fermer.": "This step's menu is open: its settings change this step only. Touch to close it.",
+"Verrous · pas # ✕": "Locks · step # ✕",
+"Pas # choisi : les boutons écrivent dans ce pas seulement. Toucher pour le libérer.": "Step # selected: the knobs write into this step only. Touch to release it.",
+"pas # ✕": "step # ✕"
 }

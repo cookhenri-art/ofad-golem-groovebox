@@ -424,17 +424,11 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
   // v0.46 fix16 (synthés) : la dernière touche jouée (pads, clavier, clavier MIDI à l'arrêt) est la
   // note écrite par les pas posés ; jouée pendant qu'un pas posé est choisi, elle devient sa note.
   const played = useStore((s) => s.played);
-  const lastPlayed = useRef(played.n);
   // v0.47 (maj. 5 nov.) : Pieuvre 8 — même principe, la touche jouée est ramenée à la note de la T (zones du clavier)
   const notes = melodic || !!octaNote;
   const noteNow = played.note < 0 || (octaNote && played.track !== focus) ? -1 : octaNote ? octaNote(played.note) ?? -1 : played.note;
-  useEffect(() => {
-    if (played.n === lastPlayed.current) return;
-    lastPlayed.current = played.n;
-    if (!notes || sel === null || noteNow < 0) return;
-    const l = getState().pattern?.lanes[T];
-    if ((l?.vel[sel] ?? 0) > 0 && l?.note[sel] !== noteNow) void actions.seq("seqSetNote", T, sel, noteNow);
-  }, [played, notes, sel, T]); // eslint-disable-line react-hooks/exhaustive-deps
+  // v0.47 (5 nov. après-midi) : le clavier ne change plus la note du pas choisi (il choisit seulement la note des pas
+  // qu'on pose ensuite) ; la note d'un pas posé se change par Note ◀ ▶ dans son menu
   const ln = pattern?.lanes[T];
   const patLen = pattern?.length ?? 16;
   const len = ln && ln.length > 0 ? ln.length : patLen;
@@ -452,6 +446,9 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
     showMessage(`Pas ${step + 1} de ${nm} : tournez les boutons pour y poser des verrous`);
   };
   const down = (step: number) => {
+    // v0.47 (5 nov. après-midi) : poser ou retirer une note sur un AUTRE pas libère le pas choisi — sinon la touche
+    // jouée ensuite pour ce nouveau pas changeait aussi la note du pas choisi
+    if (!lockMode && sel !== null && sel !== step) setUi({ step: null, stepEdit: false });
     const timer = window.setTimeout(() => { if (press.current) { press.current.long = true; choose(step); } }, 380);
     press.current = { step, timer, long: false };
   };
@@ -518,9 +515,11 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
           <button type="button" className="ot-steps-opt" onClick={() => void actions.clearLocks([T]).then((n) => showMessage(`${n} verrou${n > 1 ? "s" : ""} retiré${n > 1 ? "s" : ""} des pas de ${nm}`))}
             title={`Retirer les verrous de tous les pas de ${nm} dans ce pattern`}>Sans verrous</button>
         )}
-        <button type="button" className={`ot-steps-opt${lockMode ? " on" : ""}`} aria-pressed={lockMode}
-          onClick={() => { setLockMode(!lockMode); if (lockMode) setUi({ step: null, stepEdit: false }); }}
-          title="Mode verrous : toucher un pas le choisit (sans le poser ni l'enlever) ; les boutons écrivent alors dans ce pas. Sinon : appui long sur un pas.">Verrous</button>
+        {/* v0.47 (5 nov. après-midi) : « Verrous » s'allume aussi quand un pas est choisi (appui long), avec son numéro :
+            on voit sur le téléphone que les boutons écrivent dans ce pas ; le toucher libère le pas */}
+        <button type="button" className={`ot-steps-opt${lockMode || sel !== null ? " on" : ""}`} aria-pressed={lockMode || sel !== null}
+          onClick={() => { if (lockMode || sel !== null) { setLockMode(false); setUi({ step: null, stepEdit: false }); } else setLockMode(true); }}
+          title={sel !== null ? `Pas ${sel + 1} choisi : les boutons écrivent dans ce pas seulement. Toucher pour le libérer.` : "Mode verrous : toucher un pas le choisit (sans le poser ni l'enlever) ; les boutons écrivent alors dans ce pas. Sinon : appui long sur un pas."}>Verrous{sel !== null ? ` · pas ${sel + 1} ✕` : ""}</button>
       </div>
       <div className="ot-steps-keys" data-paint-row>
         {Array.from({ length: 16 }, (_, k) => {

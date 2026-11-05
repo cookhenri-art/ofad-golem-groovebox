@@ -3868,3 +3868,10 @@ html, body, #root { overflow: clip; }
   box-shadow: inset -2px 0 0 var(--len-c), inset 0 2px 0 var(--len-c), inset 0 -2px 0 var(--len-c); }
 .step303-cont, .ot-step-cont { font-style: normal; font-weight: 600; opacity: 0.6; }
 .step303.len-cov .step303-num { opacity: 0.5; }
+
+/* v0.47 (5 nov. après-midi) : pas choisi bien visible (menu ouvert en Acide, verrous en À verrous), au-dessus du cadre de durée */
+.step303.sel { position: relative; z-index: 3; outline: 3px solid oklch(0.82 0.16 75); outline-offset: 1px; border-radius: 6px;
+  box-shadow: 0 0 12px oklch(0.82 0.16 75 / 0.7); }
+.ot-step.sel { position: relative; z-index: 3; box-shadow: 0 0 0 3px oklch(0.82 0.16 75), 0 0 12px oklch(0.82 0.16 75 / 0.7); }
+.steps303-pages button.steps303-selchip, .steps303-selchip { appearance: none; margin-left: auto; width: auto; min-width: 0; border: 0; border-radius: 6px; padding: 3px 10px; font: inherit; font-size: 0.82em;
+  font-weight: 600; background: oklch(0.82 0.16 75); color: oklch(0.18 0.02 75); cursor: pointer; }

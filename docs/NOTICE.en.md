@@ -306,8 +306,10 @@ screen, and the other way round.
 
 **A step's menu**: a **long press** on the note of a set step opens its menu under the row, in large
 buttons (handy on a phone): **Accent** and **Slide** (touch: on / off; "…": their amount), **Octave**
-▼ ▲, **note**, velocity, length, offset, condition, probability, repeats. A key played on the keyboard
-while the menu is open becomes the step's note. ✕ closes the menu.
+▼ ▲, **note**, velocity, length, offset, condition, probability, repeats. The selected step gets an
+**orange frame** and "**Step 3 selected ✕**" lights up above the row: its settings change that step only.
+The keyboard does not change its note (use **Note** ◀ ▶, or drag the note up or down); it picks the note of
+the steps you place next. ✕, or touching another step, closes the menu.
 
 <figure class="wide"><img src="img/menu-pas-acide.jpg" alt="Acid writing: step 3's menu opened by a long press, large Accent and Slide"><figcaption>Long press on a step: its menu, with large Accent and Slide</figcaption></figure>
 
@@ -321,13 +323,15 @@ its note.
 3. **Bars**: length of the line, 1 to 4 bars (the pattern grows if needed).
 4. A **selected step** (long press on the step, or the **Locks** button then touch the step): turn any
    knob on the panel, the pedalboard or the SOUND screen — the value is **locked on that step** only.
-   A banner reminds you; Esc or "Done" exits.
+   The step gets an orange frame and the **Locks** button lights up with its number ("**Locks · step 5 ✕**",
+   visible even on a phone); a banner at the top reminds you too. Touching Locks, Esc or "Done" releases the
+   step; so does placing or removing a note on another step.
 5. **Copy / Paste / Clear** the locks of the selected step ("No locks": all those of the line).
 
 On synths, the locks row writes **the last note played** (pads, the panel's keyboard, or a MIDI keyboard
 while stopped): it is shown ("**Note** F1") and each step set shows its note instead of its number. A
-selected step (long press) takes the note of the next key played, and opens its **menu** under the
-row: note, velocity, length, offset, condition, probability, repeats.
+selected step (long press) opens its **menu** under the row: note, velocity, length, offset, condition,
+probability, repeats. The keyboard does not change the note of a step already set: **Note** ◀ ▶ in its menu.
 
 <figure class="wide"><img src="img/v047/menu-pas-verrous.jpg" alt="Locks writing: the menu of step 5"><figcaption>"Locks" writing: the selected step's menu</figcaption></figure>
 
@@ -675,7 +679,7 @@ goes back to it in one gesture (and can be undone with Ctrl+Z).
   their own output; **two filters** (14 types) in **series** or **parallel**; per-voice distortion; 32-slot
   matrix and 8 macros.
 - **Pieuvre 8** (performance sampler with 8 lines T1 to T8): the last note played (keyboard, pads, MIDI while
-  stopped) is written to the selected step; **lengthen a note** by dragging a step's right edge; a selected
+  stopped) is written to the steps you place; **lengthen a note** by dragging a step's right edge; a selected
   step opens its **menu** (note, velocity, length, offset, condition, probability, repeats, locks).
 
 <figure><img src="img/v047/good-doctor.jpg" alt="Good Doctor: three wavetable oscillators, two warps each, two filters"><figcaption>Good Doctor: three wavetable oscillators, two warps each, two filters</figcaption></figure>

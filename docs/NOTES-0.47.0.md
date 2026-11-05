@@ -40,8 +40,8 @@ notes visible et des corrections. Les projets s'ouvrent sans changement ; l'APK 
   compresseurs, saturations, échos, réverbérations, modulations, filtres, découpes…
 
 ### Pieuvre 8 : séquenceur
-- **La dernière note jouée** (clavier, pads, MIDI à l'arrêt) **s'écrit sur le pas choisi**, en vue 8 lignes
-  comme en vue « T en notes » ; les pas posés ensuite sur la ligne de cette piste prennent cette note
+- **La dernière note jouée** (clavier, pads, MIDI à l'arrêt) **s'écrit sur les pas qu'on pose**, en vue 8
+  lignes comme en vue « T en notes » : les pas posés ensuite sur la ligne de cette piste prennent cette note
   (en mode « Zones », la note est ramenée dans la zone de la piste, comme le moteur le fait).
 - **Allonger une note** : tirer le bord droit d'un pas (ou la queue d'un pas long), dans les deux vues.
   Un message rappelle que la durée s'entend quand le **Déclenchement** de la piste est sur « Tant qu'appuyé ».
@@ -59,6 +59,11 @@ notes visible et des corrections. Les projets s'ouvrent sans changement ; l'APK 
   encadrée sur toute sa longueur, l'intérieur rempli, et les pas couverts rappellent sa note.
 - **Un pas retiré repart de zéro** : durée, décalage, accent, glissé, condition, probabilité, répétitions et
   verrous sont remis à neuf ; la note suivante posée au même endroit ne garde plus les anciens réglages.
+- **Pas choisi bien visible** : entouré en orange ; en Acide, « Pas N choisi ✕ » s'allume au-dessus de la
+  rangée ; en À verrous, le bouton **Verrous** s'allume avec le numéro du pas (le toucher libère le pas).
+- **Le clavier ne change plus la note d'un pas déjà posé** (pas choisi ou menu ouvert) : il choisit la note des
+  pas qu'on pose ensuite. Avant, régler un pas puis jouer une note pour le suivant changeait aussi le premier.
+  Toucher un autre pas ferme le menu du pas choisi.
 - **Interface en anglais complétée** (plus de 160 textes : Glutamake, Good Doctor, enregistrement, export,
   Bibliothèque, Pieuvre 8…).
 
@@ -176,8 +181,8 @@ over the previous one.
 - All 38 effects now have at least 20 ready-to-use settings (more than 500 new ones).
 
 ### Pieuvre 8 sequencer
-- **The last note played** (keyboard, pads, MIDI while stopped) **is written to the selected step**, in the
-  8-row view and in the "T as notes" view; steps entered afterwards on that track's row take that note.
+- **The last note played** (keyboard, pads, MIDI while stopped) **is written to the steps you place**, in the
+  8-row view and in the "T as notes" view: steps entered on that track's row take that note.
 - **Lengthen a note** by dragging the right edge of a step (or the tail of a long one), in both views.
 - **Selecting one step opens its menu** (note, velocity, length, offset, condition, probability, repeats,
   locks) instead of the pattern settings.
@@ -193,6 +198,11 @@ over the previous one.
   whole length, filled inside, and the covered steps show its note.
 - **A removed step starts from scratch**: length, offset, accent, slide, condition, probability, repeats and
   locks are reset; the next note placed there no longer keeps the old settings.
+- **Selected step clearly visible**: orange frame; in Acid, "Step N selected ✕" lights up above the row; in
+  Locks, the **Locks** button lights up with the step number (touch it to release the step).
+- **The keyboard no longer changes the note of a step already set** (selected step or open menu): it picks the
+  note of the steps you place next. Before, setting a step then playing a note for the next one also changed
+  the first. Touching another step closes the selected step's menu.
 - **English interface completed** (over 160 texts: Glutamake, Good Doctor, recording, export, Library,
   Pieuvre 8…).
 
