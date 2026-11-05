@@ -9,7 +9,7 @@
 
 <p align="center"><b>Nouvelle version : un nouveau synthé (Glutamake), une sécurité renforcée, l'enregistrement et le montage audio au point, les MP3, et la tablette enfin stable.</b></p>
 
-<p align="center">🆕 <b>Mise à jour du 5 novembre 2026</b> : un deuxième nouveau synthé, <b>Good Doctor</b>, <b>au moins 90 sons d'usine pour chaque synthé</b> (plus de 2 400), <b>au moins 20 réglages pour chaque effet</b>, le séquenceur de Pieuvre 8 revu, des menus de pas partout et des corrections. Mêmes noms de fichiers : retéléchargez-les.</p>
+<p align="center">🆕 <b>Mise à jour du 5 novembre 2026</b> : un deuxième nouveau synthé, <b>Good Doctor</b>, <b>au moins 90 sons d'usine pour chaque synthé</b> (plus de 2 400), <b>au moins 20 réglages pour chaque effet</b>, le séquenceur de Pieuvre 8 revu, des menus de pas partout, la durée des notes visible et des corrections. Mêmes noms de fichiers : retéléchargez-les.</p>
 
 <p align="center">OFAD GOLEM, c'est une groovebox complète dans l'ordinateur ou la tablette, pensée pour <b>toutes les musiques électroniques</b> : techno, house, acid, hardtek et tribe, hardcore, drum & bass, électro, ambient, beatmaking…</p>
 
@@ -43,6 +43,19 @@
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Menu d'un pas en écriture Acide"><br><b>Menu du pas · écriture Acide</b><br>clic droit ou appui long sur la note : Accent et Glissé en grand, octave, note, durée, condition…</td>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-verrous.jpg" alt="Menu d'un pas en écriture À verrous"><br><b>Menu du pas · écriture À verrous</b><br>clic droit ou appui long sur le pas : note, vélocité, durée, décalage, condition, probabilité, répétitions</td>
+</tr>
+</table>
+
+- **La durée des notes se voit** : en écriture Acide comme À verrous, une note qui dure plusieurs pas est entourée d'un grand cadre sur toute sa longueur, l'intérieur rempli, et les pas qu'elle couvre rappellent sa note. On voit tout de suite qu'une note est encore en train de sonner, et on peut en poser une autre par-dessus.
+- **Un pas retiré repart de zéro** : effacer une note remet son pas à neuf (durée, décalage, accent, glissé, condition, probabilité, répétitions, verrous). La note posée ensuite au même endroit ne garde plus les anciens réglages.
+- **Interface en anglais complétée** : Glutamake, Good Doctor, enregistrement, export, Bibliothèque, Pieuvre 8… (plus de 160 textes ajoutés).
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/duree-notes-acide.jpg" alt="Écriture Acide : une note de trois pas entourée sur toute sa longueur"><br><b>Durée des notes · Acide</b><br>la note du pas 3 dure trois pas : un cadre sur toute sa longueur</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/duree-notes-verrous.jpg" alt="Écriture À verrous : une note de trois pas entourée sur toute sa longueur"><br><b>Durée des notes · À verrous</b><br>même affichage dans la rangée à verrous</td>
 </tr>
 </table>
 
@@ -242,7 +255,7 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 
 <p align="center"><b>OFAD GOLEM — Groovebox 0.47.0 · a new synth (Glutamake), stronger security, polished audio recording and editing, MP3 files, and a stable tablet experience</b></p>
 
-<p align="center">🆕 <b>Update of 5 November 2026</b>: a second new synth, <b>Good Doctor</b>, <b>at least 90 factory sounds for every synth</b> (over 2,400), <b>at least 20 settings for every effect</b>, a reworked Pieuvre 8 sequencer, step menus everywhere, and fixes. Same file names: download them again.</p>
+<p align="center">🆕 <b>Update of 5 November 2026</b>: a second new synth, <b>Good Doctor</b>, <b>at least 90 factory sounds for every synth</b> (over 2,400), <b>at least 20 settings for every effect</b>, a reworked Pieuvre 8 sequencer, step menus everywhere, visible note lengths, and fixes. Same file names: download them again.</p>
 
 <p align="center">A complete groovebox in your computer or tablet, made for <b>all electronic music</b>: techno, house, acid, hardtek and tribe, hardcore, drum & bass, electro, ambient, beatmaking…</p>
 
@@ -276,6 +289,19 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Step menu in Acid writing"><br><b>Step menu · Acid writing</b><br>right-click or long press on the note: large Accent and Slide, octave, note, length, condition…</td>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-verrous.jpg" alt="Step menu in Locks writing"><br><b>Step menu · Locks writing</b><br>right-click or long press on the step: note, velocity, length, offset, condition, probability, repeats</td>
+</tr>
+</table>
+
+- **Note lengths are visible**: in Acid and Locks writing, a note lasting several steps gets a large frame along its whole length, filled inside, and the steps it covers show its note. You see at once that a note is still sounding, and you can place another one on top.
+- **A removed step starts from scratch**: deleting a note resets its step (length, offset, accent, slide, condition, probability, repeats, locks). The next note placed there no longer keeps the old settings.
+- **English interface completed**: Glutamake, Good Doctor, recording, export, Library, Pieuvre 8… (over 160 texts added).
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/duree-notes-acide.jpg" alt="Acid writing: a three-step note framed along its whole length"><br><b>Note length · Acid</b><br>step 3's note lasts three steps: one frame along its whole length</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/duree-notes-verrous.jpg" alt="Locks writing: a three-step note framed along its whole length"><br><b>Note length · Locks</b><br>same display in the Locks row</td>
 </tr>
 </table>
 
@@ -313,9 +339,9 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 
 #### Samples and Library
 - **MP3** files are accepted everywhere: pads, samplers, import, **Library** (as well as WAV, AIFF, FLAC, OGG).
-- On tablets everything stays inside the app: a sound picked with **"Sample…"** on a track is loaded at once **and** stored in **Library › Importés**.
-- **Settings › Personal folder…** copies every sound of a phone folder (subfolders included) into **Library › Perso**; doing it again adds the new ones.
-- Your audio takes are in **Library › "Mes enregistrements"** (my recordings).
+- On tablets everything stays inside the app: a sound picked with **"Sample…"** on a track is loaded at once **and** stored in **Library › Imported**.
+- **Settings › Personal folder…** copies every sound of a phone folder (subfolders included) into **Library › Custom**; doing it again adds the new ones.
+- Your audio takes are in **Library › "My recordings"** (my recordings).
 
 #### Audio recording
 - **Locked to playback**: the take starts with playback and stops exactly, to the sample (end of the song, STOP, or end of the loop when you press "■ Audio" again).

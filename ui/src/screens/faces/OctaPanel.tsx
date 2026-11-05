@@ -25,6 +25,7 @@ import { SampleView } from "../Visuals";
 import { StepsEditor } from "./MatrixPanel";
 import { ShiftButtons } from "./ShiftButtons";
 import { beginStepPaint, justPainted } from "../../controls/stepPaint";
+import { noteSpans, spanClass } from "./noteSpans";
 
 const MACHINES = ["Flex", "Pickup"];
 const MACHINE_HINTS = [
@@ -439,6 +440,8 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
   const len = ln && ln.length > 0 ? ln.length : patLen;
   const pages = Math.max(1, Math.min(4, Math.ceil(len / 16)));
   const playStep = playing ? pos[T] ?? -1 : -1;
+  // v0.48 : notes plus longues qu'un pas, dessinées sur les pas qu'elles couvrent
+  const spans = pattern ? noteSpans(pattern, (s) => (melodic && T === 0 ? stepLanes(pattern, s) : [T])) : new Map();
   const playPage = playStep >= 0 ? Math.floor(playStep / 16) : -1;
   const shown = follow && playPage >= 0 && playPage < pages ? playPage : Math.min(page, pages - 1);
   if (!pattern || !ln) return null;
@@ -535,6 +538,8 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
           if (playStep === s) cls.push("play");
           if (sel === s) cls.push("sel");
           if (ex && ex.locks.length > 0) cls.push("lock");
+          const sc = spanClass(spans, s).trim(); if (sc) cls.push(...sc.split(" "));
+          const cont = !on && spans.get(s);
           // v0.43.4 : emplacement verrouillé sur ce pas (lecture d'un autre son à ce pas)
           const slotLock = ex?.locks.find(([g]) => g === slotAddr)?.[1];
           return (
@@ -553,7 +558,7 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
                 });
               }} onPointerUp={() => up(s)} onPointerLeave={() => { if (press.current?.step === s) { window.clearTimeout(press.current.timer); press.current = null; } }}
               title={`Pas ${s + 1}${on ? ` (posé${melodic ? `, ${noteName(pattern.lanes[ml]?.note[s] ?? 60)}${more > 0 ? ` + ${more} note${more > 1 ? "s" : ""} d'accord` : ""}` : ""})` : ""}${ex && ex.locks.length ? ` · ${ex.locks.length} verrou${ex.locks.length > 1 ? "s" : ""}` : ""} — toucher : poser / retirer ; appui long : verrous`}>
-              <span className="fc-led" aria-hidden /><i>{notes && on ? noteName(pattern.lanes[ml]?.note[s] ?? 60) : s + 1}{more > 0 && <sup className="step303-chord">+{more}</sup>}</i>
+              <span className="fc-led" aria-hidden /><i>{notes && on ? noteName(pattern.lanes[ml]?.note[s] ?? 60) : cont && notes && cont.note >= 0 ? <b className="ot-step-cont">{noteName(cont.note)}</b> : s + 1}{more > 0 && <sup className="step303-chord">+{more}</sup>}</i>
               {octaNote && on && (ln.len[s] ?? 8) > 8 && <em className="ot-step-len" title={`Durée : ${(ln.len[s] / 8).toFixed(ln.len[s] % 8 ? 2 : 0)} pas`}>{(ln.len[s] / 8).toFixed(ln.len[s] % 8 ? 1 : 0)}</em>}
               {slotLock !== undefined && slotName && <em className="ot-step-slot" title="Emplacement joué sur ce pas">{slotName(slotLock)}</em>}
             </button>

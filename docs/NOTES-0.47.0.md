@@ -10,8 +10,8 @@ enfin stable (écran fixe, menus réguliers, sons et projets gardés dans l'appl
 
 Même version 0.47.0, enrichie : un nouveau synthé (**Good Doctor**), **au moins 90 sons d'usine pour chaque
 synthé** (plus de 2 400 en tout), **au moins 20 réglages d'usine pour chaque effet** (plus de 770), le
-séquenceur de **Pieuvre 8** qui se joue comme celui des autres synthés, des menus de pas partout et des
-corrections. Les projets s'ouvrent sans changement ; l'APK s'installe par-dessus la précédente.
+séquenceur de **Pieuvre 8** qui se joue comme celui des autres synthés, des menus de pas partout, la durée des
+notes visible et des corrections. Les projets s'ouvrent sans changement ; l'APK s'installe par-dessus la précédente.
 
 ### Nouveau synthé : Good Doctor
 - Principe des grands synthés à tables d'ondes « hybrides » : **trois oscillateurs** à tables (12 tables de
@@ -53,6 +53,14 @@ corrections. Les projets s'ouvrent sans changement ; l'APK s'installe par-dessus
   note, vélocité, durée, décalage, condition, probabilité, répétitions.
 - En écriture **Acide**, un **appui long** sur un pas ouvre le même menu, avec en plus des boutons
   **Accent** et **Glissé** larges (faciles à toucher au téléphone), leur valeur (« … ») et l'octave.
+
+### Durée des notes, pas remis à zéro, interface en anglais
+- **La durée des notes se voit** en écriture Acide comme À verrous : une note qui dure plusieurs pas est
+  encadrée sur toute sa longueur, l'intérieur rempli, et les pas couverts rappellent sa note.
+- **Un pas retiré repart de zéro** : durée, décalage, accent, glissé, condition, probabilité, répétitions et
+  verrous sont remis à neuf ; la note suivante posée au même endroit ne garde plus les anciens réglages.
+- **Interface en anglais complétée** (plus de 160 textes : Glutamake, Good Doctor, enregistrement, export,
+  Bibliothèque, Pieuvre 8…).
 
 ### Corrections
 - Une touche du clavier de la façade pouvait rester enfoncée (et la note jouer sans fin) quand le doigt
@@ -141,7 +149,7 @@ menus, sounds and projects kept inside the app).
 
 Same 0.47.0 release, extended: a new synth (**Good Doctor**), **at least 90 factory sounds for every synth**
 (over 2,400 in total), **at least 20 factory settings for every effect** (over 770), a **Pieuvre 8** sequencer
-that plays like the other synths, step menus everywhere, and fixes. Projects open unchanged; the APK installs
+that plays like the other synths, step menus everywhere, visible note lengths, and fixes. Projects open unchanged; the APK installs
 over the previous one.
 
 ### New synth: Good Doctor
@@ -180,6 +188,14 @@ over the previous one.
 - In **Acid** writing, a **long press** on a step opens the same menu, plus large **Accent** and **Slide**
   buttons (easy to hit on a phone), their amount ("…") and the octave.
 
+### Note lengths, steps reset, English interface
+- **Note lengths are visible** in Acid and Locks writing: a note lasting several steps is framed along its
+  whole length, filled inside, and the covered steps show its note.
+- **A removed step starts from scratch**: length, offset, accent, slide, condition, probability, repeats and
+  locks are reset; the next note placed there no longer keeps the old settings.
+- **English interface completed** (over 160 texts: Glutamake, Good Doctor, recording, export, Library,
+  Pieuvre 8…).
+
 ### Fixes
 - A key of the panel keyboard could stay down (and the note play forever) when the finger slid off it: it
   is now released wherever the finger lifts.
@@ -206,9 +222,9 @@ over the previous one.
 ### Samples
 - **MP3** files are accepted everywhere: pads, samplers, import, Library (as well as WAV, AIFF, FLAC, OGG).
 - On tablets everything stays inside the app: a sound picked with **"Sample…"** on a track is loaded at once
-  **and** stored in **Library › Importés**; **Settings › Personal folder…** copies every sound of a phone folder
-  (subfolders included) into **Library › Perso** (do it again to add new ones); your audio takes are in
-  **"Mes enregistrements"**.
+  **and** stored in **Library › Imported**; **Settings › Personal folder…** copies every sound of a phone folder
+  (subfolders included) into **Library › Custom** (do it again to add new ones); your audio takes are in
+  **"My recordings"**.
 
 ### Audio recording
 - **Follow playback**: the take starts with playback and stops exactly, to the sample.

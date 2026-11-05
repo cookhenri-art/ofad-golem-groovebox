@@ -12,6 +12,7 @@ import { noteName } from "../../engine/params";
 import type { EncoderBinding } from "../../controls/Encoder";
 import { useValueDrag } from "../../controls/useValueDrag";
 import { OctaStepEdit } from "./OctaPanel";
+import { noteSpans, spanClass } from "./noteSpans";
 
 /** Durées proposées (en huitièmes de pas, comme le moteur) : 1/4 de pas à 16 pas. */
 const LENS = [2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 256, 512, 1024];
@@ -67,6 +68,8 @@ export function StepStrip() {
   const pg = Math.min(page, pages - 1);
   const first = pg * 16;
   const flag = (s: number, bit: number) => ((pattern.flags[s] ?? 0) & bit) !== 0;
+  // v0.48 : notes plus longues qu'un pas, dessinées sur les pas qu'elles couvrent
+  const spans = noteSpans(pattern, (s) => stepLanes(pattern, s));
   const toggleFlag = (s: number, bit: number) => void actions.seq("seqStepsFlag", JSON.stringify([s]), bit, !flag(s, bit));
   const setNote = (s: number, n: number, l = 0) => {
     const note = Math.max(0, Math.min(127, n));
@@ -97,7 +100,7 @@ export function StepStrip() {
           const lane = pattern.lanes[ml];
           const here = playing && (pos[0] ?? -1) === s;
           return (
-            <div key={i} className={`step303${on ? " on" : ""}${out ? " out" : ""}${here ? " here" : ""}${i % 4 === 0 ? " beat" : ""}${menu === s ? " sel" : ""}`}>
+            <div key={i} className={`step303${on ? " on" : ""}${out ? " out" : ""}${here ? " here" : ""}${i % 4 === 0 ? " beat" : ""}${menu === s ? " sel" : ""}${spanClass(spans, s)}`}>
               <button type="button" className="step303-key" disabled={out} aria-pressed={on}
                 aria-label={`Pas ${s + 1}${on ? `, ${noteName(note)}${more > 0 ? ` + ${more} note${more > 1 ? "s" : ""} d'accord` : ""}` : ", silence"} (tirer : note)`}
                 title={more > 0 ? `Accord de ${held.length} notes (piano roll) : toucher retire tout le pas` : undefined}
@@ -131,7 +134,7 @@ export function StepStrip() {
                 }}
                 onWheel={(e) => setNote(s, note + (e.deltaY < 0 ? 1 : -1), ml)}>
                 <span className="step303-num">{s + 1}</span>
-                <span className="step303-note">{on ? noteName(note) : "—"}{more > 0 && <sup className="step303-chord">+{more}</sup>}</span>
+                <span className="step303-note">{on ? noteName(note) : spans.get(s) && spans.get(s)!.note >= 0 ? <i className="step303-cont">{noteName(spans.get(s)!.note)}</i> : "—"}{more > 0 && <sup className="step303-chord">+{more}</sup>}</span>
               </button>
               <div className="step303-fn">
                 <button type="button" disabled={out} title="Octave plus haut" onClick={() => setNote(s, note + 12, ml)}>▲</button>

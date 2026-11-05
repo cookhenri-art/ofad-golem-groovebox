@@ -3842,3 +3842,29 @@ html, body, #root { overflow: clip; }
 .mod-menu.mod-menu--phone button { font-size: 14px; padding: 9px 10px; }
 .mod-menu-veil:has(input:focus) { align-items: flex-start; padding-top: 6px; box-sizing: border-box; }
 .mod-menu-veil:has(input:focus) .mod-menu--phone { max-height: calc(var(--app-h, 400px) * 0.46); }
+
+/* v0.48 : durée des notes dans les rangées de pas (Acide et À verrous) — une note plus longue qu'un pas
+   est dessinée sur les pas qu'elle couvre : grand contour, intérieur rempli ; une note posée par-dessus
+   garde son aspect, le contour reste. */
+.step303-key, .ot-step { position: relative; }
+.step303.len-start .step303-key, .step303.len-cov .step303-key, .ot-step.len-start, .ot-step.len-cov {
+  --len-c: var(--fp-led); }
+.step303.len-cov .step303-key, .ot-step.len-cov {
+  border-radius: 0; color: oklch(0.95 0 0);
+  background: color-mix(in oklab, var(--len-c) 38%, oklch(0.22 0.01 250));
+  box-shadow: inset 0 2px 0 var(--len-c), inset 0 -2px 0 var(--len-c); }
+.step303.len-cov.on .step303-key { background: linear-gradient(180deg, oklch(0.3 0.01 250), oklch(0.2 0.01 250)); }
+.ot-step.len-cov.on { background: linear-gradient(180deg, color-mix(in oklab, var(--fp-led) 90%, white), var(--fp-led)); color: oklch(0.15 0.01 300); }
+/* le pont dans l'espace entre deux pas, pour un contour d'un seul tenant */
+.step303.len-cov .step303-key::before, .ot-step.len-cov::before {
+  content: ""; position: absolute; top: 0; bottom: 0; right: 100%; width: 6px; pointer-events: none;
+  background: color-mix(in oklab, var(--len-c) 38%, oklch(0.22 0.01 250));
+  box-shadow: inset 0 2px 0 var(--len-c), inset 0 -2px 0 var(--len-c); }
+.step303.len-start .step303-key, .ot-step.len-start {
+  border-radius: 4px 0 0 4px;
+  box-shadow: inset 2px 0 0 var(--len-c), inset 0 2px 0 var(--len-c), inset 0 -2px 0 var(--len-c); }
+.step303.len-end .step303-key, .ot-step.len-end {
+  border-radius: 0 4px 4px 0;
+  box-shadow: inset -2px 0 0 var(--len-c), inset 0 2px 0 var(--len-c), inset 0 -2px 0 var(--len-c); }
+.step303-cont, .ot-step-cont { font-style: normal; font-weight: 600; opacity: 0.6; }
+.step303.len-cov .step303-num { opacity: 0.5; }

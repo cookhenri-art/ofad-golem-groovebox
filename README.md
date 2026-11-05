@@ -45,6 +45,7 @@
 - **Au moins 90 sons d'usine par synthé** (plus de 2 400) et **au moins 20 réglages par effet** (plus de 770), tous mis au même niveau.
 - **Menu du pas**, en écriture **Acide** comme **À verrous** : **clic droit** sur PC, **appui long** au doigt : note, octave, **Accent** et **Glissé** en grand, vélocité, durée, décalage, condition, probabilité, répétitions.
 - **Valeur d'un pas** : appui long (ou clic droit) sur Acc. / Gl. : **force de l'accent** et **durée du glissé** réglées pas par pas ; **verrous** de réglages sur chaque pas ; **pinceau** pour poser plusieurs pas d'un geste.
+- **Durée des notes visible** (Acide et À verrous) : une note longue est encadrée sur toute sa longueur ; **un pas retiré repart de zéro** (plus d'anciens réglages qui traînent).
 - **Pieuvre 8** : la note jouée s'écrit sur le pas, durée des notes au glisser.
 - **Enregistrement audio calé** sur la lecture et **boucle parfaite** (un tour d'élan, puis exactement un tour, sans clic) ; **MP3 sans blanc** ; montage : export de la boucle ou de tout le montage, réglage de plusieurs clips d'un coup.
 - **Bibliothèque** : **MP3** acceptés partout ; sur tablette, « Échantillon… » range le son dans **Bibliothèque › Importés**, **Dossier perso…** remplit **Bibliothèque › Perso**, vos prises sont dans **Mes enregistrements**.
@@ -56,6 +57,7 @@
 <table>
 <tr><td align="center" colspan="2"><a href="docs/img/v047/good-doctor.jpg"><img src="docs/img/v047/good-doctor.jpg" alt="Good Doctor"></a><br><b>Good Doctor</b> · trois oscillateurs à tables, deux déformations chacun</td></tr>
 <tr><td align="center"><a href="docs/img/v047/menu-pas-acide.jpg"><img src="docs/img/v047/menu-pas-acide.jpg" alt="Menu du pas en écriture Acide"></a><br><b>Menu du pas · Acide</b><br>clic droit ou appui long : Accent et Glissé en grand</td><td align="center"><a href="docs/img/v047/menu-pas-verrous.jpg"><img src="docs/img/v047/menu-pas-verrous.jpg" alt="Menu du pas en écriture À verrous"></a><br><b>Menu du pas · À verrous</b><br>note, vélocité, durée, condition…</td></tr>
+<tr><td align="center" colspan="2"><a href="docs/img/v047/duree-notes-acide.jpg"><img src="docs/img/v047/duree-notes-acide.jpg" alt="Durée des notes en écriture Acide"></a><br><b>Durée des notes</b> · une note de trois pas, encadrée sur toute sa longueur (Acide et À verrous)</td></tr>
 <tr><td align="center"><a href="docs/img/v047/glutamake.jpg"><img src="docs/img/v047/glutamake.jpg" alt="Glutamake"></a><br><b>Glutamake</b><br>la bille, les tables d'ondes, le filtre</td><td align="center"><a href="docs/img/v047/enregistreur.jpg"><img src="docs/img/v047/enregistreur.jpg" alt="Enregistrement audio"></a><br><b>Enregistrement audio</b><br>calé sur la lecture, boucle parfaite</td></tr>
 </table>
 
@@ -453,9 +455,10 @@ Settings). Free software (AGPL-3.0).
 - **At least 90 factory sounds per synth** (over 2,400) and **20 settings per effect** (over 770), all levelled.
 - **Step menu** in Acid and Locks writing (**right-click** on a computer, **long press** on touch screens): note, octave, large Accent and Slide, velocity, length, offset, condition, probability, repeats.
 - **Step amount**: accent strength and slide time set step by step; parameter **locks** on every step; **paint** several steps in one gesture.
+- **Visible note lengths** (Acid and Locks): a long note is framed along its whole length; **a removed step starts from scratch** (no leftover settings).
 - **Pieuvre 8**: the note played is written to the step; drag to lengthen notes.
 - Audio recording **locked to playback** and **perfect loops** (one run-up loop, then exactly one loop, click-free); gapless MP3; export the loop or the whole montage; edit several clips at once.
-- **Library**: MP3 everywhere; on tablets "Sample…" stores the sound in Library › Importés, "Personal folder…" fills Library › Perso, your takes are in "Mes enregistrements".
+- **Library**: MP3 everywhere; on tablets "Sample…" stores the sound in Library › Imported, "Personal folder…" fills Library › Custom, your takes are in "My recordings".
 - **Sends A to D** as knobs in the mixer and live view; exact value entry by long press or right-click.
 - Stronger security with `SHA256SUMS.txt`; stable Android tablets and phones; **Mac** (app, VST3, AU) and **iPhone / iPad** (preview) builds.
 - Interface and manual **in English and French**.

@@ -287,6 +287,10 @@ public:
     void setStepDirectP (int track, int pattern, int lane, int step, bool direct, double nowMs);
     void clearStepLock (int track, int lane, int step, int global, double nowMs);
     void clearStepExtras (int track, int lane, int step, double nowMs);
+    /** v0.48 : un pas retiré repart de zéro : sa note s'efface, et avec elle sa durée, son décalage, sa
+        condition, ses répétitions et ses verrous ; accent et glissé du pas aussi quand plus aucune ligne n'y
+        joue. Un pas reposé au même endroit est une note neuve (Ctrl+Z rend l'ancienne). */
+    void removeStep (int track, int lane, int step, double nowMs);
     void clearTrackExtras (int track, double nowMs);
     // Mêmes fonctions pour un pattern donné (sans pattern : le pattern édité de la piste)
     void setStepExtraP (int track, int pattern, int lane, int step, Condition c, int a, int b, int prob, double nowMs);

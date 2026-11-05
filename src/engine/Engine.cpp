@@ -1015,6 +1015,25 @@ void Engine::clearStepExtrasP (int track, int pattern, int lane, int step, doubl
     publishExtras (std::move (e), nowMs);
 }
 
+void Engine::removeStep (int track, int lane, int step, double nowMs)
+{
+    if (track < 0 || track >= numTracks) return;
+    const auto p = seq->getEditing (track);
+    if (! validStep (track, p, lane, step)) return;
+    seq->setStepP (track, p, lane, step, 0);
+    seq->setLength8P (track, p, lane, step, 8);
+    seq->setMicroP (track, p, lane, step, 0);
+    bool empty = true;
+    for (int l = 0; l < Sequencer::numLanes && empty; ++l)
+        if (seq->getStepP (track, p, l, step) > 0) empty = false;
+    if (empty)
+    {
+        seq->setStepFlagsP (track, p, step, seq->getStepFlagsP (track, p, step) & stepRec); // le départ de l'enregistreur reste
+        seq->setStepAmountsP (track, p, step, 0);
+    }
+    clearStepExtrasP (track, p, lane, step, nowMs);
+}
+
 void Engine::clearTrackExtras (int track, double nowMs)
 {
     auto e = std::make_unique<PatternExtras> (*extras.editable());

@@ -318,6 +318,18 @@ son **menu** sous la rangée : note, vélocité, durée, décalage, condition, p
 
 <figure class="wide"><img src="img/v047/menu-pas-verrous.jpg" alt="Écriture À verrous : le menu du pas 5"><figcaption>Écriture « À verrous » : le menu du pas choisi</figcaption></figure>
 
+**La durée des notes** : en écriture Acide comme À verrous, une note qui dure plusieurs pas est
+entourée d'un grand cadre sur toute sa longueur, l'intérieur rempli, et les pas qu'elle couvre
+rappellent sa note en petit. On voit qu'une note sonne encore, et on peut poser une autre note
+par-dessus. Pour allonger ou raccourcir une note : **durée** dans le menu du pas.
+
+<figure class="wide"><img src="img/v047/duree-notes-acide.jpg" alt="Écriture Acide : la note du pas 3 dure trois pas, entourée sur toute sa longueur"><figcaption>Écriture Acide : une note de trois pas, encadrée sur toute sa longueur</figcaption></figure>
+
+<figure class="wide"><img src="img/v047/duree-notes-verrous.jpg" alt="Écriture À verrous : la note du pas 3 dure trois pas, entourée sur toute sa longueur"><figcaption>Écriture « À verrous » : le même cadre</figcaption></figure>
+
+**Retirer une note** remet son pas à zéro : durée, décalage, accent, glissé, condition, probabilité,
+répétitions et verrous. La note posée ensuite au même endroit repart de réglages neufs.
+
 **Décaler ◀ ▶** : toute l'écriture glisse d'un pas à gauche ou à droite, en boucle (le pas qui sort
 revient de l'autre côté) ; notes, accents, glissés, conditions et verrous suivent. Sur la façade : à
 droite de « Écriture » (batteries : **Tout** ou le **Pad** choisi seul), ou dans la rangée à verrous

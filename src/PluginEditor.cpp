@@ -699,7 +699,13 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
             done (json (bridge::patternJson (eng, std::max (0, t))));
         });
     };
-    patternFn ("seqSetStep",   [&seq, L, S] (const Args& a, int t) { seq.setStep (t, intArg (a, 1, 0, L, 0), intArg (a, 2, 0, S, 0), intArg (a, 3, 0, 127, 0)); });
+    patternFn ("seqSetStep",   [&seq, &eng, L, S] (const Args& a, int t)
+    {
+        const auto l = intArg (a, 1, 0, L, 0), s = intArg (a, 2, 0, S, 0), v = intArg (a, 3, 0, 127, 0);
+        // v0.48 : retirer une note posée remet le pas à zéro (durée, décalage, condition, verrous, accent, glissé)
+        if (v == 0 && seq.getStep (t, l, s) > 0) eng.removeStep (t, l, s, nowMs());
+        else seq.setStep (t, l, s, v);
+    });
     patternFn ("seqSetNote",   [&seq, L, S] (const Args& a, int t) { seq.setNote (t, intArg (a, 1, 0, L, 0), intArg (a, 2, 0, S, 0), intArg (a, 3, 0, 127, 60)); });
     patternFn ("seqSetLength8",[&seq, L, S] (const Args& a, int t) { seq.setLength8 (t, intArg (a, 1, 0, L, 0), intArg (a, 2, 0, S, 0), intArg (a, 3, 1, Sequencer::maxLength8, 8)); });
     patternFn ("seqSetMicro",  [&seq, L, S] (const Args& a, int t) { seq.setMicro (t, intArg (a, 1, 0, L, 0), intArg (a, 2, 0, S, 0), intArg (a, 3, -32, 32, 0)); });

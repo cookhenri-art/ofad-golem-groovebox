@@ -331,6 +331,18 @@ row: note, velocity, length, offset, condition, probability, repeats.
 
 <figure class="wide"><img src="img/v047/menu-pas-verrous.jpg" alt="Locks writing: the menu of step 5"><figcaption>"Locks" writing: the selected step's menu</figcaption></figure>
 
+**Note length**: in Acid and Locks writing, a note lasting several steps gets a large frame along its
+whole length, filled inside, and the steps it covers show its note in small. You can see a note is
+still sounding, and place another note on top. To lengthen or shorten a note: **length** in the step's
+menu.
+
+<figure class="wide"><img src="img/v047/duree-notes-acide.jpg" alt="Acid writing: step 3's note lasts three steps, framed along its whole length"><figcaption>Acid writing: a three-step note, framed along its whole length</figcaption></figure>
+
+<figure class="wide"><img src="img/v047/duree-notes-verrous.jpg" alt="Locks writing: step 3's note lasts three steps, framed along its whole length"><figcaption>"Locks" writing: the same frame</figcaption></figure>
+
+**Removing a note** resets its step: length, offset, accent, slide, condition, probability, repeats and
+locks. The next note placed there starts from fresh settings.
+
 **Nudge ◀ ▶**: the whole writing slides one step left or right, wrapping around (the step that falls off
 comes back on the other side); notes, accents, slides, conditions and locks follow. On the panel: to the
 right of "Writing" (drums: **All** or the selected **Pad** only), or in the locks row (that line only);
@@ -614,7 +626,7 @@ tracks or Both), the **format** (24-bit WAV, or 320 kbit/s MP3 with no silence a
   replays **without a click**, in GOLEM (Pieuvre 8, sampler) or in other software. Prefer WAV.
 - **Free**: records everything, even without playback (playing the pads), until you press "■ Audio" again.
 
-Takes are stored in **Library › Mes enregistrements** (my recordings).
+Takes are stored in **Library › My recordings**.
 
 **Exporting the arrangement**: "Export" offers **the loop** (the ruler area) or **the whole arrangement**,
 exactly to length, as 24-bit WAV or 320 kbit/s MP3. **Several clips at once**: tap a lane's name to select
@@ -644,11 +656,11 @@ goes back to it in one gesture (and can be undone with Ctrl+Z).
 ### 11. Samples and Library
 
 - Formats accepted everywhere (pads, samplers, import, Library): **WAV, AIFF, FLAC, OGG and MP3**.
-- **"Sample…"** on a track: the chosen sound is loaded at once **and** stored in **Library › Importés**
+- **"Sample…"** on a track: the chosen sound is loaded at once **and** stored in **Library › Imported**
   (imported), so you can find it later.
 - **Settings › Personal folder…**: copies every sound of a folder of the phone or computer (subfolders
-  included) into **Library › Perso** (custom); doing it again only adds the new ones.
-- **Library › Mes enregistrements** (my recordings): your audio takes ("● Audio" button).
+  included) into **Library › Custom**; doing it again only adds the new ones.
+- **Library › My recordings**: your audio takes ("● Audio" button).
 
 ### 12. Three special instruments
 

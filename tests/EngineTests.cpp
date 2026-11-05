@@ -2040,6 +2040,39 @@ static void testPlayAndMovesOneTake()
     }
 }
 
+
+// v0.48 : un pas retiré repart de zéro (durée, décalage, condition, verrous, accent, glissé)
+static void testRemoveStepResets()
+{
+    Engine e;
+    e.prepare (48000.0, 256);
+    e.setInstrument (0, "acid", 0.0);
+    auto& s = e.sequencer();
+    const auto p = s.getEditing (0);
+    s.setStep (0, 0, 4, 100);
+    s.setLength8 (0, 0, 4, 32);
+    s.setMicro (0, 0, 4, 7);
+    s.setStepFlags (0, 4, stepAccent | stepSlide | stepRec);
+    s.setStepAmounts (0, 4, 60 | (40 << 8));
+    e.setStepExtra (0, 0, 4, Condition::ab, 1, 2, 70, 0.0);
+    CHECK (e.getExtras().find (0, p, 0, 4) != nullptr);
+    e.removeStep (0, 0, 4, 0.0);
+    CHECK (s.getStep (0, 0, 4) == 0);
+    CHECK (s.getLength8 (0, 0, 4) == 8);
+    CHECK (s.getMicro (0, 0, 4) == 0);
+    CHECK (s.getStepFlags (0, 4) == stepRec);   // le départ de l'enregistreur reste
+    CHECK (s.getStepAmounts (0, 4) == 0);
+    CHECK (e.getExtras().find (0, p, 0, 4) == nullptr);
+    // reposé : une note neuve
+    s.setStep (0, 0, 4, 100);
+    CHECK (s.getLength8 (0, 0, 4) == 8 && s.getMicro (0, 0, 4) == 0);
+    // accord : retirer une ligne garde l'accent du pas tant qu'une autre y joue
+    s.setStep (0, 1, 4, 100);
+    s.setStepFlags (0, 4, stepAccent);
+    e.removeStep (0, 1, 4, 0.0);
+    CHECK (s.getStepFlags (0, 4) == stepAccent);
+}
+
 int main()
 {
     std::printf ("Tests du moteur\n");
@@ -2052,6 +2085,7 @@ int main()
     testScenes();
     testVectorScenes();
     testStepLocksAndConditions();
+    testRemoveStepResets();
     testModulation();
     testSeqModSource();
     testSamplesAndSwap();
