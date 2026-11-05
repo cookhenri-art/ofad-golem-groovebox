@@ -311,6 +311,8 @@ buttons (handy on a phone): **Accent** and **Slide** (touch: on / off; "…": th
 The keyboard does not change its note (use **Note** ◀ ▶, or drag the note up or down); it picks the note of
 the steps you place next. ✕, or touching another step, closes the menu.
 
+<figure class="wide"><img src="img/v047/pas-choisi-acide.jpg" alt="Acid writing: step 5 selected, orange frame, 'Step 5 selected' lit above the row"><figcaption>Acid writing: step 5 selected, orange frame, "Step 5 selected ✕" lit</figcaption></figure>
+
 <figure class="wide"><img src="img/menu-pas-acide.jpg" alt="Acid writing: step 3's menu opened by a long press, large Accent and Slide"><figcaption>Long press on a step: its menu, with large Accent and Slide</figcaption></figure>
 
 **The locks sequencer**: each step can keep its own settings (cutoff, resonance, effects…), on top of
@@ -328,6 +330,8 @@ its note.
    step; so does placing or removing a note on another step. In **Acid** writing, the same "Locks · step 5 ✕"
    button lights up above the row while that step is selected.
 5. **Copy / Paste / Clear** the locks of the selected step ("No locks": all those of the line).
+
+<figure class="wide"><img src="img/v047/pas-choisi-verrous.jpg" alt="Locks writing: step 5 selected, orange frame, Locks · step 5 button lit"><figcaption>"Locks" writing: step 5 selected, "Locks · step 5 ✕" button lit</figcaption></figure>
 
 On synths, the locks row writes **the last note played** (pads, the panel's keyboard, or a MIDI keyboard
 while stopped): it is shown ("**Note** F1") and each step set shows its note instead of its number. A

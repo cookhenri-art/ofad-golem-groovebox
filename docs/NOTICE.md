@@ -298,6 +298,8 @@ pas choisi est **entouré en orange** et « **Pas 3 choisi ✕** » s'allume au-
 réglages ne changent que ce pas. Le clavier ne change pas sa note (pour ça : **Note** ◀ ▶, ou tirer la note
 vers le haut ou le bas) ; il choisit la note des pas posés ensuite. ✕, ou toucher un autre pas, ferme le menu.
 
+<figure class="wide"><img src="img/v047/pas-choisi-acide.jpg" alt="Écriture Acide : le pas 5 choisi, entouré en orange, « Pas 5 choisi » allumé au-dessus de la rangée"><figcaption>Écriture Acide : le pas 5 choisi, entouré en orange, « Pas 5 choisi ✕ » allumé</figcaption></figure>
+
 <figure class="wide"><img src="img/menu-pas-acide.jpg" alt="Écriture Acide : le menu du pas 3 ouvert par un appui long, Accent et Glissé en grand"><figcaption>Appui long sur un pas : son menu, Accent et Glissé en grand</figcaption></figure>
 
 **Le séquenceur à verrous** : chaque pas peut garder ses propres réglages (coupure, résonance,
@@ -316,6 +318,8 @@ effets…), en plus de sa note.
    écriture **Acide**, le même bouton « Verrous · pas 5 ✕ » s'allume au-dessus de la rangée tant que ce pas
    est choisi.
 5. **Copier / Coller / Effacer** les verrous du pas choisi (« Sans verrous » : tous ceux de la ligne).
+
+<figure class="wide"><img src="img/v047/pas-choisi-verrous.jpg" alt="Écriture À verrous : le pas 5 choisi, entouré en orange, bouton Verrous · pas 5 allumé"><figcaption>Écriture « À verrous » : le pas 5 choisi, bouton « Verrous · pas 5 ✕ » allumé</figcaption></figure>
 
 Sur les synthés, la rangée à verrous écrit **la dernière note jouée** (pads, clavier de la façade, ou
 clavier MIDI à l'arrêt) : elle est affichée (« **Note** Fa1 ») et chaque pas posé montre sa note à la

@@ -58,6 +58,12 @@
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/duree-notes-verrous.jpg" alt="Écriture À verrous : une note de trois pas entourée sur toute sa longueur"><br><b>Durée des notes · À verrous</b><br>même affichage dans la rangée à verrous</td>
 </tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/pas-choisi-acide.jpg" alt="Écriture Acide : le pas 5 choisi, entouré en orange, « Pas 5 choisi » allumé"><br><b>Pas choisi · Acide</b><br>entouré en orange, « Pas 5 choisi ✕ » allumé au-dessus de la rangée</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/pas-choisi-verrous.jpg" alt="Écriture À verrous : le pas 5 choisi, entouré en orange, bouton Verrous · pas 5 allumé"><br><b>Pas choisi · À verrous</b><br>bouton « Verrous · pas 5 ✕ » allumé : le toucher libère le pas</td>
+</tr>
 </table>
 
 #### Corrections
@@ -304,6 +310,12 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 </tr>
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/duree-notes-verrous.jpg" alt="Locks writing: a three-step note framed along its whole length"><br><b>Note length · Locks</b><br>same display in the Locks row</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/pas-choisi-acide.jpg" alt="Acid writing: step 5 selected, orange frame, 'Step 5 selected' lit"><br><b>Selected step · Acid</b><br>orange frame, "Step 5 selected ✕" lit above the row</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/pas-choisi-verrous.jpg" alt="Locks writing: step 5 selected, orange frame, Locks · step 5 button lit"><br><b>Selected step · Locks</b><br>"Locks · step 5 ✕" button lit: touch it to release the step</td>
 </tr>
 </table>
 
