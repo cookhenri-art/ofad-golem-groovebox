@@ -13,11 +13,13 @@
   <img src="https://img.shields.io/badge/VST3-FF6B35?style=for-the-badge" alt="VST3">
   <img src="https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
   <img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android">
+  <img src="https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="macOS">
+  <img src="https://img.shields.io/badge/iPhone_·_iPad-555555?style=for-the-badge&logo=apple&logoColor=white" alt="iPhone et iPad">
   <img src="https://img.shields.io/badge/licence-AGPL--3.0-blue?style=for-the-badge" alt="Licence AGPL-3.0">
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger-Windows_·_Android-F5A623?style=for-the-badge" alt="Télécharger pour Windows et Android"></a>
+  <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger_0.47.0-Windows_·_Mac_·_Android_·_iPhone-F5A623?style=for-the-badge" alt="Télécharger la 0.47.0 pour Windows, Mac, Android et iPhone"></a>
   <a href="docs/NOTICE.pdf"><img src="https://img.shields.io/badge/📘_Notice-PDF-2B2F3A?style=for-the-badge" alt="Notice de prise en main (PDF)"></a>
   <a href="docs/NOTICE-EN.pdf"><img src="https://img.shields.io/badge/📘_Manual_(English)-PDF-2B2F3A?style=for-the-badge" alt="Manual in English (PDF)"></a>
   <a href="docs/CATALOGUE.pdf"><img src="https://img.shields.io/badge/🎹_Catalogue-PDF-2B2F3A?style=for-the-badge" alt="Catalogue des sons et effets (PDF)"></a>
@@ -29,6 +31,29 @@
   <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
   <b><a href="docs/CATALOGUE.pdf">Catalogue des 36 instruments et 38 effets (PDF)</a></b>
 </p>
+
+<p align="center"><b>🇬🇧 English speakers: <a href="#-english-summary">English summary below ↓</a></b></p>
+
+---
+
+## 🆕 Nouveautés de la 0.47.0 — mise à jour du 5 novembre 2026
+
+<p align="center"><b><a href="../../releases/tag/v0.47.0">Tout le détail et les téléchargements sur la page de la version 0.47.0</a></b></p>
+
+- **Good Doctor**, nouveau synthé : trois oscillateurs à **tables d'ondes « hybrides »** (12 tables), **deux déformations à la suite** par oscillateur (18 au choix), sous-oscillateur et bruit, **deux filtres** (14 types) en série ou en parallèle, distorsion par voix, matrice de 32 routages, 8 macros, unisson jusqu'à 8 voix ; **91 sons**.
+- **Glutamake**, nouveau synthé : tables d'ondes à morphs et **une bille qui roule sur une surface** (physique de mouvement) qui module le son, séquence de mouvement à 4 couloirs.
+- **Au moins 90 sons d'usine par synthé** (plus de 2 400) et **au moins 20 réglages par effet** (plus de 770), tous mis au même niveau.
+- **Menu du pas, en écriture Acide comme À verrous** : **clic droit** sur PC, **appui long** au doigt : note, octave, **Accent** et **Glissé** en grand, vélocité, durée, décalage, condition, probabilité, répétitions.
+- **Pieuvre 8** : la note jouée s'écrit sur le pas, durée des notes au glisser.
+- **Enregistrement audio calé** sur la lecture et **boucle parfaite**, montage audio plus complet, **MP3** acceptés partout.
+- **Sécurité renforcée** et fichier `SHA256SUMS.txt` pour vérifier les téléchargements.
+- **Tablette et téléphone Android** enfin stables ; versions **Mac** (application, VST3, AU) et **iPhone / iPad** (essai).
+
+<table>
+<tr><td align="center" colspan="2"><a href="docs/img/v047/good-doctor.jpg"><img src="docs/img/v047/good-doctor.jpg" alt="Good Doctor"></a><br><b>Good Doctor</b> · trois oscillateurs à tables, deux déformations chacun</td></tr>
+<tr><td align="center"><a href="docs/img/v047/menu-pas-acide.jpg"><img src="docs/img/v047/menu-pas-acide.jpg" alt="Menu du pas en écriture Acide"></a><br><b>Menu du pas · Acide</b><br>clic droit ou appui long : Accent et Glissé en grand</td><td align="center"><a href="docs/img/v047/menu-pas-verrous.jpg"><img src="docs/img/v047/menu-pas-verrous.jpg" alt="Menu du pas en écriture À verrous"></a><br><b>Menu du pas · À verrous</b><br>note, vélocité, durée, condition…</td></tr>
+<tr><td align="center"><a href="docs/img/v047/glutamake.jpg"><img src="docs/img/v047/glutamake.jpg" alt="Glutamake"></a><br><b>Glutamake</b><br>la bille, les tables d'ondes, le filtre</td><td align="center"><a href="docs/img/v047/enregistreur.jpg"><img src="docs/img/v047/enregistreur.jpg" alt="Enregistrement audio"></a><br><b>Enregistrement audio</b><br>calé sur la lecture, boucle parfaite</td></tr>
+</table>
 
 ---
 
@@ -51,7 +76,7 @@ monophoniques et polyphoniques à filtres en échelle ou qui crient, synthés FM
 vocodeurs, sampler de performance, échos à bande, réverbérations, compresseurs de studio… Chacun est
 **recréé de zéro** : son propre nom, sa propre façade, ses propres sons d'usine.
 
-- **Application Windows** (autonome), **plugin VST3** pour les logiciels de musique, **application Android** pour téléphone et tablette, avec **contrôleur MIDI** USB ou Bluetooth prêt à jouer.
+- **Application Windows et Mac** (autonome), **plugins VST3 et AU** pour les logiciels de musique, **application Android** pour téléphone et tablette et version **iPhone / iPad** (essai), avec **contrôleur MIDI** USB ou Bluetooth prêt à jouer.
 - **Interface en français ou en anglais** (*English interface*) : la langue se choisit à l'installation sur Windows, au premier lancement sur Android, et se change dans Réglages.
 - **36 instruments**, **2432 sons d'usine**, **38 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
 - **Vue live** pour le jeu en direct : crossfader ou **pavé vectoriel** à quatre scènes (formes en mouvement, taille, hauteur, rotation), console des 16 pistes avec faders, FX et M / S, et les **16 boutons assignables** avec leurs propres modulations.
@@ -155,6 +180,8 @@ contrôleur.
   toujours la même séquence, quelle que soit la vue.
 - **Par pas** : note, **vélocité** (le volume du coup), durée, décalage fin, **condition**, probabilité,
   répétitions (roulements ↗ ↘), flam, verrous ; avec plusieurs pas choisis, les encodeurs règlent tout à la fois.
+- **Menu du pas** sur la façade, en écriture Acide comme À verrous : **clic droit** (PC) ou **appui long**
+  (doigt) sur un pas ouvre tous ses réglages en grand, Accent et Glissé compris.
 - **Conditions** (pas qui ne jouent pas à chaque fois) : A:B (un tour sur deux, au 4e tour…), FILL / NON FILL,
   PRÉ, VOISIN, 1ER et leurs contraires, plus la probabilité — des variations sans écrire d'autres patterns.
 - **Fill et Break en direct** : tenir **Fill** fait jouer les pas FILL (relances, roulements) et taire les
@@ -406,11 +433,38 @@ In English: **[Manual (PDF)](docs/NOTICE-EN.pdf)** · [text version](docs/NOTICE
 
 ---
 
+## 🇬🇧 English summary
+
+**OFAD GOLEM** is a complete groovebox for your computer, phone or tablet, made for all electronic music
+(techno, house, acid, hardtek, drum & bass, electro, ambient, beatmaking…). It follows the workflow of
+standalone pad-based production stations: 16 tracks, 16 pads, patterns launched like clips, scenes on a
+crossfader, song mode and audio editing. Its **36 instruments** and **38 effects** follow the architecture of
+the machines that made this music, rebuilt from scratch with their own names, panels and sounds. The whole
+interface is available **in English** (choose it when installing on Windows, at first launch on Android, or in
+Settings). Free software (AGPL-3.0).
+
+**What's new in 0.47.0 (update of 5 November 2026)**: new **Good Doctor** synth (hybrid wavetables, two warps
+per oscillator, two filters in series or parallel, 91 sounds); new **Glutamake** synth (morphing wavetables
+and a ball rolling on a surface that modulates the sound); **at least 90 factory sounds per synth** and **20
+settings per effect**; a **step menu** in Acid and Locks writing (**right-click** on a computer, **long press**
+on touch screens) with large Accent and Slide buttons; locked-to-playback audio recording and perfect loops;
+MP3 everywhere; stronger security with `SHA256SUMS.txt`; stable Android tablets and phones; **Mac** (app, VST3,
+AU) and **iPhone / iPad** (preview) builds.
+
+<p align="center">
+  <b><a href="../../releases/tag/v0.47.0">Download 0.47.0 (Windows · Mac · Android · iPhone)</a></b> ·
+  <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
+  <b><a href="docs/CATALOGUE.pdf">Catalogue (PDF)</a></b>
+</p>
+
+---
+
 ## 📥 Téléchargement
 
 Les versions prêtes à installer sont publiées dans les **[Releases](../../releases)** du dépôt :
 - **Windows** : `OFAD-GOLEM-<version>-Windows-installateur.exe` — application, plugin VST3 (au choix), notice et catalogue, sources.
 - **Android** : `OFAD-GOLEM-<version>-Android.apk` (tablette, téléphone).
+- **iPhone / iPad** (essai) : `OFAD-GOLEM-<version>-iOS-non-signe.ipa` — non signée, à installer avec AltStore ou Sideloadly.
 - **Mac** : `OFAD-GOLEM-<version>-Mac-app.zip` (application), `-Mac-VST3.zip` et `-Mac-AU.zip` (plugins) — voir « Sur Mac » plus bas.
 - **Sources** : `OFAD-GOLEM-<version>-sources.tar.gz` (licence AGPL-3.0).
 
