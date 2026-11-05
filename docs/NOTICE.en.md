@@ -329,6 +329,8 @@ while stopped): it is shown ("**Note** F1") and each step set shows its note ins
 selected step (long press) takes the note of the next key played, and opens its **menu** under the
 row: note, velocity, length, offset, condition, probability, repeats.
 
+<figure class="wide"><img src="img/v047/menu-pas-verrous.jpg" alt="Locks writing: the menu of step 5"><figcaption>"Locks" writing: the selected step's menu</figcaption></figure>
+
 **Nudge ◀ ▶**: the whole writing slides one step left or right, wrapping around (the step that falls off
 comes back on the other side); notes, accents, slides, conditions and locks follow. On the panel: to the
 right of "Writing" (drums: **All** or the selected **Pad** only), or in the locks row (that line only);
@@ -497,7 +499,9 @@ learn work the same way from all three views.
 
 ### 6. Mixing
 
-MIXER screen: volume, pan, mute (M), solo (S), sends to returns A to D, 7 groups and the master.
+MIXER screen: volume, pan, mute (M), solo (S), sends to returns A to D, 7 groups and the master. The **sends A, B, C, D** are
+knobs (tracks: in place of the EQ; groups: EQ and sends), also in the live view; **long press** (right-click):
+exact value.
 
 <figure><img src="img/mixeur.jpg" alt="MIXER screen: tracks and groups, returns and master"><figcaption>MIXER screen: tracks and groups, returns and master</figcaption></figure>
 
@@ -598,6 +602,25 @@ turn **Loop** on, then "● Record a take". The take starts at the beginning of 
 of the loop: each track played becomes a clip exactly the length of the loop. No more stopping by hand at
 the right moment.
 
+**Recording the audio of your playing ("● Audio" button at the top)**: choose **what** (Master, Separate
+tracks or Both), the **format** (24-bit WAV, or 320 kbit/s MP3 with no silence added at the start) and the
+**mode**:
+
+- **Locked to playback**: the take starts with playback (or at the start of the next loop) and stops
+  **exactly**, to the sample: end of the song, STOP, or end of the current loop when you press "■ Audio"
+  again. To export a loop or a song.
+- **Perfect loop**: one **run-up loop** plays first (echoes and compression settle), then the take lasts
+  **exactly one loop** and stops by itself; the end-to-start join is crossfaded in the file, so the loop
+  replays **without a click**, in GOLEM (Pieuvre 8, sampler) or in other software. Prefer WAV.
+- **Free**: records everything, even without playback (playing the pads), until you press "■ Audio" again.
+
+Takes are stored in **Library › Mes enregistrements** (my recordings).
+
+**Exporting the arrangement**: "Export" offers **the loop** (the ruler area) or **the whole arrangement**,
+exactly to length, as 24-bit WAV or 320 kbit/s MP3. **Several clips at once**: tap a lane's name to select
+all its clips, **Ctrl+A** selects everything, and dragging the edge of a selected clip adjusts every selected
+clip.
+
 <figure><img src="img/montage.jpg" alt="LAUNCH › Audio: the clips of each track, the ruler, the playhead; below, the selected clip (volume, fades, split, copy, duplicate)"><figcaption>LAUNCH › Audio: the clips of each track, the ruler, the playhead; below, the selected clip (volume, fades, split, copy, duplicate)</figcaption></figure>
 
 ### 10. Saving
@@ -611,8 +634,41 @@ is stored in the "&lt;project name&gt; - audio" folder next to the file.
 
 <figure><img src="img/reglages.jpg" alt="SETTINGS screen: project (demo, empty, open, save, template), folders, recording, MIDI"><figcaption>SETTINGS screen: project (demo, empty, open, save, template), folders, recording, MIDI</figcaption></figure>
 
+**On tablets and phones**: projects are saved and opened **inside the app** ("Saved projects" list, tap
+to open; any name, otherwise the date). **Export a copy…** and **Import a file…** use the system file picker
+(Downloads, Drive…) to exchange a project.
+
 **Undo and photo**: ↶ ↷ (Ctrl+Z, Ctrl+Y) undo up to 50 steps. **Photo** freezes all settings; **Recall**
 goes back to it in one gesture (and can be undone with Ctrl+Z).
+
+### 11. Samples and Library
+
+- Formats accepted everywhere (pads, samplers, import, Library): **WAV, AIFF, FLAC, OGG and MP3**.
+- **"Sample…"** on a track: the chosen sound is loaded at once **and** stored in **Library › Importés**
+  (imported), so you can find it later.
+- **Settings › Personal folder…**: copies every sound of a folder of the phone or computer (subfolders
+  included) into **Library › Perso** (custom); doing it again only adds the new ones.
+- **Library › Mes enregistrements** (my recordings): your audio takes ("● Audio" button).
+
+### 12. Three special instruments
+
+- **Glutamake** (wavetables and physics): two wavetable oscillators (A/B mix, morphs, modifiers); **Physics**
+  page: a **ball** rolls on a surface (tilt, friction, bump, edges that absorb or bounce back). **Hold it with a
+  finger** and **release it with a flick**, or let each note throw it; its motion (X, Y, distance, angle, hits)
+  feeds the matrix. **Motion sequence** page: 4 lanes of 16 steps (loop, direction, division, smoothing,
+  probability).
+- **Good Doctor** (hybrid wavetables): three oscillators **A, B, C**; for each, the **Table**, the **Position**,
+  **two warps in a row** (Warp 1 and 2 with their amount), the start **Phase** and its randomness, and the
+  **Output** (both filters, F1 only, F2 only, or **Direct** for a clean low end). Sub oscillator and noise with
+  their own output; **two filters** (14 types) in **series** or **parallel**; per-voice distortion; 32-slot
+  matrix and 8 macros.
+- **Pieuvre 8** (performance sampler with 8 lines T1 to T8): the last note played (keyboard, pads, MIDI while
+  stopped) is written to the selected step; **lengthen a note** by dragging a step's right edge; a selected
+  step opens its **menu** (note, velocity, length, offset, condition, probability, repeats, locks).
+
+<figure><img src="img/v047/good-doctor.jpg" alt="Good Doctor: three wavetable oscillators, two warps each, two filters"><figcaption>Good Doctor: three wavetable oscillators, two warps each, two filters</figcaption></figure>
+
+<figure><img src="img/v047/glutamake.jpg" alt="Glutamake: the ball, the wavetables, the filter"><figcaption>Glutamake: the ball, the wavetables, the filter</figcaption></figure>
 
 ## MIDI controller
 

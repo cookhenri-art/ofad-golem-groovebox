@@ -316,6 +316,8 @@ clavier MIDI à l'arrêt) : elle est affichée (« **Note** Fa1 ») et chaque pa
 place de son numéro. Un pas choisi (appui long) prend la note de la touche jouée ensuite, et ouvre
 son **menu** sous la rangée : note, vélocité, durée, décalage, condition, probabilité, répétitions.
 
+<figure class="wide"><img src="img/v047/menu-pas-verrous.jpg" alt="Écriture À verrous : le menu du pas 5"><figcaption>Écriture « À verrous » : le menu du pas choisi</figcaption></figure>
+
 **Décaler ◀ ▶** : toute l'écriture glisse d'un pas à gauche ou à droite, en boucle (le pas qui sort
 revient de l'autre côté) ; notes, accents, glissés, conditions et verrous suivent. Sur la façade : à
 droite de « Écriture » (batteries : **Tout** ou le **Pad** choisi seul), ou dans la rangée à verrous
@@ -484,7 +486,8 @@ l'apprentissage MIDI marchent de la même façon depuis les trois vues.
 ### 6. Mixer
 
 Écran MIXEUR : volume, panoramique, coupure (M), solo (S), envois vers les retours A à D,
-7 groupes et le principal.
+7 groupes et le principal. Les **envois A, B, C, D** sont des boutons (pistes : à la place de l'égaliseur ;
+groupes : égaliseur et envois), aussi dans la vue live ; **appui long** (clic droit) : valeur exacte.
 
 <figure><img src="img/mixeur.jpg" alt="Écran MIXEUR : pistes et groupes, retours et principal"><figcaption>Écran MIXEUR : pistes et groupes, retours et principal</figcaption></figure>
 
@@ -589,6 +592,23 @@ suivante, dure **exactement** la longueur de la boucle, **s'arrête toute seule*
 près) et se pose au début de la boucle : chaque piste jouée devient un clip pile de la longueur de la
 boucle. Plus besoin d'arrêter à la main au bon moment.
 
+**Enregistrer l'audio du jeu (bouton « ● Audio » en haut)** : on choisit **quoi** (Master, Pistes séparées
+ou Les deux), le **format** (WAV 24 bits, ou MP3 320 kbit/s sans blanc ajouté au début) et le **mode** :
+
+- **Calée sur la lecture** : la prise démarre avec la lecture (ou au début du prochain tour de boucle) et
+  s'arrête **pile**, à l'échantillon près : fin du morceau, ARRÊT, ou fin du tour en cours quand on rappuie
+  sur « ■ Audio ». Pour exporter une boucle ou un morceau.
+- **Boucle parfaite** : un **tour d'élan** passe d'abord (échos et compression en place), puis la prise dure
+  **exactement un tour** et s'arrête seule ; la jonction fin → début est fondue dans le fichier : la boucle se
+  rejoue **sans clic**, dans GOLEM (Pieuvre 8, sampler) ou un autre logiciel. Préférez le WAV.
+- **Libre** : enregistre tout, même sans lecture (jeu aux pads), jusqu'à ce qu'on rappuie sur « ■ Audio ».
+
+Les prises sont rangées dans **Bibliothèque › Mes enregistrements**.
+
+**Exporter le montage** : « Export » propose **la boucle** (la zone de la règle) ou **tout le montage**, pile à la
+longueur, en WAV 24 bits ou en MP3 320 kbit/s. **Plusieurs clips d'un coup** : toucher le nom d'une voie choisit
+tous ses clips, **Ctrl+A** choisit tout, et tirer le bord d'un clip choisi règle tous les clips choisis.
+
 <figure><img src="img/montage.jpg" alt="LANCEMENT › Audio : les clips de chaque piste, la règle, la tête de lecture ; en bas, le clip choisi (volume, fondus, couper, copier, dupliquer)"><figcaption>LANCEMENT › Audio : les clips de chaque piste, la règle, la tête de lecture ; en bas, le clip choisi (volume, fondus, couper, copier, dupliquer)</figcaption></figure>
 
 ### 10. Enregistrer
@@ -604,8 +624,41 @@ dossier « &lt;nom du projet&gt; - audio » à côté du fichier.
 <figure><img src="img/reglages.jpg" alt="Écran RÉGLAGES : projet (démonstration, vide, ouvrir, enregistrer, modèle), dossiers, enregistrement, MIDI"><figcaption>Écran RÉGLAGES : projet (démonstration, vide, ouvrir, enregistrer, modèle), dossiers, enregistrement, MIDI</figcaption></figure>
 
 
+**Sur tablette et téléphone** : les projets s'enregistrent et s'ouvrent **dans l'application** (liste
+« Projets enregistrés », toucher pour ouvrir ; nom libre, sinon la date). **Exporter une copie…** et
+**Importer un fichier…** passent par le sélecteur du système (Téléchargements, Drive…) pour échanger un projet.
+
 **Annuler et photo** : ↶ ↷ (Ctrl+Z, Ctrl+Y) annulent jusqu'à 50 étapes. **Photo** fige tous les réglages ;
 **Rappel** y revient d'un geste (et se défait avec Ctrl+Z).
+
+### 11. Échantillons et Bibliothèque
+
+- Formats acceptés partout (pads, samplers, import, Bibliothèque) : **WAV, AIFF, FLAC, OGG et MP3**.
+- **« Échantillon… »** sur une piste : le son choisi est chargé tout de suite **et** rangé dans
+  **Bibliothèque › Importés**, pour le retrouver plus tard.
+- **Réglages › Dossier perso…** : copie tous les sons d'un dossier du téléphone ou de l'ordinateur
+  (sous-dossiers compris) dans **Bibliothèque › Perso** ; le refaire ajoute seulement les nouveaux.
+- **Bibliothèque › Mes enregistrements** : vos prises audio (bouton « ● Audio »).
+
+### 12. Trois instruments à part
+
+- **Glutamake** (tables d'ondes et physique) : deux oscillateurs à tables (mélange A/B, morphs,
+  modificateurs) ; page **Physique** : une **bille** roule sur une surface (inclinaison, frottement, bosse,
+  bords qui absorbent ou relancent). On la **tient au doigt** et on la **lâche d'un geste**, ou elle part à
+  chaque note ; ses mouvements (X, Y, distance, angle, chocs) sont des sources de la matrice. Page **Séquence
+  de mouvement** : 4 couloirs de 16 pas (boucle, sens, division, lissage, probabilité).
+- **Good Doctor** (tables d'ondes hybrides) : trois oscillateurs **A, B, C** ; pour chacun, la **Table**, la
+  **Position**, **deux déformations à la suite** (Déform. 1 et 2 avec leur intensité), la **Phase** de départ et
+  sa part de hasard, et la **Sortie** (les deux filtres, F1 seul, F2 seul, ou **Direct** pour un grave propre).
+  Sous-oscillateur et bruit avec leur propre sortie ; **deux filtres** (14 types) en **série** ou en
+  **parallèle** ; distorsion par voix ; matrice de 32 routages et 8 macros.
+- **Pieuvre 8** (sampler de performance à 8 lignes T1 à T8) : la dernière note jouée (clavier, pads, MIDI à
+  l'arrêt) s'écrit sur le pas choisi ; on **allonge une note** en tirant le bord droit d'un pas ; un pas choisi
+  ouvre son **menu** (note, vélocité, durée, décalage, condition, probabilité, répétitions, verrous).
+
+<figure><img src="img/v047/good-doctor.jpg" alt="Good Doctor : trois oscillateurs à tables, deux déformations chacun, deux filtres"><figcaption>Good Doctor : trois oscillateurs à tables, deux déformations chacun, deux filtres</figcaption></figure>
+
+<figure><img src="img/v047/glutamake.jpg" alt="Glutamake : la bille, les tables d'ondes, le filtre"><figcaption>Glutamake : la bille, les tables d'ondes, le filtre</figcaption></figure>
 
 ## Contrôleur MIDI
 
