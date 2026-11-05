@@ -4,13 +4,14 @@
 // l'octave haut / bas. Toucher la case pose ou retire la note ; la tirer vers le haut ou le bas
 // change la note d'un demi-ton ; ▲ ▼ changent d'octave. C'est la séquence de la piste (ligne 1).
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StepAmountEditor, useLongPress, type StepAmountKind } from "../../controls/StepAmount";
 import { actions, getState, setUi, stepLanes, useStore } from "../../engine/store";
 import { STEP_ACCENT, STEP_SLIDE } from "../../engine/protocol";
 import { noteName } from "../../engine/params";
 import type { EncoderBinding } from "../../controls/Encoder";
 import { useValueDrag } from "../../controls/useValueDrag";
+import { OctaStepEdit } from "./OctaPanel";
 
 /** Durées proposées (en huitièmes de pas, comme le moteur) : 1/4 de pas à 16 pas. */
 const LENS = [2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 256, 512, 1024];
@@ -47,6 +48,20 @@ export function StepStrip() {
   // v0.46 fix27 : valeur du pas (force de l'accent, durée du glissé) : appui long sur Acc. / Gl.
   const [edit, setEdit] = useState<{ step: number; kind: StepAmountKind } | null>(null);
   const played = useStore((st) => st.played);
+  // v0.47 (maj. 5 nov.) : appui long sur la note d'un pas posé : le menu du pas (grandes touches pour le doigt) —
+  // note, accent, glissé et leurs valeurs, vélocité, durée, décalage, condition, probabilité, répétitions
+  const [menu, setMenu] = useState<number | null>(null);
+  const hold = useRef<{ timer: number; fired: boolean } | null>(null);
+  const lastPlayed = useRef(played.n);
+  useEffect(() => {
+    if (played.n === lastPlayed.current) return;
+    lastPlayed.current = played.n;
+    const p = getState().pattern;
+    if (menu === null || !p || played.note < 0 || played.track !== p.track) return;
+    const ls = stepLanes(p, menu);
+    const l = ls.includes(0) ? 0 : ls[0];
+    if (l !== undefined && p.lanes[l]?.note[menu] !== played.note) void actions.seq("seqSetNote", l, menu, played.note);
+  }, [played, menu]);
   if (!pattern) return null;
   const pages = Math.max(1, Math.ceil(pattern.length / 16));
   const pg = Math.min(page, pages - 1);
@@ -82,11 +97,17 @@ export function StepStrip() {
           const lane = pattern.lanes[ml];
           const here = playing && (pos[0] ?? -1) === s;
           return (
-            <div key={i} className={`step303${on ? " on" : ""}${out ? " out" : ""}${here ? " here" : ""}${i % 4 === 0 ? " beat" : ""}`}>
+            <div key={i} className={`step303${on ? " on" : ""}${out ? " out" : ""}${here ? " here" : ""}${i % 4 === 0 ? " beat" : ""}${menu === s ? " sel" : ""}`}>
               <button type="button" className="step303-key" disabled={out} aria-pressed={on}
                 aria-label={`Pas ${s + 1}${on ? `, ${noteName(note)}${more > 0 ? ` + ${more} note${more > 1 ? "s" : ""} d'accord` : ""}` : ", silence"} (tirer : note)`}
                 title={more > 0 ? `Accord de ${held.length} notes (piano roll) : toucher retire tout le pas` : undefined}
-                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { id: e.pointerId, y: e.clientY, step: s, note, moved: false }; }}
+                onPointerDown={(e) => {
+                  e.currentTarget.setPointerCapture(e.pointerId); drag.current = { id: e.pointerId, y: e.clientY, step: s, note, moved: false };
+                  if (hold.current) window.clearTimeout(hold.current.timer);
+                  const h = { fired: false, timer: 0 };
+                  h.timer = window.setTimeout(() => { if (drag.current && !drag.current.moved && on) { h.fired = true; setMenu(s); } }, 450);
+                  hold.current = h;
+                }}
                 onPointerMove={(e) => {
                   const d = drag.current;
                   if (!d || d.id !== e.pointerId) return;
@@ -98,6 +119,9 @@ export function StepStrip() {
                 onPointerUp={() => {
                   const d = drag.current;
                   drag.current = null;
+                  const h = hold.current;
+                  hold.current = null;
+                  if (h) { window.clearTimeout(h.timer); if (h.fired) return; }
                   // v0.46 fix28 : un pas posé prend la dernière touche jouée (clavier, pads), comme la rangée à verrous
                   if (d && !d.moved) {
                     if (on) void actions.clearStepLanes(s, held);
@@ -131,6 +155,27 @@ export function StepStrip() {
           );
         })}
       </div>
+      {menu !== null && stepLanes(pattern, menu).length > 0 && (() => {
+        const ls = stepLanes(pattern, menu);
+        const l = ls.includes(0) ? 0 : ls[0];
+        const big = (label: string, isOn: boolean, toggle: () => void, amount: number, kind: StepAmountKind) => (
+          <span className="ot-stepedit-item">
+            <button type="button" className={`ot-stepedit-flag${isOn ? " on" : ""}`} aria-pressed={isOn} onClick={toggle}>{label}{isOn && amount > 0 ? ` ${amount} %` : ""}</button>
+            <button type="button" onClick={() => setEdit({ step: menu, kind })} aria-label={`Valeur : ${label}`} title={`Valeur du pas : ${label}`}>…</button>
+          </span>
+        );
+        return (
+          <OctaStepEdit T={l} step={menu} onClose={() => setMenu(null)} extra={<>
+            {big("Accent", flag(menu, STEP_ACCENT), () => toggleFlag(menu, STEP_ACCENT), pattern.accAmt[menu] ?? 0, "acc")}
+            {big("Glissé", flag(menu, STEP_SLIDE), () => toggleFlag(menu, STEP_SLIDE), pattern.sldAmt[menu] ?? 0, "sld")}
+            <span className="ot-stepedit-item">
+              <small>Octave</small>
+              <button type="button" onClick={() => setNote(menu, (pattern.lanes[l]?.note[menu] ?? 48) - 12, l)} aria-label="Octave plus bas">▼</button>
+              <button type="button" onClick={() => setNote(menu, (pattern.lanes[l]?.note[menu] ?? 48) + 12, l)} aria-label="Octave plus haut">▲</button>
+            </span>
+          </>} />
+        );
+      })()}
     </div>
   );
 }

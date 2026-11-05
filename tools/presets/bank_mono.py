@@ -77,4 +77,41 @@ def build():
     add("Ordinateur fou", FX, mix(LEAD_, mb2_src=4, mb2_sync=9, mb2_pitch=12, mb2_filt=40, mb2_ctrl=2, reso=60, cutoff=1500, mb1_pitch=0))
     add("Grésillement métallique", FX, mix(LEAD_, mb2_src=7, mb2_rate=300, mb2_pitch=3, mb2_ctrl=2, cutoff=3000, mb1_pitch=0))
     add("Larsen contrôlé", FX, mix(BASSE, mixfb=100, drive=30, reso=90, cutoff=250, envamt=80, fd=800, fs=40))
+
+    # --- v0.47 (maj. 5 nov.) : 32 sons de plus (au moins 90 par synthé)
+    for nm, kw in [
+        ("Sub triangle", dict(o1shape=1, mix2=0, mixsub=70, cutoff=300, reso=5, envamt=10)),
+        ("Basse scie grave", dict(cutoff=380, reso=30, envamt=55, fd=220, drive=10)),
+        ("Basse impulsion fine", dict(o1shape=4, o2shape=3.6, cutoff=600, envamt=45)),
+        ("Basse réinjectée douce", dict(mixfb=35, drive=8, cutoff=420)),
+        ("Basse caverneuse", dict(o2oct=-1, mix2=70, cutoff=250, reso=25, envamt=30, fd=400)),
+        ("Basse qui mord", dict(cutoff=300, reso=50, envamt=80, fd=130, fs=5, drive=14)),
+        ("Basse 18 dB", dict(slope=1, cutoff=520, reso=30, envamt=45)),
+        ("Basse 6 dB ronde", dict(slope=3, cutoff=900, reso=0, envamt=20)),
+        ("Basse bruitée", dict(mixnoise=25, cutoff=480, reso=20, envamt=40)),
+        ("Basse glissée longue", dict(glide=260, glidemode=0, cutoff=500)),
+        ("Basse quarte", dict(o2semi=5, mix2=50, cutoff=600)),
+        ("Basse tierce mineure", dict(o2semi=3, mix2=40, cutoff=650, reso=15)),
+        ("Basse fendue", dict(o2fine=25, mix2=80, cutoff=700, envamt=35)),
+        ("Basse en boucle lente", dict(floop=1, fsync=0, fa=200, fd=400, fs=0, envamt=40, cutoff=400, as_=100)),
+        ("Basse grondante", dict(mixfb=80, drive=24, cutoff=350, reso=35, envamt=40)),
+        ("Basse brillante", dict(cutoff=1400, reso=15, envamt=30, fs=50)),
+    ]:
+        add(nm, BASS, mix(BASSE, **kw))
+    for nm, kw in [
+        ("Lead chaud", dict(cutoff=1400, reso=15, drive=6)), ("Lead tranchant", dict(cutoff=3500, reso=35, envamt=20)),
+        ("Lead triangle", dict(o1shape=1, o2shape=1, cutoff=2400, reso=10)), ("Lead réinjecté", dict(mixfb=55, drive=16, cutoff=1700)),
+        ("Lead bruité", dict(mixnoise=15, cutoff=2000, reso=30)), ("Lead 12 dB", dict(slope=2, cutoff=2500, reso=40)),
+        ("Lead octaves", dict(o2oct=2, mix2=50, cutoff=2100)), ("Lead vibrato lent", dict(mb1_rate=3.5, mb1_pitch=0.6, cutoff=1900)),
+    ]:
+        add(nm, LEAD, mix(LEAD_, **kw))
+    for nm, kw in [
+        ("Pluck grave", dict(o2oct=-1, cutoff=260, reso=35, ad=380)), ("Pluck carré", dict(o1shape=3, o2shape=3, cutoff=450, reso=25)),
+        ("Pluck réinjecté", dict(mixfb=40, drive=12, cutoff=350)), ("Pluck ressort", dict(reso=65, envamt=85, fd=110, cutoff=300)),
+    ]:
+        add(nm, PLUCK, mix(BASSE, PLK, **kw))
+    add("Arpège carré mono", ARP, mix(ARPB, o1shape=3, o2shape=3, arp_mode=1, arp_oct=2, arp_rate=4))
+    add("Arpège glissé", ARP, mix(ARPB, glide=60, glidemode=1, arp_mode=3, arp_oct=2, arp_rate=3))
+    add("Pas dans le noir", FX, mix(BASSE, mix1=0, mix2=0, mixnoise=100, mixsub=0, cutoff=300, reso=85, envamt=60, fd=200, fs=0, ad=300, as_=0, ar=200))
+    add("Hélicoptère", FX, mix(BASSE, mb2_src=3, mb2_rate=14, mb2_filt=70, mb2_ctrl=2, mixnoise=40, cutoff=500, reso=30, as_=100))
     return b

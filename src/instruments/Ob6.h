@@ -22,6 +22,7 @@
 #pragma once
 
 #include "../synth/SynthBase.h"
+#include "FactoryBanks.h"
 
 namespace grv::instruments
 {
@@ -154,6 +155,7 @@ namespace ob6
             HubSpec hub;
             hub.envs = 0; hub.lfos = 0; hub.slots = 0; hub.arp = true;
             addModHub (m, hub);
+            addFactoryBank (m); // v0.47 (maj. 5 nov.) : banque d'usine (au moins 90 sons par synthé)
             return m;
         }();
         return d;

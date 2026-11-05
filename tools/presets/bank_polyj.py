@@ -85,4 +85,41 @@ def build():
     add("Vent chorus", FX, mix(NAPPE, saw=0, pulse=0, noise=100, cutoff=1200, reso=60, lfofilter=40, lforate=0.2, chorus=3))
     add("Sirène", FX, mix(LEAD_, lfopitch=100, lforate=0.8, lfodelay=0))
     add("Bulles", FX, mix(PLK, lfofilter=80, lforate=8, reso=80, cutoff=500, es=80, ed=1000, er=500))
+
+    # --- v0.47 (maj. 5 nov.) : 34 sons de plus (au moins 90 par synthé)
+    for nm, kw in [
+        ("Basse sciée 16'", dict(cutoff=500, reso=25, envamt=50)), ("Basse impulsion chorus", dict(saw=0, pulse=1, pw=30, chorus=1, cutoff=700)),
+        ("Basse sombre", dict(cutoff=320, sub=80, envamt=25)), ("Basse bruitée", dict(noise=20, cutoff=600)),
+        ("Basse pincée", dict(ed=180, es=0, er=120, envamt=65, reso=30)),
+    ]:
+        add(nm, BASS, mix(BASSE, **kw))
+    for nm, kw in [
+        ("Lead sciée", dict(pulse=0, cutoff=2200)), ("Lead 2'", dict(range=2, cutoff=3000, reso=15)),
+        ("Lead sous-octave", dict(sub=50, cutoff=1900)), ("Lead vibrato tardif", dict(lfodelay=900, lfopitch=18)),
+    ]:
+        add(nm, LEAD, mix(LEAD_, **kw))
+    for nm, kw in [
+        ("Nappe chorus I", dict(chorus=1)), ("Nappe sciée", dict(saw=1, pulse=0, cutoff=1800)),
+        ("Nappe lente qui s'ouvre", dict(ea=2500, cutoff=700, envamt=45)), ("Nappe 4'", dict(range=2, cutoff=2400)),
+        ("Nappe bruit doux", dict(noise=15, cutoff=1300)), ("Nappe PWM rapide", dict(lforate=2.5, pwmdepth=50)),
+    ]:
+        add(nm, PAD, mix(NAPPE, **kw))
+    for nm, kw in [
+        ("Pluck impulsion", dict(saw=0, pulse=1, pw=35)), ("Pluck sous-octave", dict(sub=60, cutoff=700)),
+        ("Pluck sec", dict(ed=150, er=150, chorus=0)), ("Pluck chorus II", dict(chorus=2, cutoff=1200)),
+    ]:
+        add(nm, PLUCK, mix(PLK, **kw))
+    for nm, kw in [
+        ("Piano chorus", dict(cutoff=2400, ed=1600)), ("Clavier sciée", dict(saw=1, pulse=0, cutoff=1500)),
+        ("Orgue sous-octave", dict(sub=60, es=100, ed=100, er=150, envamt=0)), ("Clavier passe-haut", dict(hpf=2, cutoff=3000)),
+    ]:
+        add(nm, KEYS, mix(CLAV, **kw))
+    for nm, kw in [("Cordes chorus I", dict(chorus=1)), ("Cordes passe-haut", dict(hpf=2)), ("Cordes de nuit", dict(cutoff=1600, ea=900))]:
+        add(nm, STR, mix(CORD, **kw))
+    for nm, kw in [("Cuivres impulsion", dict(saw=0, pulse=1, pw=25)), ("Cuivres larges", dict(chorus=2, cutoff=1300)), ("Cors", dict(range=0, cutoff=700))]:
+        add(nm, BRASS, mix(CUIV, **kw))
+    add("Arpège carré chorus", ARP, mix(PLK, saw=0, pulse=1, pw=40, arp_mode=1, arp_oct=2, arp_rate=3))
+    add("Arpège en quinconce", ARP, mix(PLK, arp_mode=10, arp_oct=2, arp_rate=4, chorus=2))
+    add("Tempête", FX, mix(NAPPE, saw=0, pulse=0, noise=100, cutoff=2500, reso=40, lforate=0.3, envamt=0))
+    add("Goutte d'eau", FX, mix(PLK, cutoff=500, reso=85, envamt=90, ed=260, range=2))
     return b

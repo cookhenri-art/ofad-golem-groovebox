@@ -5,10 +5,12 @@
 
 BASS, LEAD, PAD, PLUCK, KEYS, STR, BRASS, ARP, FX, ACID = (
     "Basses", "Leads", "Nappes", "Plucks", "Claviers", "Cordes", "Cuivres", "Arpèges", "Effets", "Acide")
+# v0.47 (maj. 5 nov.) : catégories des synthés de percussion (comme les sons d'origine de Kick Killer)
+PERC, SEQ, VOICE = "Percussions", "Séquences", "Voix"
 # « Init » : le point de départ (un oscillateur simple, filtre ouvert, enveloppes de base, rien d'autre)
 INIT = "Init"
 
-CATEGORY_ORDER = [INIT, ACID, BASS, LEAD, PAD, PLUCK, KEYS, STR, BRASS, ARP, FX]
+CATEGORY_ORDER = [INIT, ACID, BASS, LEAD, PAD, PLUCK, KEYS, STR, BRASS, ARP, FX, PERC, SEQ, VOICE]
 
 
 def mix(*parts, **kw):

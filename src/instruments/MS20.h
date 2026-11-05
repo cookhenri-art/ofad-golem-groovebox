@@ -21,6 +21,7 @@
 #pragma once
 
 #include "../synth/SynthBase.h"
+#include "FactoryBanks.h"
 
 namespace grv::instruments
 {
@@ -112,6 +113,7 @@ namespace ms20
                 { "Passe-haut fin", { { "hpcut", 1200 }, { "hppeak", 40 }, { "lpcut", 6000 }, { "lppeak", 10 }, { "level", 1.0f } } },
                 { "Effet d'onde", { { "v1wave", 3 }, { "hpcut", 2000 }, { "hppeak", 95 }, { "lpcut", 2400 }, { "lppeak", 95 }, { "hpmg", 40 }, { "lpmg", 40 }, { "mgrate", 0.2f }, { "e2sustain", 100 }, { "level", -11.4f } } },
             };
+            addFactoryBank (m); // v0.47 (maj. 5 nov.) : banque d'usine (au moins 90 sons par synthé)
             return m;
         }();
         return d;

@@ -134,7 +134,7 @@ Result render (const std::string& type, const Preset& pr)
 
 int main (int argc, char* argv[])
 {
-    const std::vector<std::string> types { "acid", "mono", "poly5", "polyj", "hybrid", "morph", "pads", "ms20", "sh101", "blo", "ob6", "orbit", "fm6", "fm4", "fmx", "muse", "hots", "lyra", "bitm", "dfam", "voc16", "vocstr", "vocspec", "vocsyn", "gluta" };
+    const std::vector<std::string> types { "acid", "mono", "poly5", "polyj", "hybrid", "morph", "pads", "ms20", "sh101", "blo", "ob6", "orbit", "fm6", "fm4", "fmx", "muse", "hots", "lyra", "bitm", "dfam", "voc16", "vocstr", "vocspec", "vocsyn", "gluta", "gooddoc" };
     int problems = 0;
     std::map<std::string, std::map<std::string, double>> corrections;
     double worstLoad = 0.0;

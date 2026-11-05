@@ -24,6 +24,7 @@
 #include "../synth/SynthBase.h"
 #include "../synth/Wavetable.h"
 #include "WaveMorph.h"
+#include "FactoryBanks.h"
 
 #include <atomic>
 
@@ -269,6 +270,7 @@ namespace orbit
                 m.waveShapes.push_back (std::move (noise));
             }
             for (int k = 0; k < morph::bank().size(); ++k) add (morph::bank(), k);
+            addFactoryBank (m); // v0.47 (maj. 5 nov.) : banque d'usine (au moins 90 sons par synthé)
             return m;
         }();
         return d;

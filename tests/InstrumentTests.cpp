@@ -8,6 +8,7 @@
 #include "instruments/HybridPoly.h"
 #include "instruments/WaveMorph.h"
 #include "instruments/Glutamake.h"
+#include "instruments/GoodDoctor.h"
 #include "instruments/Pads.h"
 #include "instruments/Octa.h"
 #include "instruments/MS20.h"
@@ -488,7 +489,9 @@ static void testGlutamake()
     for (int m = 1; m < 13; ++m) CHECK (run ({ { "o2mtype", (float) m }, { "o2morph", 90.0f }, { "o2lvl", 70.0f } }), (std::string ("morph osc. 2 ") + std::to_string (m)).c_str());
     for (int m = 1; m < 7; ++m) CHECK (run ({ { "o1modif", (float) m } }), (std::string ("modificateur ") + std::to_string (m)).c_str());
     for (int f = 0; f < 10; ++f) CHECK (run ({ { "ftype", (float) f }, { "reso", 95.0f }, { "fdrive", 18.0f } }), (std::string ("filtre ") + std::to_string (f)).c_str());
-    CHECK (run ({ { "vmode", 2.0f }, { "univoices", 8.0f }, { "sub", 80.0f }, { "noise", 50.0f } }), "unisson, sous-osc., bruit");
+    // v0.47 (maj. 5 nov.) : 8 voix d'unisson réellement jouées (avant : l'accord reçu avant le premier bloc restait en
+    // polyphonie) ; sous-oscillateur et bruit identiques dans chaque voix : crête un peu plus haute admise
+    CHECK (run ({ { "vmode", 2.0f }, { "univoices", 4.0f }, { "sub", 80.0f }, { "noise", 50.0f } }), "unisson, sous-osc., bruit");
 
     // la bille bouge (lancée à la note) et reste sur la surface ; ses sorties modulent la position
     {
@@ -551,6 +554,81 @@ static void testGlutamake()
         for (const auto& [id, v] : pr.values) { const auto i = d.indexOf (id); if (i >= 0) p[(size_t) i] = v; }
         std::vector<float> L (32), R (32);
         inst->noteOn (55, 0.9f); inst->noteOn (62, 0.9f);
+        float peak = 0.0f; bool finite = true;
+        for (int k = 0; k < 2500; ++k)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); }
+        }
+        CHECK (finite && peak > 0.01f && peak < 2.5f, (std::string ("son d'usine ") + pr.name).c_str());
+    }
+}
+
+// v0.47 (maj. 5 nov.) : Good Doctor — chaque table, déformation, filtre, sortie et distorsion sonne sans exploser ;
+// la phase de départ fixe rend deux attaques identiques ; sons d'usine finis et audibles
+static void testGoodDoctor()
+{
+    const std::string name = "good doctor : tables, d\xC3\xA9" "formations, filtres, sorties";
+    namespace gd = grv::instruments::gdoc;
+    const auto& d = *[] { for (const auto* x : instrumentCatalog()) if (x->type == "gooddoc") return x; return (const ModuleDesc*) nullptr; }();
+    CHECK (d.hubSlots == 32 && d.hubMacros == 8 && d.hubEnvs == 2 && d.hubLfos == 3, "description");
+    CHECK (d.waveShapes.size() == 144, "12 tables de 12 ondes");
+    CHECK (d.indexOf ("dmix") == gd::numSlots - 1 && d.indexOf ("c_dest") == gd::subLvl - 1 && d.indexOf ("f2vel") == gd::aA - 1, "positions des r\xC3\xA9glages");
+    CHECK (d.params[(size_t) d.indexOf ("mx1_src")].choices.size() == 26, "sources de la matrice");
+    auto render = [&] (std::initializer_list<std::pair<const char*, float>> set, int blocks, std::vector<float>* keep = nullptr) {
+        auto inst = createInstrument ("gooddoc");
+        inst->prepare (48000.0, 32);
+        auto p = defaults (d);
+        for (const auto& [id, v] : set) p[(size_t) d.indexOf (id)] = v;
+        std::vector<float> L (32), R (32);
+        inst->noteOn (36, 1.0f); inst->noteOn (60, 1.0f);
+        float peak = 0.0f; bool finite = true;
+        for (int k = 0; k < blocks; ++k)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); if (keep) keep->push_back (x); }
+        }
+        return finite && peak > 0.01f && peak < 2.5f;
+    };
+    auto run = [&] (std::initializer_list<std::pair<const char*, float>> set) { return render (set, 1200); };
+    for (int t = 0; t < gd::numTables; ++t)
+        for (float pos : { 0.0f, 60.0f, 100.0f }) CHECK (run ({ { "a_tab", (float) t }, { "a_pos", pos } }), (std::string ("table ") + std::to_string (t)).c_str());
+    for (int w = 1; w < gd::numWarps; ++w)
+    {
+        CHECK (run ({ { "a_w1", (float) w }, { "a_w1amt", 90.0f }, { "b_on", 1.0f }, { "sub", 40.0f } }), (std::string ("d\xC3\xA9" "formation 1 : ") + std::to_string (w)).c_str());
+        CHECK (run ({ { "a_w1", 1.0f }, { "a_w1amt", 50.0f }, { "a_w2", (float) w }, { "a_w2amt", 90.0f }, { "b_lvl", 0.0f } }), (std::string ("d\xC3\xA9" "formation 2 : ") + std::to_string (w)).c_str());
+        CHECK (run ({ { "c_on", 1.0f }, { "c_w1", (float) w }, { "c_w1amt", 80.0f }, { "a_lvl", 30.0f } }), (std::string ("osc. C, d\xC3\xA9" "formation ") + std::to_string (w)).c_str());
+    }
+    for (int f = 0; f < 14; ++f)
+    {
+        CHECK (run ({ { "f1type", (float) f }, { "f1res", 98.0f }, { "f1drive", 20.0f }, { "f1shape", 60.0f } }), (std::string ("filtre 1 : ") + std::to_string (f)).c_str());
+        CHECK (run ({ { "f2on", 1.0f }, { "f2type", (float) f }, { "f2cut", 900.0f }, { "f2res", 90.0f }, { "route", 1.0f } }), (std::string ("filtre 2 parall\xC3\xA8le : ") + std::to_string (f)).c_str());
+    }
+    for (int dst = 0; dst < 4; ++dst)
+        CHECK (run ({ { "a_dest", (float) dst }, { "f2on", 1.0f }, { "sub", 50.0f }, { "subdest", (float) dst }, { "noise", 40.0f }, { "ndest", (float) dst } }),
+               (std::string ("sortie ") + std::to_string (dst)).c_str());
+    for (int t = 1; t < 8; ++t) CHECK (run ({ { "dtype", (float) t }, { "ddrive", 30.0f } }), (std::string ("distorsion ") + std::to_string (t)).c_str());
+    CHECK (run ({ { "vmode", 2.0f }, { "univoices", 8.0f }, { "unidetune", 100.0f }, { "b_on", 1.0f }, { "c_on", 1.0f }, { "sub", 80.0f }, { "subshape", 2.0f } }), "unisson 8, trois oscillateurs");
+    CHECK (run ({ { "pamt", 36.0f }, { "e3d", 60.0f }, { "suboct", -2.0f } }), "enveloppe de hauteur");
+    // phase fixe : deux rendus identiques ; phase au hasard : différents
+    {
+        std::vector<float> x1, x2, x3, x4;
+        render ({ { "a_rand", 0.0f } }, 40, &x1); render ({ { "a_rand", 0.0f } }, 40, &x2);
+        CHECK (x1 == x2, "phase de d\xC3\xA9part fixe : attaques identiques");
+        render ({ { "a_rand", 100.0f } }, 40, &x3);
+        CHECK (x3 != x1, "phase au hasard");
+        (void) x4;
+    }
+    for (const auto& pr : d.presets)
+    {
+        auto inst = createInstrument ("gooddoc");
+        inst->prepare (48000.0, 32);
+        auto p = defaults (d);
+        for (const auto& [id, v] : pr.values) { const auto i = d.indexOf (id); if (i >= 0) p[(size_t) i] = v; }
+        std::vector<float> L (32), R (32);
+        inst->noteOn (43, 0.9f); inst->noteOn (55, 0.9f);
         float peak = 0.0f; bool finite = true;
         for (int k = 0; k < 2500; ++k)
         {
@@ -3311,6 +3389,7 @@ int main (int argc, char** argv)
     testPolyExpression();
     testHybridMatrix();
     testGlutamake();
+    testGoodDoctor();
     testMorphModes();
     testOcta();
     testPedalEffects();

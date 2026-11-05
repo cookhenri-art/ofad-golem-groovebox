@@ -24,7 +24,7 @@ import { StepAmountEditor, useLongPress, type StepAmountKind } from "../controls
 import { allKeys, cellKey, flagMoves, getClipboard, getLockClip, laneOf, origin, payload, place, retarget, setClipboard, snapshot, stepOf, type CellData, type Plan } from "../engine/selection";
 import { condChoices, DIRECTIONS, RATCHET_CHOICES, condKey, condText, parseCond, ratchetKey, ratchetText, DIVISIONS, DIVISION_ORDER, PATTERN_NAMES, ROW_PAGE, ROW_PAGES, rowPageName, SPEEDS, STEPS_PER_BAR, FLAM_CHOICES, flamText, STEP_ACCENT, STEP_SLIDE, STEP_REC, STEP_TRIGLESS, type PatternData, hostCode } from "../engine/protocol";
 import { inScale } from "../engine/scales";
-import { formatNorm, noteName, trackColor } from "../engine/params";
+import { formatNorm, noteName, toPlain, trackColor } from "../engine/params";
 import { rangeEntry, steppedBinding, valueBinding, withCtl } from "../controls/bindings";
 import type { EncoderBinding } from "../controls/Encoder";
 
@@ -49,7 +49,7 @@ function rollKeyHandlers(t: number, n: number) {
       e.currentTarget.setPointerCapture(e.pointerId);
       const rowH = e.currentTarget.getBoundingClientRect().height || 12;
       Object.assign(keyDrag, { id: e.pointerId, y: e.clientY, base: getState().ui.rollBase, n, t, playing: true, step: Math.max(36, rowH * 6) });
-      actions.noteOn(t, n, 0.8);
+      actions.noteOn(t, n, 0.8, false);
     },
     onPointerMove: (e: React.PointerEvent<HTMLButtonElement>) => {
       if (keyDrag.id !== e.pointerId) return;
@@ -91,6 +91,8 @@ export function SequenceScreen() {
   const lit = useStore((s) => s.litLanes);
   const launch = useStore((s) => s.launch);
   const live = useStore((s) => s.tick.pat[Math.min(s.focus, 15)]);
+  const played = useStore((s) => s.played);
+  const instVals = useStore((s) => s.channels[Math.min(s.focus, 15)]?.inst);
   const L = cat?.layout;
   const t = Math.min(focus, (L?.numTracks ?? 16) - 1);
   const track = tracks[t];
@@ -119,6 +121,50 @@ export function SequenceScreen() {
   const gesture = useRef<Gesture | null>(null);
   useSelectionKeys(drum, t, hover, cursor);
 
+  // v0.47 (maj. 5 nov.) : Pieuvre 8 comme les synthés — la dernière touche jouée (clavier, pads, MIDI à l'arrêt)
+  // devient la note du pas choisi (ou du seul pas sélectionné), et la note des pas posés ensuite
+  // sur la ligne de la T qui l'a jouée. « Zones » : la note est ramenée dans la zone de sa T
+  // (bas de zone = 60, hauteur d'origine), comme le fait le moteur.
+  const octaParam = (id: string) => {
+    if (!module) return 0;
+    const i = module.params.findIndex((p) => p.id === id);
+    return i < 0 ? 0 : Math.round(toPlain(module.params[i], instVals?.[i] ?? 0));
+  };
+  const octaLaneNote = (note: number, T?: number): { lane: number; note: number } | null => {
+    if (octaParam("kbmode") !== 1) return { lane: T ?? Math.min(getState().ui.lane, 7), note };
+    for (let k = 0; k < 8; ++k) {
+      if (T !== undefined && k !== T) continue;
+      const lo = octaParam(`t${k + 1}_zlo`), hi = octaParam(`t${k + 1}_zhi`);
+      if (note >= lo && note <= hi) return { lane: k, note: Math.max(0, Math.min(127, note - lo + 60)) };
+    }
+    return null;
+  };
+  const lastPlayed = useRef(played.n);
+  const octaWrite = useRef<{ lane: number; note: number } | null>(null);
+  useEffect(() => { octaWrite.current = null; }, [t]);
+  useEffect(() => {
+    if (played.n === lastPlayed.current) return;
+    lastPlayed.current = played.n;
+    if ((drum && !octa) || played.note < 0 || played.track !== t) return;
+    const u = getState().ui, p = getState().pattern;
+    if (!p) return;
+    const single = u.selection.length === 1 ? u.selection[0] : null;
+    const l = single !== null ? laneOf(single) : u.lane;
+    const s = single !== null ? stepOf(single) : u.step;
+    if (octa) {
+      const mapped = octaLaneNote(played.note);
+      if (mapped) octaWrite.current = mapped;
+      if (s === null || l > 7) return;
+      const m = octaLaneNote(played.note, l);
+      if (!m) return;
+      if ((p.lanes[l]?.vel[s] ?? 0) > 0 && p.lanes[l]?.note[s] !== m.note) void actions.seq("seqSetNote", l, s, m.note);
+      return;
+    }
+    if (s !== null && (p.lanes[l]?.vel[s] ?? 0) > 0 && p.lanes[l]?.note[s] !== played.note) void actions.seq("seqSetNote", l, s, played.note);
+  }, [played]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** Note écrite par un pas posé sur la ligne T de Pieuvre 8 (undefined : la note de la ligne reste). */
+  const octaNewNote = (row: number) => (octa && octaWrite.current && octaWrite.current.lane === row ? octaWrite.current.note : undefined);
+
   // v0.46 fix29 : page des puces de pattern (A–H, I–P), calée sur le pattern édité
   const editedPat = pattern?.pattern ?? 0;
   const [chipPage, setChipPage] = useState(Math.floor(editedPat / ROW_PAGE));
@@ -135,8 +181,10 @@ export function SequenceScreen() {
   const first = page * PAGE;
   const bars = pattern.length / spb;
   const rows = Array.from({ length: drum && module?.padNames.length ? Math.min(16, module.padNames.length) : 16 }, (_, i) => i); // v0.42 : Pieuvre 8 : 8 lignes (T1 à T8)
-  const lane = Math.min(ui.lane, 15);
-  const step = ui.step;
+  // v0.47 (maj. 5 nov.) : un seul pas sélectionné (mode Sélection, rectangle) ouvre son menu, comme un pas choisi
+  const single = ui.selection.length === 1 ? ui.selection[0] : null;
+  const lane = single !== null ? laneOf(single) : Math.min(ui.lane, 15);
+  const step = single !== null ? stepOf(single) : ui.step;
   const L0 = pattern.lanes[lane];
   const stepOn = step !== null && (L0?.vel[step] ?? 0) > 0;
   const extra = step !== null ? extras.find((e) => e.lane === lane && e.step === step) : undefined;
@@ -160,7 +208,7 @@ export function SequenceScreen() {
     if (f < 0) return;
     void actions.seq("seqSetNote", f, s, n).then(() => actions.seq("seqSetStep", f, s, ui.shift ? 127 : 100));
     setUi({ lane: f, step: s, stepEdit: false });
-    actions.noteOn(t, n, 0.75);
+    actions.noteOn(t, n, 0.75, false);
     window.setTimeout(() => actions.noteOff(t, n), 160);
   };
 
@@ -202,7 +250,7 @@ export function SequenceScreen() {
 
   const flamBinding = (cur: number, set: (ms: number) => void) => steppedBinding("Flam", FLAM_CHOICES, FLAM_CHOICES.includes(cur) ? cur : 0, set, flamText);
   const stepEncoders: (EncoderBinding | null)[] = step === null || !L0 ? [] : [
-    drum && !octa ? flamBinding(extra?.flam ?? 0, (ms) => void actions.extras("stepsFlam", JSON.stringify([[lane, step]]), ms)) : steppedBinding("Note", Array.from({ length: 128 }, (_, i) => i), L0.note[step], (n) => { void actions.seq("seqSetNote", lane, step, n); actions.noteOn(t, n, 0.7); window.setTimeout(() => actions.noteOff(t, n), 150); }, noteName),
+    drum && !octa ? flamBinding(extra?.flam ?? 0, (ms) => void actions.extras("stepsFlam", JSON.stringify([[lane, step]]), ms)) : steppedBinding("Note", Array.from({ length: 128 }, (_, i) => i), L0.note[step], (n) => { void actions.seq("seqSetNote", lane, step, n); actions.noteOn(t, n, 0.7, false); window.setTimeout(() => actions.noteOff(t, n), 150); }, noteName),
     valueBinding("Vélocité", (L0.vel[step] - 1) / 126, `${L0.vel[step]}`, (v) => void actions.seq("seqSetStep", lane, step, Math.max(1, Math.round(1 + v * 126)))),
     steppedBinding("Durée", LEN_CHOICES, L0.len[step], (n) => void actions.seq("seqSetLength8", lane, step, n),
       (n) => (n % 8 === 0 ? `${n / 8} pas` : `${(n / 8).toFixed(2)} pas`)),
@@ -265,7 +313,7 @@ export function SequenceScreen() {
     if (!drum) { toggleNote(row, st); return; }
     const vel = getState().pattern?.lanes[row]?.vel[st] ?? 0;
     if (vel > 0 && !(u.lane === row && u.step === st)) { setUi({ lane: row, step: st, stepEdit: false }); return; }
-    actions.toggleStep(row, st);
+    actions.toggleStep(row, st, octaNewNote(row));
   };
   const rectKeys = (r0: number, s0: number, r1: number, s1: number) => {
     const p = getState().pattern;
@@ -293,6 +341,7 @@ export function SequenceScreen() {
       if (!c) return;
       const len8 = Math.min(MAX_LEN8, Math.max(1, c.step - s0 + 1) * 8);
       if (len8 === last) return;
+      if (!moved && octa && octaParam(`t${l + 1}_holdmode`) !== 1) showMessage(`Durée du pas : elle s'entend quand le Déclenchement de T${l + 1} est sur « Tant qu'appuyé » (page Ampli)`);
       moved = true; last = len8;
       void actions.seq("seqSetLength8", l, s0, len8);
     };
@@ -335,7 +384,11 @@ export function SequenceScreen() {
       if (drum) {
         const on = (p.lanes[r]?.vel[s] ?? 0) > 0;
         if (erase && on) void actions.seq("seqSetStep", r, s, 0);
-        else if (!erase && !on) void actions.seq("seqSetStep", r, s, vel);
+        else if (!erase && !on) {
+          const n = octaNewNote(r);
+          if (n !== undefined) void actions.seq("seqSetNote", r, s, n).then(() => actions.seq("seqSetStep", r, s, vel));
+          else void actions.seq("seqSetStep", r, s, vel);
+        }
         return;
       }
       const l = p.lanes.findIndex((ln) => ln.vel[s] > 0 && ln.note[s] === r);
@@ -348,7 +401,7 @@ export function SequenceScreen() {
       void actions.seq("seqSetNote", f, s, r).then(() => actions.seq("seqSetStep", f, s, vel));
     };
     apply(row, st);
-    if (!drum && !erase) { actions.noteOn(t, row, 0.75); window.setTimeout(() => actions.noteOff(t, row), 150); }
+    if (!drum && !erase) { actions.noteOn(t, row, 0.75, false); window.setTimeout(() => actions.noteOff(t, row), 150); }
     const move = (ev: PointerEvent) => {
       if (ev.pointerId !== id) return;
       const c = cellAt(ev.clientX, ev.clientY);
@@ -367,6 +420,21 @@ export function SequenceScreen() {
   const onCellDown = (e: React.PointerEvent, row: number, st: number) => {
     if (e.button !== 0) return;
     if (getState().ui.paint && !(e.ctrlKey || e.metaKey)) { e.preventDefault(); startPaint(e, row, st); return; }
+    // v0.47 (maj. 5 nov.) : Pieuvre 8 — les pas d'une ligne T s'allongent comme des notes : tirer le bord droit
+    // d'un pas (ou la queue d'un pas long) vers la droite ou la gauche
+    if (octa && drum && !(e.ctrlKey || e.metaKey || e.shiftKey) && !getState().ui.selectMode) {
+      const p = getState().pattern;
+      const ln = p?.lanes[row];
+      if (p && ln) {
+        if ((ln.vel[st] ?? 0) > 0) {
+          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          if (e.clientX > r.right - r.width * 0.3) { e.preventDefault(); startResize(e, row, st); return; }
+        } else {
+          const o = laneHeldOrigin(ln, st);
+          if (o >= 0) { e.preventDefault(); startResize(e, row, o); return; }
+        }
+      }
+    }
     if (!drum && !(e.ctrlKey || e.metaKey || e.shiftKey) && !getState().ui.selectMode) {
       const p = getState().pattern;
       const l = p ? p.lanes.findIndex((ln) => ln.vel[st] > 0 && ln.note[st] === row) : -1;
@@ -523,7 +591,8 @@ export function SequenceScreen() {
           playStep={showsPlaying ? (pos[0] ?? -1) : -1} />
 
         {showLaneRoll ? (
-          <OctaLaneRoll t={t} T={Math.min(lane, 7)} first={first} stepsPerBeat={stepsPerBeat} playStep={showsPlaying ? (pos[Math.min(lane, 7)] ?? -1) : -1} />
+          <OctaLaneRoll t={t} T={Math.min(lane, 7)} first={first} stepsPerBeat={stepsPerBeat} playStep={showsPlaying ? (pos[Math.min(lane, 7)] ?? -1) : -1}
+            lengthHint={(T) => { if (octaParam(`t${T + 1}_holdmode`) !== 1) showMessage(`Durée de la note : elle s'entend quand le Déclenchement de T${T + 1} est sur « Tant qu'appuyé » (page Ampli)`); }} />
         ) : drum ? (
         <div className="seq-body" onPointerLeave={() => { hover.current = null; }}>
           {rows.map((r) => {
@@ -552,6 +621,8 @@ export function SequenceScreen() {
                     const ex = extras.find((e) => e.lane === r && e.step === s);
                     const classes = ["cell"];
                     if (ln.length > 0 && s >= ln.length) classes.push("cell--lane-out");
+                    if (octa && vel === 0 && laneHeldOrigin(ln, s) >= 0) classes.push("cell--held");
+                    if (octa && vel > 0) classes.push("cell--grip");
                     if (vel > 0 && (ex?.flam ?? 0) > 0) classes.push("cell--flam");
                     if (vel > 0 && ((pattern.flags[s] ?? 0) & STEP_ACCENT)) classes.push("cell--acc");
                     if (vel > 0) classes.push("cell--on");
@@ -641,7 +712,7 @@ export function SequenceScreen() {
           <button type="button" className="touch touch--small touch--quiet" onClick={() => void deleteSelection()} title="Suppr">Effacer</button>
           <button type="button" className={`touch touch--small${ui.copyDrag ? " touch--on" : " touch--quiet"}`} onClick={() => setUi({ copyDrag: !ui.copyDrag })}
             title="Glisser la sélection la copie au lieu de la déplacer (comme Ctrl)">Copie au glisser</button>
-          {selection.length > 1 && <button type="button" className={`touch touch--small${ui.stepEdit ? " touch--on" : " touch--quiet"}`} onClick={() => setUi({ stepEdit: !ui.stepEdit })}>
+          {selection.length >= 1 && <button type="button" className={`touch touch--small${ui.stepEdit ? " touch--on" : " touch--quiet"}`} onClick={() => setUi({ stepEdit: !ui.stepEdit })}>
             {ui.stepEdit ? "Verrous en cours" : "Verrous"}</button>}
           <button type="button" className="touch touch--small touch--quiet" onClick={() => setUi({ selection: allKeys(pattern), step: null, stepEdit: false })} title="Ctrl+A">Tout</button>
           <button type="button" className="touch touch--small touch--quiet" onClick={() => setUi({ selection: [], stepEdit: false })} title="Échap">Désélectionner</button>
@@ -874,6 +945,14 @@ function heldOrigin(p: NonNullable<ReturnType<typeof getState>["pattern"]>, n: n
   return null;
 }
 
+/** v0.47 (maj. 5 nov.) : pas d'une même ligne dont la durée couvre le pas `s` (−1 : aucun). */
+function laneHeldOrigin(ln: { vel: number[]; len: number[] }, s: number): number {
+  for (let k = 1; k <= MAX_LEN8 / 8 && s - k >= 0; ++k) {
+    if ((ln.vel[s - k] ?? 0) > 0) return (ln.len[s - k] ?? 8) > k * 8 ? s - k : -1;
+  }
+  return -1;
+}
+
 function hitAt(drum: boolean, row: number, step: number): number | null {
   const p = getState().pattern;
   if (!p) return null;
@@ -1019,7 +1098,7 @@ function useSelectionKeys(drum: boolean, t: number, hover: React.MutableRefObjec
     toucher la note posée la choisit (encodeurs du pas, verrous) ; la toucher choisie, ou clic
     droit, l'enlève. Glisser depuis une case vide écrit une note par pas survolé. La T joue ces
     notes quand son Clavier est sur « Chromatique » (60 = hauteur d'origine de l'emplacement). */
-function OctaLaneRoll({ t, T, first, stepsPerBeat, playStep }: { t: number; T: number; first: number; stepsPerBeat: number; playStep: number }) {
+function OctaLaneRoll({ t, T, first, stepsPerBeat, playStep, lengthHint }: { t: number; T: number; first: number; stepsPerBeat: number; playStep: number; lengthHint: (T: number) => void }) {
   const pattern = useStore((s) => s.pattern);
   const extras = useStore((s) => s.extras);
   const ui = useStore((s) => s.ui);
@@ -1028,7 +1107,7 @@ function OctaLaneRoll({ t, T, first, stepsPerBeat, playStep }: { t: number; T: n
   const ln = pattern.lanes[T];
   if (!ln) return null;
   const len = ln.length > 0 ? ln.length : pattern.length;
-  const listen = (n: number) => { actions.noteOn(t, n, 0.75); window.setTimeout(() => actions.noteOff(t, n), 160); };
+  const listen = (n: number) => { actions.noteOn(t, n, 0.75, false); window.setTimeout(() => actions.noteOff(t, n), 160); };
   const write = (n: number, s: number, vel: number) => {
     const cur = getState().pattern?.lanes[T];
     if (!cur || s < 0 || s >= len) return;
@@ -1080,11 +1159,47 @@ function OctaLaneRoll({ t, T, first, stepsPerBeat, playStep }: { t: number; T: n
     window.addEventListener("pointerup", end);
     window.addEventListener("pointercancel", end);
   };
+  // v0.47 (maj. 5 nov.) : longueur d'une note au glisser, comme le rouleau des synthés : bord droit d'une note
+  // courte, ou queue d'une note longue ; la durée suit le doigt, pas par pas
+  const startLen = (e: React.PointerEvent, s0: number) => {
+    const id = e.pointerId;
+    let moved = false;
+    let last = getState().pattern?.lanes[T]?.len[s0] ?? 8;
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== id) return;
+      const c = cellFrom(ev.clientX, ev.clientY);
+      if (!c) return;
+      const len8 = Math.min(MAX_LEN8, Math.max(1, c.s - s0 + 1) * 8);
+      if (len8 === last) return;
+      if (!moved) lengthHint(T);
+      moved = true; last = len8;
+      void actions.seq("seqSetLength8", T, s0, len8);
+    };
+    const end = (ev: PointerEvent) => {
+      if (ev.pointerId !== id) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      if (!moved) setUi({ lane: T, step: s0, stepEdit: false, selection: [] });
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+  };
   const down = (e: React.PointerEvent, n: number, s: number) => {
     if (s >= len) return;
     e.preventDefault();
     const u = getState().ui;
     const on = (ln.vel[s] ?? 0) > 0;
+    if (e.button === 0 && !(e.ctrlKey || e.metaKey || e.shiftKey) && !u.selectMode) {
+      if (on && ln.note[s] === n) {
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        if ((ln.len[s] ?? 8) <= 8 && e.clientX > r.right - r.width * 0.3) { startLen(e, s); return; }
+      } else if (!on) {
+        const o = laneHeldOrigin(ln, s);
+        if (o >= 0 && ln.note[o] === n) { startLen(e, o); return; }
+      }
+    }
     if (e.button === 2) {
       if (on) { void actions.seq("seqSetStep", T, s, 0); if (u.step === s) setUi({ step: null, stepEdit: false }); }
       return;
@@ -1154,6 +1269,7 @@ function OctaLaneRoll({ t, T, first, stepsPerBeat, playStep }: { t: number; T: n
                 const classes = ["rcell"];
                 if (on) classes.push("rcell--on");
                 if (on && ln.len[s] <= 8) classes.push("rcell--short");
+                if (!on && (ln.vel[s] ?? 0) === 0) { const o = laneHeldOrigin(ln, s); if (o >= 0 && ln.note[o] === n) classes.push("rcell--held"); }
                 if (on && ((pattern.flags[s] ?? 0) & STEP_SLIDE)) classes.push("rcell--slide");
                 if (on && ((pattern.flags[s] ?? 0) & STEP_ACCENT)) classes.push("cell--acc");
                 if (s % stepsPerBeat === 0) classes.push("rcell--beat");

@@ -201,8 +201,22 @@ protected:
         }
         if (! configured && isMono && ! mono)
         {
-            // notes reçues avant le premier bloc : elles passent dans la pile de la monophonie
-            for (int i = 0; i < N; ++i) if (alloc.slot (i).held && alloc.slot (i).note >= 0) stack.push (alloc.slot (i).note);
+            // notes reçues avant le premier bloc (pas encore jouées) : rejouées dans la monophonie.
+            // v0.47 (maj. 5 nov.) : les voix données par la polyphonie sont remises à zéro, sinon un unisson plus
+            // large que l'accord gardait des voix sur d'autres notes (note sans fin au relâchement).
+            // Un instrument qui gère lui-même ses notes (basse mono) n'a rien dans l'allocateur : rien à rejouer.
+            std::array<int, 32> held {};
+            int nh = 0;
+            for (int i = 0; i < N && nh < (int) held.size(); ++i) if (alloc.slot (i).held && alloc.slot (i).note >= 0) held[(size_t) nh++] = alloc.slot (i).note;
+            if (nh > 0)
+            {
+                for (int i = 0; i < N; ++i) { voices[(size_t) i].reset(); hub.release (i); }
+                alloc.clear(); stack.clear();
+                configured = true;
+                mono = isMono; legato = isLegato; unison = unisonVoices; polyphony = std::clamp (voicesWanted, 1, N);
+                for (int k = 0; k < nh; ++k) noteOn (held[(size_t) k], lastVelocity);
+                return;
+            }
         }
         configured = true;
         mono = isMono;

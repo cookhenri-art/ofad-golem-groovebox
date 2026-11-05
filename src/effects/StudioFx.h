@@ -27,6 +27,7 @@
 
 #include "Dynamics.h"
 #include "Mastering.h"
+#include "FxBanks.h"
 
 #include <array>
 
@@ -113,6 +114,7 @@ namespace mband
                                       { "b1att", 40 }, { "b2att", 25 }, { "b3att", 15 }, { "b4att", 8 } }, "Mastering" },
                 { "Graves seuls (\xC3\xA9" "coute)", { { "b1solo", 1 } }, "Outils" },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -296,6 +298,7 @@ namespace varimu
                 { "Mastering vari-mu", { { "input", 3 }, { "threshold", -8 }, { "tc", 4 }, { "output", -1 }, { "tube", 15 }, { "link", 1 } }, "Mastering" },
                 { "Couleur seule", { { "input", 14 }, { "threshold", 0 }, { "output", -8 }, { "tube", 80 } }, "Couleur" },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -417,6 +420,7 @@ namespace tubeeq
                 { "Adoucir les aigus", { { "attfreq", 1 }, { "hiatten", 4 } }, "Mixage" },
                 { "Couleur de lampe", { { "tube", 70 }, { "output", -3 } }, "Couleur" },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -515,6 +519,7 @@ namespace consoleeq
                 { "Synth\xC3\xA9 qui perce", { { "hpf", 120 }, { "hmfgain", 4 }, { "hmffreq", 2000 }, { "hmfq", 0.8f }, { "hfgain", 3 }, { "character", 2 }, { "drive", 25 } }, "Synth\xC3\xA9" },
                 { "Bus de console", { { "lfgain", 1.5f }, { "lffreq", 70 }, { "hfgain", 1.5f }, { "hffreq", 12000 }, { "character", 2 }, { "drive", 35 }, { "output", -1 } }, "Mixage" },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

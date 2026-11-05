@@ -19,6 +19,7 @@
 #include "../dsp/Common.h"
 #include "../dsp/EqFilters.h"
 #include "../engine/Module.h"
+#include "FxBanks.h"
 
 #include <algorithm>
 #include <cmath>
@@ -73,6 +74,7 @@ namespace gate
                 { "Charleston adoucie", { { "gThresh", gateOffDb }, { "dsFreq", 9000 }, { "dsThresh", -26 }, { "dsAmount", 6 } } },
                 { "Sifflantes en \xC3\xA9" "coute", { { "gThresh", gateOffDb }, { "dsAmount", 8 }, { "dsListen", 1 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

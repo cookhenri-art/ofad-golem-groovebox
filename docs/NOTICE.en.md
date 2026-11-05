@@ -304,6 +304,13 @@ screen, and the other way round.
 8. **Sound · Track modulations · Macros**: the other pages of the panel.
 9. **⇄ Instrument**: change instrument with pictures.
 
+**A step's menu**: a **long press** on the note of a set step opens its menu under the row, in large
+buttons (handy on a phone): **Accent** and **Slide** (touch: on / off; "…": their amount), **Octave**
+▼ ▲, **note**, velocity, length, offset, condition, probability, repeats. A key played on the keyboard
+while the menu is open becomes the step's note. ✕ closes the menu.
+
+<figure class="wide"><img src="img/menu-pas-acide.jpg" alt="Acid writing: step 3's menu opened by a long press, large Accent and Slide"><figcaption>Long press on a step: its menu, with large Accent and Slide</figcaption></figure>
+
 **The locks sequencer**: each step can keep its own settings (cutoff, resonance, effects…), on top of
 its note.
 
@@ -319,7 +326,8 @@ its note.
 
 On synths, the locks row writes **the last note played** (pads, the panel's keyboard, or a MIDI keyboard
 while stopped): it is shown ("**Note** F1") and each step set shows its note instead of its number. A
-selected step (long press) takes the note of the next key played.
+selected step (long press) takes the note of the next key played, and opens its **menu** under the
+row: note, velocity, length, offset, condition, probability, repeats.
 
 **Nudge ◀ ▶**: the whole writing slides one step left or right, wrapping around (the step that falls off
 comes back on the other side); notes, accents, slides, conditions and locks follow. On the panel: to the
@@ -433,6 +441,9 @@ variations and small fills without writing other patterns.
    instruments, "Transpose".
 3. The **selection bar**: ◀ ▶ (nudge one step), Copy, Cut, Paste, Duplicate, Clear, Copy on drag,
    Locks, All.
+
+**A single selected step** (Select mode or rectangle) opens **its menu**, like a chosen step: note,
+velocity, length, offset, condition, probability, repeats, locks.
 
 The gestures:
 

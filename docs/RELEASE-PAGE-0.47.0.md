@@ -9,15 +9,45 @@
 
 <p align="center"><b>Nouvelle version : un nouveau synthé (Glutamake), une sécurité renforcée, l'enregistrement et le montage audio au point, les MP3, et la tablette enfin stable.</b></p>
 
+<p align="center">🆕 <b>Mise à jour du 5 novembre 2026</b> : un deuxième nouveau synthé, <b>Good Doctor</b>, <b>au moins 90 sons d'usine pour chaque synthé</b> (plus de 2 400), <b>au moins 20 réglages pour chaque effet</b>, le séquenceur de Pieuvre 8 revu, des menus de pas partout et des corrections. Mêmes noms de fichiers : retéléchargez-les.</p>
+
 <p align="center">OFAD GOLEM, c'est une groovebox complète dans l'ordinateur ou la tablette, pensée pour <b>toutes les musiques électroniques</b> : techno, house, acid, hardtek et tribe, hardcore, drum & bass, électro, ambient, beatmaking…</p>
 
 <p align="center">L'idée : réunir dans un seul outil <b>tout ce qui a fait ses preuves</b> sur les machines qu'on aime — à commencer par les <b>séquenceurs qu'on connaît tous</b> : pas à pas, verrous de réglages sur chaque pas, séquenceur acide (note, octave, accent, glissé), conditions (A:B, Fill…), répétitions, Fill et Break en direct.</p>
 
-<p align="center">Le flux de travail des <b>stations de production autonomes à pads</b> (du type MPC One, Force ou Maschine) : 16 pistes, 16 pads, patterns lancés comme des clips, scènes au crossfader, morceau et montage audio. Les 35 instruments et 38 effets reprennent l'<b>architecture</b> des machines qui ont fait ces musiques — boîtes à rythmes des années 80 et 90, basse acide, synthés analogiques mono et poly, FM, tables d'ondes, drones, vocodeurs, échos à bande… — <b>recréés de zéro</b>, avec leurs propres noms, façades et sons. Logiciel libre (AGPL-3.0).</p>
+<p align="center">Le flux de travail des <b>stations de production autonomes à pads</b> (du type MPC One, Force ou Maschine) : 16 pistes, 16 pads, patterns lancés comme des clips, scènes au crossfader, morceau et montage audio. Les 36 instruments et 38 effets reprennent l'<b>architecture</b> des machines qui ont fait ces musiques — boîtes à rythmes des années 80 et 90, basse acide, synthés analogiques mono et poly, FM, tables d'ondes, drones, vocodeurs, échos à bande… — <b>recréés de zéro</b>, avec leurs propres noms, façades et sons. Logiciel libre (AGPL-3.0).</p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/appareil.jpg" width="820" alt="L'appareil : écran, encodeurs, pads, transport">
 </p>
+
+### 🆕 Mise à jour du 5 novembre 2026
+
+#### Nouveau synthé : Good Doctor
+- Principe des grands synthés à tables d'ondes « hybrides » : **trois oscillateurs** à tables (12 tables de 12 ondes calculées, dont 4 pour les basses), position continue, **phase de départ** réglable.
+- **Deux déformations à la suite par oscillateur** (18 au choix : synchro, courbures, pulsation, miroir, asymétrie, FM / AM / anneau, repli, saturation, bits, filtres…).
+- **Sous-oscillateur** et **bruit coloré** ; **deux filtres** (14 types dont peigne, voyelles, diode) en série ou en parallèle ; chaque oscillateur vers les deux filtres, un seul, ou **en direct** ; distorsion par voix.
+- 3 enveloppes, 2 LFO + 2 enveloppes et 3 LFO à pas, **matrice de 32 routages, 8 macros**, arpège ; poly, mono ou **unisson jusqu'à 8 voix** ; **91 sons d'usine** (dont 26 basses).
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/good-doctor.jpg" alt="Good Doctor"><br><b>Good Doctor</b><br>trois oscillateurs à tables, deux déformations chacun</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Menu d'un pas en écriture Acide"><br><b>Menu du pas (Acide)</b><br>appui long : Accent et Glissé en grand, note, durée…</td>
+</tr>
+</table>
+
+#### Plus de sons
+- **Au moins 90 sons d'usine pour chaque synthé** (plus de 2 400 en tout), chacun mesuré et mis au même niveau.
+- **Au moins 20 réglages d'usine pour chacun des 38 effets** (plus de 770).
+
+#### Séquenceurs
+- **Pieuvre 8** : la dernière note jouée s'écrit sur le pas choisi ; on allonge une note en tirant le bord d'un pas ; un pas sélectionné ouvre son menu.
+- **Menu de pas sur la façade de tous les synthés** (écriture À verrous) : note, vélocité, durée, décalage, condition, probabilité, répétitions.
+- **Écriture Acide** : un appui long sur un pas ouvre ce menu, avec **Accent** et **Glissé** en grand — fini les petites cases au téléphone.
+
+#### Corrections
+- Une touche du clavier de la façade pouvait rester enfoncée quand le doigt glissait hors de la touche.
+- Unisson large juste après le choix d'un son : une note pouvait ne plus s'arrêter.
 
 ### 🆕 Nouveautés de la 0.47.0
 
@@ -25,7 +55,7 @@
 - Deux oscillateurs à **tables d'ondes** (8 tables de 12 ondes calculées, mélange A/B, 12 « morphs » en temps réel, modificateurs), sous-oscillateur, bruit, filtre à 10 types.
 - **Une bille qui roule sur une surface** : inclinaison, frottement, bosse (creux ou colline), bords qui absorbent ou relancent. On la lance au doigt, à chaque note ou par la séquence ; ses mouvements (X, Y, distance, angle, chocs) modulent n'importe quel réglage.
 - **Séquence de mouvement** : 4 couloirs de 16 pas (boucle, sens, division, lissage, probabilité).
-- Branché comme les autres synthés : séquenceur à pas, matrice de 32 routages, 4 boutons de modulation, LFO à pas, arpège, 16 boutons assignables, MIDI ; 13 sons d'usine.
+- Branché comme les autres synthés : séquenceur à pas, matrice de 32 routages, 4 boutons de modulation, LFO à pas, arpège, 16 boutons assignables, MIDI ; 90 sons d'usine.
 
 <table>
 <tr>
@@ -149,13 +179,13 @@
 </tr>
 </table>
 
-### 🎹 Les instruments (35 avec Glutamake)
+### 🎹 Les instruments (36 avec Glutamake et Good Doctor)
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-1.jpg" alt="Instruments : batteries et basses">
   <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-2.jpg" alt="Instruments : polys, nappes, sampler">
   <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-3.jpg" alt="Instruments : synthés FM et drones">
-  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-4.jpg" alt="Instruments : vocodeurs et entrée audio">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-4.jpg" alt="Instruments : vocodeurs, Pieuvre 8, entrée audio, Glutamake, Good Doctor">
 </p>
 
 ### 🎚️ Les 38 effets
@@ -193,15 +223,45 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 
 <p align="center"><b>OFAD GOLEM — Groovebox 0.47.0 · a new synth (Glutamake), stronger security, polished audio recording and editing, MP3 files, and a stable tablet experience</b></p>
 
+<p align="center">🆕 <b>Update of 5 November 2026</b>: a second new synth, <b>Good Doctor</b>, <b>at least 90 factory sounds for every synth</b> (over 2,400), <b>at least 20 settings for every effect</b>, a reworked Pieuvre 8 sequencer, step menus everywhere, and fixes. Same file names: download them again.</p>
+
 <p align="center">A complete groovebox in your computer or tablet, made for <b>all electronic music</b>: techno, house, acid, hardtek and tribe, hardcore, drum & bass, electro, ambient, beatmaking…</p>
 
 <p align="center">The idea: bring together in a single tool <b>everything that has proven itself</b> on the machines we love — starting with the <b>sequencers we all know</b>: step sequencing, parameter locks on every step, acid sequencer (note, octave, accent, slide), trig conditions (A:B, Fill…), retrigs, live Fill and Break.</p>
 
-<p align="center">The workflow of <b>standalone pad-based production stations</b> (in the style of MPC One, Force or Maschine): 16 tracks, 16 pads, patterns launched like clips, scenes on a crossfader, song mode and audio editing. The 35 instruments and 38 effects follow the <b>architecture</b> of the machines that made this music — 80s and 90s drum machines, acid bass, analog mono and poly synths, FM, wavetables, drones, vocoders, tape echoes… — <b>rebuilt from scratch</b>, with their own names, panels and sounds. Free software (AGPL-3.0).</p>
+<p align="center">The workflow of <b>standalone pad-based production stations</b> (in the style of MPC One, Force or Maschine): 16 tracks, 16 pads, patterns launched like clips, scenes on a crossfader, song mode and audio editing. The 36 instruments and 38 effects follow the <b>architecture</b> of the machines that made this music — 80s and 90s drum machines, acid bass, analog mono and poly synths, FM, wavetables, drones, vocoders, tape echoes… — <b>rebuilt from scratch</b>, with their own names, panels and sounds. Free software (AGPL-3.0).</p>
 
 <p align="center">The whole interface is in <b>English</b>: choose the language when installing on Windows, at the first launch on Android (phone and tablet), or at any time in Settings › Project (<b>Français / English</b>).</p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/main-page.jpg" width="820" alt="OFAD GOLEM in English: main page with the launch grid, the 16 pads and the transport"></p>
+
+### 🆕 Update of 5 November 2026
+
+#### New synth: Good Doctor
+- Based on the principle of large "hybrid" wavetable synths: **three wavetable oscillators** (12 computed tables of 12 waves, 4 of them for basses), continuous position, adjustable **start phase**.
+- **Two warps in a row per oscillator** (18 to choose from: sync, bends, pulse, mirror, asymmetry, FM / AM / ring, fold, saturate, bits, filters…).
+- **Sub oscillator** and **coloured noise**; **two filters** (14 types including comb, vowels, diode) in series or parallel; each oscillator to both filters, one, or **direct**; per-voice distortion.
+- 3 envelopes, 2 LFOs + 2 envelopes and 3 step LFOs, **32-slot matrix, 8 macros**, arpeggiator; poly, mono or **unison up to 8 voices**; **91 factory sounds** (26 basses).
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/good-doctor.jpg" alt="Good Doctor"><br><b>Good Doctor</b><br>three wavetable oscillators, two warps each</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Step menu in Acid writing"><br><b>Step menu (Acid)</b><br>long press: large Accent and Slide, note, length…</td>
+</tr>
+</table>
+
+#### More sounds
+- **At least 90 factory sounds for every synth** (over 2,400 in total), each one measured and levelled.
+- **At least 20 factory settings for each of the 38 effects** (over 770).
+
+#### Sequencers
+- **Pieuvre 8**: the last note played is written to the selected step; drag a step's edge to lengthen a note; a selected step opens its menu.
+- **Step menu on every synth panel** (Locks writing): note, velocity, length, offset, condition, probability, repeats.
+- **Acid writing**: a long press on a step opens that menu, with large **Accent** and **Slide** buttons — no more tiny boxes on a phone.
+
+#### Fixes
+- A key of the panel keyboard could stay down when the finger slid off it.
+- Wide unison right after choosing a sound could leave a note hanging.
 
 ### 🆕 What's new in 0.47.0
 
@@ -209,7 +269,7 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 - Two **wavetable** oscillators (8 computed tables of 12 waves, A/B blend, 12 real-time morphs, modifiers), sub-oscillator, noise, 10-type filter.
 - **A ball rolling on a surface**: tilt, friction, a bump (well or hill), edges that absorb or bounce back. Throw it by hand, on each note or from the sequence; its motion (X, Y, distance, angle, hits) can modulate any setting.
 - **Motion sequence**: 4 lanes of 16 steps (loop, direction, division, smoothing, probability).
-- Wired like the other synths: step sequencer, 32-slot matrix, 4 mod knobs, step LFOs, arpeggiator, 16 assignable knobs, MIDI; 13 factory sounds.
+- Wired like the other synths: step sequencer, 32-slot matrix, 4 mod knobs, step LFOs, arpeggiator, 16 assignable knobs, MIDI; 90 factory sounds.
 
 <table>
 <tr>
@@ -302,7 +362,7 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 </tr>
 </table>
 
-### 🎹 35 instruments and 🎚️ 38 effects
+### 🎹 36 instruments and 🎚️ 38 effects
 
 <p align="center">Drum machines, acid bass, analog mono and poly synths, pads, sampler, FM and drone synths, vocoders and audio input; EQs and compressors, saturations, echoes and reverbs, modulations and filters, multi-effect and looper. All of them are shown in the gallery above and in <b>Catalogue-OFAD-GOLEM.pdf</b>.</p>
 

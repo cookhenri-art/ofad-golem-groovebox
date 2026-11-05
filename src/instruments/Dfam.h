@@ -23,6 +23,7 @@
 #include "../synth/SynthCore.h"
 #include "../dsp/DrumVoices.h"
 #include "../engine/Module.h"
+#include "FactoryBanks.h"
 
 #include <atomic>
 #include <map>
@@ -145,6 +146,7 @@ namespace dfam
                 { "Tom accord\xC3\xA9 (note jou\xC3\xA9" "e)", with (steps ({ 0, 0, 0, 0, 0, 0, 0, 0 }, { 100, 100, 100, 100, 100, 100, 100, 100 }),
                     { { "volume", 1.6f }, { "seqmode", 1 }, { "vco1freq", 130 }, { "vco1eg", 20 }, { "vcodecay", 90 }, { "cutoff", 2500 }, { "vcfeg", 20 }, { "vcadecay", 420 }, { "velsens", 80 } }), PC },
             };
+            addFactoryBank (m); // v0.47 (maj. 5 nov.) : banque d'usine (au moins 90 sons par synthé)
             return m;
         }();
         return d;

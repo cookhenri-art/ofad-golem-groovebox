@@ -15,6 +15,7 @@
 
 #include "../dsp/Common.h"
 #include "../engine/Module.h"
+#include "FxBanks.h"
 
 #include <atomic>
 #include <vector>
@@ -60,6 +61,7 @@ namespace looper
                 { "Boucle seule (sans direct)", { { "dry", 0 } } },
                 { "Surcouches qui s'effacent", { { "keep", 75 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

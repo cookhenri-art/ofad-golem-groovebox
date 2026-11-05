@@ -26,6 +26,7 @@
 
 #include "../dsp/EqFilters.h"
 #include "../engine/Module.h"
+#include "FxBanks.h"
 #include "SpaceFx.h"   // v0.35 : ressorts et ligne de bande
 
 #include <array>
@@ -114,6 +115,7 @@ namespace atmos
                 { "Pi\xC3\xA8" "ce r\xC3\xA9" "elle", { { "mode", 11 }, { "size", 40 }, { "early", 80 }, { "mix", 30 } }, "Pi\xC3\xA8" "ces" },
                 { "Hangar", { { "mode", 11 }, { "size", 95 }, { "early", 55 }, { "decay", 3 }, { "mix", 35 } }, "Pi\xC3\xA8" "ces" },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

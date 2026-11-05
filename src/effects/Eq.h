@@ -16,6 +16,7 @@
 
 #include "../dsp/EqFilters.h"
 #include "../engine/Module.h"
+#include "FxBanks.h"
 
 #include <array>
 #include <atomic>
@@ -124,6 +125,7 @@ namespace eq
                 { "T\xC3\xA9l\xC3\xA9phone", join ({ band (0, { { "on", 1 }, { "type", lowCut24 }, { "freq", 400 } }), band (7, { { "on", 1 }, { "type", highCut24 }, { "freq", 3200 } }),
                                          band (4, { { "freq", 1500 }, { "gain", 6 } }) }) },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

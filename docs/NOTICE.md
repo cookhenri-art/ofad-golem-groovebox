@@ -291,6 +291,13 @@ l'écran SÉQUENCE, et inversement.
 8. **Son · Modulations de la piste · Macros** : les autres pages de la façade.
 9. **⇄ Instrument** : changer d'instrument par les images.
 
+**Le menu d'un pas** : un **appui long** sur la note d'un pas posé ouvre son menu sous la rangée, en
+grand (pratique au téléphone) : **Accent** et **Glissé** (toucher : allumer / éteindre ; « … » : leur
+valeur), **Octave** ▼ ▲, **note**, vélocité, durée, décalage, condition, probabilité, répétitions. La
+touche jouée au clavier pendant que le menu est ouvert devient la note du pas. ✕ ferme le menu.
+
+<figure class="wide"><img src="img/menu-pas-acide.jpg" alt="Écriture Acide : le menu du pas 3 ouvert par un appui long, Accent et Glissé en grand"><figcaption>Appui long sur un pas : son menu, Accent et Glissé en grand</figcaption></figure>
+
 **Le séquenceur à verrous** : chaque pas peut garder ses propres réglages (coupure, résonance,
 effets…), en plus de sa note.
 
@@ -306,7 +313,8 @@ effets…), en plus de sa note.
 
 Sur les synthés, la rangée à verrous écrit **la dernière note jouée** (pads, clavier de la façade, ou
 clavier MIDI à l'arrêt) : elle est affichée (« **Note** Fa1 ») et chaque pas posé montre sa note à la
-place de son numéro. Un pas choisi (appui long) prend la note de la touche jouée ensuite.
+place de son numéro. Un pas choisi (appui long) prend la note de la touche jouée ensuite, et ouvre
+son **menu** sous la rangée : note, vélocité, durée, décalage, condition, probabilité, répétitions.
 
 **Décaler ◀ ▶** : toute l'écriture glisse d'un pas à gauche ou à droite, en boucle (le pas qui sort
 revient de l'autre côté) ; notes, accents, glissés, conditions et verrous suivent. Sur la façade : à
@@ -420,6 +428,9 @@ courte, des variations et des petites relances sans écrire d'autres patterns.
    gardés), durée, décalage, condition, probabilité, répétitions, verrous ; en mélodique, « Transposer ».
 3. La **barre de la sélection** : ◀ ▶ (décaler d'un pas), Copier, Couper, Coller, Dupliquer, Effacer, Copie
    au glisser, Verrous, Tout.
+
+**Un seul pas sélectionné** (mode Sélection ou rectangle) ouvre **son menu**, comme un pas choisi :
+note, vélocité, durée, décalage, condition, probabilité, répétitions, verrous.
 
 Les gestes :
 

@@ -20,6 +20,7 @@
 #include "Distortion.h"
 #include "Mastering.h"   // LR4, fdb, fgain
 #include "FxMod.h"
+#include "FxBanks.h"
 
 #include <array>
 #include <vector>
@@ -147,6 +148,7 @@ namespace grinder
                                               { "m3type", 1 }, { "m3div", 5 }, { "m3shape", 0 }, { "m3amt", 30 }, { "m3dest", 26 } }) },
                 { "Impaire et sombre", set ({ { "b2type", 15 }, { "b2drive", 55 }, { "b3type", 15 }, { "b3drive", 45 }, { "b4level", -10 } }) },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

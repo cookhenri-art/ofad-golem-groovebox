@@ -91,4 +91,39 @@ def build():
     add("Peigne qui tourne", FX, mix(NAPPE, f1mode=9, f1cutoff=200, f1reso=80, mixnoise=60, l2cutoff=40, l2rate=0.3))
     add("Alarme", FX, mix(LEAD_, l2pitch=100, l2rate=3, l2shape=3))
     add("Descente spectrale", FX, mix(PLK, env3pos=-8, e3a=1, e3d=1500, e3s=0, e2d=2000, e2r=1500))
+
+    # --- v0.47 (maj. 5 nov.) : 31 sons de plus (au moins 90 par synthé)
+    for nm, kw in [
+        ("Basse carrée morph", dict(w1pos=3, w2pos=3, f1cutoff=600)), ("Basse orgue", dict(w1pos=5, w2pos=0, f1cutoff=1200, env1f1=20)),
+        ("Basse grain", dict(w1pos=14, f1cutoff=900)), ("Basse métal", dict(w1pos=11, f1cutoff=800, f1reso=30)),
+        ("Basse synchro mutante", dict(w1mut=2, w1mutamt=45, f1cutoff=1000)), ("Basse douce morph", dict(w1pos=15, w2pos=1, f1cutoff=500)),
+    ]:
+        add(nm, BASS, mix(BASSE, **kw))
+    for nm, kw in [
+        ("Lead voix A", dict(w1pos=6, f1cutoff=2500)), ("Lead cloche", dict(w1pos=8, w2pos=8, w2semi=12)),
+        ("Lead repli", dict(w1mut=4, w1mutamt=50)), ("Lead bande", dict(f1mode=2, f1cutoff=1800, f1reso=40)),
+    ]:
+        add(nm, LEAD, mix(LEAD_, **kw))
+    for nm, kw in [
+        ("Nappe orgue", dict(w1pos=5, w2pos=15)), ("Nappe métal lente", dict(w1pos=11, w2pos=8, f1cutoff=1500)),
+        ("Nappe grains", dict(w1pos=14, w2pos=13)), ("Nappe voix O", dict(w1pos=7, w2pos=6, f1mode=7)),
+        ("Nappe douce", dict(w1pos=15, w2pos=1, f1cutoff=1600)),
+    ]:
+        add(nm, PAD, mix(NAPPE, **kw))
+    for nm, kw in [
+        ("Pluck orgue", dict(w1pos=5)), ("Pluck métal", dict(w1pos=11, mix1=100, mix2=70, f1cutoff=4000)), ("Pluck voix", dict(w1pos=6, f1mode=7, f1cutoff=1400)),
+        ("Pluck doux morph", dict(w1pos=15, f1cutoff=800)),
+    ]:
+        add(nm, PLUCK, mix(PLK, **kw))
+    for nm, kw in [("Orgue creux", dict(w1pos=10, w2pos=5)), ("Clavier cloche", dict(w1pos=8, w2pos=1)), ("Piano métal", dict(w1pos=11, w2pos=2, f1cutoff=3000))]:
+        add(nm, KEYS, mix(CLAV, **kw))
+    CORD2 = mix(NAPPE, w1pos=9, w2pos=2, e2a=400, e2r=1300, e1a=300, f1cutoff=4000, f1reso=5, l2pitch=6, l2rate=5)
+    add("Cordes voyelles", STR, mix(CORD2, w2pos=6))
+    add("Cordes graves", STR, mix(CORD2, w1semi=-12, f1cutoff=2500))
+    CUIV2 = mix(BASE, w1pos=2, w2pos=2, f1cutoff=1100, env1f1=55, e1a=50, e1d=600, e1s=50, e2a=25, e2d=700, e2s=85, e2r=300)
+    add("Cuivres creux", BRASS, mix(CUIV2, w2pos=10))
+    add("Cuivres orgue", BRASS, mix(CUIV2, w1pos=5, f1cutoff=900))
+    add("Arpège voix", ARP, mix(PLK, w1pos=6, f1mode=7, arp_gate=50, arp_rate=3, arp_mode=1, arp_oct=2))
+    add("Arpège métal", ARP, mix(PLK, w1pos=11, mix1=100, mix2=70, f1cutoff=4000, arp_gate=40, arp_rate=4, arp_mode=3, arp_oct=2))
+    add("Vent de grain", FX, mix(NAPPE, w1pos=14, w2pos=14, f1mode=2, f1cutoff=900, f1reso=50))
     return b

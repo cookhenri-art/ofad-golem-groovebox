@@ -90,6 +90,7 @@ export const FACE_SKINS: Record<string, FaceSkin> = {
   sampler:   { tex: "alu-brosse", tint: "oklch(0.28 0.02 60)", knob: "noir", ink: "light" },
   sp:        { tex: "plastique-gris", tint: "oklch(0.3 0.02 150)", knob: "plastique", ink: "light" },
   braise:    { tex: "v3-abs-noir", knob: "plastique", ink: "light" }, // Glutamake (v0.47) : ABS noir, boutons noirs lisses
+  docteur:   { tex: "alu-sombre", tint: "oklch(0.2 0.03 245)", knob: "noir", ink: "light" }, // Good Doctor (v0.47 (maj. 5 nov.)) : bleu nuit
   pieuvre:   { tex: "alu-sombre", knob: "noir", ink: "light" },
   // v0.46 : synthés FM et drones
   sauce:     { tex: "v3-metal-noir", knob: "chrome", ink: "light" },

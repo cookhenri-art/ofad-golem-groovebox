@@ -28,6 +28,7 @@
 #include "../dsp/EqFilters.h"
 #include "../engine/Module.h"
 #include "Dynamics.h"
+#include "FxBanks.h"
 
 #include <array>
 #include <vector>
@@ -213,6 +214,7 @@ namespace vintverb
                 { "Nappe lumineuse", { { "mode", 5 }, { "color", 2 }, { "decay", 9 }, { "size", 85 }, { "modulation", 70 }, { "damping", 10 }, { "mix", 40 } }, "Effets" },
                 { "Caisse claire 1979", { { "mode", 1 }, { "color", 0 }, { "decay", 1.2f }, { "predelay", 5 }, { "mix", 35 } }, "Plaques" },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -293,6 +295,7 @@ namespace plate
                 { "Longue et sombre", { { "decay", 4.5f }, { "brightness", 30 }, { "mix", 25 } }, "Effets" },
                 { "Courte et brillante", { { "decay", 0.7f }, { "brightness", 90 }, { "mix", 20 } }, "Batterie" },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -392,6 +395,7 @@ namespace spring
                 { "Surf", { { "springs", 2 }, { "decay", 65 }, { "drip", 85 }, { "tension", 70 }, { "mix", 40 } }, "Effets" },
                 { "Discret", { { "springs", 1 }, { "decay", 35 }, { "mix", 18 } }, "Classiques" },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -487,6 +491,7 @@ namespace tapeecho
                 { "Bande fatigu\xC3\xA9" "e", { { "heads", 3 }, { "wear", 90 }, { "treble", -8 }, { "drive", 45 } }, "Effets" },
                 { "Ressort seul", { { "echo", 0 }, { "spring", 60 } }, "Classiques" },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

@@ -21,6 +21,7 @@
 #include "../dsp/EqFilters.h"
 #include "../engine/Module.h"
 #include "Delay.h"
+#include "FxBanks.h"
 
 #include <array>
 #include <vector>
@@ -74,6 +75,7 @@ namespace mdelay
                 { "Ping-pong large", { { "mode", 7 }, { "division", 9 }, { "feedback", 50 }, { "mix", 30 } } },
                 { "Auto-oscillation", { { "mode", 1 }, { "division", 7 }, { "feedback", 105 }, { "grit", 50 }, { "tone", 3000 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

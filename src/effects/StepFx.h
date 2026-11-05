@@ -24,6 +24,7 @@
 #include "../dsp/EqFilters.h"
 #include "../engine/Module.h"
 #include "../synth/SynthCore.h"
+#include "FxBanks.h"
 
 #include <array>
 #include <vector>
@@ -235,6 +236,7 @@ namespace stepfx
                 { "Pompe et ralentis (2 mesures)", bars ({ { 1, pump }, { 5, pump }, { 9, pump }, { 13, pump }, { 15, slow }, { 17, pump }, { 21, pump }, { 25, pump },
                                                           { 27, rev }, { 29, eDark }, { 31, fade }, { 32, fade } }, 32) },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

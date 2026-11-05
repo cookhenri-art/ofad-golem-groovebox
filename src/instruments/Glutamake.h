@@ -461,12 +461,13 @@ public:
     void start (int note, float velocity, bool legatoStart, int prevNote) noexcept
     {
         if (velocity >= 0.0f) vel = velocity;
-        target = note; from = prevNote; legatoPending = legatoStart && ! (pending && ! legatoPending); pending = true; active = true;
+        target = note; from = prevNote; legatoPending = legatoStart && ! (pending && ! legatoPending); pending = true; active = true; releaseAfterStart = false;
         if (! legatoStart) lfoAge = 0.0;
         rng = rng * 1664525u + 1013904223u;
         pan = (double) (rng >> 8) / 8388608.0 - 1.0;
     }
-    void release() noexcept { ea.gate (false); ef.gate (false); ep.gate (false); }
+    // v0.47 (maj. 5 nov.) : relâchée avant d'avoir joué (même bloc) : la note démarre puis se relâche aussitôt
+    void release() noexcept { ea.gate (false); ef.gate (false); ep.gate (false); if (pending) releaseAfterStart = true; }
     bool isActive() const noexcept { return active; }
 
     void modSources (double* env, double* lfo) const noexcept
@@ -485,6 +486,7 @@ public:
             pitch.jump ((double) (p[glide] > 0.5f && from >= 0 ? from : target));
             pitch.to ((double) target);
             if (! legatoPending || ! ea.isActive()) { ea.gate (true); ef.gate (true); ep.gate (true); }
+            if (releaseAfterStart) { releaseAfterStart = false; ea.gate (false); ef.gate (false); ep.gate (false); }
         }
         ea.set (p[aA], p[aD], p[aS] / 100.0, p[aR]);
         ef.set (p[fA], p[fD], p[fS] / 100.0, p[fR]);
@@ -626,7 +628,7 @@ private:
     double lastA = 0.0, lastF = 0.0, lastP = 0.0, lastL1 = 0.0, lastL2 = 0.0;
     float vel = 1.0f;
     int target = 60, from = -1;
-    bool pending = false, legatoPending = false, active = false;
+    bool pending = false, legatoPending = false, active = false, releaseAfterStart = false;
     std::uint32_t rng = 7;
     Ladder ladder;
     StateFilter svf;

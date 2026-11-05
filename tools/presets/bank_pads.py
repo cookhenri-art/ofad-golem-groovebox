@@ -93,4 +93,39 @@ def build():
     add("Montée", FX, mix(SUPER, ma=4000, ms=100, md=100, modcutoffa=70, modcutoffb=70, facutoff=700, fbcutoff=700, modpitch=12, aa=1500, ar=1500))
     add("Pulsation stéréo", FX, mix(NAPPE, l1pan=100, l1rate=4, l1shape=3, aa=5))
     add("Chute", FX, mix(PLK, md=900, modpitch=12, ad=1200, ar=800))
+
+    # --- v0.47 (maj. 5 nov.) : 32 sons de plus (au moins 90 par synthé)
+    for nm, kw in [
+        ("Basse carrée unisson", dict(awave=3, aunison=3, adetune=15)), ("Basse sinus pure", dict(awave=0, bwave=0, facutoff=2000, modcutoffa=10)),
+        ("Basse impulsion", dict(awave=4, bwave=6, facutoff=900)), ("Basse large", dict(aunison=4, adetune=20, width=80)),
+        ("Basse bruitée", dict(bwave=5, blevel=20, facutoff=800)),
+    ]:
+        add(nm, BASS, mix(BASSE, **kw))
+    for nm, kw in [
+        ("Lead sinus", dict(awave=0, bwave=1, facutoff=8000)), ("Lead impulsion", dict(awave=4, bwave=6)),
+        ("Lead tri-scie large", dict(awave=7, aunison=7, adetune=30)), ("Lead doux", dict(facutoff=2500, fareso=5, aa=30)),
+    ]:
+        add(nm, LEAD, mix(LEAD_, **kw))
+    for nm, kw in [
+        ("Nappe triangle", dict(awave=1, bwave=1)), ("Nappe carrée", dict(awave=3, bwave=3, facutoff=2500)),
+        ("Nappe impulsion étroite", dict(awave=6, bwave=4)), ("Nappe tri-scie", dict(awave=7, bwave=7)),
+        ("Nappe bande", dict(fatype=2, fbtype=2, facutoff=1500, fbcutoff=2500)), ("Nappe éther", dict(aa=2500, ar=4500, facutoff=5000)),
+        ("Nappe souffle doux", dict(bwave=5, blevel=25)), ("Nappe passe-haut", dict(fatype=3, fbtype=3, facutoff=600, fbcutoff=600)),
+    ]:
+        add(nm, PAD, mix(NAPPE, **kw))
+    for nm, kw in [
+        ("Pluck sinus", dict(awave=0, bwave=1)), ("Pluck tri-scie", dict(awave=7)), ("Pluck très large", dict(aunison=8, adetune=35, width=100)),
+    ]:
+        add(nm, PLUCK, mix(PLK, **kw))
+    for nm, kw in [("Clavier carré", dict(awave=3, bwave=3)), ("Clavier sinus", dict(awave=0, bwave=0, facutoff=5000)), ("Orgue large", dict(awave=0, bwave=3, as_=100, ad=200, ar=200))]:
+        add(nm, KEYS, mix(CLAV, **kw))
+    CORD2 = mix(NAPPE, aunison=6, adetune=25, aa=400, ar=1400, facutoff=5000, fbcutoff=5000, modcutoffa=10, l1pitch=6, l1rate=5)
+    add("Cordes larges", STR, mix(CORD2, aunison=8, adetune=35))
+    add("Cordes triangle", STR, mix(CORD2, awave=1, bwave=7))
+    add("Supersaw géante", PAD, mix(SUPER, aunison=8, adetune=55, bdetune=45))
+    add("Supersaw sombre", PAD, mix(SUPER, facutoff=2500, fbcutoff=2500))
+    add("Cuivres supersaw", BRASS, mix(SUPER, aa=40, facutoff=1500, fbcutoff=1500, modcutoffa=45, modcutoffb=45, ma=50, md=500, ms=40))
+    add("Arpège supersaw", ARP, mix(SUPER, aa=1, ad=250, as_=0, ar=250, arp_gate=50, arp_rate=3, arp_mode=1, arp_oct=2))
+    add("Arpège sinus", ARP, mix(PLK, awave=0, arp_gate=50, arp_rate=4, arp_mode=3, arp_oct=3))
+    add("Nuage de bruit", FX, mix(NAPPE, awave=5, bwave=5, facutoff=1200, fareso=40))
     return b

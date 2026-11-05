@@ -23,6 +23,7 @@
 #include "../dsp/EqFilters.h"
 #include "../dsp/Oversampler.h"
 #include "../engine/Module.h"
+#include "FxBanks.h"
 
 #include <vector>
 
@@ -101,6 +102,7 @@ namespace opto
                 { "Bus doux", { { "peak", 20 }, { "gain", 2 }, { "mix", 70 } } },
                 { "Limitation voix", { { "peak", 60 }, { "gain", 17 }, { "mode", 1 }, { "emphasis", 40 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -177,6 +179,7 @@ namespace fet
                 { "\xC3\x89" "crasement parall\xC3\xA8le", { { "input", 36 }, { "ratio", 4 }, { "attack", 20 }, { "release", 80 }, { "mix", 35 }, { "output", 0 } } },
                 { "Caisse claire", { { "input", 22 }, { "attack", 800 }, { "release", 100 }, { "ratio", 2 }, { "output", 6 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -261,6 +264,7 @@ namespace buscomp
                 { "Master doux", { { "threshold", -6 }, { "ratio", 0 }, { "attack", 5 }, { "release", 4 }, { "makeup", 1 }, { "schpf", 120 } } },
                 { "Parall\xC3\xA8le", { { "threshold", -30 }, { "ratio", 2 }, { "attack", 1 }, { "release", 1 }, { "makeup", 14 }, { "mix", 40 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -363,6 +367,7 @@ namespace modern
                 { "Mastering doux", { { "style", 4 }, { "threshold", -12 }, { "ratio", 1.5f }, { "knee", 18 }, { "attack", 40 }, { "release", 400 } } },
                 { "Seuil automatique", { { "autothr", 1 }, { "threshold", -24 }, { "ratio", 3 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -499,6 +504,7 @@ namespace limit
                 { "Streaming (-1 dBTP)", { { "gain", 4 }, { "release", 120 }, { "ceiling", -1 }, { "truePeak", 1 } } },
                 { "Bus batterie", { { "gain", 4 }, { "release", 20 }, { "style", 1 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

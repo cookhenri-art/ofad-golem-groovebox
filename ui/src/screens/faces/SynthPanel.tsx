@@ -23,6 +23,7 @@ import { OctaPanel } from "./OctaPanel";
 import { WaveScanPanel } from "./WaveScanPanel";
 import { OrbiterPanel, OrbWavesPanel } from "./OrbiterPanel";
 import { GlutaLane, GlutaOsc, GlutaPad } from "./GlutaPanel";
+import { GoodDocOsc, GoodDocRoute } from "./GoodDocPanel";
 import { DfamSeqPanel, DfamTransport } from "./DfamPanel";
 import { ImpactOut, ImpactStrips } from "./ImpactPanel";
 import { NervePads, NervePattern } from "./NervePanel";
@@ -52,6 +53,9 @@ const CUSTOM: Record<string, (p: { channel: number; module: ModuleDesc; args: st
   glutapad: ({ channel, module }) => <GlutaPad channel={channel} module={module} />,
   glutaosc: ({ channel, module, args }) => <GlutaOsc channel={channel} module={module} osc={args[0] ?? "1"} />,
   glutalane: ({ channel, module, args }) => <GlutaLane channel={channel} module={module} lane={args[0] ?? "a"} />,
+  // v0.47 (maj. 5 nov.) : Good Doctor — écran d'un oscillateur (« gdosc:a »), schéma des sorties
+  gdosc: ({ channel, module, args }) => <GoodDocOsc channel={channel} module={module} osc={args[0] ?? "a"} />,
+  gdroute: ({ channel, module }) => <GoodDocRoute channel={channel} module={module} />,
   dfamseq: ({ channel, module }) => <DfamSeqPanel channel={channel} module={module} />,
   dfamtransport: ({ channel, module }) => <DfamTransport channel={channel} module={module} />,
   impstrips: ({ channel, module }) => <ImpactStrips channel={channel} module={module} />,

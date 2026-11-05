@@ -104,7 +104,7 @@ export interface AppState {
   litLanes: number[];                    // allumage des pads de la piste choisie
   litTracks: number[];                   // allumage par piste
   litNotes: number[];                    // notes exactes de la piste choisie (0..127) : tenues ou jouées à l'instant
-  played: { note: number; n: number };   // v0.46 fix16 : dernière note jouée à la main sur la piste choisie (−1 : aucune), n compte les frappes
+  played: { note: number; n: number; track?: number };   // v0.46 fix16 : dernière note jouée à la main sur la piste choisie (−1 : aucune), n compte les frappes
   waves: Record<string, WaveData | null>; // formes d'onde (piste:index)
   launch: LaunchData | null;             // lancement des patterns
   midi: MidiData;                        // apprentissage MIDI
@@ -390,7 +390,7 @@ function noteTick(kn: number[] | undefined, kh: number[] | undefined) {
   heldNotesNow = kn ?? [];
   // v0.46 fix16 : à l'arrêt, une note du clavier MIDI devient aussi la note écrite par les rangées de pas
   const hits = (kh ?? []).filter((n) => n >= 0 && n < 128);
-  if (hits.length && !state.tick.t.playing) set({ played: { note: hits[hits.length - 1], n: state.played.n + 1 } });
+  if (hits.length && !state.tick.t.playing) set({ played: { note: hits[hits.length - 1], n: state.played.n + 1, track: focusTrack() } });
   for (const n of kh ?? []) {
     if (n < 0 || n > 127) continue;
     noteFlash[n] += 1;
@@ -679,9 +679,10 @@ export const actions = {
   },
 
   // Notes ---------------------------------------------------------------------------
-  noteOn(track: number, note: number, velocity: number) {
+  /** v0.47 (maj. 5 nov.) : `mark` faux pour les pads d'une batterie (leur numéro n'est pas une note à écrire). */
+  noteOn(track: number, note: number, velocity: number, mark = true) {
     void call("noteOn", track, note, velocity);
-    if (track === focusTrack()) set({ played: { note, n: state.played.n + 1 } }); // note écrite par les rangées de pas
+    if (mark && track === focusTrack()) set({ played: { note, n: state.played.n + 1, track } }); // note écrite par les rangées de pas
   },
   noteOff(track: number, note: number) { void call("noteOff", track, note); },
   /** Expression jouée à l'écran : 0 = pitch bend (-1..1), 1 = molette, 2 = pression, 3 = pédale. */

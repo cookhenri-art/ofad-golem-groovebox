@@ -85,4 +85,41 @@ def build():
     add("Échantillonneur aléatoire", FX, mix(LEAD_, wmmix=100, wminit=60, wmfilter=1, wmfreqa=0, wmfreqb=0, cutoff=1200, reso=60, lforate=8))
     add("Sirène poly", FX, mix(LEAD_, wminit=70, wmfreqa=1, wmfreqb=1, lforate=0.6, ltri=1))
     add("Impact métallique", FX, mix(PLK, async_=1, bsemi=23, pmoscb=70, pmfreqa=1, mixa=100, cutoff=5000, reso=20, envamt=30, fs=20, ad=1500, ar=1500))
+
+    # --- v0.47 (maj. 5 nov.) : 34 sons de plus (au moins 90 par synthé)
+    for nm, kw in [
+        ("Basse poly sombre", dict(cutoff=320, envamt=40)), ("Basse quinte poly", dict(bsemi=-5, cutoff=600)),
+        ("Basse sciée brillante", dict(cutoff=1100, reso=10, envamt=35)), ("Basse unisson large", dict(unison=1, unidetune=30, cutoff=550)),
+        ("Basse poly-mod", dict(pmoscb=30, pmfreqa=1, cutoff=700, reso=20)), ("Basse impulsion fine", dict(asaw=0, apulse=1, apw=12, cutoff=800)),
+    ]:
+        add(nm, BASS, mix(BASSE, **kw))
+    for nm, kw in [
+        ("Lead quinte ouverte", dict(bsemi=7, cutoff=2400)), ("Lead synchro douce", dict(async_=1, bsemi=12, pmenv=25, pmfreqa=1, cutoff=2000)),
+        ("Lead unisson épais", dict(unison=1, unidetune=20, cutoff=2500)), ("Lead impulsion", dict(asaw=0, apulse=1, apw=20, bsaw=0, bpulse=1, bpw=35)),
+        ("Lead flûte poly", dict(asaw=0, apulse=1, apw=50, btri=1, bsaw=0, mixa=90, mixb=80, cutoff=2500, reso=5, mixnoise=10, aa=40)),
+    ]:
+        add(nm, LEAD, mix(LEAD_, **kw))
+    for nm, kw in [
+        ("Nappe sciée", dict(apulse=0, asaw=1, cutoff=1500)), ("Nappe poly-mod", dict(pmoscb=20, pmfreqa=1, cutoff=1300)),
+        ("Nappe des profondeurs", dict(cutoff=600, reso=20)), ("Nappe qui respire", dict(wminit=25, wmfilter=1, lforate=0.15, ltri=1)),
+        ("Nappe d'hiver", dict(cutoff=2200, reso=5, bfine=12, aa=1800, ar=3500)), ("Nappe impulsion", dict(apw=15, bsaw=0, bpulse=1, bpw=25)),
+    ]:
+        add(nm, PAD, mix(NAPPE, **kw))
+    for nm, kw in [
+        ("Pluck sec", dict(cutoff=500, ad=350, fd=200)), ("Pluck synchro mordant", dict(async_=1, bsemi=12, pmenv=40, pmfreqa=1)),
+        ("Pluck boisé", dict(asaw=0, apulse=1, apw=30, cutoff=900, reso=15)), ("Pluck qui siffle", dict(reso=55, envamt=70)),
+    ]:
+        add(nm, PLUCK, mix(PLK, **kw))
+    for nm, kw in [
+        ("Clavier sciée", dict(cutoff=1500)), ("Clavier impulsion", dict(asaw=0, apulse=1, apw=30, bsaw=0, bpulse=1, bpw=45)),
+        ("Clavier poly-mod", dict(pmoscb=25, pmfreqa=1, cutoff=2400)), ("Orgue à impulsions", dict(asaw=0, apulse=1, apw=50, bsaw=0, btri=1, as_=100, ad=200, ar=150, envamt=0)),
+    ]:
+        add(nm, KEYS, mix(CLAV, **kw))
+    for nm, kw in [("Cordes chaudes", dict(cutoff=1800)), ("Cordes lentes", dict(aa=900, ar=2200)), ("Cordes pincées douces", dict(aa=1, ad=400, as_=0, ar=300, envamt=40, cutoff=1500))]:
+        add(nm, STR, mix(CORD, **kw))
+    for nm, kw in [("Cuivres éclatants", dict(cutoff=1300, envamt=60)), ("Cuivres sourds", dict(cutoff=600)), ("Cuivres attaque lente", dict(aa=150, fa=200))]:
+        add(nm, BRASS, mix(CUIV, **kw))
+    add("Arpège poly impulsion", ARP, mix(PLK, asaw=0, apulse=1, apw=25, arp_mode=1, arp_oct=2, arp_rate=3))
+    add("Arpège trois octaves", ARP, mix(PLK, arp_mode=3, arp_oct=3, arp_rate=3, cutoff=900))
+    add("Vaisseau", FX, mix(NAPPE, pmoscb=80, pmfreqa=1, bsemi=-19, lforate=0.1, wminit=40, wmfreqa=1, cutoff=900, reso=40))
     return b

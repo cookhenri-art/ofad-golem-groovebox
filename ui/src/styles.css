@@ -452,6 +452,10 @@ button { font: inherit; color: inherit; }
 .cell--play { outline: 1.5px solid var(--accent); outline-offset: -1.5px; }
 .cell--play.cell--on { background: color-mix(in oklab, var(--k) 100%, white 25%); }
 .cell--selected { box-shadow: 0 0 0 2px var(--scr-fg); }
+/* v0.47 (maj. 5 nov.) : Pieuvre 8 — durée des pas (queue d'un pas long, poignée au bord droit) */
+.cell--held { background: color-mix(in oklab, var(--k) 32%, var(--scr-raise)); cursor: ew-resize; }
+.cell--grip { position: relative; }
+.cell--grip::after { content: ""; position: absolute; inset: 3px 1px 3px 72%; border-right: 2px solid oklch(1 0 0 / 0.5); border-radius: 0 2px 2px 0; cursor: ew-resize; pointer-events: none; }
 @media (hover: hover) and (pointer: fine) {
   .cell:not(.cell--out):hover { filter: brightness(1.35); }
 }
@@ -1671,6 +1675,30 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .face--t-braise .fc-toggle { border-radius: 4px; background: oklch(0.12 0.006 40); text-transform: uppercase; font-size: 9px; }
 .face--t-braise .fp-banks { background: transparent; }
 .face--t-braise .face-head .face-stripe { background: var(--fp-led); box-shadow: 0 0 12px var(--fp-led); }
+/* --- habillage « docteur » (Good Doctor, v0.47 (maj. 5 nov.)) : bleu nuit, sérigraphie claire, arcs turquoise */
+.face--t-docteur { --face-panel: oklch(0.15 0.02 245); --face-accent: oklch(0.8 0.13 195); --fp-line: oklch(0.75 0.12 195 / 0.2); --fp-text: oklch(0.94 0.01 220); --fp-led: oklch(0.78 0.14 195); --fp-led-off: oklch(0.28 0.04 220); }
+.face--t-docteur .fp { border-radius: 7px; border: 0; background: oklch(0.1 0.02 250 / 0.55); box-shadow: inset 0 0 0 1px oklch(0.75 0.12 195 / 0.14); padding-top: 22px; }
+.face--t-docteur .fp-title { background: transparent; color: oklch(0.84 0.08 200); letter-spacing: 0.08em; }
+.face--t-docteur .fp-head { top: 3px; }
+.face--t-docteur .knob-arc { stroke: var(--fp-led); filter: drop-shadow(0 0 3px oklch(0.75 0.15 195 / 0.7)); }
+.face--t-docteur .knob-track { stroke: oklch(0.3 0.03 230); }
+.face--t-docteur .knob-value { color: oklch(0.85 0.1 195); }
+.face--t-docteur .knob-label { text-transform: uppercase; letter-spacing: 0.05em; font-size: 8.5px; color: oklch(0.86 0.03 210); }
+.face--t-docteur .fc-toggle { border-radius: 4px; background: oklch(0.12 0.02 245); text-transform: uppercase; font-size: 9px; }
+.face--t-docteur .fp-banks { background: transparent; }
+.face--t-docteur .face-head .face-stripe { background: var(--fp-led); box-shadow: 0 0 12px var(--fp-led); }
+.gd-osc { position: relative; height: 92px; margin-bottom: 6px; border-radius: 6px; background: oklch(0.1 0.02 245); box-shadow: inset 0 0 12px oklch(0 0 0), 0 0 0 1px oklch(0 0 0); overflow: hidden; }
+.gd-osc--off { opacity: 0.45; }
+.gd-osc svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gd-osc-axis { stroke: oklch(1 0 0 / 0.07); stroke-width: 1; }
+.gd-osc-ghost { fill: none; stroke: oklch(0.75 0.12 195 / 0.16); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.gd-osc-wave { fill: none; stroke: oklch(0.86 0.12 195); stroke-width: 2; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 3px oklch(0.72 0.15 200 / 0.85)); }
+.gd-osc-t, .gd-osc-b { position: absolute; left: 8px; font: 600 10px ui-monospace, Consolas, monospace; color: oklch(0.96 0.01 220); }
+.gd-osc-t { top: 5px; } .gd-osc-b { bottom: 5px; color: oklch(0.74 0.05 200); }
+.gd-route { display: flex; flex-wrap: wrap; gap: 3px 6px; margin-bottom: 6px; font: 600 9.5px ui-monospace, Consolas, monospace; color: oklch(0.6 0.03 220); }
+.gd-route-src { background: oklch(0.1 0.02 245); border-radius: 4px; padding: 1px 5px; }
+.gd-route-src.on { color: oklch(0.88 0.08 200); box-shadow: inset 0 0 0 1px oklch(0.75 0.12 195 / 0.3); }
+.gd-route-chain { flex-basis: 100%; color: oklch(0.8 0.06 200); }
 .gl-pad { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .gl-pad-cv { display: block; width: 100%; max-width: min(240px, calc(var(--app-h, 900px) * 0.5)); aspect-ratio: 1 / 1; margin: 0 auto; border-radius: 6px; box-shadow: inset 0 0 0 1px oklch(0 0 0), 0 0 0 1px oklch(0.7 0.15 42 / 0.25); touch-action: none; cursor: grab; }
 .gl-pad-cv:active { cursor: grabbing; }
@@ -3149,6 +3177,19 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .steps-choice-head .steps-shift button, .ot-steps-head .steps-shift button { padding: 3px 8px; border-radius: 5px; border: 1px solid oklch(1 0 0 / 0.14); background: oklch(0 0 0 / 0.25); color: inherit; font-size: 11px; line-height: 1; cursor: pointer; }
 .steps-shift button:active { background: var(--fp-led, var(--accent)); color: #111; }
 /* v0.46 fix16 : note écrite par la rangée à verrous des synthés, et note de chaque pas posé */
+/* v0.47 (maj. 5 nov.) : Pieuvre 8 — menu du pas choisi, durée affichée sur le pas */
+.ot-stepedit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px; padding: 6px 8px; border-radius: 6px; background: oklch(0 0 0 / 0.3); font-size: 11px; }
+.ot-stepedit > b { color: var(--fp-led); letter-spacing: 0.08em; text-transform: uppercase; }
+.ot-stepedit-item { display: inline-flex; align-items: center; gap: 4px; }
+.ot-stepedit-item small { opacity: 0.75; margin-right: 2px; }
+.ot-stepedit-item button { min-width: 30px; min-height: 30px; border-radius: 5px; border: 1px solid oklch(1 0 0 / 0.14); background: oklch(0 0 0 / 0.25); color: inherit; cursor: pointer; }
+.ot-stepedit-item em { font-style: normal; min-width: 4.2em; text-align: center; color: var(--fp-led); font-variant-numeric: tabular-nums; }
+.ot-stepedit .fp-hint { flex-basis: 100%; }
+.ot-stepedit-flag { min-height: 34px; padding: 0 14px; border-radius: 6px; border: 1px solid oklch(1 0 0 / 0.18); background: oklch(0 0 0 / 0.3); color: inherit; font-weight: 700; cursor: pointer; }
+.ot-stepedit-flag.on { background: var(--fp-led, var(--accent)); color: oklch(0.15 0 0); }
+.ot-stepedit-close { margin-left: auto; min-width: 34px; min-height: 34px; border-radius: 6px; border: 1px solid oklch(1 0 0 / 0.18); background: oklch(0 0 0 / 0.3); color: inherit; cursor: pointer; }
+.step303.sel { outline: 2px solid var(--fp-led, var(--accent)); outline-offset: 1px; border-radius: 6px; }
+.ot-step-len { position: absolute; right: 4px; bottom: 2px; font-style: normal; font-size: 9px; opacity: 0.8; }
 .ot-steps-note { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 5px; background: oklch(0 0 0 / 0.3); font-size: 10.5px; opacity: 0.9; }
 .ot-steps-note b { color: var(--fp-led, var(--accent)); font-variant-numeric: tabular-nums; min-width: 2.4em; }
 .ot-steps-note.none b { opacity: 0.5; }

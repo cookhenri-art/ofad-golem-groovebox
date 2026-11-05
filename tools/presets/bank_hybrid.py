@@ -88,4 +88,45 @@ def build():
     add("Chute de hauteur", FX, mix(PLK, m2pitch=24, m2d=600, ad=1200, as_=30, ar=600, cutoff=5000, envamt=20, m1s=40))
     add("Pulsation", FX, mix(NAPPE, l2amp=80, l2rate=6, l2shape=3, aa=5))
     add("Échantillonné aléatoire", FX, mix(LEAD_, l2shape=4, l2rate=8, l2cutoff=70, reso=55, cutoff=1500))
+
+    # --- v0.47 (maj. 5 nov.) : 32 sons de plus (au moins 90 par synthé)
+    for nm, kw in [
+        ("Basse carrée numérique", dict(o1shape=3, o2shape=3, cutoff=550)), ("Basse anneau", dict(mixring=35, o2semi=-5, cutoff=800)),
+        ("Basse FM mordante", dict(o1shape=0, o3shape=0, o3semi=0, fm31=45, mix2=40, cutoff=1100, envamt=40)),
+        ("Basse saturée large", dict(vmode=3, unidetune=18, predrive=14, cutoff=650)), ("Basse passe-bande", dict(fmode=2, cutoff=700, reso=40)),
+        ("Basse triangle", dict(o1shape=1, o2shape=1, cutoff=900, envamt=25)),
+    ]:
+        add(nm, BASS, mix(BASSE, **kw))
+    for nm, kw in [
+        ("Lead table vivante", dict(o1tbl=1, o1shape=2.6, l1shapes=30, l1rate=0.5)), ("Lead impulsion", dict(o1shape=4, o2shape=3.5, cutoff=3500)),
+        ("Lead FM doux", dict(o1shape=0, o3shape=0, o3semi=12, fm31=25, mix2=30, cutoff=4000, reso=10)),
+        ("Lead distordu large", dict(vmode=3, unidetune=20, postdist=45, predrive=16)),
+    ]:
+        add(nm, LEAD, mix(LEAD_, **kw))
+    for nm, kw in [
+        ("Nappe FM lente", dict(o1shape=0, o3shape=0, o3semi=12, fm31=30, mix3=0, cutoff=3000)), ("Nappe anneau", dict(mixring=30, o2semi=7)),
+        ("Nappe impulsions", dict(o1shape=4, o2shape=3.8, cutoff=1400)), ("Nappe claire", dict(cutoff=4000, reso=5)),
+        ("Nappe passe-haut", dict(fmode=3, cutoff=500, reso=20)),
+    ]:
+        add(nm, PAD, mix(NAPPE, **kw))
+    for nm, kw in [
+        ("Pluck carré numérique", dict(o1shape=3, o2shape=3)), ("Pluck densité", dict(o1smod=1, o1samt=60, cutoff=1200)),
+        ("Pluck saturé", dict(predrive=16, postdist=30)), ("Pluck cloche FM", dict(o1shape=0, o3shape=0, o3semi=24, fm31=45, mix2=0, ad=900, ar=800, cutoff=4000)),
+    ]:
+        add(nm, PLUCK, mix(PLK, **kw))
+    for nm, kw in [
+        ("Clavier table", dict(o1tbl=1, o1shape=1.5, o2tbl=1, o2shape=2.5)), ("Clavier anneau", dict(mixring=30, o2semi=12)),
+        ("Accords numériques", dict(o2semi=7, cutoff=1500, ad=600, as_=20)),
+    ]:
+        add(nm, KEYS, mix(CLAV, **kw))
+    CORD2 = mix(NAPPE, aa=400, ar=1300, m1a=300, cutoff=3500, reso=5, l1pitch=6, l1rate=5)
+    add("Cordes numériques lentes", STR, mix(CORD2, aa=900, ar=2000))
+    add("Cordes FM", STR, mix(CORD2, o1shape=0, o3shape=0, o3semi=12, fm31=20, mix3=0))
+    CUIV2 = mix(BASE, cutoff=1000, envamt=55, m1a=50, m1d=600, m1s=50, aa=25, ad=700, as_=85, ar=300, o2fine=10)
+    add("Cuivres numériques doux", BRASS, mix(CUIV2, cutoff=700))
+    add("Cuivres larges", BRASS, mix(CUIV2, vmode=3, unidetune=12, cutoff=1200))
+    add("Arpège carré numérique", ARP, mix(PLK, o1shape=3, arp_gate=50, arp_rate=3, arp_mode=1, arp_oct=2))
+    add("Arpège FM clair", ARP, mix(PLK, o1shape=0, o3shape=0, o3semi=24, fm31=35, mix2=0, arp_gate=40, arp_rate=4, arp_mode=3, arp_oct=2))
+    add("Sonar", FX, mix(PLK, o1shape=0, mix1=100, mix2=0, cutoff=4000, reso=20, envamt=10, ad=2000, ar=2000, fmode=0))
+    add("Machine en panne", FX, mix(LEAD_, mixring=60, o2semi=-13, postdist=60, l1rate=7, l1pitch=40))
     return b

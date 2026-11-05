@@ -50,6 +50,9 @@ export function useWriteTarget(channel: number): WriteTarget {
   // plusieurs pas sélectionnés : le verrou est écrit dans chacun
   if (stepEdit && selection.length > 1 && channel === focus && focus < 16)
     return { kind: "steps", cells: selection.map((k) => [Math.floor(k / 1024), k % 1024] as [number, number]) };
+  // v0.47 (maj. 5 nov.) : un seul pas sélectionné (mode Sélection) vaut le pas choisi
+  if (stepEdit && selection.length === 1 && channel === focus && focus < 16)
+    return { kind: "step", lane: Math.floor(selection[0] / 1024), step: selection[0] % 1024 };
   if (stepEdit && step !== null && channel === focus && focus < 16) return { kind: "step", lane, step };
   return { kind: "base" };
 }

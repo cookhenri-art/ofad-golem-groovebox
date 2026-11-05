@@ -16,6 +16,7 @@
 */
 
 #pragma once
+#include "FxBanks.h"
 
 #include "Mastering.h"   // LR4
 #include "ModFx36.h"     // ModLine
@@ -131,6 +132,7 @@ namespace sculptor
                 { "Souffle rythmique", set ({ { "s6on", 1 }, { "s6shape", 8 }, { "s6len", 4 }, { "s6amt", 50 } }) },
                 { "Plucks de filtre (attaque)", set ({ { "trigger", 1 }, { "s7on", 0 }, { "s4on", 1 }, { "s4shape", 10 }, { "s4len", 1 }, { "s4amt", 85 }, { "freso", 55 } }) },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

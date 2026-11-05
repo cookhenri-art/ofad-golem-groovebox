@@ -46,6 +46,7 @@ const FACES: Record<string, { accent: string; panel: string; cheeks?: boolean; t
   ob6:     { accent: "oklch(0.92 0.01 90)",  panel: "oklch(0.12 0.003 250)", cheeks: true, tag: "Poly à filtre d'état" },
   orbit:   { accent: "oklch(0.78 0.15 230)", panel: "oklch(0.15 0.012 260)", tag: "Synthèse vectorielle à orbite" },
   gluta:   { accent: "oklch(0.72 0.19 42)",  panel: "oklch(0.14 0.004 40)",  tag: "Tables d'ondes et physique de mouvement" },
+  gooddoc: { accent: "oklch(0.8 0.13 195)",  panel: "oklch(0.15 0.02 245)",  tag: "Tables d'ondes hybrides, double déformation" },
   fm6:     { accent: "oklch(0.8 0.12 175)",  panel: "oklch(0.16 0.008 40)",  cheeks: true, tag: "FM à 6 opérateurs" },
   fm4:     { accent: "oklch(0.82 0.15 300)", panel: "oklch(0.17 0.012 290)", tag: "FM à 4 opérateurs" },
   fmx:     { accent: "oklch(0.8 0.16 55)",   panel: "oklch(0.16 0.01 50)",   tag: "FM à 6 opérateurs, matrice libre" },
@@ -135,6 +136,16 @@ function Keyboard({ track, color }: { track: number; color: string }) {
     setHeld([...byPointer.current.values()]);
   };
   useEffect(() => () => { for (const n of byPointer.current.values()) actions.noteOff(track, n); byPointer.current.clear(); }, [track]);
+  // v0.47 (maj. 5 nov.) : un doigt levé (ou un geste annulé) n'importe où relâche sa touche — avant, un doigt qui
+  // glissait hors du clavier avant d'être levé laissait la note jouer sans fin (tablette)
+  useEffect(() => {
+    const up = (e: PointerEvent) => { if (byPointer.current.has(e.pointerId)) release(e.pointerId); };
+    const hidden = () => { if (document.hidden) for (const id of [...byPointer.current.keys()]) release(id); };
+    window.addEventListener("pointerup", up, true);
+    window.addEventListener("pointercancel", up, true);
+    document.addEventListener("visibilitychange", hidden);
+    return () => { window.removeEventListener("pointerup", up, true); window.removeEventListener("pointercancel", up, true); document.removeEventListener("visibilitychange", hidden); };
+  }); // eslint-disable-line react-hooks/exhaustive-deps
   const keyProps = (n: number) => ({
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => { e.preventDefault(); e.currentTarget.releasePointerCapture?.(e.pointerId); press(e.pointerId, n, velocityAt(e)); },
     onPointerEnter: (e: React.PointerEvent<HTMLElement>) => { if (byPointer.current.has(e.pointerId)) press(e.pointerId, n, velocityAt(e)); },
@@ -200,7 +211,7 @@ function PadStrip({ track, module: m, lane }: { track: number; module: ModuleDes
     <div className="face-pads">
       {Array.from({ length: 16 }, (_, i) => (
         <button key={i} type="button" className={`face-pad kind--${m.padKinds[i] ?? "sample"}${i === lane ? " is-selected" : ""}${(lit[i] ?? 0) > 0 ? " is-lit" : ""}`}
-          onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); setUi({ lane: i }); const r = e.currentTarget.getBoundingClientRect(); actions.noteOn(track, i, Math.min(1, Math.max(0.2, (r.bottom - e.clientY) / r.height + 0.2))); }}
+          onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); setUi({ lane: i }); const r = e.currentTarget.getBoundingClientRect(); actions.noteOn(track, i, Math.min(1, Math.max(0.2, (r.bottom - e.clientY) / r.height + 0.2)), false); }}
           onPointerUp={() => actions.noteOff(track, i)} onPointerCancel={() => actions.noteOff(track, i)}>
           <b>{i + 1}</b><span>{m.padNames[i]}</span>
         </button>

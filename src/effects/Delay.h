@@ -15,6 +15,7 @@
 
 #include "../dsp/EqFilters.h"
 #include "../engine/Module.h"
+#include "FxBanks.h"
 
 #include <vector>
 
@@ -92,6 +93,7 @@ namespace echo
                 { "Radio lointaine", { { "echocolour", 5 }, { "division", 10 }, { "feedback", 45 }, { "lofi", 40 } } },
                 { "Groove en retard", { { "groove", 30 }, { "mode", 0 }, { "division", 7 }, { "feedback", 30 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

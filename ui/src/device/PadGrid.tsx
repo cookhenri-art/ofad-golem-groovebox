@@ -59,8 +59,8 @@ export function PadGrid() {
       case "play": {
         if (!module) { showMessage("Piste libre : choisissez un instrument (écran PISTES)"); return; }
         // « 16 niveaux » (principe MPC) : le même son sur les 16 pads, de la vélocité 8 à 127
-        if (s.ui.padLevels) { actions.noteOn(t, levelNote(s.ui.lane), (pad + 1) / 16); break; }
-        actions.noteOn(t, padNote(pad, drumPads, s.ui.octave, s.ui.scale, s.ui.root), velocity);
+        if (s.ui.padLevels) { actions.noteOn(t, levelNote(s.ui.lane), (pad + 1) / 16, false); break; }
+        actions.noteOn(t, padNote(pad, drumPads, s.ui.octave, s.ui.scale, s.ui.root), velocity, !drumPads);
         if (drumPads) setUi({ lane: pad });
         break;
       }

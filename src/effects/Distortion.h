@@ -23,6 +23,7 @@
 #include "../dsp/Oversampler.h"
 #include "../engine/Module.h"
 #include "FxMod.h"
+#include "FxBanks.h"
 
 #include <vector>
 
@@ -179,6 +180,7 @@ namespace dist
                                                   { "m1type", 1 }, { "m1div", 6 }, { "m1shape", 1 }, { "m1amt", 90 }, { "m1dest", 16 },
                                                   { "postLpB", 4000 }, { "postHpB", 300 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

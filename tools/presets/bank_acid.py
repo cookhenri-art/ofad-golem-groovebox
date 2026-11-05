@@ -67,4 +67,34 @@ def build():
     a("Larsen", FX, 0, 2500, 100, 20, 2500, 40, keytrack=100, ampdecay=4000)
     a("Robot", FX, 1, 700, 95, 90, 150, 100, drive=10, dist=45, ampdecay=250)
     a("Zap", FX, 0, 3000, 90, 100, 150, 100, tune=12, ampdecay=200)
+
+    # --- v0.47 (maj. 5 nov.) : 36 sons de plus (au moins 90 par synthé)
+    for nm, w, c, r, e, d, ac, kw in [
+        ("Ligne d'aube", 0, 420, 72, 58, 420, 60, {}), ("Bourdon acide", 1, 180, 80, 50, 900, 55, dict(drive=8)),
+        ("Acide caoutchouc", 0, 260, 89, 82, 330, 78, dict(glide=140)), ("Mâchoire", 1, 280, 86, 88, 210, 92, dict(drive=12)),
+        ("Acide mercure", 0, 340, 92, 70, 600, 70, dict(keytrack=45)), ("Pluie de résonance", 0, 230, 97, 92, 190, 88, {}),
+        ("Acide feutré", 1, 200, 66, 45, 700, 45, {}), ("Rouille", 0, 310, 84, 76, 360, 82, dict(drive=16, dist=45)),
+        ("Moustique", 0, 1100, 90, 55, 220, 70, dict(keytrack=70)), ("Acide en apnée", 0, 150, 78, 88, 450, 65, {}),
+        ("Torsade", 1, 260, 91, 90, 280, 85, dict(glide=100, drive=6)), ("Chlore", 0, 500, 82, 62, 260, 72, dict(dist=30)),
+        ("Méduse", 0, 220, 88, 70, 1400, 50, dict(glide=220, ampdecay=2500)), ("Acide pointilliste", 0, 600, 74, 66, 150, 85, dict(ampdecay=250)),
+        ("Acide carré lent", 1, 230, 83, 64, 1800, 50, dict(glide=200)), ("Fonderie", 1, 260, 85, 78, 420, 88, dict(drive=22, dist=70)),
+        ("Électron libre", 0, 380, 95, 85, 320, 90, dict(keytrack=35)), ("Acide jazz", 1, 520, 60, 40, 380, 45, {}),
+        ("Grenouille", 0, 170, 93, 100, 240, 95, {}), ("Bouilloire", 0, 290, 96, 80, 650, 80, dict(drive=10)),
+    ]:
+        a(nm, ACID, w, c, r, e, d, ac, **kw)
+    for nm, w, c, r, e, d, ac, kw in [
+        ("Basse acide douce", 0, 260, 35, 40, 500, 40, {}), ("Basse rebond", 1, 340, 45, 60, 220, 70, dict(ampdecay=400)),
+        ("Basse grave sciée", 0, 200, 30, 35, 800, 35, dict(tune=-12)), ("Basse disco", 1, 450, 40, 55, 260, 60, {}),
+        ("Basse saturée lourde", 0, 280, 40, 50, 500, 55, dict(drive=20, dist=30)), ("Basse étouffée", 1, 140, 20, 30, 900, 25, {}),
+        ("Basse roulante", 0, 360, 50, 60, 300, 65, dict(glide=90)), ("Basse en caoutchouc", 1, 300, 55, 70, 350, 60, dict(glide=150)),
+    ]:
+        a(nm, BASS, w, c, r, e, d, ac, **kw)
+    a("Lead sirène acide", LEAD, 0, 700, 90, 60, 900, 65, tune=12, glide=250)
+    a("Lead résonant pointu", LEAD, 0, 1000, 88, 50, 300, 70, tune=12, keytrack=80)
+    a("Lead carré saturé", LEAD, 1, 650, 80, 60, 500, 75, tune=12, drive=18, dist=35)
+    a("Lead criard", LEAD, 0, 520, 96, 85, 450, 90, tune=12, drive=8)
+    a("Gouttière", FX, 0, 160, 98, 100, 150, 100, tune=12, ampdecay=300)
+    a("Moteur acide", FX, 1, 110, 92, 40, 2500, 30, tune=-12, drive=24, dist=80, ampdecay=4000)
+    a("Ping résonant", FX, 0, 3500, 99, 10, 200, 50, tune=12, keytrack=100, ampdecay=1200)
+    a("Feu d'artifice", FX, 0, 2000, 95, 100, 600, 100, tune=12, drive=14, dist=50, glide=300)
     return b

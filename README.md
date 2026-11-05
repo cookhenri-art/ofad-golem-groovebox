@@ -27,7 +27,7 @@
   <b><a href="../../releases/latest">Télécharger</a></b> ·
   <b><a href="docs/NOTICE.pdf">Notice de prise en main et raccourcis (PDF)</a></b> ·
   <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
-  <b><a href="docs/CATALOGUE.pdf">Catalogue des 34 instruments et 38 effets (PDF)</a></b>
+  <b><a href="docs/CATALOGUE.pdf">Catalogue des 36 instruments et 38 effets (PDF)</a></b>
 </p>
 
 ---
@@ -53,7 +53,7 @@ vocodeurs, sampler de performance, échos à bande, réverbérations, compresseu
 
 - **Application Windows** (autonome), **plugin VST3** pour les logiciels de musique, **application Android** pour téléphone et tablette, avec **contrôleur MIDI** USB ou Bluetooth prêt à jouer.
 - **Interface en français ou en anglais** (*English interface*) : la langue se choisit à l'installation sur Windows, au premier lancement sur Android, et se change dans Réglages.
-- **34 instruments**, **1249 sons d'usine**, **38 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
+- **36 instruments**, **2432 sons d'usine**, **38 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
 - **Vue live** pour le jeu en direct : crossfader ou **pavé vectoriel** à quatre scènes (formes en mouvement, taille, hauteur, rotation), console des 16 pistes avec faders, FX et M / S, et les **16 boutons assignables** avec leurs propres modulations.
 - Logiciel **libre** (AGPL-3.0) : les sources de chaque version sont fournies avec elle.
 
@@ -81,13 +81,13 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
 
 <p align="center"><i>Les repères numérotés sont expliqués dans la <a href="docs/NOTICE.md">notice</a>.</i></p>
 
-### 🎹 Les 34 instruments
+### 🎹 Les 36 instruments
 
 <p align="center">
   <img src="docs/img/galerie/instruments-1.jpg" alt="Instruments : batteries et basses">
   <img src="docs/img/galerie/instruments-2.jpg" alt="Instruments : polys, nappes, sampler">
   <img src="docs/img/galerie/instruments-3.jpg" alt="Instruments : synthés FM et drones">
-  <img src="docs/img/galerie/instruments-4.jpg" alt="Instruments : vocodeurs et entrée audio">
+  <img src="docs/img/galerie/instruments-4.jpg" alt="Instruments : vocodeurs, Pieuvre 8, entrée audio, Glutamake, Good Doctor">
 </p>
 
 ### 🎚️ Les 38 effets
@@ -204,10 +204,10 @@ contrôleur.
 ## 🎹 Instruments
 
 <details>
-<summary><b>Les 34 instruments</b> (cliquer pour déplier)</summary>
+<summary><b>Les 36 instruments</b> (cliquer pour déplier)</summary>
 
 <!-- CATALOGUE:INSTRUMENTS -->
-34 instruments, 1249 sons d'usine rangés par catégories. Le détail (vignettes, principe, sons par catégorie) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
+36 instruments, 2432 sons d'usine rangés par catégories. Le détail (vignettes, principe, sons par catégorie) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
 
 ### Batteries
 
@@ -218,35 +218,37 @@ contrôleur.
 | **Club 90** | Boîte hybride de la fin des années 80 : grosse caisse balayée, cymbales en basse résolution | — |
 | **Dragon Fist** | Boîte analogique compacte et agressive : dix voix, une couleur par voix, distorsion de sortie | — |
 | **Cut of the Beat** | Batterie à échantillons : pads à déposer, précalcul par pad (synthèse ajoutée, sous-harmonique, résolution, écrêtage), GATE, compresseur interne | — |
-| **Kick Killer** | Percussion analogique semi-modulaire : 2 VCO, bruit, filtre en échelle, 3 enveloppes à déclin, séquenceur 8 pas hauteur et vélocité | 11 (Basses 1, Effets 1, Percussions 5, Séquences 4) |
+| **Kick Killer** | Percussion analogique semi-modulaire : 2 VCO, bruit, filtre en échelle, 3 enveloppes à déclin, séquenceur 8 pas hauteur et vélocité | 91 (Basses 11, Effets 11, Percussions 45, Séquences 24) |
 
 ### Basses
 
 | Instrument | Principe | Sons d'usine |
 |---|---|---|
-| **Acid Lover** | Basse monophonique à filtre à diodes, accent et glissé | 54 (Basses 11, Leads 4, Effets 6, Acide 33) |
-| **Fatsub** | Monophonique / duo analogique : 2 oscillateurs, réinjection, filtre en échelle 6 à 24 dB, 2 bus de modulation, DAHDSR bouclables | 58 (Basses 25, Leads 17, Plucks 6, Arpèges 4, Effets 6) |
-| **Hurleur 200** | Deux oscillateurs, filtres passe-haut et passe-bas 12 dB à réinjection saturée qui crient, générateur de modulation à forme réglable, échantillonneur-bloqueur | 15 |
-| **Mono First** | Un oscillateur, mélangeur impulsion / scie / sous-oscillateur / bruit, filtre 24 dB résonant, enveloppe déclenchée par la porte ou le LFO, arpège | 11 |
+| **Acid Lover** | Basse monophonique à filtre à diodes, accent et glissé | 90 (Basses 19, Leads 8, Effets 10, Acide 53) |
+| **Fatsub** | Monophonique / duo analogique : 2 oscillateurs, réinjection, filtre en échelle 6 à 24 dB, 2 bus de modulation, DAHDSR bouclables | 90 (Basses 41, Leads 25, Plucks 10, Arpèges 6, Effets 8) |
+| **Hurleur 200** | Deux oscillateurs, filtres passe-haut et passe-bas 12 dB à réinjection saturée qui crient, générateur de modulation à forme réglable, échantillonneur-bloqueur | 94 (Basses 20, Leads 16, Nappes 6, Plucks 12, Claviers 4, Cordes 3, Cuivres 4, Effets 10, Acide 4) |
+| **Mono First** | Un oscillateur, mélangeur impulsion / scie / sous-oscillateur / bruit, filtre 24 dB résonant, enveloppe déclenchée par la porte ou le LFO, arpège | 90 (Basses 22, Leads 18, Nappes 5, Plucks 10, Claviers 3, Cordes 2, Cuivres 3, Arpèges 4, Effets 8, Acide 4) |
 
 ### Polys
 
 | Instrument | Principe | Sons d'usine |
 |---|---|---|
-| **Poly Five** | Polyphonique analogique à 2 oscillateurs, Poly-Mod, Wheel-Mod, filtre en échelle 24 dB | 56 (Basses 7, Leads 8, Nappes 9, Plucks 5, Claviers 7, Cordes 5, Cuivres 7, Arpèges 4, Effets 4) |
-| **Chorus 80** | Polyphonique à oscillateur numériquement contrôlé, filtre 24 dB, arpège, chorus stéréo à lignes à retard | 56 (Basses 7, Leads 4, Nappes 9, Plucks 6, Claviers 9, Cordes 7, Cuivres 4, Arpèges 7, Effets 3) |
-| **Micropointe** | Polyphonique hybride : 3 oscillateurs numériques, filtre multimode, saturation avant et distorsion après filtre | 59 (Basses 9, Leads 9, Nappes 10, Plucks 7, Claviers 7, Cordes 3, Cuivres 3, Arpèges 5, Effets 6) |
-| **Synthonde** | Balayage de tables d'ondes à 2 oscillateurs mutants, 2 filtres en série ou parallèle | 60 (Basses 8, Leads 8, Nappes 12, Plucks 6, Claviers 7, Cordes 3, Cuivres 3, Arpèges 5, Effets 8) |
+| **Poly Five** | Polyphonique analogique à 2 oscillateurs, Poly-Mod, Wheel-Mod, filtre en échelle 24 dB | 90 (Basses 13, Leads 13, Nappes 15, Plucks 9, Claviers 11, Cordes 8, Cuivres 10, Arpèges 6, Effets 5) |
+| **Chorus 80** | Polyphonique à oscillateur numériquement contrôlé, filtre 24 dB, arpège, chorus stéréo à lignes à retard | 89 (Basses 12, Leads 8, Nappes 15, Plucks 10, Claviers 13, Cordes 10, Cuivres 7, Arpèges 9, Effets 5) |
+| **Micropointe** | Polyphonique hybride : 3 oscillateurs numériques, filtre multimode, saturation avant et distorsion après filtre | 89 (Basses 15, Leads 13, Nappes 15, Plucks 11, Claviers 10, Cordes 5, Cuivres 5, Arpèges 7, Effets 8) |
+| **Synthonde** | Balayage de tables d'ondes à 2 oscillateurs mutants, 2 filtres en série ou parallèle | 89 (Basses 14, Leads 12, Nappes 17, Plucks 10, Claviers 10, Cordes 5, Cuivres 5, Arpèges 7, Effets 9) |
 | **World Tour** | Polyphonique analogique 8 voix : 2 oscillateurs à forme continue, oscillateur de modulation, 2 filtres en échelle (série, parallèle, stéréo), retard diffusant | 103 (Basses 12, Leads 12, Nappes 12, Plucks 11, Claviers 11, Cordes 11, Cuivres 11, Arpèges 11, Effets 12) |
+| **Glutamake** | Tables d'ondes à morphs, bille sur une surface (physique de mouvement) et séquence à couloirs | 89 (Basses 20, Leads 16, Nappes 17, Plucks 10, Claviers 6, Cordes 4, Cuivres 3, Arpèges 4, Effets 4, Synthés 4, Séquences 1) |
+| **Good Doctor** | Trois oscillateurs à tables d'ondes à double déformation, deux filtres en série ou parallèle, distorsion, matrice | 90 (Basses 26, Leads 12, Nappes 12, Plucks 8, Claviers 7, Cordes 5, Cuivres 5, Arpèges 6, Effets 5, Acide 4) |
 
 ### Nappes
 
 | Instrument | Principe | Sons d'usine |
 |---|---|---|
-| **Bignappe One** | Virtuel-analogique à deux parties, unisson épais jusqu'à 8 voix, filtres par partie, chorus intégré | 58 (Basses 6, Leads 8, Nappes 14, Plucks 9, Claviers 4, Cordes 4, Cuivres 3, Arpèges 6, Effets 4) |
-| **Ondes Bretzel** | Hybride numérique : 3 oscillateurs (formes analogiques ou tables), 2 filtres série / parallèle, 4 enveloppes, 3 LFO, matrice | 16 (Basses 2, Leads 2, Nappes 4, Plucks 2, Claviers 2, Arpèges 2, Effets 2) |
-| **État de Grâce** | Polyphonique analogique à 2 oscillateurs à forme continue, filtre d'état 2 pôles passe-bas → réjection → passe-haut, X-Mod | 14 (Basses 2, Leads 2, Nappes 2, Plucks 1, Claviers 3, Cordes 1, Cuivres 1, Effets 2) |
-| **Orbiteur** | Synthèse vectorielle : 4 coins (générateurs d'harmoniques, mélange, filtre) mélangés par un orbe en orbite | 18 (Basses 2, Leads 1, Nappes 7, Plucks 1, Claviers 4, Arpèges 1, Effets 2) |
+| **Bignappe One** | Virtuel-analogique à deux parties, unisson épais jusqu'à 8 voix, filtres par partie, chorus intégré | 89 (Basses 11, Leads 12, Nappes 24, Plucks 12, Claviers 7, Cordes 6, Cuivres 4, Arpèges 8, Effets 5) |
+| **Ondes Bretzel** | Hybride numérique : 3 oscillateurs (formes analogiques ou tables), 2 filtres série / parallèle, 4 enveloppes, 3 LFO, matrice | 90 (Basses 18, Leads 14, Nappes 18, Plucks 12, Claviers 8, Cordes 3, Cuivres 3, Arpèges 6, Effets 8) |
+| **État de Grâce** | Polyphonique analogique à 2 oscillateurs à forme continue, filtre d'état 2 pôles passe-bas → réjection → passe-haut, X-Mod | 89 (Basses 20, Leads 16, Nappes 13, Plucks 11, Claviers 9, Cordes 5, Cuivres 5, Arpèges 4, Effets 6) |
+| **Orbiteur** | Synthèse vectorielle : 4 coins (générateurs d'harmoniques, mélange, filtre) mélangés par un orbe en orbite | 90 (Basses 18, Leads 14, Nappes 22, Plucks 9, Claviers 10, Cordes 3, Cuivres 3, Arpèges 5, Effets 6) |
 
 ### Sampler
 
@@ -277,10 +279,10 @@ contrôleur.
 
 | Instrument | Principe | Sons d'usine |
 |---|---|---|
-| **Robot 78** | Vocodeur analogique 16 canaux : bandes fixes de 50 Hz à 5 080 Hz, souffle et bourdon, aigus directs, maintien, décalage des bandes | 10 (Nappes 2, Effets 3, Voix 5) |
-| **Robot Choral** | Clavier cordes et vocodeur : porteuse à cordes (8' + 4', registre, ensemble), 16 à 40 bandes, formants, gel, sibilantes | 10 (Nappes 3, Effets 1, Voix 6) |
-| **Spectral Vocal** | Vocodeur logiciel à algorithmes : 8 bancs (analogique, numérique, voyelles, inversé, cristal…), formants, expansion, traînes, stéréo, consonnes de synthèse | 12 (Nappes 3, Effets 2, Voix 7) |
-| **Speak Synth** | Processeur vocal à modules parallèles : vocodeur, voix d'ordinateur, boîte parlante, voix modélisée, épaississement | 10 (Effets 3, Voix 7) |
+| **Robot 78** | Vocodeur analogique 16 canaux : bandes fixes de 50 Hz à 5 080 Hz, souffle et bourdon, aigus directs, maintien, décalage des bandes | 90 (Basses 9, Leads 18, Nappes 20, Cordes 3, Effets 11, Voix 29) |
+| **Robot Choral** | Clavier cordes et vocodeur : porteuse à cordes (8' + 4', registre, ensemble), 16 à 40 bandes, formants, gel, sibilantes | 90 (Basses 9, Leads 18, Nappes 21, Cordes 3, Effets 9, Voix 30) |
+| **Spectral Vocal** | Vocodeur logiciel à algorithmes : 8 bancs (analogique, numérique, voyelles, inversé, cristal…), formants, expansion, traînes, stéréo, consonnes de synthèse | 92 (Basses 9, Leads 18, Nappes 21, Cordes 3, Effets 10, Voix 31) |
+| **Speak Synth** | Processeur vocal à modules parallèles : vocodeur, voix d'ordinateur, boîte parlante, voix modélisée, épaississement | 90 (Basses 9, Leads 18, Nappes 18, Cordes 3, Effets 11, Voix 31) |
 
 ### Entrée
 
@@ -304,79 +306,79 @@ contrôleur.
 
 | Effet | Principe | Préréglages |
 |---|---|---|
-| **Prism** | Paramétrique 8 bandes statiques, dynamiques ou à dynamique spectrale (attaque, relâchement), sans latence | 14 |
-| **Ember** | Égaliseur passif de studio : grave accentué et atténué sur la même fréquence, aigu en cloche, étage de lampe | 6 |
-| **Strip** | Tranche de console : filtres 18 / 12 dB, 4 bandes, Q proportionnel ou constant, saturation d'entrée | 6 |
+| **Prism** | Paramétrique 8 bandes statiques, dynamiques ou à dynamique spectrale (attaque, relâchement), sans latence | 28 |
+| **Ember** | Égaliseur passif de studio : grave accentué et atténué sur la même fréquence, aigu en cloche, étage de lampe | 20 |
+| **Strip** | Tranche de console : filtres 18 / 12 dB, 4 bandes, Q proportionnel ou constant, saturation d'entrée | 20 |
 
 ### Compresseurs et dynamique
 
 | Effet | Principe | Préréglages |
 |---|---|---|
-| **Lumen** | Cellule photo-résistive : attaque douce, relâchement en deux temps dépendant du programme | 6 |
-| **Thunder** | Étage à transistor à effet de champ : attaque très rapide, coloration, mode tous rapports | 5 |
-| **Cement** | Compresseur de bus à crans : rapports 2, 4, 10, relâchement automatique, filtre de détection | 5 |
-| **Scalpel** | Compresseur polyvalent à 10 styles (propre, classique, opto, voix, mastering, bus, percussif, pompage, vari-mu, montant), caractère (lampe, diode, brillant), seuil automatique ; sans anticipation (aucune latence) | 15 |
-| **Ceiling** | Limiteur sans anticipation (latence nulle), plafond garanti, écrêtage doux final, mode crête vraie | 5 |
-| **Sentinel** | Porte de bruit à hystérésis et maintien, filtre de détection ; dé-esseur sur la bande des sifflantes, sans latence | 9 |
-| **Quartet** | 4 bandes (compression ou expansion) + 2 bandes flottantes dynamiques, séparation sans latence | 7 |
-| **Velvet** | Vari-mu : le rapport grandit avec le niveau, 6 constantes de temps (2 selon le programme), étage de lampe | 6 |
-| **Bruiser** | Seuil fixe poussé par l'entrée, rapports 1:1 à 20:1 et Nuke, distorsion 2 ou 3, filtres de détection, mode britannique | 5 |
-| **Snap** | Attaque et maintien relevés ou creusés sans seuil (deux paires de suiveurs comparés) | 4 |
+| **Lumen** | Cellule photo-résistive : attaque douce, relâchement en deux temps dépendant du programme | 20 |
+| **Thunder** | Étage à transistor à effet de champ : attaque très rapide, coloration, mode tous rapports | 20 |
+| **Cement** | Compresseur de bus à crans : rapports 2, 4, 10, relâchement automatique, filtre de détection | 20 |
+| **Scalpel** | Compresseur polyvalent à 10 styles (propre, classique, opto, voix, mastering, bus, percussif, pompage, vari-mu, montant), caractère (lampe, diode, brillant), seuil automatique ; sans anticipation (aucune latence) | 20 |
+| **Ceiling** | Limiteur sans anticipation (latence nulle), plafond garanti, écrêtage doux final, mode crête vraie | 20 |
+| **Sentinel** | Porte de bruit à hystérésis et maintien, filtre de détection ; dé-esseur sur la bande des sifflantes, sans latence | 21 |
+| **Quartet** | 4 bandes (compression ou expansion) + 2 bandes flottantes dynamiques, séparation sans latence | 20 |
+| **Velvet** | Vari-mu : le rapport grandit avec le niveau, 6 constantes de temps (2 selon le programme), étage de lampe | 20 |
+| **Bruiser** | Seuil fixe poussé par l'entrée, rapports 1:1 à 20:1 et Nuke, distorsion 2 ou 3, filtres de détection, mode britannique | 20 |
+| **Snap** | Attaque et maintien relevés ou creusés sans seuil (deux paires de suiveurs comparés) | 20 |
 
 ### Mastering
 
 | Effet | Principe | Préréglages |
 |---|---|---|
-| **Varnish** | Chaîne de mastering tout-en-un : égaliseur, dynamique 3 bandes, image stéréo par bande, excitation, maximiseur à deux relâchements (sans pompage), crête vraie, latence nulle | 7 |
+| **Varnish** | Chaîne de mastering tout-en-un : égaliseur, dynamique 3 bandes, image stéréo par bande, excitation, maximiseur à deux relâchements (sans pompage), crête vraie, latence nulle | 21 |
 
 ### Saturation
 
 | Effet | Principe | Préréglages |
 |---|---|---|
-| **Furnace** | Deux moteurs de saturation, 14 algorithmes, asymétrie, 5 routages, filtres, dynamique et réinjection | 16 |
-| **Grinder** | Distorsion multibande : 2 à 4 bandes, chacune avec porte, dynamique, réinjection accordée, 16 algorithmes, asymétrie ; 3 modulateurs | 9 |
-| **Ferrite** | Bande poussée : saturation à mémoire, polarisation, bosse du grave et perte d'aigus selon la vitesse, pleurage, souffle | 5 |
-| **Glow** | Étage de triode : courbe asymétrique (harmoniques paires), polarisation, affaissement de l'alimentation, tonalité | 4 |
+| **Furnace** | Deux moteurs de saturation, 14 algorithmes, asymétrie, 5 routages, filtres, dynamique et réinjection | 22 |
+| **Grinder** | Distorsion multibande : 2 à 4 bandes, chacune avec porte, dynamique, réinjection accordée, 16 algorithmes, asymétrie ; 3 modulateurs | 20 |
+| **Ferrite** | Bande poussée : saturation à mémoire, polarisation, bosse du grave et perte d'aigus selon la vitesse, pleurage, souffle | 21 |
+| **Glow** | Étage de triode : courbe asymétrique (harmoniques paires), polarisation, affaissement de l'alimentation, tonalité | 20 |
 
 ### Échos
 
 | Effet | Principe | Préréglages |
 |---|---|---|
-| **Ricochet** | Écho à caractères : simple, double, ping-pong, bande, analogique | 11 |
-| **Reel** | Bande en boucle, 3 têtes de lecture, intensité jusqu'à l'auto-oscillation, usure, ressort intégré | 6 |
-| **Comet** | Délai multimode : numérique, bande, seau BBD, lo-fi, inverse, filtre balayé, double, ping-pong | 9 |
+| **Ricochet** | Écho à caractères : simple, double, ping-pong, bande, analogique | 21 |
+| **Reel** | Bande en boucle, 3 têtes de lecture, intensité jusqu'à l'auto-oscillation, usure, ressort intégré | 20 |
+| **Comet** | Délai multimode : numérique, bande, seau BBD, lo-fi, inverse, filtre balayé, double, ping-pong | 21 |
 
 ### Réverbérations
 
 | Effet | Principe | Préréglages |
 |---|---|---|
-| **Nave** | Réseau de 8 lignes à retard modulées, déclin RT60, brillance, rapport des graves, premières réflexions | 7 |
-| **Heirloom** | Réverbérations numériques des années 70-80 : réservoir en huit, 6 modes, couleurs 1970 / 1980 / actuelle | 7 |
-| **Gold Leaf** | Plaque à tôle tendue : très dense, amortisseur, pré-délai, brillance | 4 |
-| **Spiral** | Réverbération à ressorts : 1 à 3 ressorts dispersifs (le « boing »), ton, éclaboussure | 4 |
-| **Sovereign** | Réseau de 8 lignes (matrice de Hadamard), premières réflexions, déclin séparé grave / aigu, 6 modes, gel ; sans latence | 6 |
+| **Nave** | Réseau de 8 lignes à retard modulées, déclin RT60, brillance, rapport des graves, premières réflexions | 20 |
+| **Heirloom** | Réverbérations numériques des années 70-80 : réservoir en huit, 6 modes, couleurs 1970 / 1980 / actuelle | 20 |
+| **Gold Leaf** | Plaque à tôle tendue : très dense, amortisseur, pré-délai, brillance | 20 |
+| **Spiral** | Réverbération à ressorts : 1 à 3 ressorts dispersifs (le « boing »), ton, éclaboussure | 20 |
+| **Sovereign** | Réseau de 8 lignes (matrice de Hadamard), premières réflexions, déclin séparé grave / aigu, 6 modes, gel ; sans latence | 20 |
 | **Atmosphere** | Réverbération d'ambiance à 12 algorithmes : salle, plaque, chatoiement, nuage, floraison, pièce, ressort, gonflement, chorale, magnéto, non linéaire, réflexions ; gel, traîne | 22 |
 
 ### Modulation
 
 | Effet | Principe | Préréglages |
 |---|---|---|
-| **Moire** | Ensemble de 2 à 4 voix de lignes à retard modulées (principe BBD) | 4 |
-| **Whirl** | 4 à 12 étages de passe-tout modulés, réinjection, décalage stéréo | 3 |
-| **Contrail** | Flanger à seau (BBD) : ligne courte balayée, réinjection ±, mode matrice (balayage figé), mode inversé | 6 |
-| **Twinspin** | Deux phasers de 4 à 12 étages, deux balayages (libres ou au tempo), série, parallèle ou stéréo | 5 |
-| **Expanse** | Chorus spatial à 4 réglages : deux lignes à seau en opposition, croisées et inversées ; large et compatible mono | 5 |
-| **Trinity** | Trois lignes à seau déphasées de 120° : chorus, vibrato ou ensemble (deux vitesses), largeur, ton | 4 |
+| **Moire** | Ensemble de 2 à 4 voix de lignes à retard modulées (principe BBD) | 20 |
+| **Whirl** | 4 à 12 étages de passe-tout modulés, réinjection, décalage stéréo | 20 |
+| **Contrail** | Flanger à seau (BBD) : ligne courte balayée, réinjection ±, mode matrice (balayage figé), mode inversé | 20 |
+| **Twinspin** | Deux phasers de 4 à 12 étages, deux balayages (libres ou au tempo), série, parallèle ou stéréo | 20 |
+| **Expanse** | Chorus spatial à 4 réglages : deux lignes à seau en opposition, croisées et inversées ; large et compatible mono | 20 |
+| **Trinity** | Trois lignes à seau déphasées de 120° : chorus, vibrato ou ensemble (deux vitesses), largeur, ton | 20 |
 
 ### Filtres et performance
 
 | Effet | Principe | Préréglages |
 |---|---|---|
-| **Staccato** | Capture d'une tranche calée sur le tempo et répétition (stutter), probabilité, chute de hauteur | 3 |
-| **Iris** | Filtre multimode résonant modulé par LFO et par l'enveloppe du signal | 4 |
-| **Hopscotch** | Grille de 16 à 64 pas calée sur le tempo : un effet et son réglage par pas (préréglages par effet et 4 réglages perso) | 10 |
-| **Sculptor** | 9 effets pilotés chacun par sa courbe (14 formes, 1/16 à 4 mesures, au tempo ou à chaque attaque), sur tout le son ou une bande | 12 |
-| **Infinity** | Pédale de boucle : enregistrer, fermer, surcouches, arrêt, effacement ; longueur calée sur les mesures, vitesse, envers | 5 |
+| **Staccato** | Capture d'une tranche calée sur le tempo et répétition (stutter), probabilité, chute de hauteur | 20 |
+| **Iris** | Filtre multimode résonant modulé par LFO et par l'enveloppe du signal | 20 |
+| **Hopscotch** | Grille de 16 à 64 pas calée sur le tempo : un effet et son réglage par pas (préréglages par effet et 4 réglages perso) | 20 |
+| **Sculptor** | 9 effets pilotés chacun par sa courbe (14 formes, 1/16 à 4 mesures, au tempo ou à chaque attaque), sur tout le son ou une bande | 20 |
+| **Infinity** | Pédale de boucle : enregistrer, fermer, surcouches, arrêt, effacement ; longueur calée sur les mesures, vitesse, envers | 20 |
 
 <!-- /CATALOGUE:EFFETS -->
 
@@ -480,7 +482,7 @@ latence (AAudio) ; un appui long vaut un clic droit ; un contrôleur MIDI USB br
 GROOVEBOX/
 ├── src/
 │   ├── engine/        moteur : pistes, séquenceur, scènes, morceau, modulations
-│   ├── instruments/   les 34 instruments
+│   ├── instruments/   les 36 instruments
 │   ├── effects/       les 38 effets
 │   ├── dsp/, synth/   briques de traitement et de synthèse
 │   ├── Montage.*      montage audio

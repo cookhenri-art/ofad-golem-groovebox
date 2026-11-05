@@ -6,7 +6,61 @@ Une grosse version : un nouveau synthé (**Glutamake**), une sécurité renforc�
 à l'échantillon près, le montage audio plus complet, les **MP3** acceptés partout, et la tablette Android
 enfin stable (écran fixe, menus réguliers, sons et projets gardés dans l'application).
 
-## Nouveautés
+## Mise à jour du 5 novembre 2026
+
+Même version 0.47.0, enrichie : un nouveau synthé (**Good Doctor**), **au moins 90 sons d'usine pour chaque
+synthé** (plus de 2 400 en tout), **au moins 20 réglages d'usine pour chaque effet** (plus de 770), le
+séquenceur de **Pieuvre 8** qui se joue comme celui des autres synthés, des menus de pas partout et des
+corrections. Les projets s'ouvrent sans changement ; l'APK s'installe par-dessus la précédente.
+
+### Nouveau synthé : Good Doctor
+- Principe des grands synthés à tables d'ondes « hybrides » : **trois oscillateurs** à tables (12 tables de
+  12 ondes calculées, dont 4 pensées pour les basses : scie qui gronde, synchro balayée, carré qui se pince,
+  sinus sali), position continue.
+- **Deux déformations à la suite par oscillateur** (18 au choix) : synchro, courbures, pulsation, miroir,
+  asymétrie de phase, quantification, FM / AM / anneau par l'oscillateur suivant, FM par le sous-oscillateur,
+  repli, saturation, redressement, bits, passe-bas et passe-haut.
+- **Phase de départ** réglable et part de hasard : une basse attaque toujours pareil, une nappe reste vivante.
+- **Sous-oscillateur** (4 formes, une ou deux octaves sous la note) et **bruit coloré**, chacun avec sa sortie.
+- **Deux filtres** (14 types : échelle 24 / 12 dB, multi en fondu, bande, réjection, agressifs, doux,
+  **peigne + et −**, **formants en voyelles**, **diode**) **en série ou en parallèle** ; chaque oscillateur va
+  vers les deux filtres, un seul, ou **en direct** (le grave reste propre).
+- **Distorsion par voix** (douce, dure, lampe, repli, redresseur, bits, échantillonnage).
+- Trois enveloppes (ampli, filtres, hauteur), deux LFO, deux enveloppes et trois LFO à pas de plus,
+  **matrice de 32 routages, 8 macros**, arpège à pas ; jeu poly, mono ou **unisson jusqu'à 8 voix**.
+- **91 sons d'usine**, dont 26 basses et 4 acides (reese, grognes, 808, FM, synchro, neuro…).
+
+### Au moins 90 sons par synthé
+- Toutes les banques ont été complétées : basses, leads, nappes, plucks, claviers, cordes, cuivres, arpèges,
+  effets (et percussions, séquences ou voix selon l'instrument). Plus de **2 400 sons d'usine** en tout.
+- Chaque son est **mesuré et mis au même niveau** que les autres (intensité perçue, crête, fin du son).
+
+### Au moins 20 réglages d'usine par effet
+- Les 38 effets ont désormais au moins 20 réglages prêts à l'emploi (plus de 500 nouveaux) : égaliseurs,
+  compresseurs, saturations, échos, réverbérations, modulations, filtres, découpes…
+
+### Pieuvre 8 : séquenceur
+- **La dernière note jouée** (clavier, pads, MIDI à l'arrêt) **s'écrit sur le pas choisi**, en vue 8 lignes
+  comme en vue « T en notes » ; les pas posés ensuite sur la ligne de cette piste prennent cette note
+  (en mode « Zones », la note est ramenée dans la zone de la piste, comme le moteur le fait).
+- **Allonger une note** : tirer le bord droit d'un pas (ou la queue d'un pas long), dans les deux vues.
+  Un message rappelle que la durée s'entend quand le **Déclenchement** de la piste est sur « Tant qu'appuyé ».
+- **Un pas sélectionné ouvre son menu** (note, vélocité, durée, décalage, condition, probabilité,
+  répétitions, verrous) au lieu des réglages du pattern ; « Verrous » est aussi proposé pour un seul pas.
+
+### Menus de pas pour tous les synthés et en écriture Acide
+- Sur la façade des synthés, en écriture **À verrous**, un pas choisi ouvre son **menu** sous la rangée :
+  note, vélocité, durée, décalage, condition, probabilité, répétitions.
+- En écriture **Acide**, un **appui long** sur un pas ouvre le même menu, avec en plus des boutons
+  **Accent** et **Glissé** larges (faciles à toucher au téléphone), leur valeur (« … ») et l'octave.
+
+### Corrections
+- Une touche du clavier de la façade pouvait rester enfoncée (et la note jouer sans fin) quand le doigt
+  glissait hors de la touche : elle se relâche maintenant où que le doigt se lève.
+- Unisson large sur un accord joué tout de suite après le choix d'un son : une note pouvait ne plus
+  s'arrêter. Corrigé pour tous les synthés.
+
+## Nouveautés de la 0.47.0
 
 ### Sécurité renforcée
 - Les projets, préréglages et fichiers reçus d'ailleurs sont contrôlés plus strictement à l'ouverture.
@@ -23,7 +77,7 @@ enfin stable (écran fixe, menus réguliers, sons et projets gardés dans l'appl
   angle, chocs) modulent n'importe quel réglage.
 - **Séquence de mouvement** : 4 couloirs de 16 pas (boucle, sens, division, lissage, probabilité).
 - Branché comme les autres synthés : séquenceur à pas, matrice de 32 routages, 4 boutons de modulation,
-  LFO à pas, arpège, 16 boutons assignables, MIDI ; 13 sons d'usine.
+  LFO à pas, arpège, 16 boutons assignables, MIDI ; 90 sons d'usine.
 
 ### Échantillons
 - Les **MP3** sont acceptés partout : pads, samplers, import, Bibliothèque (en plus des WAV, AIFF, FLAC, OGG).
@@ -81,7 +135,55 @@ A big release: a new synth (**Glutamake**), stronger security, sample-accurate a
 audio montage, **MP3** accepted everywhere, and a stable Android tablet experience (fixed screen, consistent
 menus, sounds and projects kept inside the app).
 
-## What's new
+## Update of 5 November 2026
+
+Same 0.47.0 release, extended: a new synth (**Good Doctor**), **at least 90 factory sounds for every synth**
+(over 2,400 in total), **at least 20 factory settings for every effect** (over 770), a **Pieuvre 8** sequencer
+that plays like the other synths, step menus everywhere, and fixes. Projects open unchanged; the APK installs
+over the previous one.
+
+### New synth: Good Doctor
+- Based on the principle of large "hybrid" wavetable synths: **three wavetable oscillators** (12 computed
+  tables of 12 waves, 4 of them made for basses), continuous position.
+- **Two warps in a row per oscillator** (18 to choose from): sync, bends, pulse, mirror, phase asymmetry,
+  quantize, FM / AM / ring from the next oscillator, FM from the sub, fold, saturate, rectify, bits, low-pass
+  and high-pass.
+- Adjustable **start phase** and randomness: basses hit the same every time, pads stay alive.
+- **Sub oscillator** (4 shapes, one or two octaves down) and **coloured noise**, each with its own output.
+- **Two filters** (14 types including **comb + / −**, **vowel formants** and **diode**) **in series or
+  parallel**; each oscillator goes to both filters, one of them, or **direct**.
+- **Per-voice distortion** (soft, hard, tube, fold, rectifier, bits, sample-rate).
+- Three envelopes, two LFOs, plus two envelopes and three step LFOs, **32-slot matrix, 8 macros**, step
+  arpeggiator; poly, mono or **unison up to 8 voices**.
+- **91 factory sounds**, including 26 basses and 4 acid sounds.
+
+### At least 90 sounds per synth
+- Every bank has been completed (bass, leads, pads, plucks, keys, strings, brass, arps, effects, plus
+  percussion, sequences or voices depending on the instrument): over **2,400 factory sounds** in total,
+  each one measured and levelled.
+
+### At least 20 factory settings per effect
+- All 38 effects now have at least 20 ready-to-use settings (more than 500 new ones).
+
+### Pieuvre 8 sequencer
+- **The last note played** (keyboard, pads, MIDI while stopped) **is written to the selected step**, in the
+  8-row view and in the "T as notes" view; steps entered afterwards on that track's row take that note.
+- **Lengthen a note** by dragging the right edge of a step (or the tail of a long one), in both views.
+- **Selecting one step opens its menu** (note, velocity, length, offset, condition, probability, repeats,
+  locks) instead of the pattern settings.
+
+### Step menus on every synth and in Acid writing
+- On a synth panel, in **Locks** writing, a selected step opens its **menu** under the row: note, velocity,
+  length, offset, condition, probability, repeats.
+- In **Acid** writing, a **long press** on a step opens the same menu, plus large **Accent** and **Slide**
+  buttons (easy to hit on a phone), their amount ("…") and the octave.
+
+### Fixes
+- A key of the panel keyboard could stay down (and the note play forever) when the finger slid off it: it
+  is now released wherever the finger lifts.
+- Wide unison on a chord played right after choosing a sound could leave a note hanging. Fixed for all synths.
+
+## What's new in 0.47.0
 
 ### Stronger security
 - Projects, presets and files received from elsewhere are checked more strictly when opened.
@@ -97,7 +199,7 @@ menus, sounds and projects kept inside the app).
   setting.
 - **Motion sequence**: 4 lanes of 16 steps (loop, direction, division, smoothing, probability).
 - Wired like the other synths: step sequencer, 32-slot matrix, 4 mod knobs, step LFOs, arpeggiator,
-  16 assignable knobs, MIDI; 13 factory sounds.
+  16 assignable knobs, MIDI; 90 factory sounds.
 
 ### Samples
 - **MP3** files are accepted everywhere: pads, samplers, import, Library (as well as WAV, AIFF, FLAC, OGG).

@@ -28,6 +28,7 @@
 #pragma once
 
 #include "Dynamics.h"
+#include "FxBanks.h"
 
 namespace grv::effects
 {
@@ -108,6 +109,7 @@ namespace master
                 { "Brillant", { { "drive", 5 }, { "ceiling", -1 }, { "airGain", 2.5f }, { "midGain", -1 }, { "midFreq", 400 }, { "shine", 35 }, { "widthHigh", 130 }, { "truePeak", 1 } }, "Mastering" },
                 { "S\xC3\xA9" "curit\xC3\xA9 seulement", { { "eqOn", 0 }, { "dynOn", 0 }, { "imgOn", 0 }, { "excOn", 0 }, { "drive", 0 }, { "ceiling", -1 }, { "clipAmt", 0 }, { "truePeak", 1 } }, "Mastering" },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

@@ -25,6 +25,7 @@
 #pragma once
 
 #include "ModFx.h"
+#include "FxBanks.h"
 
 #include <array>
 #include <vector>
@@ -88,6 +89,7 @@ namespace flanger
                 { "Jet invers\xC3\xA9", { { "mode", 1 }, { "feedback", 30 }, { "depth", 80 }, { "mix", 55 } } },
                 { "Cal\xC3\xA9 sur 2 mesures", { { "sync", 1 }, { "division", 3 }, { "depth", 75 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -194,6 +196,7 @@ namespace phaser2
                 { "Cal\xC3\xA9 sur le tempo", { { "sync", 1 }, { "divisionA", 4 }, { "divisionB", 6 } } },
                 { "Doux", { { "stagesA", 0 }, { "stagesB", 0 }, { "depthA", 40 }, { "depthB", 35 }, { "feedbackA", 10 }, { "feedbackB", 0 }, { "mix", 40 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -302,6 +305,7 @@ namespace dimension
             m.sections = { { "dimension", "Dimension", "lfo", { "mode", "width", "tone", "mix" }, "main" } };
             m.presets = { { "R\xC3\xA9glage 2", {} }, { "R\xC3\xA9glage 1 (subtil)", { { "mode", 0 } } }, { "R\xC3\xA9glage 3", { { "mode", 2 } } },
                           { "R\xC3\xA9glage 4 (marqu\xC3\xA9)", { { "mode", 3 } } }, { "Nappe large", { { "mode", 2 }, { "mix", 80 } } } };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

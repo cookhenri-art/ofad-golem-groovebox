@@ -33,6 +33,7 @@
 #include "ModFx36.h"
 #include "SpaceFx.h"
 #include "../dsp/Oversampler.h"
+#include "FxBanks.h"
 
 #include <array>
 #include <vector>
@@ -71,6 +72,7 @@ namespace tapesat
                           { "Cassette fatigu\xC3\xA9" "e", { { "speed", 0 }, { "wow", 60 }, { "hiss", 35 }, { "treble", -6 } } },
                           { "Master 76 cm/s", { { "speed", 2 }, { "drive", 2 }, { "bump", 1 }, { "wow", 0 }, { "output", -1 } } },
                           { "Batterie \xC3\xA9" "cras\xC3\xA9" "e", { { "drive", 20 }, { "bias", 30 }, { "output", -10 } } } };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -158,6 +160,7 @@ namespace tubesat
             m.presets = { { "Chaleur", {} }, { "Pr\xC3\xA9" "ampli pouss\xC3\xA9", { { "drive", 75 }, { "sag", 50 }, { "output", -8 } } },
                           { "Couleur l\xC3\xA9g\xC3\xA8re (bus)", { { "drive", 15 }, { "sag", 10 }, { "output", 0 }, { "mix", 60 } } },
                           { "Voix sale", { { "drive", 60 }, { "bias", 45 }, { "tone", 62 }, { "output", -6 } } } };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -241,6 +244,7 @@ namespace distcomp
                           { "Couleur 1:1", { { "ratio", 0 }, { "audio", 1 }, { "input", 10 }, { "output", -3 } } },
                           { "Britannique", { { "british", 1 }, { "ratio", 5 }, { "attack", 2 }, { "release", 3 }, { "input", 20 } } },
                           { "Basse tenue", { { "ratio", 2 }, { "detector", 1 }, { "attack", 6 }, { "release", 7 }, { "audio", 1 } } } };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -329,6 +333,7 @@ namespace transient
             m.presets = { { "Attaque en avant", {} }, { "Batterie s\xC3\xA8" "che", { { "attack", 30 }, { "sustain", -60 } } },
                           { "Ambiance relev\xC3\xA9" "e", { { "attack", -20 }, { "sustain", 70 }, { "speed", 2 } } },
                           { "Claque", { { "attack", 90 }, { "clip", 1 }, { "output", -4 } } } };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -401,6 +406,7 @@ namespace chorus3
             m.presets = { { "Trois voix", {} }, { "Ensemble de cordes", { { "mode", 2 }, { "depth", 60 }, { "mix", 60 } } },
                           { "Vibrato", { { "mode", 1 }, { "rate", 5 }, { "depth", 35 }, { "mix", 100 } } },
                           { "Large et lent", { { "rate", 0.15f }, { "depth", 80 }, { "mix", 55 } } } };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -491,6 +497,7 @@ namespace prestige
                           { "\xC3\x89glise", { { "mode", 3 }, { "decay", 6 }, { "size", 160 }, { "predelay", 40 } } },
                           { "Studio serr\xC3\xA9", { { "mode", 4 }, { "decay", 0.6f }, { "early", 60 }, { "mix", 20 } } },
                           { "Halo infini", { { "mode", 5 }, { "decay", 18 }, { "modulation", 70 }, { "highmult", 0.8f } } } };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

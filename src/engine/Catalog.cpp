@@ -29,6 +29,7 @@
 #include "../instruments/Bitmask.h"
 #include "../instruments/Orbit.h"
 #include "../instruments/Glutamake.h"
+#include "../instruments/GoodDoctor.h"
 #include "../instruments/Dfam.h"
 #include "../instruments/Vocoders.h"
 #include "../effects/Distortion.h"
@@ -99,6 +100,7 @@ namespace
             { [] { return &octa::desc(); },    [] { return std::make_unique<OctaSampler>(); } },
             { [] { return &input::desc(); },   [] { return std::make_unique<AudioInput>(); } },
             { [] { return &gluta::desc(); },   [] { return std::make_unique<Glutamake>(); } }, // v0.47 : à la fin (ordre des instruments inchangé)
+            { [] { return &gdoc::desc(); },    [] { return std::make_unique<GoodDoctor>(); } }, // v0.47 (maj. 5 nov.) : à la fin (ordre des instruments inchangé)
         };
         return e;
     }

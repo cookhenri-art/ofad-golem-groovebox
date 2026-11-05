@@ -14,6 +14,7 @@
 
 #include "../dsp/EqFilters.h"
 #include "../engine/Module.h"
+#include "FxBanks.h"
 
 #include <vector>
 
@@ -64,6 +65,7 @@ namespace verb
                 { "Caisse claire", { { "size", 35 }, { "decay", 1.1f }, { "predelay", 10 }, { "brightness", 9000 }, { "diffusion", 90 }, { "mix", 30 } } },
                 { "Nappe infinie", { { "size", 90 }, { "decay", 18 }, { "character", 70 }, { "mix", 45 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;

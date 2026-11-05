@@ -16,6 +16,7 @@
 #include "../dsp/EqFilters.h"
 #include "../engine/Module.h"
 #include "../synth/SynthCore.h"
+#include "FxBanks.h"
 
 #include <vector>
 
@@ -67,6 +68,7 @@ namespace chorus
                 { "Flanger", { { "voices", 0 }, { "delay", 1.5f }, { "depth", 1.2f }, { "feedback", 70 }, { "rate", 0.15f } } },
                 { "Vibrato", { { "voices", 0 }, { "rate", 5.5f }, { "depth", 1.0f }, { "mix", 100 }, { "width", 0 } } },
             };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -167,6 +169,7 @@ namespace phaser
                            { "levels", "Niveaux", "lfo", { "mix" }, "main" } };
             m.presets = { { "Classique", {} }, { "Lent et large", { { "rate", 0.08f }, { "stages", 3 }, { "depth", 90 } } },
                           { "Cal\xC3\xA9 sur la mesure", { { "sync", 1 }, { "division", 4 }, { "feedback", 70 } } } };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -255,6 +258,7 @@ namespace stutter
             m.sections = { { "stutter", "R\xC3\xA9p\xC3\xA9tition", "seq", { "mode", "division", "length", "chance", "gate", "pitch", "decay", "mix" }, "main" } };
             m.presets = { { "Roulement 1/16", { { "mode", 1 } } }, { "Hasard 1/32", { { "mode", 2 }, { "division", 5 }, { "chance", 35 } } },
                           { "Arr\xC3\xAAt de bande", { { "mode", 1 }, { "division", 1 }, { "pitch", -24 }, { "decay", 40 } } } };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
@@ -384,6 +388,7 @@ namespace filterfx
             m.presets = { { "Ouvert", {} }, { "Auto-wah", { { "type", 2 }, { "cutoff", 400 }, { "reso", 60 }, { "envdepth", 80 }, { "envspeed", 60 } } },
                           { "Balayage 1 mes.", { { "cutoff", 1200 }, { "reso", 45 }, { "division", 4 }, { "lfodepth", 70 } } },
                           { "Coupe-bas de break", { { "type", 4 }, { "cutoff", 600 }, { "reso", 30 } } } };
+            grv::effects::addFxBank (m); // v0.47 (maj. 5 nov.) : réglages d'usine supplémentaires
             return m;
         }();
         return d;
