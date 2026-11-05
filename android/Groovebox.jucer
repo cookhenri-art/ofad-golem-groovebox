@@ -115,7 +115,7 @@
         <FILE id="YWmZpz" name="UiData.h" compile="0" resource="0" file="generated/UiData.h"/>
       </GROUP>
   </MAINGROUP>
-  <JUCEOPTIONS JUCE_WEB_BROWSER="1" JUCE_USE_CURL="0" JUCE_VST3_CAN_REPLACE_VST2="0" JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <JUCEOPTIONS JUCE_USE_MP3AUDIOFORMAT="1" JUCE_WEB_BROWSER="1" JUCE_USE_CURL="0" JUCE_VST3_CAN_REPLACE_VST2="0" JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
   <MODULES>
     <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>

@@ -2085,7 +2085,7 @@ juce::String GrooveboxProcessor::loadSampleBytes (int track, int index, const ju
     std::unique_ptr<juce::AudioFormatReader> reader (
         formats.createReaderFor (std::make_unique<juce::MemoryInputStream> (bytes->data(), bytes->size(), false)));
     if (reader == nullptr || reader->sampleRate < 8000.0 || reader->sampleRate > 384000.0)
-        return juce::String::fromUTF8 ("Format non reconnu : WAV, AIFF, FLAC ou OGG");
+        return juce::String::fromUTF8 ("Format non reconnu : WAV, AIFF, FLAC, OGG ou MP3");
 
     // 3 minutes au plus, et 10 millions d'images au plus (mémoire bornée quelle que soit la fréquence)
     const auto maxLength = std::min ((juce::int64) (reader->sampleRate * 180.0), (juce::int64) 10'000'000);

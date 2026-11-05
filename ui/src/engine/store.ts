@@ -453,6 +453,7 @@ function onFileDone(payload: unknown) {
   else if (r.kind === "save") showMessage("Projet enregistré");
   else if (r.kind === "folder") { showMessage("Dossier choisi"); void actions.refreshFolders(); }
   else if (r.kind === "import") showMessage("Échantillons importés : Bibliothèque › Importés");
+  else if (r.kind === "perso") showMessage("Sons du dossier perso copiés : Bibliothèque › Perso");
   else if (r.kind === "sample") {
     showMessage("Échantillon chargé");
     void (async () => {
@@ -1032,7 +1033,7 @@ export const actions = {
   },
   loadSampleFile(track: number, index: number, relative: string) { void call("loadSampleFile", track, index, relative); },
   /** v0.47.0 : copie des échantillons choisis dans le dossier de l'application (une fois). */
-  importSamples() { void call("importSamples"); },
+  importSamples(folder = false) { void call("importSamples", folder ? 1 : 0); },
   openProjectFile(relative: string) { void call("openProjectFile", relative); },
   /** asTemplate (v0.46) : modèle — réglages, sons et effets gardés ; patterns, verrous et morceau retirés. */
   async saveProjectNamed(name: string, overwrite: boolean, asTemplate = false): Promise<string> {

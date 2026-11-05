@@ -74,7 +74,9 @@ export function FolderBrowser({ kind, title, onPick, onClose, compact }: Props) 
         })}
         {list && items.length === 0 && (
           <li className="more">{f ? "Aucun fichier ne correspond." : kind === "samples"
-            ? "Aucun fichier audio ici (WAV, AIFF, FLAC, OGG). Choisissez le dossier dans les Réglages."
+            ? (folders?.canChoose === false
+              ? "Aucun fichier audio ici (WAV, AIFF, FLAC, OGG, MP3). Pour ajouter vos sons : « Échantillon… » sur une piste, ou Réglages › Importer des fichiers… / Dossier perso…"
+              : "Aucun fichier audio ici (WAV, AIFF, FLAC, OGG, MP3). Choisissez le dossier dans les Réglages.")
             : "Aucun projet ici. Enregistrez-en un dans le dossier, ou choisissez le dossier dans les Réglages."}</li>
         )}
         {list && list.items.length >= 1000 && <li className="more">Les 1000 premiers éléments seulement : rangez le dossier en sous-dossiers.</li>}

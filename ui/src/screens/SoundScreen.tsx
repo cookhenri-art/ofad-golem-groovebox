@@ -94,7 +94,7 @@ export function SoundScreen() {
                 <button type="button" className="touch touch--quiet" onClick={() => void actions.autoSlice(focus, false, 16)}>Découper ×16</button>
                 <button type="button" className="touch touch--quiet" onClick={() => void actions.autoSlice(focus, true, 16)}>Sur les attaques</button>
               </>}
-              <input ref={fileInput} type="file" accept=".wav,.aif,.aiff,.flac,.ogg,audio/*" className="sr-only"
+              <input ref={fileInput} type="file" accept=".wav,.aif,.aiff,.flac,.ogg,.mp3,audio/*" className="sr-only"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) void actions.loadSample(focus, sampleIndex, f); e.target.value = ""; }} />
             </div>
           )}

@@ -2,6 +2,10 @@
 
 *English below.*
 
+Une grosse version : un nouveau synthé (**Glutamake**), une sécurité renforcée, l'enregistrement audio calé
+à l'échantillon près, le montage audio plus complet, les **MP3** acceptés partout, et la tablette Android
+enfin stable (écran fixe, menus réguliers, sons et projets gardés dans l'application).
+
 ## Nouveautés
 
 ### Sécurité renforcée
@@ -20,6 +24,13 @@
 - **Séquence de mouvement** : 4 couloirs de 16 pas (boucle, sens, division, lissage, probabilité).
 - Branché comme les autres synthés : séquenceur à pas, matrice de 32 routages, 4 boutons de modulation,
   LFO à pas, arpège, 16 boutons assignables, MIDI ; 13 sons d'usine.
+
+### Échantillons
+- Les **MP3** sont acceptés partout : pads, samplers, import, Bibliothèque (en plus des WAV, AIFF, FLAC, OGG).
+- Sur tablette, tout passe par l'application : un son pris par **« Échantillon… »** sur une piste est chargé
+  tout de suite **et** rangé dans **Bibliothèque › Importés** ; **Réglages › Dossier perso…** copie tous les
+  sons d'un dossier du téléphone (sous-dossiers compris) dans **Bibliothèque › Perso** (le refaire ajoute les
+  nouveaux) ; vos prises audio sont dans **« Mes enregistrements »**.
 
 ### Enregistrement audio
 - **Calée sur la lecture** : la prise démarre avec la lecture et s'arrête pile, à l'échantillon près
@@ -41,13 +52,14 @@
 - **Appui long** (clic droit sur ordinateur) : saisie de la valeur exacte sur les envois et les valeurs des scènes.
 
 ### Tablette et téléphone (Android)
-- L'écran reste fixe ; les menus des réglages ont toujours la même taille et leur liste défile.
+- L'écran reste fixe, sans tremblement : seuls les listes, le montage et les façades en grand défilent ;
+  les menus des réglages ont toujours la même taille et leur liste défile.
 - Enregistrer et ouvrir les projets **dans l'application** (liste des projets) ; le sélecteur du système ne
   sert plus qu'à importer ou exporter une copie.
 - Le clavier ne décale plus l'écran ; la saisie d'une valeur reste visible au-dessus du clavier.
 - Le son n'est jamais coupé quand une liste ou un menu s'ouvre (choix de la piste, du synthé…).
-- Dossiers propres à l'application : **« Mes enregistrements »** apparaît dans la Bibliothèque, et
-  **Réglages → Importer…** copie une fois les échantillons du téléphone dans le dossier de l'application.
+- Choisir un échantillon avec le sélecteur du système ne fait plus planter l'application, et les fichiers
+  choisis sont reconnus par leur vrai nom (les WAV étaient parfois refusés).
 - Montage audio : glisser au doigt fait défiler les voies (de côté et vers le bas) ; toucher un clip le
   choisit, puis on le tire pour le déplacer.
 
@@ -57,12 +69,17 @@
 | `OFAD-GOLEM-0.47.0-Windows-installateur.exe` | Windows 10 / 11 (application, plugin VST3, notice) |
 | `OFAD-GOLEM-0.47.0-Android.apk` | Android (tablette, téléphone) |
 | `OFAD-GOLEM-0.47.0-Mac-app.zip`, `-Mac-VST3.zip`, `-Mac-AU.zip` | macOS (non signé : voir « Sur Mac » dans le README) |
+| `OFAD-GOLEM-0.47.0-iOS-non-signe.ipa` | iPhone / iPad (non signée : à installer avec AltStore ou Sideloadly) |
 | `OFAD-GOLEM-0.47.0-sources.tar.gz` | Sources (AGPL-3.0) |
 | `SHA256SUMS.txt` | Empreintes de tous les fichiers ci-dessus |
 
 ---
 
 # OFAD GOLEM 0.47.0 (English)
+
+A big release: a new synth (**Glutamake**), stronger security, sample-accurate audio recording, a fuller
+audio montage, **MP3** accepted everywhere, and a stable Android tablet experience (fixed screen, consistent
+menus, sounds and projects kept inside the app).
 
 ## What's new
 
@@ -82,6 +99,13 @@
 - Wired like the other synths: step sequencer, 32-slot matrix, 4 mod knobs, step LFOs, arpeggiator,
   16 assignable knobs, MIDI; 13 factory sounds.
 
+### Samples
+- **MP3** files are accepted everywhere: pads, samplers, import, Library (as well as WAV, AIFF, FLAC, OGG).
+- On tablets everything stays inside the app: a sound picked with **"Sample…"** on a track is loaded at once
+  **and** stored in **Library › Importés**; **Settings › Personal folder…** copies every sound of a phone folder
+  (subfolders included) into **Library › Perso** (do it again to add new ones); your audio takes are in
+  **"Mes enregistrements"**.
+
 ### Audio recording
 - **Follow playback**: the take starts with playback and stops exactly, to the sample.
 - **Perfect loop**: one lead-in cycle, then exactly one cycle, with a seamless end-to-start join.
@@ -98,10 +122,21 @@
 - **Long press** (right-click on desktop): exact value entry on sends and scene values.
 
 ### Tablet and phone (Android)
-- The screen stays put; settings menus keep the same size and scroll.
+- The screen stays put, with no more jitter: only lists, the montage and enlarged faces scroll; settings menus
+  keep the same size and scroll.
 - Save and open projects **inside the app**; the system picker is only for importing or exporting a copy.
 - The keyboard no longer shifts the screen.
 - Sound never stops when a list or menu opens (track or synth choice…).
-- App-own folders: **"Mes enregistrements"** shows in the Library, and **Settings → Import…** copies phone
-  samples once into the app folder.
+- Picking a sample with the system file picker no longer crashes the app, and picked files are recognised by
+  their real name (WAV files were sometimes refused).
 - Audio montage: swipe to scroll the lanes (sideways and down); tap a clip to select it, then drag it.
+
+### Files in this release
+| File | For |
+|---|---|
+| `OFAD-GOLEM-0.47.0-Windows-installateur.exe` | Windows 10 / 11 (app, VST3 plugin, manual) |
+| `OFAD-GOLEM-0.47.0-Android.apk` | Android (tablet, phone) |
+| `OFAD-GOLEM-0.47.0-Mac-app.zip`, `-Mac-VST3.zip`, `-Mac-AU.zip` | macOS (unsigned: see "On Mac" in the README) |
+| `OFAD-GOLEM-0.47.0-iOS-non-signe.ipa` | iPhone / iPad (unsigned: install with AltStore or Sideloadly) |
+| `OFAD-GOLEM-0.47.0-sources.tar.gz` | Sources (AGPL-3.0) |
+| `SHA256SUMS.txt` | Checksums of all the files above |

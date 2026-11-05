@@ -3269,5 +3269,16 @@
 "Préréglages de l'effet : ceux d'usine et les vôtres (enregistrer, rappeler)": "Effect presets: factory ones and yours (save, recall)",
 "Préréglages de {1}": "Presets for {1}",
 "Préréglages de {1} (actuel : {2})": "Presets for {1} (current: {2})",
-"Préréglages de l'effet {1}": "Presets for effect {1}"
+"Préréglages de l'effet {1}": "Presets for effect {1}",
+"Importer des fichiers…": "Import files…",
+"Dossier perso…": "Personal folder…",
+"Copier des échantillons du téléphone dans l'application (une fois) : ils sont ensuite dans la Bibliothèque, dossier Importés": "Copy samples from the phone into the app (once): they are then in the Library, Importés folder",
+"Votre dossier de sons sur le téléphone : tous ses sons (sous-dossiers compris) sont copiés dans la Bibliothèque › Perso. Le choisir de nouveau ajoute les nouveaux sons.": "Your sounds folder on the phone: all its sounds (subfolders included) are copied into Library › Perso. Choose it again to add new sounds.",
+"Échantillons importés : Bibliothèque › Importés": "Samples imported: Library › Importés",
+"Sons du dossier perso copiés : Bibliothèque › Perso": "Personal folder sounds copied: Library › Perso",
+"Aucun fichier audio ici (WAV, AIFF, FLAC, OGG, MP3). Pour ajouter vos sons : « Échantillon… » sur une piste, ou Réglages › Importer des fichiers… / Dossier perso…": "No audio files here (WAV, AIFF, FLAC, OGG, MP3). To add your sounds: \"Sample…\" on a track, or Settings › Import files… / Personal folder…",
+"Aucun fichier audio ici (WAV, AIFF, FLAC, OGG, MP3). Choisissez le dossier dans les Réglages.": "No audio files here (WAV, AIFF, FLAC, OGG, MP3). Choose the folder in Settings.",
+"Sur tablette, les sons sont gardés dans l'application. Un son pris par « Échantillon… » sur une piste est chargé et copié dans Bibliothèque › Importés ; « Dossier perso… » copie tous les sons d'un dossier du téléphone dans Bibliothèque › Perso ; vos prises sont dans « Mes enregistrements ».": "On tablets, sounds are kept inside the app. A sound picked with \"Sample…\" on a track is loaded and copied into Library › Importés; \"Personal folder…\" copies all the sounds of a phone folder into Library › Perso; your takes are in \"Mes enregistrements\".",
+"Aucun échantillon importé (formats : WAV, AIFF, FLAC, OGG, MP3 ; 64 Mo au plus)": "No sample imported (formats: WAV, AIFF, FLAC, OGG, MP3; 64 MB max)",
+"Format non reconnu : WAV, AIFF, FLAC, OGG ou MP3": "Unknown format: WAV, AIFF, FLAC, OGG or MP3"
 }

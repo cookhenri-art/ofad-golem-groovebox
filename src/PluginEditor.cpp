@@ -7,6 +7,7 @@
 #include "engine/Bridge.h"
 #include "UserPresets.h"
 #include "Folders.h"
+#include <thread>
 #include "PerfStats.h"
 
 #include <unordered_map>
@@ -70,6 +71,77 @@ juce::String strArg (const Args& a, int i, int maxLength)
 
 /** Les réponses sont des textes JSON en ASCII : l'interface les décode avec JSON.parse. */
 juce::var json (const std::string& s) { return juce::var (juce::String (s)); }
+/** v0.47.0 : vrai nom d'un fichier choisi. Sur tablette, l'adresse rendue par le sélecteur du système
+    (content://…/document/audio%3A1234) ne contient pas le nom : on le demande au fournisseur du
+    document, et, sans extension audio, on la déduit du type annoncé (audio/mpeg → .mp3…). */
+juce::String chosenFileName (const juce::URL& url)
+{
+    if (url.isLocalFile()) return url.getLocalFile().getFileName();
+    juce::String name = juce::URL::removeEscapeChars (url.getFileName());
+   #if JUCE_ANDROID
+    const auto info = juce::AndroidDocument::fromDocument (url).getInfo();
+    if (info.getName().isNotEmpty()) name = info.getName();
+    if (! juce::File::createFileWithoutCheckingPath ("/" + name).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3"))
+    {
+        const auto mime = info.getType().toLowerCase();
+        const char* ext = mime.contains ("mpeg") || mime.contains ("mp3") ? ".mp3" : mime.contains ("wav") ? ".wav" : mime.contains ("flac") ? ".flac"
+                        : mime.contains ("ogg") ? ".ogg" : mime.contains ("aif") ? ".aiff" : "";
+        name = name.fromLastOccurrenceOf (":", false, false) + ext;
+    }
+   #endif
+    return name;
+}
+
+/** v0.47.0 : copie des échantillons choisis dans la Bibliothèque de l'application : des fichiers dans
+    « Importés », tout un dossier du téléphone (sous-dossiers compris) dans « Perso » (dossier perso choisi
+    dans les Réglages ; le choisir de nouveau ajoute les nouveaux sons, ceux déjà copiés sont sautés). Jamais d'écrasement ; 64 Mo par fichier ;
+    1 000 fichiers et 2 Go au plus par import. Renvoie un message vide si au moins un fichier est copié. */
+juce::String importSampleUrls (const juce::Array<juce::URL>& urls, bool wholeFolder)
+{
+    auto root = Folders::get (Folders::samples).getChildFile (wholeFolder ? juce::String ("Perso") : juce::String::fromUTF8 ("Import\xC3\xA9s"));
+    if (! root.createDirectory()) return juce::String::fromUTF8 ("Dossier des échantillons inaccessible");
+    const juce::String exts ("wav;aif;aiff;flac;ogg;mp3");
+    int copied = 0, seen = 0;
+    juce::int64 total = 0;
+    constexpr juce::int64 maxFile = (juce::int64) 64 * 1024 * 1024, maxTotal = (juce::int64) 2048 * 1024 * 1024;
+    auto copyOne = [&] (const juce::String& rawName, const juce::File& dir, std::unique_ptr<juce::InputStream> in)
+    {
+        const auto name = Folders::cleanFileName (rawName);
+        auto f = dir.getChildFile (name);
+        if (name.isEmpty() || ! f.hasFileExtension (exts) || in == nullptr) return;
+        if (in->getTotalLength() > maxFile) return;
+        juce::MemoryBlock bytes;
+        in->readIntoMemoryBlock (bytes, maxFile + 1);
+        if (bytes.getSize() == 0 || (juce::int64) bytes.getSize() > maxFile || total + (juce::int64) bytes.getSize() > maxTotal) return;
+        // déjà importé (même nom, même taille) : on ne le recopie pas
+        if (f.existsAsFile() && f.getSize() == (juce::int64) bytes.getSize()) { ++copied; return; }
+        if (f.exists()) f = f.getNonexistentSibling();
+        if (f.replaceWithData (bytes.getData(), bytes.getSize())) { ++copied; total += (juce::int64) bytes.getSize(); }
+    };
+    for (const auto& url : urls)
+    {
+        if (! wholeFolder)
+        {
+            if (++seen > 1000) break;
+            copyOne (chosenFileName (url), root,
+                     url.createInputStream (juce::URL::InputStreamOptions (juce::URL::ParameterHandling::inAddress)));
+            continue;
+        }
+        // un dossier entier : tous ses sons, à plat dans « Perso »
+        const auto doc = url.isLocalFile() ? juce::AndroidDocument::fromFile (url.getLocalFile()) : juce::AndroidDocument::fromTree (url);
+        if (! doc.hasValue()) continue;
+        const auto& dir = root;
+        for (const auto& child : juce::AndroidDocumentIterator::makeRecursive (doc))
+        {
+            if (++seen > 1000 || total >= maxTotal) break;
+            const auto info = child.getInfo();
+            if (info.isDirectory() || ! info.canRead()) continue;
+            if (! juce::File (dir.getChildFile (info.getName())).hasFileExtension (exts)) continue;
+            copyOne (info.getName(), dir, child.createInputStream());
+        }
+    }
+    return copied > 0 ? juce::String() : juce::String::fromUTF8 ("Aucun échantillon importé (formats : WAV, AIFF, FLAC, OGG, MP3 ; 64 Mo au plus)");
+}
 } // namespace
 
 //==============================================================================
@@ -1092,28 +1164,36 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         const auto t = intArg (a, 0, 0, T, -1), i = intArg (a, 1, 0, maxSamples - 1, -1);
         done (juce::var());
         if (t < 0 || i < 0) return;
-        chooser = std::make_unique<juce::FileChooser> (juce::String::fromUTF8 ("Choisir un fichier audio"), Folders::get (Folders::samples), "*.wav;*.aif;*.aiff;*.flac;*.ogg");
+        chooser = std::make_unique<juce::FileChooser> (juce::String::fromUTF8 ("Choisir un fichier audio"), Folders::get (Folders::samples), "*.wav;*.aif;*.aiff;*.flac;*.ogg;*.mp3");
         chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                               [this, &proc, t, i] (const juce::FileChooser& fc)
         {
             const auto url = fc.getURLResult();
             if (url.isEmpty()) return;
+            // v0.47.0 : sur tablette, le travail commence une fois l'application revenue au premier plan
+            // (lire et charger pendant son retour la faisait planter)
+            juce::Component::SafePointer<GrooveboxEditor> self (this);
+            juce::Timer::callAfterDelay (Folders::canChoose() ? 1 : 400, [self, &proc, t, i, url]
+            {
+            if (self == nullptr) return;
+            auto* ed = self.getComponent();
             auto in = url.createInputStream (juce::URL::InputStreamOptions (juce::URL::ParameterHandling::inAddress));
-            if (in == nullptr) { finishFile ("sample", "Fichier illisible"); return; }
-            if (in->getTotalLength() > (juce::int64) 64 * 1024 * 1024) { finishFile ("sample", "Fichier trop lourd (64 Mo au plus)"); return; }
+            if (in == nullptr) { ed->finishFile ("sample", "Fichier illisible"); return; }
+            if (in->getTotalLength() > (juce::int64) 64 * 1024 * 1024) { ed->finishFile ("sample", "Fichier trop lourd (64 Mo au plus)"); return; }
             juce::MemoryBlock bytes;
             in->readIntoMemoryBlock (bytes, 64 * 1024 * 1024 + 1);
-            if (bytes.getSize() > (size_t) 64 * 1024 * 1024) { finishFile ("sample", "Fichier trop lourd (64 Mo au plus)"); return; }
-            const auto name = juce::URL::removeEscapeChars (url.isLocalFile() ? url.getLocalFile().getFileName() : url.getFileName());
+            if (bytes.getSize() > (size_t) 64 * 1024 * 1024) { ed->finishFile ("sample", "Fichier trop lourd (64 Mo au plus)"); return; }
+            const auto name = chosenFileName (url);
             juce::File copy;
             if (! Folders::canChoose())
             {
-                // tablette : le fichier est rangé dans la bibliothèque d'échantillons de l'application,
+                // tablette : le fichier est copié dans la Bibliothèque de l'application (dossier « Importés »),
                 // pour être retrouvé ensuite sans repasser par le sélecteur (jamais d'écrasement)
                 const auto clean = Folders::cleanFileName (name);
-                if (clean.isNotEmpty())
+                const auto dir = Folders::get (Folders::samples).getChildFile (juce::String::fromUTF8 ("Import\xC3\xA9s"));
+                if (clean.isNotEmpty() && dir.createDirectory())
                 {
-                    auto f = Folders::get (Folders::samples).getChildFile (clean);
+                    auto f = dir.getChildFile (clean);
                     if (! (f.existsAsFile() && f.getSize() == (juce::int64) bytes.getSize()))
                     {
                         if (f.exists()) f = f.getNonexistentSibling();
@@ -1123,41 +1203,34 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
             }
             const auto error = proc.loadSample (t, i, name, std::move (bytes));
             if (error.isNotEmpty() && copy != juce::File()) copy.deleteFile();   // fichier refusé : pas gardé
-            finishFile ("sample", error);
+            ed->finishFile ("sample", error);
+            });
         });
     });
 
     // v0.47.0 : importer des échantillons venus d'ailleurs (téléphone, Drive…) UNE fois : copiés dans le
     // dossier des échantillons de l'application (sous-dossier « Importés »), puis chargés depuis la
     // Bibliothèque sans repasser par le sélecteur du système. Jamais d'écrasement ; 64 Mo par fichier.
-    fn ("importSamples", [this] (const Args&, Completion done)
+    fn ("importSamples", [this] (const Args& a, Completion done) // v0.47.0 : (1 = un dossier entier, sous-dossiers compris)
     {
         done (juce::var());
-        chooser = std::make_unique<juce::FileChooser> (juce::String::fromUTF8 ("Importer des échantillons"), Folders::get (Folders::samples), "*.wav;*.aif;*.aiff;*.flac;*.ogg");
-        chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::canSelectMultipleItems,
-                              [this] (const juce::FileChooser& fc)
+        const bool wholeFolder = intArg (a, 0, 0, 1, 0) == 1;
+        chooser = std::make_unique<juce::FileChooser> (juce::String::fromUTF8 (wholeFolder ? "Importer un dossier d'échantillons" : "Importer des échantillons"),
+                                                       Folders::get (Folders::samples), wholeFolder ? "" : "*.wav;*.aif;*.aiff;*.flac;*.ogg;*.mp3");
+        const auto flags = juce::FileBrowserComponent::openMode
+                         | (wholeFolder ? juce::FileBrowserComponent::canSelectDirectories
+                                        : juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::canSelectMultipleItems);
+        chooser->launchAsync (flags, [this, wholeFolder] (const juce::FileChooser& fc)
         {
             const auto urls = fc.getURLResults();
             if (urls.isEmpty()) return;
-            auto dir = Folders::get (Folders::samples).getChildFile (juce::String::fromUTF8 ("Import\xC3\xA9s"));
-            if (! dir.createDirectory()) { finishFile ("import", juce::String::fromUTF8 ("Dossier des échantillons inaccessible")); return; }
-            int copied = 0, refused = 0;
-            for (const auto& url : urls)
+            // copie hors du fil de l'interface (un dossier peut être gros) ; résultat rendu à l'interface
+            juce::Component::SafePointer<GrooveboxEditor> self (this);
+            std::thread ([self, urls, wholeFolder]
             {
-                if (copied + refused >= 200) break;
-                const auto name = Folders::cleanFileName (juce::URL::removeEscapeChars (url.isLocalFile() ? url.getLocalFile().getFileName() : url.getFileName()));
-                auto f = dir.getChildFile (name);
-                if (name.isEmpty() || ! f.hasFileExtension ("wav;aif;aiff;flac;ogg")) { ++refused; continue; }
-                auto in = url.createInputStream (juce::URL::InputStreamOptions (juce::URL::ParameterHandling::inAddress));
-                if (in == nullptr) { ++refused; continue; }
-                juce::MemoryBlock bytes;
-                in->readIntoMemoryBlock (bytes, 64 * 1024 * 1024 + 1);
-                if (bytes.getSize() == 0 || bytes.getSize() > (size_t) 64 * 1024 * 1024) { ++refused; continue; }
-                if (f.exists()) f = f.getNonexistentSibling();
-                if (f.replaceWithData (bytes.getData(), bytes.getSize())) ++copied; else ++refused;
-            }
-            finishFile ("import", copied > 0 ? juce::String() : juce::String::fromUTF8 ("Aucun échantillon importé (formats : WAV, AIFF, FLAC, OGG ; 64 Mo au plus)"));
-            juce::ignoreUnused (refused);
+                const auto r = importSampleUrls (urls, wholeFolder);
+                juce::MessageManager::callAsync ([self, r, wholeFolder] { if (self != nullptr) self->finishFile (wholeFolder ? "perso" : "import", r); });
+            }).detach();
         });
     });
 
@@ -1212,7 +1285,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         if (! kindArg (a, 0, k) || k == Folders::presets) { done (json ("null")); return; }
         const auto rel = strArg (a, 1, 2048);
         juce::StringArray ext;
-        if (k == Folders::samples) ext.addArray ({ "wav", "aif", "aiff", "flac", "ogg" });
+        if (k == Folders::samples) ext.addArray ({ "wav", "aif", "aiff", "flac", "ogg", "mp3" });
         else ext.add ("gbx");
         bool ok = false;
         const auto items = Folders::list (k, rel, ext, ok);

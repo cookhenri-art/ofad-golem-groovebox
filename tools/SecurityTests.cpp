@@ -13,6 +13,7 @@
 #include "Recorder.h"
 #include "ParseGuard.h"
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 
@@ -196,6 +197,58 @@ int main()
         std::snprintf (what, sizeof what, "%d projets ab\xC3\xAEm\xC3\xA9s relus sans plantage", runs);
         check (runs == 150, what);
         check (readProject (proc, base).isEmpty(), "projet intact relu ensuite normalement");
+    }
+
+    // --- v0.47.0 : MP3 accepté à l'import : un vrai MP3 se charge, des MP3 abîmés sont refusés sans plantage
+    {
+        // un vrai MP3 (1 s de sinus) fait par l'encodeur du projet
+        std::vector<float> l (44100), r (44100);
+        for (size_t k = 0; k < l.size(); ++k) l[k] = r[k] = 0.4f * (float) std::sin (2.0 * 3.14159265 * 440.0 * (double) k / 44100.0);
+        juce::MemoryBlock mp3;
+        bool encoded = false;
+        {
+            const auto wav = work.getChildFile ("essai.wav"), mp3f = work.getChildFile ("essai.mp3");
+            work.createDirectory();
+            {
+                juce::WavAudioFormat fmt;
+                std::unique_ptr<juce::OutputStream> os (wav.createOutputStream());
+                std::unique_ptr<juce::AudioFormatWriter> w (os != nullptr ? fmt.createWriterFor (os.get(), 44100.0, 2, 16, {}, 0) : nullptr);
+                if (w != nullptr)
+                {
+                    os.release();
+                    const float* ch[] { l.data(), r.data() };
+                    w->writeFromFloatArrays (ch, 2, (int) l.size());
+                }
+            }
+            std::atomic<bool> abort { false };
+            juce::String e;
+            encoded = grv::Recorder::encodeMp3 (wav, mp3f, abort, [] (float) {}, e) && mp3f.loadFileAsData (mp3);
+        }
+        check (encoded && mp3.getSize() > 1000, "MP3 fait par l'encodeur");
+        check (encoded && proc.loadSample (0, 0, "essai.mp3", mp3).isEmpty(), "MP3 charg\xC3\xA9 dans un pad");
+        // MP3 abîmés : en-têtes de trames suivis de hasard, morceaux coupés, étiquette ID3 qui ment
+        juce::Random rng (0x4D5033);
+        int runs = 0;
+        for (int k = 0; k < 120; ++k)
+        {
+            juce::MemoryBlock bad;
+            if (k % 3 == 0 && encoded) { bad = mp3; for (int j = 0; j < 40; ++j) ((char*) bad.getData())[rng.nextInt ((int) bad.getSize())] = (char) rng.nextInt (256); }
+            else if (k % 3 == 1 && encoded) bad.append (mp3.getData(), (size_t) rng.nextInt ((int) mp3.getSize()));
+            else
+            {
+                const unsigned char id3[] { 'I', 'D', '3', 3, 0, 0, 0x7F, 0x7F, 0x7F, 0x7F };
+                if (k % 2) bad.append (id3, sizeof id3);
+                for (int f = 0; f < 200; ++f)
+                {
+                    const unsigned char hdr[] { 0xFF, 0xFB, (unsigned char) rng.nextInt (256), (unsigned char) rng.nextInt (256) };
+                    bad.append (hdr, sizeof hdr);
+                    for (int j = 0; j < 100 + rng.nextInt (400); ++j) { const auto b = (char) rng.nextInt (256); bad.append (&b, 1); }
+                }
+            }
+            proc.loadSample (1, 0, "abime.mp3", bad);
+            ++runs;
+        }
+        check (runs == 120, "120 MP3 ab\xC3\xAEm\xC3\xA9s lus sans plantage");
     }
 
     work.deleteRecursively();

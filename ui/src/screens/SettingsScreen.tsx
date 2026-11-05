@@ -183,15 +183,19 @@ export function SettingsScreen() {
                   {folders.canChoose && <button type="button" className="touch touch--small" onClick={() => actions.chooseFolder(kind)}>Choisir…</button>}
                   {hasNative("revealFolder") && <button type="button" className="touch touch--small touch--quiet" onClick={() => actions.revealFolder(kind)}>Ouvrir</button>}
                   {kind === "samples" && !folders.canChoose && hasNative("importSamples") && (
-                    <button type="button" className="touch touch--small" onClick={() => actions.importSamples()}
-                      title="Copier des échantillons du téléphone dans l'application (une fois) : ils sont ensuite dans la Bibliothèque, dossier Importés">Importer…</button>)}
+                    <>
+                      <button type="button" className="touch touch--small" onClick={() => actions.importSamples(false)}
+                        title="Copier des échantillons du téléphone dans l'application (une fois) : ils sont ensuite dans la Bibliothèque, dossier Importés">Importer des fichiers…</button>
+                      <button type="button" className="touch touch--small" onClick={() => actions.importSamples(true)}
+                        title="Votre dossier de sons sur le téléphone : tous ses sons (sous-dossiers compris) sont copiés dans la Bibliothèque › Perso. Le choisir de nouveau ajoute les nouveaux sons.">Dossier perso…</button>
+                    </>)}
                   {folders[kind].custom && <button type="button" className="touch touch--small touch--quiet" onClick={() => void actions.resetFolder(kind)}>Par défaut</button>}
                 </span>
               </div>
             ))}
             <p className="settings-note">{folders.canChoose
               ? "Les dossiers servent dans tous les projets. Préréglages : un sous-dossier par synthé ou par effet (« Mono semi-modulaire », « Égaliseur »…), puis un par banque."
-              : "Sur tablette, les dossiers sont ceux de l'application : un échantillon chargé par « Charger… » y est rangé, et la Bibliothèque le retrouve ensuite."}</p>
+              : "Sur tablette, les sons sont gardés dans l'application. Un son pris par « Échantillon… » sur une piste est chargé et copié dans Bibliothèque › Importés ; « Dossier perso… » copie tous les sons d'un dossier du téléphone dans Bibliothèque › Perso ; vos prises sont dans « Mes enregistrements »."}</p>
           </section>
         )}
 

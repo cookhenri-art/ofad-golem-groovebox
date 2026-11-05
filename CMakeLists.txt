@@ -160,6 +160,7 @@ endif()
 target_link_libraries(Groovebox_Standalone PRIVATE GrooveboxUiData)
 
 target_compile_definitions(Groovebox PUBLIC
+    JUCE_USE_MP3AUDIOFORMAT=1
     JUCE_WEB_BROWSER=1
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
@@ -187,6 +188,7 @@ target_sources(groovebox_render PRIVATE tools/RenderDemo.cpp src/PluginProcessor
 target_compile_definitions(groovebox_render PRIVATE
     JucePlugin_Name="Groovebox"
     GROOVEBOX_NO_EDITOR=1
+    JUCE_USE_MP3AUDIOFORMAT=1
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0)
 juce_generate_juce_header(groovebox_render)
@@ -204,6 +206,7 @@ if(GROOVEBOX_BUILD_TESTS)
     target_compile_definitions(groovebox_SecurityTests PRIVATE
         JucePlugin_Name="Groovebox"
         GROOVEBOX_NO_EDITOR=1
+        JUCE_USE_MP3AUDIOFORMAT=1
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0)
     juce_generate_juce_header(groovebox_SecurityTests)
