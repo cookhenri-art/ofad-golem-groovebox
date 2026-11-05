@@ -29,12 +29,7 @@
 - **Sous-oscillateur** et **bruit coloré** ; **deux filtres** (14 types dont peigne, voyelles, diode) en série ou en parallèle ; chaque oscillateur vers les deux filtres, un seul, ou **en direct** ; distorsion par voix.
 - 3 enveloppes, 2 LFO + 2 enveloppes et 3 LFO à pas, **matrice de 32 routages, 8 macros**, arpège ; poly, mono ou **unisson jusqu'à 8 voix** ; **91 sons d'usine** (dont 26 basses).
 
-<table>
-<tr>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/good-doctor.jpg" alt="Good Doctor"><br><b>Good Doctor</b><br>trois oscillateurs à tables, deux déformations chacun</td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Menu d'un pas en écriture Acide"><br><b>Menu du pas (Acide)</b><br>clic droit ou appui long : Accent et Glissé en grand, note, durée…</td>
-</tr>
-</table>
+<p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/good-doctor.jpg" width="820" alt="Good Doctor"><br><b>Good Doctor</b> · trois oscillateurs à tables, deux déformations chacun, deux filtres, sous-oscillateur et bruit</p>
 
 #### Plus de sons
 - **Au moins 90 sons d'usine pour chaque synthé** (plus de 2 400 en tout), chacun mesuré et mis au même niveau.
@@ -43,6 +38,13 @@
 #### Séquenceurs
 - **Pieuvre 8** : la dernière note jouée s'écrit sur le pas choisi ; on allonge une note en tirant le bord d'un pas ; un pas sélectionné ouvre son menu.
 - **Menu du pas, en écriture Acide comme À verrous** : **clic droit** sur PC, **appui long** au doigt sur téléphone et tablette, sur la note d'un pas : note, octave, **Accent** et **Glissé** (en grand, avec leur force), vélocité, durée, décalage, condition, probabilité, répétitions — fini les petites cases au téléphone.
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Menu d'un pas en écriture Acide"><br><b>Menu du pas · écriture Acide</b><br>clic droit ou appui long sur la note : Accent et Glissé en grand, octave, note, durée, condition…</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-verrous.jpg" alt="Menu d'un pas en écriture À verrous"><br><b>Menu du pas · écriture À verrous</b><br>clic droit ou appui long sur le pas : note, vélocité, durée, décalage, condition, probabilité, répétitions</td>
+</tr>
+</table>
 
 #### Corrections
 - Une touche du clavier de la façade pouvait rester enfoncée quand le doigt glissait hors de la touche.
@@ -242,12 +244,7 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 - **Sub oscillator** and **coloured noise**; **two filters** (14 types including comb, vowels, diode) in series or parallel; each oscillator to both filters, one, or **direct**; per-voice distortion.
 - 3 envelopes, 2 LFOs + 2 envelopes and 3 step LFOs, **32-slot matrix, 8 macros**, arpeggiator; poly, mono or **unison up to 8 voices**; **91 factory sounds** (26 basses).
 
-<table>
-<tr>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/good-doctor.jpg" alt="Good Doctor"><br><b>Good Doctor</b><br>three wavetable oscillators, two warps each</td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Step menu in Acid writing"><br><b>Step menu (Acid)</b><br>right-click or long press: large Accent and Slide, note, length…</td>
-</tr>
-</table>
+<p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/good-doctor.jpg" width="820" alt="Good Doctor"><br><b>Good Doctor</b> · three wavetable oscillators with two warps each, two filters, sub oscillator and noise</p>
 
 #### More sounds
 - **At least 90 factory sounds for every synth** (over 2,400 in total), each one measured and levelled.
@@ -256,6 +253,13 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 #### Sequencers
 - **Pieuvre 8**: the last note played is written to the selected step; drag a step's edge to lengthen a note; a selected step opens its menu.
 - **Step menu, in Acid and Locks writing**: **right-click** on a computer, **long press** on a phone or tablet, on a step's note: note, octave, large **Accent** and **Slide** (with their amount), velocity, length, offset, condition, probability, repeats — no more tiny boxes on a phone.
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Step menu in Acid writing"><br><b>Step menu · Acid writing</b><br>right-click or long press on the note: large Accent and Slide, octave, note, length, condition…</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-verrous.jpg" alt="Step menu in Locks writing"><br><b>Step menu · Locks writing</b><br>right-click or long press on the step: note, velocity, length, offset, condition, probability, repeats</td>
+</tr>
+</table>
 
 #### Fixes
 - A key of the panel keyboard could stay down when the finger slid off it.
