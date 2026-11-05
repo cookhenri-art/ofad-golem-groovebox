@@ -43,11 +43,15 @@
 - **Good Doctor**, nouveau synthé : trois oscillateurs à **tables d'ondes « hybrides »** (12 tables), **deux déformations à la suite** par oscillateur (18 au choix), sous-oscillateur et bruit, **deux filtres** (14 types) en série ou en parallèle, distorsion par voix, matrice de 32 routages, 8 macros, unisson jusqu'à 8 voix ; **91 sons**.
 - **Glutamake**, nouveau synthé : tables d'ondes à morphs et **une bille qui roule sur une surface** (physique de mouvement) qui module le son, séquence de mouvement à 4 couloirs.
 - **Au moins 90 sons d'usine par synthé** (plus de 2 400) et **au moins 20 réglages par effet** (plus de 770), tous mis au même niveau.
-- **Menu du pas, en écriture Acide comme À verrous** : **clic droit** sur PC, **appui long** au doigt : note, octave, **Accent** et **Glissé** en grand, vélocité, durée, décalage, condition, probabilité, répétitions.
+- **Menu du pas**, en écriture **Acide** comme **À verrous** : **clic droit** sur PC, **appui long** au doigt : note, octave, **Accent** et **Glissé** en grand, vélocité, durée, décalage, condition, probabilité, répétitions.
+- **Valeur d'un pas** : appui long (ou clic droit) sur Acc. / Gl. : **force de l'accent** et **durée du glissé** réglées pas par pas ; **verrous** de réglages sur chaque pas ; **pinceau** pour poser plusieurs pas d'un geste.
 - **Pieuvre 8** : la note jouée s'écrit sur le pas, durée des notes au glisser.
-- **Enregistrement audio calé** sur la lecture et **boucle parfaite**, montage audio plus complet, **MP3** acceptés partout.
+- **Enregistrement audio calé** sur la lecture et **boucle parfaite** (un tour d'élan, puis exactement un tour, sans clic) ; **MP3 sans blanc** ; montage : export de la boucle ou de tout le montage, réglage de plusieurs clips d'un coup.
+- **Bibliothèque** : **MP3** acceptés partout ; sur tablette, « Échantillon… » range le son dans **Bibliothèque › Importés**, **Dossier perso…** remplit **Bibliothèque › Perso**, vos prises sont dans **Mes enregistrements**.
+- **Envois A à D** en boutons dans le mixeur et la vue live ; **valeur exacte** par appui long ou clic droit.
 - **Sécurité renforcée** et fichier `SHA256SUMS.txt` pour vérifier les téléchargements.
-- **Tablette et téléphone Android** enfin stables ; versions **Mac** (application, VST3, AU) et **iPhone / iPad** (essai).
+- **Tablette et téléphone Android** enfin stables (écran fixe, projets dans l'application, son jamais coupé) ; versions **Mac** (application, VST3, AU) et **iPhone / iPad** (essai).
+- **Interface en français ou en anglais**, notice en français et en anglais.
 
 <table>
 <tr><td align="center" colspan="2"><a href="docs/img/v047/good-doctor.jpg"><img src="docs/img/v047/good-doctor.jpg" alt="Good Doctor"></a><br><b>Good Doctor</b> · trois oscillateurs à tables, deux déformations chacun</td></tr>
@@ -443,13 +447,18 @@ the machines that made this music, rebuilt from scratch with their own names, pa
 interface is available **in English** (choose it when installing on Windows, at first launch on Android, or in
 Settings). Free software (AGPL-3.0).
 
-**What's new in 0.47.0 (update of 5 November 2026)**: new **Good Doctor** synth (hybrid wavetables, two warps
-per oscillator, two filters in series or parallel, 91 sounds); new **Glutamake** synth (morphing wavetables
-and a ball rolling on a surface that modulates the sound); **at least 90 factory sounds per synth** and **20
-settings per effect**; a **step menu** in Acid and Locks writing (**right-click** on a computer, **long press**
-on touch screens) with large Accent and Slide buttons; locked-to-playback audio recording and perfect loops;
-MP3 everywhere; stronger security with `SHA256SUMS.txt`; stable Android tablets and phones; **Mac** (app, VST3,
-AU) and **iPhone / iPad** (preview) builds.
+**What's new in 0.47.0 (update of 5 November 2026)**:
+- New **Good Doctor** synth: hybrid wavetables, two warps per oscillator, two filters in series or parallel, per-voice distortion, 32-slot matrix, 8 macros, 91 sounds.
+- New **Glutamake** synth: morphing wavetables and a ball rolling on a surface that modulates the sound, with a 4-lane motion sequence.
+- **At least 90 factory sounds per synth** (over 2,400) and **20 settings per effect** (over 770), all levelled.
+- **Step menu** in Acid and Locks writing (**right-click** on a computer, **long press** on touch screens): note, octave, large Accent and Slide, velocity, length, offset, condition, probability, repeats.
+- **Step amount**: accent strength and slide time set step by step; parameter **locks** on every step; **paint** several steps in one gesture.
+- **Pieuvre 8**: the note played is written to the step; drag to lengthen notes.
+- Audio recording **locked to playback** and **perfect loops** (one run-up loop, then exactly one loop, click-free); gapless MP3; export the loop or the whole montage; edit several clips at once.
+- **Library**: MP3 everywhere; on tablets "Sample…" stores the sound in Library › Importés, "Personal folder…" fills Library › Perso, your takes are in "Mes enregistrements".
+- **Sends A to D** as knobs in the mixer and live view; exact value entry by long press or right-click.
+- Stronger security with `SHA256SUMS.txt`; stable Android tablets and phones; **Mac** (app, VST3, AU) and **iPhone / iPad** (preview) builds.
+- Interface and manual **in English and French**.
 
 <p align="center">
   <b><a href="../../releases/tag/v0.47.0">Download 0.47.0 (Windows · Mac · Android · iPhone)</a></b> ·

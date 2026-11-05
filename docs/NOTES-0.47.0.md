@@ -104,6 +104,8 @@ corrections. Les projets s'ouvrent sans changement ; l'APK s'installe par-dessus
 - **Pinceau** : appuyer sur un pas puis glisser sur ses voisins les pose (ou les retire) d'un seul geste :
   boîtes à rythmes, rangée à verrous des synthés, pads en mode Pas.
 - **Appui long** (clic droit sur ordinateur) : saisie de la valeur exacte sur les envois et les valeurs des scènes.
+- **Valeur d'un pas** : appui long (clic droit) sur **Acc.** ou **Gl.** : force de l'accent (1 à 100 %) et durée du glissé
+  (1 à 100 % du pas) de ce pas seulement ; sans valeur, le pas prend celle de la piste.
 
 ### Tablette et téléphone (Android)
 - L'écran reste fixe, sans tremblement : seuls les listes, le montage et les façades en grand défilent ;
@@ -222,6 +224,8 @@ over the previous one.
 - **Sends A–D** as knobs in the mixer and live view.
 - **Paint**: press a step and slide across its neighbours to set (or clear) them in one gesture.
 - **Long press** (right-click on desktop): exact value entry on sends and scene values.
+- **Step amount**: long press (right-click) on **Acc.** or **Sl.**: accent strength (1 to 100 %) and slide time
+  (1 to 100 % of the step) for that step only; without a value, the step uses the track's.
 
 ### Tablet and phone (Android)
 - The screen stays put, with no more jitter: only lists, the montage and enlarged faces scroll; settings menus

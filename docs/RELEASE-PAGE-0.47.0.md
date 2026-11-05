@@ -74,25 +74,43 @@
 </table>
 
 #### Sécurité renforcée
-- Projets, préréglages et fichiers reçus d'ailleurs contrôlés plus strictement à l'ouverture ; programme Windows compilé avec des protections supplémentaires ; outils de fabrication verrouillés sur des versions vérifiées.
-- Chaque version est accompagnée d'un fichier **`SHA256SUMS.txt`** pour vérifier vos téléchargements.
+- Projets, préréglages et fichiers reçus d'ailleurs contrôlés plus strictement à l'ouverture.
+- Programme Windows compilé avec des protections supplémentaires ; outils de fabrication verrouillés sur des versions vérifiées.
+- Chaque version est accompagnée d'un fichier **`SHA256SUMS.txt`** pour vérifier vos téléchargements (voir « Vérifier votre téléchargement » dans le README).
 
-#### Échantillons
-- Les **MP3** sont acceptés partout (pads, samplers, import, Bibliothèque), en plus des WAV, AIFF, FLAC, OGG.
-- Sur tablette, tout reste dans l'application : un son pris par **« Échantillon… »** sur une piste est chargé tout de suite **et** rangé dans **Bibliothèque › Importés** ; **Réglages › Dossier perso…** copie tous les sons d'un dossier du téléphone dans **Bibliothèque › Perso** ; vos prises sont dans **« Mes enregistrements »**.
+#### Échantillons et Bibliothèque
+- Les **MP3** sont acceptés partout : pads, samplers, import, **Bibliothèque** (en plus des WAV, AIFF, FLAC, OGG).
+- Sur tablette, tout reste dans l'application : un son pris par **« Échantillon… »** sur une piste est chargé tout de suite **et** rangé dans **Bibliothèque › Importés**.
+- **Réglages › Dossier perso…** copie tous les sons d'un dossier du téléphone (sous-dossiers compris) dans **Bibliothèque › Perso** ; le refaire ajoute les nouveaux.
+- Vos prises audio sont dans **Bibliothèque › « Mes enregistrements »**.
 
-#### Enregistrement et montage audio
-- **Prise calée sur la lecture** : elle démarre avec la lecture et s'arrête pile, à l'échantillon près. **Boucle parfaite** : un tour d'élan, puis exactement un tour, jonction fondue sans clic. **MP3 sans blanc** ajouté.
-- Montage : export **de la boucle ou de tout le montage**, attaque du premier son préservée, sélection de tous les clips d'une voie, Ctrl+A, réglage de tous les clips choisis d'un coup.
+#### Enregistrement audio
+- **Prise calée sur la lecture** : elle démarre avec la lecture et s'arrête pile, à l'échantillon près (fin du morceau, ARRÊT, ou fin du tour de boucle quand on rappuie sur « ■ Audio »).
+- **Boucle parfaite** : un tour d'élan (échos et compression en place), puis exactement un tour ; la jonction fin → début est fondue dans le fichier : la boucle se rejoue sans clic, dans GOLEM ou un autre logiciel.
+- **MP3 sans blanc** : le fichier indique son retard d'encodage, les logiciels qui le lisent n'ajoutent pas de silence.
 
-#### Mixeur et séquenceurs
-- **Envois A, B, C, D** en boutons dans le mixeur et la vue live.
-- **Pinceau** : appuyer sur un pas puis glisser sur ses voisins les pose (ou les retire) d'un geste.
-- **Appui long** (clic droit sur ordinateur) : saisie de la valeur exacte.
+#### Montage audio
+- Export **de la boucle ou de tout le montage**, pile à la longueur (WAV 24 bits ou MP3 320 kbit/s).
+- L'attaque du premier son n'est plus adoucie au début d'une prise ; plus de creux au bouclage d'une prise de boucle.
+- Toucher le nom d'une voie choisit tous ses clips ; **Ctrl+A** ; tirer un bord règle **tous les clips choisis** d'un coup.
+
+#### Séquenceurs et réglages des pas
+- **Menu du pas** sur la façade, en écriture **Acide** comme **À verrous** : **clic droit** (PC) ou **appui long** (doigt) sur un pas : note, octave, **Accent** et **Glissé** en grand, vélocité, durée, décalage, condition, probabilité, répétitions.
+- **Valeur d'un pas** : appui long (ou clic droit) sur **Acc.** ou **Gl.** règle la **force de l'accent** (1 à 100 %) et la **durée du glissé** (1 à 100 % du pas) de ce pas seulement ; sans valeur, le pas prend celle de la piste.
+- **Verrous** : un pas choisi garde ses propres réglages (coupure, résonance, effets…) en plus de sa note ; la rangée à verrous écrit la dernière note jouée.
+- **Pinceau** : appuyer sur un pas puis glisser sur ses voisins les pose (ou les retire) d'un seul geste (batteries, rangée à verrous, pads en mode Pas).
+- **Pieuvre 8** : la note jouée s'écrit sur le pas choisi ; on allonge une note en tirant le bord d'un pas.
+
+#### Mixeur et scènes
+- **Envois A, B, C, D** en boutons, dans le mixeur et la vue live (pistes : à la place de l'égaliseur ; groupes : égaliseur et envois).
+- **Appui long** (clic droit sur ordinateur) sur un envoi ou une valeur de scène : saisie de la **valeur exacte**.
 
 #### Tablette et téléphone (Android)
-- **Écran fixe, sans tremblement** ; menus des réglages toujours à la même taille, avec une liste qui défile.
-- Projets enregistrés et ouverts **dans l'application** ; le clavier ne décale plus l'écran ; le son n'est jamais coupé quand un menu s'ouvre.
+- **Écran fixe, sans tremblement** : seuls les listes, le montage et les façades en grand défilent ; les menus des réglages gardent la même taille, avec une liste qui défile.
+- Projets enregistrés et ouverts **dans l'application** (liste des projets) ; le sélecteur du système ne sert plus qu'à importer ou exporter une copie.
+- Le clavier ne décale plus l'écran ; la saisie d'une valeur reste visible au-dessus du clavier.
+- Le son n'est jamais coupé quand une liste ou un menu s'ouvre.
+- Choisir un échantillon avec le sélecteur du système ne fait plus planter l'application ; les fichiers sont reconnus par leur vrai nom.
 - Montage audio au doigt : glisser fait défiler les voies, toucher choisit un clip, on le tire pour le déplacer.
 
 ### ⬇️ Télécharger (en bas de cette page, « Assets »)
@@ -282,13 +300,51 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/glutamake-sequence.jpg" alt="Motion sequence"><br><b>Motion sequence</b><br>4 lanes of 16 steps, matrix sources</td>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/enregistreur.jpg" alt="Audio recording"><br><b>Audio recording</b><br>follow playback, perfect loop, WAV or MP3</td>
 </tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/mixeur-envois.jpg" alt="Mixer and sends A to D"><br><b>Mixer</b><br>sends A, B, C, D as knobs</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/montage-047.jpg" alt="Audio montage"><br><b>Audio montage</b><br>export the loop or the whole montage</td>
+</tr>
 </table>
 
-- **Stronger security**: stricter checks on projects, presets and received files; hardened Windows build; pinned build tools; a **`SHA256SUMS.txt`** file with every release.
-- **Samples**: **MP3** accepted everywhere. On tablets, a sound picked with **"Sample…"** is loaded at once **and** stored in **Library › Importés**; **Settings › Personal folder…** copies all the sounds of a phone folder into **Library › Perso**.
-- **Audio recording and editing**: takes that follow playback and stop exactly; perfect loop takes; gapless MP3; export the loop or the whole montage; multi-clip editing.
-- **Mixer and sequencers**: sends A–D as knobs; step paint; exact value entry on long press.
-- **Android**: fixed screen with no jitter, consistent menus, projects saved inside the app, sound never stops when a menu opens, touch scrolling in the audio montage.
+#### Stronger security
+- Projects, presets and files received from elsewhere are checked more strictly when opened.
+- The Windows program is built with additional protections; build tools are pinned to verified versions.
+- Every release ships a **`SHA256SUMS.txt`** file to verify your downloads (see "Verify your download" in the README).
+
+#### Samples and Library
+- **MP3** files are accepted everywhere: pads, samplers, import, **Library** (as well as WAV, AIFF, FLAC, OGG).
+- On tablets everything stays inside the app: a sound picked with **"Sample…"** on a track is loaded at once **and** stored in **Library › Importés**.
+- **Settings › Personal folder…** copies every sound of a phone folder (subfolders included) into **Library › Perso**; doing it again adds the new ones.
+- Your audio takes are in **Library › "Mes enregistrements"** (my recordings).
+
+#### Audio recording
+- **Locked to playback**: the take starts with playback and stops exactly, to the sample (end of the song, STOP, or end of the loop when you press "■ Audio" again).
+- **Perfect loop**: one run-up loop (echoes and compression settle), then exactly one loop; the end-to-start join is crossfaded in the file, so the loop replays without a click, in GOLEM or any other software.
+- **Gapless MP3**: the file carries its encoder delay, so players that read it add no silence.
+
+#### Audio montage
+- Export **the loop or the whole montage**, exactly to length (24-bit WAV or 320 kbit/s MP3).
+- Takes keep their first attack; loop takes no longer dip at the loop point.
+- Tap a lane name to select all its clips; **Ctrl+A**; dragging an edge resizes **all selected clips** at once.
+
+#### Sequencers and step settings
+- **Step menu** on the panel, in **Acid** and **Locks** writing: **right-click** (computer) or **long press** (touch) on a step: note, octave, large **Accent** and **Slide**, velocity, length, offset, condition, probability, repeats.
+- **Step amount**: long press (or right-click) on **Acc.** or **Sl.** sets the **accent strength** (1 to 100 %) and the **slide time** (1 to 100 % of the step) of that step only; without a value, the step uses the track's.
+- **Locks**: a selected step keeps its own settings (cutoff, resonance, effects…) on top of its note; the Locks row writes the last note played.
+- **Paint**: press a step and slide across its neighbours to set (or clear) them in one gesture (drum machines, Locks row, pads in Step mode).
+- **Pieuvre 8**: the note played is written to the selected step; drag a step's edge to lengthen a note.
+
+#### Mixer and scenes
+- **Sends A, B, C, D** as knobs, in the mixer and the live view (tracks: in place of the EQ; groups: EQ and sends).
+- **Long press** (right-click on a computer) on a send or a scene value: **exact value** entry.
+
+#### Tablet and phone (Android)
+- **Fixed screen, no more jitter**: only lists, the montage and enlarged panels scroll; settings menus keep the same size, with a scrolling list.
+- Projects saved and opened **inside the app** (project list); the system picker is only used to import or export a copy.
+- The on-screen keyboard no longer shifts the screen; value entry stays visible above the keyboard.
+- Sound never stops when a list or menu opens.
+- Picking a sample with the system file picker no longer crashes the app; files are recognised by their real name.
+- Audio montage by touch: swipe to scroll the lanes, tap a clip to select it, then drag it to move it.
 
 ### ⬇️ Download (at the bottom of this page, “Assets”)
 | File | What for |
