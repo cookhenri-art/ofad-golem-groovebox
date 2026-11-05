@@ -1,0 +1,329 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/ui/public/golem/golem-512.png" width="200" alt="OFAD GOLEM">
+</p>
+
+<p align="center"><b>🇬🇧 English speakers: <a href="#english-version">full English version below ↓</a></b></p>
+
+
+<h2 align="center">OFAD GOLEM — Groovebox 0.47.0</h2>
+
+<p align="center"><b>Nouvelle version : un nouveau synthé (Glutamake), une sécurité renforcée, l'enregistrement et le montage audio au point, les MP3, et la tablette enfin stable.</b></p>
+
+<p align="center">OFAD GOLEM, c'est une groovebox complète dans l'ordinateur ou la tablette, pensée pour <b>toutes les musiques électroniques</b> : techno, house, acid, hardtek et tribe, hardcore, drum & bass, électro, ambient, beatmaking…</p>
+
+<p align="center">L'idée : réunir dans un seul outil <b>tout ce qui a fait ses preuves</b> sur les machines qu'on aime — à commencer par les <b>séquenceurs qu'on connaît tous</b> : pas à pas, verrous de réglages sur chaque pas, séquenceur acide (note, octave, accent, glissé), conditions (A:B, Fill…), répétitions, Fill et Break en direct.</p>
+
+<p align="center">Le flux de travail des <b>stations de production autonomes à pads</b> (du type MPC One, Force ou Maschine) : 16 pistes, 16 pads, patterns lancés comme des clips, scènes au crossfader, morceau et montage audio. Les 35 instruments et 38 effets reprennent l'<b>architecture</b> des machines qui ont fait ces musiques — boîtes à rythmes des années 80 et 90, basse acide, synthés analogiques mono et poly, FM, tables d'ondes, drones, vocodeurs, échos à bande… — <b>recréés de zéro</b>, avec leurs propres noms, façades et sons. Logiciel libre (AGPL-3.0).</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/appareil.jpg" width="820" alt="L'appareil : écran, encodeurs, pads, transport">
+</p>
+
+### 🆕 Nouveautés de la 0.47.0
+
+#### Nouveau synthé : Glutamake
+- Deux oscillateurs à **tables d'ondes** (8 tables de 12 ondes calculées, mélange A/B, 12 « morphs » en temps réel, modificateurs), sous-oscillateur, bruit, filtre à 10 types.
+- **Une bille qui roule sur une surface** : inclinaison, frottement, bosse (creux ou colline), bords qui absorbent ou relancent. On la lance au doigt, à chaque note ou par la séquence ; ses mouvements (X, Y, distance, angle, chocs) modulent n'importe quel réglage.
+- **Séquence de mouvement** : 4 couloirs de 16 pas (boucle, sens, division, lissage, probabilité).
+- Branché comme les autres synthés : séquenceur à pas, matrice de 32 routages, 4 boutons de modulation, LFO à pas, arpège, 16 boutons assignables, MIDI ; 13 sons d'usine.
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/glutamake.jpg" alt="Glutamake"><br><b>Glutamake</b><br>la bille, les oscillateurs à tables, le filtre</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/glutamake-physique.jpg" alt="Glutamake : physique"><br><b>La physique de la bille</b><br>surface, bosse, bords, lancement</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/glutamake-sequence.jpg" alt="Glutamake : séquence de mouvement"><br><b>Séquence de mouvement</b><br>4 couloirs de 16 pas, sources de la matrice</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/mixeur-envois.jpg" alt="Mixeur et envois A à D"><br><b>Mixeur</b><br>envois A, B, C, D en boutons</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/enregistreur.jpg" alt="Enregistrement audio"><br><b>Enregistrement audio</b><br>calé sur la lecture, boucle parfaite, WAV ou MP3</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/montage-047.jpg" alt="Montage audio"><br><b>Montage audio</b><br>export de la boucle ou de tout le montage</td>
+</tr>
+</table>
+
+#### Sécurité renforcée
+- Projets, préréglages et fichiers reçus d'ailleurs contrôlés plus strictement à l'ouverture ; programme Windows compilé avec des protections supplémentaires ; outils de fabrication verrouillés sur des versions vérifiées.
+- Chaque version est accompagnée d'un fichier **`SHA256SUMS.txt`** pour vérifier vos téléchargements.
+
+#### Échantillons
+- Les **MP3** sont acceptés partout (pads, samplers, import, Bibliothèque), en plus des WAV, AIFF, FLAC, OGG.
+- Sur tablette, tout reste dans l'application : un son pris par **« Échantillon… »** sur une piste est chargé tout de suite **et** rangé dans **Bibliothèque › Importés** ; **Réglages › Dossier perso…** copie tous les sons d'un dossier du téléphone dans **Bibliothèque › Perso** ; vos prises sont dans **« Mes enregistrements »**.
+
+#### Enregistrement et montage audio
+- **Prise calée sur la lecture** : elle démarre avec la lecture et s'arrête pile, à l'échantillon près. **Boucle parfaite** : un tour d'élan, puis exactement un tour, jonction fondue sans clic. **MP3 sans blanc** ajouté.
+- Montage : export **de la boucle ou de tout le montage**, attaque du premier son préservée, sélection de tous les clips d'une voie, Ctrl+A, réglage de tous les clips choisis d'un coup.
+
+#### Mixeur et séquenceurs
+- **Envois A, B, C, D** en boutons dans le mixeur et la vue live.
+- **Pinceau** : appuyer sur un pas puis glisser sur ses voisins les pose (ou les retire) d'un geste.
+- **Appui long** (clic droit sur ordinateur) : saisie de la valeur exacte.
+
+#### Tablette et téléphone (Android)
+- **Écran fixe, sans tremblement** ; menus des réglages toujours à la même taille, avec une liste qui défile.
+- Projets enregistrés et ouverts **dans l'application** ; le clavier ne décale plus l'écran ; le son n'est jamais coupé quand un menu s'ouvre.
+- Montage audio au doigt : glisser fait défiler les voies, toucher choisit un clip, on le tire pour le déplacer.
+
+### ⬇️ Télécharger (en bas de cette page, « Assets »)
+| Fichier | Pour quoi |
+|---|---|
+| **`OFAD-GOLEM-0.47.0-Windows-installateur.exe`** | **Windows** : application, plugin VST3 (au choix), notice, catalogue et sources |
+| **`OFAD-GOLEM-0.47.0-Android.apk`** | **Android** : téléphones et tablettes |
+| **`Notice-OFAD-GOLEM.pdf`** | Notice de prise en main et **raccourcis**, avec captures annotées |
+| **`Notice-OFAD-GOLEM-EN.pdf`** | **Manual in English** (getting started, shortcuts, annotated screenshots) |
+| **`Catalogue-OFAD-GOLEM.pdf`** | Les instruments et les 38 effets, avec leurs façades (Glutamake arrive dans la prochaine édition) |
+| **`OFAD-GOLEM-0.47.0-sources.tar.gz`** | Les sources de cette version (AGPL-3.0) |
+| **`SHA256SUMS.txt`** | Les empreintes de tous les fichiers, pour vérifier vos téléchargements |
+
+> **Windows** : le programme n'est pas encore signé. Si Windows affiche « Windows a protégé votre ordinateur », cliquer sur « Informations complémentaires » puis « Exécuter quand même ».
+
+> **📱 Version Android (APK) : maintenant pour téléphones et tablettes.** L'application s'adapte à l'écran du téléphone en paysage (onglets Commandes / Pads). Le son est réglé pour les mobiles : il tourne sur les cœurs rapides du processeur, et le micro reste fermé tant qu'on ne l'ouvre pas. Le compteur CPU · MÉM montre la charge en direct.
+>
+> **À savoir :** le projet de démonstration est volontairement chargé (10 instruments et 14 effets). Il tourne bien sur un téléphone récent. Sur une petite tablette d'entrée de gamme, il peut craquer : commencez alors par un projet vide ou quelques pistes.
+
+### 🍎 Version Mac et iPhone / iPad (essai)
+
+| Fichier | Pour quoi |
+|---|---|
+| **`OFAD-GOLEM-0.47.0-Mac-app.zip`** | **Mac** : l'application seule, sans logiciel de musique |
+| **`OFAD-GOLEM-0.47.0-Mac-AU.zip`** | **Mac** : plugin AU (Logic Pro, GarageBand, Ableton Live…) |
+| **`OFAD-GOLEM-0.47.0-Mac-VST3.zip`** | **Mac** : plugin VST3 (Ableton Live, Reaper, Bitwig, Studio One…) |
+| **`OFAD-GOLEM-0.47.0-iOS-non-signe.ipa`** | **iPhone / iPad** (essai) : application non signée, à installer avec AltStore ou Sideloadly |
+
+> **Version d'essai** : compilée pour les Mac à puce Apple et Intel (macOS 11 ou plus récent), mais **pas encore testée sur un vrai Mac**. Vos retours sont les bienvenus dans l'onglet [Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues).
+>
+> **Installation**
+> - **Application** : décompresser, puis glisser `Groovebox.app` dans **Applications**.
+> - **AU** : copier `Groovebox.component` dans `~/Bibliothèque/Audio/Plug-Ins/Components`, puis relancer le logiciel de musique.
+> - **VST3** : copier `Groovebox.vst3` dans `~/Bibliothèque/Audio/Plug-Ins/VST3`.
+>
+> **Premier lancement** : l'appli n'est pas encore signée par Apple. Faire **clic droit › Ouvrir**, ou aller dans **Réglages Système › Confidentialité et sécurité › Ouvrir quand même**. Si macOS dit que l'appli est « endommagée », taper dans le Terminal : `xattr -cr /Applications/Groovebox.app`
+
+### 🎛️ En images
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/facade-acide.jpg" alt="Façade de la basse et séquenceur acide"><br><b>Façade du synthé et séquenceur acide</b><br>note, octave, accent, glissé pas par pas</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/pedalier.jpg" alt="Effets en pédales"><br><b>Les effets en pédales</b><br>4 effets par piste, depuis la façade</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/sequence-reperes.jpg" alt="Écran Séquence"><br><b>Séquence</b><br>rouleau de notes, accent, glissé, conditions, pages</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/scenes-reperes.jpg" alt="Scènes et crossfader"><br><b>Scènes A / B et crossfader</b><br>enchaîner les scènes sans coupure</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/morceau.jpg" alt="Morceau"><br><b>Morceau</b><br>rangées, mouvements enregistrés en courbes</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/montage-reperes.jpg" alt="Montage audio"><br><b>Montage audio</b><br>prises en clips, édition, export WAV / MP3</td>
+</tr>
+</table>
+
+### 🎬 Vue live : le jeu en direct sur un seul écran
+
+<p align="center">Crossfader ou <b>pavé vectoriel</b> à quatre scènes (formes en mouvement, taille, hauteur, rotation), lancement des rangées, console des 16 pistes avec faders, FX et M / S, et les <b>16 boutons assignables</b> avec leurs propres modulations (LFO, fonctions…).</p>
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/vue-live-crossfader.jpg" alt="Vue live : crossfader et console"><br><b>Vue live · crossfader</b><br>scènes A / B, rangées, console des 16 pistes</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/vue-live-vecteur.jpg" alt="Vue live : pavé vectoriel et console"><br><b>Vue live · pavé vectoriel</b><br>quatre scènes mélangées par une forme en mouvement</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/scenes-vecteur-pc.jpg" alt="Écran Scènes : pavé vectoriel"><br><b>Scènes · pavé vectoriel</b><br>formes, vitesse, taille, hauteur, rotation</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/modulations-boutons.jpg" alt="Modulations des 16 boutons"><br><b>Modulations des 16 boutons</b><br>4 sources propres aux boutons, indépendantes des synthés</td>
+</tr>
+</table>
+
+### 📱 Sur téléphone et tablette, avec un contrôleur MIDI
+
+<p align="center">Toute la groovebox tient dans un <b>téléphone ou une tablette Android</b>, avec la Vue live et les 16 boutons assignables : de quoi faire un live complet avec seulement le téléphone et un contrôleur.</p>
+
+- **Contrôleur MIDI prêt à jouer, sans réglage** : branchez votre clavier ou contrôleur **USB** sur la tablette, le téléphone (câble ou hub USB-C « OTG », même en cours de jeu) **ou le PC**, il est reconnu tout seul. En Bluetooth sur Android : Réglages › « Appairer un contrôleur Bluetooth… ».
+- **Tout s'apprend** : appui long (ou clic droit) sur un réglage, un M / S, le crossfader, une rangée › **Apprendre MIDI**, puis on touche la commande du contrôleur.
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/mobile-scenes-crossfader.jpg" alt="Téléphone : écran Scènes, crossfader"><br><b>Téléphone · Scènes, crossfader</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/mobile-scenes-vecteur.jpg" alt="Téléphone : écran Scènes, pavé vectoriel"><br><b>Téléphone · Scènes, pavé vectoriel</b></td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/mobile-live-crossfader.jpg" alt="Téléphone : vue live, crossfader"><br><b>Téléphone · Vue live, crossfader</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/mobile-live-vecteur.jpg" alt="Téléphone : vue live, pavé vectoriel"><br><b>Téléphone · Vue live, pavé vectoriel</b></td>
+</tr>
+</table>
+
+### 🎹 Les instruments (35 avec Glutamake)
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-1.jpg" alt="Instruments : batteries et basses">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-2.jpg" alt="Instruments : polys, nappes, sampler">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-3.jpg" alt="Instruments : synthés FM et drones">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-4.jpg" alt="Instruments : vocodeurs et entrée audio">
+</p>
+
+### 🎚️ Les 38 effets
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/effets-1.jpg" alt="Effets : égaliseurs et compresseurs">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/effets-2.jpg" alt="Effets : saturations, échos, réverbérations">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/effets-3.jpg" alt="Effets : modulations et filtres">
+  <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/effets-4.jpg" alt="Effets : multi-effet et boucleur">
+</p>
+
+### ✨ Déjà dans la groovebox (depuis la 0.46)
+- **Interface en anglais** (*English interface*) : langue choisie à l'installation (Windows), au premier lancement (Android) ou dans Réglages.
+- **16 rangées (A à P)** en deux pages ; −1 / +1 passent d'une page à l'autre.
+- **Vue live** : crossfader ou pavé vectoriel, rangées, console des 16 pistes (faders, FX, M / S), le tout sur un écran.
+- **Pavé vectoriel** : quatre scènes mélangées par une forme en mouvement, avec taille, hauteur et rotation réglables (et au doigt : glisser, pincer, tourner).
+- **16 boutons assignables avec leurs propres modulations** (4 sources : LFO, fonctions…), indépendantes de celles des synthés.
+- **Contrôleurs MIDI USB prêts à jouer** sur tablette, téléphone et PC ; tout s'apprend en un appui.
+- **Montage audio** : prise de chaque piste et de chaque retour, découpage en clips, couper, déplacer, dupliquer, fondus, export WAV / MP3.
+- **Prise de boucle** : Boucle allumée, la prise s'arrête toute seule, pile à la fin de la boucle.
+- **Séquenceurs** acide et à verrous sur les façades, liés à l'écran Séquence ; **Fill** et **Break** pour les relances en direct.
+- **Notice illustrée** : une capture annotée sous chaque tableau de raccourcis.
+- Mascotte **OFAD GOLEM**, écran de lancement et accueil des projets.
+
+### 🤝 Un projet qui évolue avec vous
+Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous manque, un effet, une fonction de séquenceur ? Essayez-la et dites-moi ce qui marche, ce qui coince, quel contrôleur vous utilisez… et surtout votre **liste de courses** des fonctions que vous aimeriez, dans l'onglet **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)** : vos idées font les prochaines versions.
+
+<sub>Les noms de marques cités (MPC, Force, Maschine…) appartiennent à leurs propriétaires et servent seulement à décrire le style de jeu. OFAD GOLEM est un projet indépendant, sans lien avec ces fabricants.</sub>
+
+---
+
+<a id="english-version"></a>
+
+## English version
+
+<p align="center"><b>OFAD GOLEM — Groovebox 0.47.0 · a new synth (Glutamake), stronger security, polished audio recording and editing, MP3 files, and a stable tablet experience</b></p>
+
+<p align="center">A complete groovebox in your computer or tablet, made for <b>all electronic music</b>: techno, house, acid, hardtek and tribe, hardcore, drum & bass, electro, ambient, beatmaking…</p>
+
+<p align="center">The idea: bring together in a single tool <b>everything that has proven itself</b> on the machines we love — starting with the <b>sequencers we all know</b>: step sequencing, parameter locks on every step, acid sequencer (note, octave, accent, slide), trig conditions (A:B, Fill…), retrigs, live Fill and Break.</p>
+
+<p align="center">The workflow of <b>standalone pad-based production stations</b> (in the style of MPC One, Force or Maschine): 16 tracks, 16 pads, patterns launched like clips, scenes on a crossfader, song mode and audio editing. The 35 instruments and 38 effects follow the <b>architecture</b> of the machines that made this music — 80s and 90s drum machines, acid bass, analog mono and poly synths, FM, wavetables, drones, vocoders, tape echoes… — <b>rebuilt from scratch</b>, with their own names, panels and sounds. Free software (AGPL-3.0).</p>
+
+<p align="center">The whole interface is in <b>English</b>: choose the language when installing on Windows, at the first launch on Android (phone and tablet), or at any time in Settings › Project (<b>Français / English</b>).</p>
+
+<p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/main-page.jpg" width="820" alt="OFAD GOLEM in English: main page with the launch grid, the 16 pads and the transport"></p>
+
+### 🆕 What's new in 0.47.0
+
+#### New synth: Glutamake
+- Two **wavetable** oscillators (8 computed tables of 12 waves, A/B blend, 12 real-time morphs, modifiers), sub-oscillator, noise, 10-type filter.
+- **A ball rolling on a surface**: tilt, friction, a bump (well or hill), edges that absorb or bounce back. Throw it by hand, on each note or from the sequence; its motion (X, Y, distance, angle, hits) can modulate any setting.
+- **Motion sequence**: 4 lanes of 16 steps (loop, direction, division, smoothing, probability).
+- Wired like the other synths: step sequencer, 32-slot matrix, 4 mod knobs, step LFOs, arpeggiator, 16 assignable knobs, MIDI; 13 factory sounds.
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/glutamake.jpg" alt="Glutamake"><br><b>Glutamake</b><br>the ball, wavetable oscillators, filter</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/glutamake-physique.jpg" alt="Glutamake physics"><br><b>Ball physics</b><br>surface, bump, edges, launch</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/glutamake-sequence.jpg" alt="Motion sequence"><br><b>Motion sequence</b><br>4 lanes of 16 steps, matrix sources</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/enregistreur.jpg" alt="Audio recording"><br><b>Audio recording</b><br>follow playback, perfect loop, WAV or MP3</td>
+</tr>
+</table>
+
+- **Stronger security**: stricter checks on projects, presets and received files; hardened Windows build; pinned build tools; a **`SHA256SUMS.txt`** file with every release.
+- **Samples**: **MP3** accepted everywhere. On tablets, a sound picked with **"Sample…"** is loaded at once **and** stored in **Library › Importés**; **Settings › Personal folder…** copies all the sounds of a phone folder into **Library › Perso**.
+- **Audio recording and editing**: takes that follow playback and stop exactly; perfect loop takes; gapless MP3; export the loop or the whole montage; multi-clip editing.
+- **Mixer and sequencers**: sends A–D as knobs; step paint; exact value entry on long press.
+- **Android**: fixed screen with no jitter, consistent menus, projects saved inside the app, sound never stops when a menu opens, touch scrolling in the audio montage.
+
+### ⬇️ Download (at the bottom of this page, “Assets”)
+| File | What for |
+|---|---|
+| **`OFAD-GOLEM-0.47.0-Windows-installateur.exe`** | **Windows**: application, VST3 plugin (optional), manual, catalogue and sources |
+| **`OFAD-GOLEM-0.47.0-Android.apk`** | **Android**: phones and tablets |
+| **`Notice-OFAD-GOLEM-EN.pdf`** | **Manual in English**: getting started and **shortcuts**, with annotated screenshots |
+| **`Notice-OFAD-GOLEM.pdf`** | The same manual in French |
+| **`Catalogue-OFAD-GOLEM.pdf`** | The instruments and 38 effects, with their panels (Glutamake comes in the next edition) |
+| **`OFAD-GOLEM-0.47.0-sources.tar.gz`** | Source code of this release (AGPL-3.0) |
+| **`SHA256SUMS.txt`** | Checksums of every file, to verify your downloads |
+
+> **Windows**: the program is not signed yet. If Windows shows “Windows protected your PC”, click “More info”, then “Run anyway”.
+
+> **📱 Android (APK): phones and tablets.** The app adapts to a phone screen in landscape (Controls / Pads tabs). Audio is tuned for mobile: it runs on the fast processor cores, and the microphone stays closed until you open it. The CPU · MEM meter shows the load live.
+>
+> **Good to know:** the demo project is deliberately heavy (10 instruments and 14 effects). It runs well on a recent phone. On a small entry-level tablet it may crackle: start with an empty project or a few tracks.
+
+### 🍎 Mac and iPhone / iPad (preview)
+
+| File | What for |
+|---|---|
+| **`OFAD-GOLEM-0.47.0-Mac-app.zip`** | **Mac**: the standalone app, no music software needed |
+| **`OFAD-GOLEM-0.47.0-Mac-AU.zip`** | **Mac**: AU plugin (Logic Pro, GarageBand, Ableton Live…) |
+| **`OFAD-GOLEM-0.47.0-Mac-VST3.zip`** | **Mac**: VST3 plugin (Ableton Live, Reaper, Bitwig, Studio One…) |
+| **`OFAD-GOLEM-0.47.0-iOS-non-signe.ipa`** | **iPhone / iPad** (preview): unsigned app, install with AltStore or Sideloadly |
+
+> **Preview**: built for Apple Silicon and Intel Macs (macOS 11 or later), but **not tested on a real Mac yet**. Feedback is welcome in the [Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues) tab.
+>
+> **Install**
+> - **App**: unzip, then drag `Groovebox.app` into **Applications**.
+> - **AU**: copy `Groovebox.component` to `~/Library/Audio/Plug-Ins/Components`, then restart your music software.
+> - **VST3**: copy `Groovebox.vst3` to `~/Library/Audio/Plug-Ins/VST3`.
+>
+> **First launch**: the app is not signed by Apple yet. **Right-click › Open**, or go to **System Settings › Privacy & Security › Open Anyway**. If macOS says the app is "damaged", type in Terminal: `xattr -cr /Applications/Groovebox.app`
+
+### 🎛️ Screenshots
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/synth-panel.jpg" alt="Synth panel"><br><b>Synth panel</b><br>every instrument has its own front panel</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/sequence.jpg" alt="Sequence screen"><br><b>Sequence</b><br>piano roll, accent, slide, conditions, pages</td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/pedalier.jpg" alt="Effects as pedals"><br><b>Effects as pedals</b><br>4 effects per track, from the panel</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/montage-reperes.jpg" alt="Audio editing"><br><b>Audio editing</b><br>takes as clips, editing, WAV / MP3 export</td>
+</tr>
+</table>
+
+### 🎬 Live view: playing live on one screen
+
+<p align="center">Crossfader or <b>vector pad</b> with four scenes (moving shapes, size, height, rotation), row launching, a console of the 16 tracks with faders, FX and M / S, and the <b>16 assignable knobs</b> with their own modulations (LFOs, functions…).</p>
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/live-view-crossfader.jpg" alt="Live view, crossfader"><br><b>Live view · Crossfader</b><br>A / B scenes, rows, console of the 16 tracks</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/live-view-vector.jpg" alt="Live view, vector pad"><br><b>Live view · Vector</b><br>four scenes blended by a moving shape</td>
+</tr>
+</table>
+
+### 📱 On phone and tablet, with a MIDI controller
+
+<p align="center">The whole groovebox fits in an <b>Android phone or tablet</b>, with the Live view and the 16 assignable knobs: enough for a full live set with just a phone and a controller.</p>
+
+- **MIDI controller ready to play, no setup**: plug your **USB** keyboard or controller into the tablet, the phone (USB-C “OTG” cable or hub, even while playing) **or the PC**, it is detected automatically. Bluetooth on Android: Settings › “Pair a Bluetooth controller…”.
+- **Everything can be learned**: long press (or right-click) a control, an M / S, the crossfader, a row › **Learn MIDI**, then touch the control on your controller.
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/phone-controls.jpg" alt="Phone: Controls tab"><br><b>Phone · Controls</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/phone-pads.jpg" alt="Phone: Pads tab"><br><b>Phone · Pads</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/phone-live-view.jpg" alt="Phone: live view"><br><b>Phone · Live view</b></td>
+</tr>
+</table>
+
+### 🎹 35 instruments and 🎚️ 38 effects
+
+<p align="center">Drum machines, acid bass, analog mono and poly synths, pads, sampler, FM and drone synths, vocoders and audio input; EQs and compressors, saturations, echoes and reverbs, modulations and filters, multi-effect and looper. All of them are shown in the gallery above and in <b>Catalogue-OFAD-GOLEM.pdf</b>.</p>
+
+### ✨ Already in the groovebox (since 0.46)
+- **English interface**: language chosen at install (Windows), at first launch (Android) or in Settings.
+- **16 rows (A to P)** on two pages; −1 / +1 move from one page to the other.
+- **Live view**: crossfader or vector pad, rows, console of the 16 tracks (faders, FX, M / S), all on one screen.
+- **Vector pad**: four scenes blended by a moving shape, with adjustable size, height and rotation (and by finger: drag, pinch, rotate).
+- **16 assignable knobs with their own modulations** (4 sources: LFOs, functions…), independent from the synths' ones. An assigned knob follows its parameter both ways.
+- **USB MIDI controllers ready to play** on tablet, phone and PC; everything is learned with one press.
+- **Audio editing**: record every track and every return, split into clips, cut, move, duplicate, fades, WAV / MP3 export.
+- **Loop recording**: with Loop on, recording stops by itself, exactly at the end of the loop.
+- **Acid and parameter-lock sequencers** on the panels, linked to the Sequence screen; **Fill** and **Break** for live transitions.
+- **Illustrated manual**: an annotated screenshot under every shortcut table.
+- **OFAD GOLEM** mascot, splash screen and project home.
+
+### 🤝 A project that grows with you
+If we all get involved, we can build our ideal groovebox. A machine you miss, an effect, a sequencer feature? Try it and tell me what works, what doesn't, which controller you use… and above all your **wish list** of features, in the **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)** tab (English or French): your ideas shape the next versions.
+
+<sub>The brand names mentioned (MPC, Force, Maschine…) belong to their owners and are only used to describe the playing style. OFAD GOLEM is an independent project, not affiliated with these manufacturers.</sub>
+
+
+<p align="center">Made with ❤️ by <b>One For All Distribution (OFAD)</b></p>
+
