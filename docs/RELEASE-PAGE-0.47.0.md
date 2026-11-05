@@ -32,7 +32,7 @@
 <table>
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/good-doctor.jpg" alt="Good Doctor"><br><b>Good Doctor</b><br>trois oscillateurs à tables, deux déformations chacun</td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Menu d'un pas en écriture Acide"><br><b>Menu du pas (Acide)</b><br>appui long : Accent et Glissé en grand, note, durée…</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Menu d'un pas en écriture Acide"><br><b>Menu du pas (Acide)</b><br>clic droit ou appui long : Accent et Glissé en grand, note, durée…</td>
 </tr>
 </table>
 
@@ -42,8 +42,7 @@
 
 #### Séquenceurs
 - **Pieuvre 8** : la dernière note jouée s'écrit sur le pas choisi ; on allonge une note en tirant le bord d'un pas ; un pas sélectionné ouvre son menu.
-- **Menu de pas sur la façade de tous les synthés** (écriture À verrous) : note, vélocité, durée, décalage, condition, probabilité, répétitions.
-- **Écriture Acide** : un appui long sur un pas ouvre ce menu, avec **Accent** et **Glissé** en grand — fini les petites cases au téléphone.
+- **Menu du pas, en écriture Acide comme À verrous** : **clic droit** sur PC, **appui long** au doigt sur téléphone et tablette, sur la note d'un pas : note, octave, **Accent** et **Glissé** (en grand, avec leur force), vélocité, durée, décalage, condition, probabilité, répétitions — fini les petites cases au téléphone.
 
 #### Corrections
 - Une touche du clavier de la façade pouvait rester enfoncée quand le doigt glissait hors de la touche.
@@ -246,7 +245,7 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 <table>
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/good-doctor.jpg" alt="Good Doctor"><br><b>Good Doctor</b><br>three wavetable oscillators, two warps each</td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Step menu in Acid writing"><br><b>Step menu (Acid)</b><br>long press: large Accent and Slide, note, length…</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v047/menu-pas-acide.jpg" alt="Step menu in Acid writing"><br><b>Step menu (Acid)</b><br>right-click or long press: large Accent and Slide, note, length…</td>
 </tr>
 </table>
 
@@ -256,8 +255,7 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 
 #### Sequencers
 - **Pieuvre 8**: the last note played is written to the selected step; drag a step's edge to lengthen a note; a selected step opens its menu.
-- **Step menu on every synth panel** (Locks writing): note, velocity, length, offset, condition, probability, repeats.
-- **Acid writing**: a long press on a step opens that menu, with large **Accent** and **Slide** buttons — no more tiny boxes on a phone.
+- **Step menu, in Acid and Locks writing**: **right-click** on a computer, **long press** on a phone or tablet, on a step's note: note, octave, large **Accent** and **Slide** (with their amount), velocity, length, offset, condition, probability, repeats — no more tiny boxes on a phone.
 
 #### Fixes
 - A key of the panel keyboard could stay down when the finger slid off it.
