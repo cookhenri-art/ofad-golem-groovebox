@@ -54,6 +54,9 @@ export function StepStrip() {
   // v0.47 (5 nov. après-midi) : toucher un AUTRE pas ferme le menu — sinon les notes jouées en réglant cet autre pas
   // (tirer la note, ▲ ▼, touche du clavier) étaient aussi écrites sur le pas du menu resté ouvert
   const [menu, setMenu] = useState<number | null>(null);
+  // v0.47 (5 nov. après-midi) : un pas choisi pour ses verrous (écriture À verrous, écran SÉQUENCE) reste actif quand on
+  // passe en Acide : « Verrous · pas N ✕ » s'allume ici aussi, le toucher libère le pas
+  const lockSel = useStore((st) => (st.ui.stepEdit ? st.ui.step : null));
   const hold = useRef<{ timer: number; fired: boolean } | null>(null);
   // v0.47 (5 nov. après-midi) : le clavier ne change plus la note du pas dont le menu est ouvert (il choisit seulement
   // la note des pas qu'on pose ensuite) ; la note d'un pas posé se change par Note ◀ ▶ du menu ou en la tirant
@@ -80,6 +83,10 @@ export function StepStrip() {
         {Array.from({ length: pages }, (_, i) => (
           <button key={i} type="button" className={i === pg ? "on" : ""} onClick={() => setUi({ page: i })}>{i + 1}</button>
         ))}
+        {lockSel !== null && (
+          <button type="button" className="steps303-lockchip" onClick={() => setUi({ step: null, stepEdit: false })}
+            title={`Pas ${lockSel + 1} choisi : les boutons écrivent dans ce pas seulement. Toucher pour le libérer.`}>{`Verrous · pas ${lockSel + 1} ✕`}</button>
+        )}
         {menu !== null && (
           <button type="button" className="steps303-selchip" onClick={() => setMenu(null)}
             title="Le menu de ce pas est ouvert : ses réglages changent ce pas seulement. Toucher pour le fermer.">{`Pas ${menu + 1} choisi ✕`}</button>

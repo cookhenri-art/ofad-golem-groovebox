@@ -325,7 +325,8 @@ its note.
    knob on the panel, the pedalboard or the SOUND screen — the value is **locked on that step** only.
    The step gets an orange frame and the **Locks** button lights up with its number ("**Locks · step 5 ✕**",
    visible even on a phone); a banner at the top reminds you too. Touching Locks, Esc or "Done" releases the
-   step; so does placing or removing a note on another step.
+   step; so does placing or removing a note on another step. In **Acid** writing, the same "Locks · step 5 ✕"
+   button lights up above the row while that step is selected.
 5. **Copy / Paste / Clear** the locks of the selected step ("No locks": all those of the line).
 
 On synths, the locks row writes **the last note played** (pads, the panel's keyboard, or a MIDI keyboard

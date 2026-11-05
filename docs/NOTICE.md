@@ -312,7 +312,9 @@ effets…), en plus de sa note.
    n'importe quel bouton de la façade, du pédalier ou de l'écran SON — la valeur est **verrouillée sur
    ce pas** seulement. Le pas est entouré en orange et le bouton **Verrous** s'allume avec son numéro
    (« **Verrous · pas 5 ✕** », visible même au téléphone) ; un bandeau le rappelle aussi en haut. Toucher
-   Verrous, Échap ou « Terminer » libère le pas ; poser ou retirer une note sur un autre pas aussi.
+   Verrous, Échap ou « Terminer » libère le pas ; poser ou retirer une note sur un autre pas aussi. En
+   écriture **Acide**, le même bouton « Verrous · pas 5 ✕ » s'allume au-dessus de la rangée tant que ce pas
+   est choisi.
 5. **Copier / Coller / Effacer** les verrous du pas choisi (« Sans verrous » : tous ceux de la ligne).
 
 Sur les synthés, la rangée à verrous écrit **la dernière note jouée** (pads, clavier de la façade, ou

@@ -3875,3 +3875,6 @@ html, body, #root { overflow: clip; }
 .ot-step.sel { position: relative; z-index: 3; box-shadow: 0 0 0 3px oklch(0.82 0.16 75), 0 0 12px oklch(0.82 0.16 75 / 0.7); }
 .steps303-pages button.steps303-selchip, .steps303-selchip { appearance: none; margin-left: auto; width: auto; min-width: 0; border: 0; border-radius: 6px; padding: 3px 10px; font: inherit; font-size: 0.82em;
   font-weight: 600; background: oklch(0.82 0.16 75); color: oklch(0.18 0.02 75); cursor: pointer; }
+.steps303-pages button.steps303-lockchip { margin-left: auto; width: auto; min-width: 0; padding: 3px 10px; font-size: 0.82em; font-weight: 600;
+  border-radius: 6px; background: var(--fp-led, var(--accent)); color: oklch(0.15 0.01 300); }
+.steps303-pages button.steps303-lockchip + button.steps303-selchip { margin-left: 6px; }
