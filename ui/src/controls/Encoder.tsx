@@ -262,6 +262,69 @@ export function Encoder({ binding, variant = "hw" }: { binding: EncoderBinding |
   );
 }
 
+/** GOLEM 1.0 : pour un bouton dessiné à part (FM Player) : tout ce que l'encodeur de façade fait autour du
+    bouton — arc de la modulation à la couleur de sa source, petite molette de profondeur, affectation d'une
+    modulation ou d'une macro au toucher. `decor` se pose dans un conteneur en position relative autour
+    du bouton ; `zone` va sur ce conteneur. */
+export function useKnobExtras(binding: EncoderBinding | null) {
+  const modTarget = binding?.mod;
+  const { mod, assign, setAmount } = useModulation(modTarget);
+  const depthDrag = useRef<{ y: number; value: number } | null>(null);
+  const assignMode = useStore((s) => s.ui.modAssign);
+  const macros = useStore((s) => s.macros);
+  const macroAssign = useStore((s) => s.ui.macroAssign);
+  const macroAssignable = macroAssign !== null && !!modTarget;
+  const macroHas = macroAssignable && !!macros[macroAssign!]?.links.some((l) => l[0] === globalOf(modTarget!.channel, modTarget!.local));
+  const scope = modTarget ? modScopeOf(modTarget.local) : null;
+  const assignable = !!(assignMode && modTarget && scope && modTarget.channel === assignMode.channel && MOD_SCOPE_SOURCES[scope].includes(assignMode.source));
+  const label = binding?.label ?? "";
+  const act = () => {
+    if (assignable && assignMode) {
+      const name = sourceLabel(assignMode.channel, assignMode.source);
+      if (mod?.source === assignMode.source) { assign(null); showMessage(`${name} ne module plus « ${label} »`); }
+      else { assign(assignMode.source); showMessage(`${name} → ${label} · profondeur : petite molette colorée`); }
+    } else if (macroAssignable && macroAssign !== null && modTarget) {
+      const k = macroAssign;
+      void actions.toggleMacro(k, globalOf(modTarget.channel, modTarget.local)).then((now) =>
+        showMessage(now ? `Macro ${k + 1} → ${label}` : `« ${label} » ${macroHas ? "retiré de" : "non ajouté à (8 réglages au plus)"} la macro ${k + 1}`));
+    }
+  };
+  const n = binding && binding.kind === "continuous" ? binding.normalised : 0;
+  const valueAngle = START + n * SWEEP;
+  const modEnd = mod ? START + Math.max(0, Math.min(1, n + mod.amount)) * SWEEP : valueAngle;
+  const modColor = mod ? MOD_SOURCE_COLORS[mod.source] : undefined;
+  const cls = `knob-extras${mod ? " encoder--mod" : ""}${assignable || macroAssignable ? " encoder--assign" : assignMode || macroAssign !== null ? " encoder--noassign" : ""}${macroHas ? " encoder--macro-on" : ""}`;
+  const style = assignable ? { "--assign": MOD_SOURCE_COLORS[assignMode!.source] } as React.CSSProperties
+    : macroAssignable ? { "--assign": "oklch(0.82 0.15 85)" } as React.CSSProperties : undefined;
+  const zone = {
+    className: cls, style,
+    // en affectation, toucher le bouton affecte (sans le tourner)
+    onPointerDownCapture: (e: React.PointerEvent) => { if (assignable || macroAssignable) { e.stopPropagation(); e.preventDefault(); act(); } },
+  };
+  const decor = (
+    <>
+      <svg viewBox="0 0 80 80" className="encoder-ring knob-extras-ring" aria-hidden>
+        <path d={arc(35, START, START + SWEEP)} className="knob-track" />
+        {binding && n > 0.002 && <path d={arc(35, START, valueAngle)} className="knob-arc" />}
+        {mod && Math.abs(modEnd - valueAngle) > 0.5 && <path d={arc(39, valueAngle, modEnd)} className="mod-arc" style={{ stroke: modColor }} />}
+      </svg>
+      {mod && (
+        <button type="button" className="mod-depth" style={{ "--mod": modColor } as React.CSSProperties} role="slider"
+          aria-label={`Profondeur de modulation ${modSourceName(mod.source)}`} aria-valuemin={-100} aria-valuemax={100} aria-valuenow={Math.round(mod.amount * 100)}
+          title="Profondeur de modulation : glisser haut / bas (double-clic : zéro)"
+          onPointerDown={(e) => { e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); depthDrag.current = { y: e.clientY, value: mod.amount }; }}
+          onPointerMove={(e) => { if (depthDrag.current) setAmount(depthDrag.current.value + (depthDrag.current.y - e.clientY) * 0.008); }}
+          onPointerUp={() => { depthDrag.current = null; }} onPointerCancel={() => { depthDrag.current = null; }}
+          onWheel={(e) => setAmount(mod.amount + (e.deltaY < 0 ? 0.02 : -0.02))}
+          onDoubleClick={() => setAmount(0)}>
+          <span style={{ transform: `rotate(${mod.amount * 135}deg)` }} />
+        </button>
+      )}
+    </>
+  );
+  return { zone, decor };
+}
+
 /** Valeur exacte : liste des choix, ou champ numérique dans les unités du réglage. */
 function ValueEntryRow({ entry, label, onDone }: { entry: ValueEntry; label: string; onDone: () => void }) {
   const decimals = entry.integer ? 0 : Math.abs(entry.max - entry.min) <= 2 ? 3 : Math.abs(entry.max - entry.min) <= 50 ? 2 : 1;

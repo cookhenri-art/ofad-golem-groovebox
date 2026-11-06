@@ -77,7 +77,7 @@ Si on modifie les réglages d'un instrument ou d'un effet, régénérer le catal
 | `src/engine/` | Moteur : pistes, graphe audio publié sans verrou, séquenceur, scènes, modulations, catalogue, échange JSON avec l'interface |
 | `src/dsp/` | Briques de traitement : oscillateurs anti-repliés, filtres, sur-échantillonneur 2×, égaliseur, fonctions rapides |
 | `src/synth/` | Base des instruments mélodiques : voix, enveloppes, tables d'ondes, lecteur d'échantillon |
-| `src/instruments/` | Les 36 instruments |
+| `src/instruments/` | Les 37 instruments |
 | `src/effects/` | Les 38 effets |
 | `src/PluginProcessor.*` | Processeur JUCE : MIDI, automation par l'hôte, sauvegarde du projet |
 | `src/PluginEditor.*` | Fenêtre et fonctions natives appelées par l'interface (toutes vérifiées) |

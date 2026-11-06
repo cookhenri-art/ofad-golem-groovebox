@@ -31,10 +31,15 @@ inline std::function<int (int)>& standaloneInputHook()
 // dans Documents/Groovebox/demarrage.log (réécrit à chaque lancement). Fil des messages uniquement.
 inline void startupMark (const char* what)
 {
-   #if ! (JUCE_ANDROID || JUCE_IOS)
+   #if ! JUCE_IOS
     static const double t0 = juce::Time::getMillisecondCounterHiRes();
     static bool first = true;
+   #if JUCE_ANDROID
+    // v0.49 (essai 3) : aussi sur Android, dans le dossier de l'appli (rapport de plantage, CrashGuard.h)
+    const auto f = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile ("Groovebox").getChildFile ("demarrage.log");
+   #else
     const auto f = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("Groovebox").getChildFile ("demarrage.log");
+   #endif
     if (first) { f.getParentDirectory().createDirectory(); f.replaceWithText ("OFAD GOLEM - demarrage " + juce::Time::getCurrentTime().toString (true, true) + "\n"); first = false; }
     f.appendText (juce::String ((int) std::lround (juce::Time::getMillisecondCounterHiRes() - t0)).paddedLeft (' ', 7) + " ms  " + juce::String::fromUTF8 (what) + "\n");
    #else

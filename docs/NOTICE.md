@@ -318,6 +318,10 @@ effets…), en plus de sa note.
    écriture **Acide**, le même bouton « Verrous · pas 5 ✕ » s'allume au-dessus de la rangée tant que ce pas
    est choisi.
 5. **Copier / Coller / Effacer** les verrous du pas choisi (« Sans verrous » : tous ceux de la ligne).
+6. **Glissés** et **Couper** (dès que la ligne a des verrous) : **Glissés** fait voyager les réglages en douceur
+   d'un verrou au suivant, pendant la durée du pas, au lieu de sauter au début du pas ; **Couper** met les
+   verrous de la ligne en sourdine sans les effacer (les pas jouent le son de base) — toucher **Coupés** les
+   rallume. Les deux se gardent avec le projet. Un verrou ne joue que sur un pas qui porte une note.
 
 <figure class="wide"><img src="img/v047/pas-choisi-verrous.jpg" alt="Écriture À verrous : le pas 5 choisi, entouré en orange, bouton Verrous · pas 5 allumé"><figcaption>Écriture « À verrous » : le pas 5 choisi, bouton « Verrous · pas 5 ✕ » allumé</figcaption></figure>
 
@@ -683,6 +687,59 @@ dossier « &lt;nom du projet&gt; - audio » à côté du fichier.
 
 <figure><img src="img/v047/glutamake.jpg" alt="Glutamake : la bille, les tables d'ondes, le filtre"><figcaption>Glutamake : la bille, les tables d'ondes, le filtre</figcaption></figure>
 
+### 13. FM Player : les firmwares du M-VAVE FM-1
+
+Le **FM Player** joue dans GOLEM les **firmwares** (fichiers `.fwsc`) écrits pour le boîtier de synthèse
+**FM-1** de M-VAVE : son processeur est **émulé**, et chaque firmware devient un instrument de GOLEM, joué par
+le séquenceur, le piano, les pads et le MIDI, avec son écran et ses commandes sur la façade. Il fonctionne
+aussi dans un logiciel de musique (greffon VST3 / AU).
+
+- **15 firmwares libres fournis**, copiés une fois dans **Bibliothèque › Échantillons › Firmwares** au premier
+  lancement : B1, FIZZ, FM-106, FMini-1, Felucca, Frodhes, GR!MM, JIANT FM, MYCELIUM, Melodee, OberVave,
+  SLOOP, X0X, sloopDX, zp12 (auteurs, licences GPL-3.0 / MPL-2.0 et sources dans `FIRMWARES-LICENCES.md`).
+  **Firmware…** charge un autre fichier `.fwsc` (le vôtre, ou un firmware de la communauté).
+- **La machine** : l'écran en direct, les boutons KNOB 1 à 4, SELECT, PRESETS, ALGORITHM, le potentiomètre
+  MASTER, les 14 touches de fonction (FX… REC, OCT − / +) et les 27 petites touches avec leurs diodes (en mode
+  SEQ des firmwares, elles servent de pas). Les boutons se règlent en glissant vers le haut ou le bas, ou **en
+  tournant** autour du bouton.
+- **Pistes T1 à T4** (sous le piano, comme sur Pieuvre 8) : chaque T joue sur **son canal MIDI** — le canal de T1
+  (« Canal de T1 », Auto par défaut), puis les suivants. Les firmwares à plusieurs pistes (SLOOP, sloopDX,
+  JIANT…) jouent ainsi leurs 4 pistes. La T choisie est celle qu'on écrit (rangées **Acide** et **À verrous**,
+  écran **SÉQUENCE** avec 4 lignes et « T en notes ♪ ») et celle que jouent le piano, les pads et le MIDI.
+- **⤢ Grand** : la machine sur toute la zone de l'écran (téléphone et tablette), avec le piano de GOLEM et T1 à
+  T4 en bas, **M / S** au-dessus de chaque T, la **rangée de pas** de la T choisie (verrous, mesures, décalage
+  de la T ou de tout ; Copier / Coller / Effacer et **Verrous** sous l'écran) et **Bibliothèque** pour changer
+  de firmware. **✕ Fermer** revient à la façade.
+- **Fond au choix** : les pastilles à côté de « Grand » — **Ambre**, **Nuit**, **Émeraude** ou **Sobre** (gardé
+  sur l'appareil).
+- **Réglages** : Volume, Transposition, **Avance** (temps d'avance de l'émulation, 40 ms par défaut : à augmenter
+  si le son craque sur un appareil lent), **Horloge MIDI** (les séquenceurs des firmwares suivent le tempo de
+  GOLEM), **Notes jouées par** (Auto, MIDI, ou touches du boîtier pour les firmwares qui ne lisent pas le MIDI).
+- **Les 8 commandes du boîtier au contrôleur** : KNOB 1 à 4, SELECT, PRESETS, ALGORITHM et MASTER sont aussi des
+  réglages de l'instrument. **Appui long** (ou clic droit) sur un bouton : **Apprendre MIDI**, bouton assignable,
+  modulation, comme pour tous les synthés. Sur l'écran **SON**, la section **Boîtier** les met sous les
+  **8 encodeurs**. Les boutons vont de **0 à 100 %** : au doigt, toute la course en un glissé (ou en tournant).
+- **Course des boutons** (panneau Firmware, repliée) : le nombre de crans du firmware pour aller du minimum au
+  maximum, bouton par bouton — **128** pour KNOB 1 à 4, **4** pour ALGORITHM (un quart de tour par algorithme),
+  256 pour SELECT et PRESETS. Les firmwares ne comptent pas tous pareil : si un réglage arrive au bout trop tôt,
+  baissez sa course. À **0 %** et à **100 %**, GOLEM recale le firmware sur ses butées.
+- **Les 14 touches du boîtier** (FX, SCL, ENV, LFO, EDIT, GLO, HOME, SAVE, ARP, SEQ, PLAY, REC, OCT − et OCT +) :
+  **clic droit** ou **appui long** pour les apprendre — une touche du contrôleur appuie alors sur celle du boîtier
+  (elle s'allume en bleu tant qu'on l'apprend).
+- Les **commandes d'un contrôleur MIDI** que GOLEM n'a pas apprises vont directement au firmware.
+- **En pause** après 20 s sans rien jouer (économie de batterie) : une note ou une touche la relance.
+
+<figure><img src="img/v100/fm-player-ambre.jpg" alt="FM Player, fond Ambre : la machine, l'écran de sloopDX, T1 à T4 et la rangée Acide sous le piano"><figcaption>FM Player (fond Ambre) : la machine, T1 à T4 et la rangée Acide sous le piano</figcaption></figure>
+
+<figure><img src="img/v100/fm-player-grand-telephone.jpg" alt="Mode Grand au téléphone, fond Nuit"><figcaption>Mode Grand au téléphone (fond Nuit) : écran, boutons, piano et T1 à T4</figcaption></figure>
+
+<figure><img src="img/v100/fm-player-sequence-t1-t4.jpg" alt="Écran Séquence : les 4 lignes T1 à T4"><figcaption>Écran Séquence : une ligne par piste T (un canal MIDI du firmware chacune)</figcaption></figure>
+
+<sub>M-VAVE et FM-1 sont des marques de leurs propriétaires respectifs. OFAD GOLEM n'est ni affilié, ni approuvé,
+ni sponsorisé par M-VAVE ; ces noms sont cités uniquement pour indiquer la compatibilité avec les firmwares écrits
+pour le FM-1. L'émulation repose sur fm1-emu (Joakim Eriksson, licence MIT). Aucun logiciel d'origine de M-VAVE
+n'est fourni : les firmwares inclus sont des créations libres de la communauté, avec leurs auteurs et leurs sources.</sub>
+
 ## Contrôleur MIDI
 
 ### Brancher un contrôleur : prêt à jouer
@@ -697,7 +754,9 @@ dossier « &lt;nom du projet&gt; - audio » à côté du fichier.
   simple reste l'USB.
 - **Dans un logiciel hôte** (VST3) : c'est le logiciel hôte qui reçoit le contrôleur et l'envoie au Groovebox.
 - Les notes jouent la piste choisie (ou les pistes réglées sur un canal, Réglages › MIDI) ; sur une
-  batterie, les notes 36 à 51 jouent les 16 pads. La molette, le pitch bend et la pédale de maintien
+  batterie, les notes 36 à 51 jouent les 16 pads. Sur **Pieuvre 8** et le **FM Player**, le clavier joue la T
+  choisie **sur toutes ses octaves**, et chaque T peut avoir **son propre canal** (écran PISTES, « T1 … T8 ») :
+  un clavier ou un séquenceur externe joue alors plusieurs T à la fois. La molette, le pitch bend et la pédale de maintien
   suivent la piste jouée.
 - Téléphone avec un seul port USB-C : un hub USB-C avec charge (PD) permet de brancher en même temps
   le clavier, la sortie son USB vers la table de mixage et le chargeur.

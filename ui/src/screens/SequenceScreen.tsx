@@ -103,7 +103,9 @@ export function SequenceScreen() {
   const [patOpen, setPatOpen] = useState(false); // réglages du pattern (mesures, division, vitesse) depuis la pastille
   const [laneRoll, setLaneRoll] = useState(false); // v0.44.1 : Pieuvre 8 — la piste T choisie dépliée en clavier chromatique
   const octa = track?.instrument === "octa";
-  const showLaneRoll = octa && laneRoll;
+  // v0.49 : instruments à pistes internes (Pieuvre 8, FM Player T1 à T4) : chaque ligne T joue sa note
+  const laneInst = !!module?.laneNotes;
+  const showLaneRoll = laneInst && laneRoll;
   const patRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!patOpen) return;
@@ -145,16 +147,16 @@ export function SequenceScreen() {
   useEffect(() => {
     if (played.n === lastPlayed.current) return;
     lastPlayed.current = played.n;
-    if ((drum && !octa) || played.note < 0 || played.track !== t) return;
+    if ((drum && !laneInst) || played.note < 0 || played.track !== t) return;
     // v0.47 (5 nov. après-midi) : le clavier ne change plus la note du pas choisi ; il choisit seulement la note des
     // pas qu'on pose ensuite (Pieuvre 8 : sur la ligne T de sa zone). Note d'un pas posé : Note ◀ ▶ de son menu.
-    if (octa) {
+    if (laneInst) {
       const mapped = octaLaneNote(played.note);
       if (mapped) octaWrite.current = mapped;
     }
   }, [played]); // eslint-disable-line react-hooks/exhaustive-deps
   /** Note écrite par un pas posé sur la ligne T de Pieuvre 8 (undefined : la note de la ligne reste). */
-  const octaNewNote = (row: number) => (octa && octaWrite.current && octaWrite.current.lane === row ? octaWrite.current.note : undefined);
+  const octaNewNote = (row: number) => (laneInst && octaWrite.current && octaWrite.current.lane === row ? octaWrite.current.note : undefined);
 
   // v0.46 fix29 : page des puces de pattern (A–H, I–P), calée sur le pattern édité
   const editedPat = pattern?.pattern ?? 0;
@@ -241,7 +243,7 @@ export function SequenceScreen() {
 
   const flamBinding = (cur: number, set: (ms: number) => void) => steppedBinding("Flam", FLAM_CHOICES, FLAM_CHOICES.includes(cur) ? cur : 0, set, flamText);
   const stepEncoders: (EncoderBinding | null)[] = step === null || !L0 ? [] : [
-    drum && !octa ? flamBinding(extra?.flam ?? 0, (ms) => void actions.extras("stepsFlam", JSON.stringify([[lane, step]]), ms)) : steppedBinding("Note", Array.from({ length: 128 }, (_, i) => i), L0.note[step], (n) => { void actions.seq("seqSetNote", lane, step, n); actions.noteOn(t, n, 0.7, false); window.setTimeout(() => actions.noteOff(t, n), 150); }, noteName),
+    drum && !laneInst ? flamBinding(extra?.flam ?? 0, (ms) => void actions.extras("stepsFlam", JSON.stringify([[lane, step]]), ms)) : steppedBinding("Note", Array.from({ length: 128 }, (_, i) => i), L0.note[step], (n) => { void actions.seq("seqSetNote", lane, step, n); actions.noteOn(t, n, 0.7, false); window.setTimeout(() => actions.noteOff(t, n), 150); }, noteName),
     valueBinding("Vélocité", (L0.vel[step] - 1) / 126, `${L0.vel[step]}`, (v) => void actions.seq("seqSetStep", lane, step, Math.max(1, Math.round(1 + v * 126)))),
     steppedBinding("Durée", LEN_CHOICES, L0.len[step], (n) => void actions.seq("seqSetLength8", lane, step, n),
       (n) => (n % 8 === 0 ? `${n / 8} pas` : `${(n / 8).toFixed(2)} pas`)),
@@ -413,7 +415,7 @@ export function SequenceScreen() {
     if (getState().ui.paint && !(e.ctrlKey || e.metaKey)) { e.preventDefault(); startPaint(e, row, st); return; }
     // v0.47 (maj. 5 nov.) : Pieuvre 8 — les pas d'une ligne T s'allongent comme des notes : tirer le bord droit
     // d'un pas (ou la queue d'un pas long) vers la droite ou la gauche
-    if (octa && drum && !(e.ctrlKey || e.metaKey || e.shiftKey) && !getState().ui.selectMode) {
+    if (laneInst && drum && !(e.ctrlKey || e.metaKey || e.shiftKey) && !getState().ui.selectMode) {
       const p = getState().pattern;
       const ln = p?.lanes[row];
       if (p && ln) {
@@ -561,7 +563,7 @@ export function SequenceScreen() {
       {ui.seqView === "auto" ? <PatternCurves t={t} spb={spb} /> : (
       <div className={`seq${drum ? "" : " seq--melodic"}`} style={drum ? undefined : { "--k": trackColor(track?.color ?? 0) } as React.CSSProperties}>
         <div className={`seq-head${drum && !showLaneRoll ? "" : " seq-head--roll"}`}>
-          {drum && !showLaneRoll ? (octa
+          {drum && !showLaneRoll ? (laneInst
             ? <button type="button" className="seq-head-name seq-head-roll" onClick={() => { setLaneRoll(true); if (ui.rollBase > 60 || ui.rollBase + ROLL_ROWS - 1 < 60) setRollBase(48); }} aria-label={`T${Math.min(lane, 7) + 1} en notes (clavier chromatique)`}
                 title="Déplier la piste T choisie en clavier chromatique : chaque pas reçoit sa note (Clavier « Chromatique » de la piste)">T{Math.min(lane, 7) + 1} en notes ♪</button>
             : <span className="seq-head-name">Pad</span>) : (
@@ -583,7 +585,7 @@ export function SequenceScreen() {
 
         {showLaneRoll ? (
           <OctaLaneRoll t={t} T={Math.min(lane, 7)} first={first} stepsPerBeat={stepsPerBeat} playStep={showsPlaying ? (pos[Math.min(lane, 7)] ?? -1) : -1}
-            lengthHint={(T) => { if (octaParam(`t${T + 1}_holdmode`) !== 1) showMessage(`Durée de la note : elle s'entend quand le Déclenchement de T${T + 1} est sur « Tant qu'appuyé » (page Ampli)`); }} />
+            lengthHint={(T) => { if (octa && octaParam(`t${T + 1}_holdmode`) !== 1) showMessage(`Durée de la note : elle s'entend quand le Déclenchement de T${T + 1} est sur « Tant qu'appuyé » (page Ampli)`); }} />
         ) : drum ? (
         <div className="seq-body" onPointerLeave={() => { hover.current = null; }}>
           {rows.map((r) => {
@@ -592,7 +594,7 @@ export function SequenceScreen() {
             const position = pos[r] ?? -1;
             const kind = module?.padKinds[r] ?? "sample";
             // v0.43 : Pieuvre 8 → chaque ligne T prend la couleur de sa piste interne (sinon cases éteintes, sombres)
-            const kStyle = kind === "octa" ? { "--k": trackColor(r) } as React.CSSProperties : undefined;
+            const kStyle = kind === "octa" || kind === "fm1" ? { "--k": trackColor(r) } as React.CSSProperties : undefined;
             return (
               <div key={r} className={`seq-row${r === lane ? " seq-row--selected" : ""}${ln.mute ? " seq-row--muted" : ""}`}>
                 <button type="button" className={`seq-name kind--${kind}${(lit[r] ?? 0) > 0 ? " is-lit" : ""}`} style={kStyle} onClick={() => selectLane(r)}
@@ -612,8 +614,8 @@ export function SequenceScreen() {
                     const ex = extras.find((e) => e.lane === r && e.step === s);
                     const classes = ["cell"];
                     if (ln.length > 0 && s >= ln.length) classes.push("cell--lane-out");
-                    if (octa && vel === 0 && laneHeldOrigin(ln, s) >= 0) classes.push("cell--held");
-                    if (octa && vel > 0) classes.push("cell--grip");
+                    if (laneInst && vel === 0 && laneHeldOrigin(ln, s) >= 0) classes.push("cell--held");
+                    if (laneInst && vel > 0) classes.push("cell--grip");
                     if (vel > 0 && (ex?.flam ?? 0) > 0) classes.push("cell--flam");
                     if (vel > 0 && ((pattern.flags[s] ?? 0) & STEP_ACCENT)) classes.push("cell--acc");
                     if (vel > 0) classes.push("cell--on");

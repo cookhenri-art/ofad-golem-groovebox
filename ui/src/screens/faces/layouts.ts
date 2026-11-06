@@ -641,8 +641,8 @@ const blo: FaceLayout = {
       id: "sound", label: "Son",
       rows: [
         [
-          { title: "Oscillateurs 1 et 2", banks: BLO_OSC, cols: 5, grow: 1.7, ctl: [
-            { id: "o{b}shape", k: "vswitch", label: "Forme / table", short: SHAPES_BLO },
+          { title: "Oscillateurs 1 et 2", banks: BLO_OSC, bankAll: true, cols: 5, grow: 1.7, ctl: [
+            { id: "o{b}shape", k: "vswitch", label: "Forme / table", short: SHAPES_BLO, vcols: 2 },
             { stack: [{ id: "o{b}oct", k: "small", label: "Octave" }, { id: "o{b}semi", k: "small", label: "Demi-tons" }, { id: "o{b}detune", k: "small", label: "Désaccord" }] },
             { id: "o{b}pos", k: "big", label: "Largeur / pos." },
             { stack: [{ id: "o{b}pwm", label: "Modulation" }, { id: "o{b}pwmsrc", k: "small", label: "par" }] },
@@ -658,8 +658,8 @@ const blo: FaceLayout = {
           ] },
         ],
         [
-          { title: "Filtres", banks: BLO_OSC, cols: 4, grow: 1.6, tone: "oklch(0.75 0.13 60)", ctl: [
-            { id: "f{b}type", k: "vswitch", label: "Type", short: ["Arrêt", "LP24", "LP12", "BP24", "BP12", "HP24", "HP12", "Réj24", "Réj12", "Pgn+", "Pgn−"] },
+          { title: "Filtres", banks: BLO_OSC, bankAll: true, cols: 4, grow: 1.6, tone: "oklch(0.75 0.13 60)", ctl: [
+            { id: "f{b}type", k: "vswitch", label: "Type", short: ["Arrêt", "LP24", "LP12", "BP24", "BP12", "HP24", "HP12", "Réj24", "Réj12", "Pgn+", "Pgn−"], vcols: 2 },
             { id: "f{b}cut", k: "big", label: "Coupure" },
             { stack: [{ id: "f{b}reso", label: "Résonance" }, { id: "f{b}drive", label: "Saturation" }, { id: "f{b}curve", k: "small", label: "Courbe" }] },
             { stack: [{ id: "f{b}env", label: "Env." }, { id: "f{b}key", k: "small", label: "Clavier" }, { id: "f{b}vel", k: "small", label: "Vélocité" }] },
@@ -676,7 +676,7 @@ const blo: FaceLayout = {
             { id: "l{b}rate", label: "Vitesse" },
             { stack: [{ id: "l{b}sync", k: "small", label: "Synchro" }, { id: "l{b}delay", k: "small", label: "Retard" }] },
           ] },
-          { title: "Jeu", cols: 3, grow: 1, ctl: [
+          { title: "Jeu", cols: 3, flowCols: 9, grow: 1, ctl: [
             { id: "vmode", k: "vswitch", label: "Mode", short: ["Poly", "Mono", "Unisson"] }, { id: "voices", k: "small", label: "Voix" }, { id: "glide", k: "small", label: "Portamento" },
             { id: "univoices", k: "small", label: "Unisson" }, { id: "unidetune", k: "small", label: "Désaccord" }, { id: "spread", k: "small", label: "Étalement" },
             { id: "tune", k: "small", label: "Accord" }, { id: "velamp", k: "small", label: "Vélocité" }, { id: "level", k: "big", label: "Volume" },
@@ -1776,4 +1776,24 @@ const gooddoc: FaceLayout = {
   ],
 };
 
-export const FACE_LAYOUTS: Record<string, FaceLayout> = { mono, acid, drumA, drum80, drum90, poly5, polyj, hybrid, morph, pads, octa, ms20, sh101, blo, ob6, orbit, fm6, fm4, fmx, muse, hots, lyra, bitm, drumImp, drumNrv, dfam, voc16, vocstr, vocspec, vocsyn, sampler, keys, sp, gluta, gooddoc };
+/** v0.49 : FM Player — la machine émulée en grand (écran au milieu, ses commandes de part et d'autre, son
+    clavier dessous), puis le firmware et la sortie. Dessin propre à GOLEM. */
+const fmplayer: FaceLayout = {
+  theme: "fmplayer",
+  wheels: true,
+  pages: [
+    {
+      id: "sound", label: "Son",
+      rows: [
+        [
+          { title: "La machine", ctl: [], custom: "fm1", grow: 3.4 },
+          { title: "Firmware", cols: 3, grow: 1, custom: "fm1fw", ctl: [
+            { id: "level", k: "big", label: "Volume" }, { id: "transpose", k: "small", label: "Transpos." }, { id: "lead", k: "small", label: "Avance" },
+          ] },
+        ],
+      ],
+    },
+  ],
+};
+
+export const FACE_LAYOUTS: Record<string, FaceLayout> = { mono, acid, drumA, drum80, drum90, poly5, polyj, hybrid, morph, pads, octa, ms20, sh101, blo, ob6, orbit, fm6, fm4, fmx, muse, hots, lyra, bitm, drumImp, drumNrv, dfam, voc16, vocstr, vocspec, vocsyn, sampler, keys, sp, gluta, gooddoc, fmplayer };

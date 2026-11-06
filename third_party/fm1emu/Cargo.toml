@@ -1,0 +1,16 @@
+# Groovebox — OFAD — émulateur du FM-1 (fm1-emu de Joakim Eriksson, licence MIT : voir LICENSE et README.md)
+# Seuls les crates de l'émulateur (fm1-isa, fm1-core, fm1-soc) sont repris, plus le pont C de GOLEM (fm1-bridge).
+[workspace]
+resolver = "2"
+members = ["crates/fm1-isa", "crates/fm1-core", "crates/fm1-soc", "crates/fm1-bridge"]
+
+[workspace.package]
+version = "0.4.0"
+edition = "2021"
+license = "MIT"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "unwind" # v0.49 : une erreur de l'émulateur arrête sa machine (fil rattrapé), pas GOLEM

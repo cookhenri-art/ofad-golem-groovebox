@@ -200,6 +200,8 @@ public:
             for (auto& d : t.direction) d.store (0);
             for (auto& m : t.laneMute) m.store (false);
             for (auto& m : t.laneSolo) m.store (false);
+            for (auto& m : t.laneLockGlide) m.store (false);
+            for (auto& m : t.laneLockMute) m.store (false);
             for (auto& p : t.position) p.store (-1);
             t.mute.store (false); t.solo.store (false);
             t.playing.store (0); t.queued.store (-1); t.editing.store (0);
@@ -407,7 +409,7 @@ public:
             std::array<std::array<std::uint16_t, maxSteps>, numPatterns> amt;
             std::array<std::array<int, numLanes>, numPatterns> laneLen;
             std::array<int, numPatterns> length, speed, division;
-            std::array<bool, numLanes> laneMute, laneSolo;
+            std::array<bool, numLanes> laneMute, laneSolo, laneLockGlide, laneLockMute;
             bool mute, solo;
             int playing, queued, editing, accent;
         };
@@ -433,7 +435,7 @@ public:
                 for (int st = 0; st < maxSteps; ++st) { d.flags[(size_t) p][(size_t) st] = a.flags[(size_t) st].load(); d.amt[(size_t) p][(size_t) st] = a.amt[(size_t) st].load(); }
                 d.length[(size_t) p] = a.length.load(); d.speed[(size_t) p] = a.speed.load(); d.division[(size_t) p] = a.division.load();
             }
-            for (int l = 0; l < numLanes; ++l) { d.laneMute[(size_t) l] = tr.laneMute[(size_t) l].load(); d.laneSolo[(size_t) l] = tr.laneSolo[(size_t) l].load(); }
+            for (int l = 0; l < numLanes; ++l) { d.laneMute[(size_t) l] = tr.laneMute[(size_t) l].load(); d.laneSolo[(size_t) l] = tr.laneSolo[(size_t) l].load(); d.laneLockGlide[(size_t) l] = tr.laneLockGlide[(size_t) l].load(); d.laneLockMute[(size_t) l] = tr.laneLockMute[(size_t) l].load(); }
             d.mute = tr.mute.load(); d.solo = tr.solo.load();
             d.playing = tr.playing.load(); d.queued = tr.queued.load(); d.editing = tr.editing.load(); d.accent = tr.accent.load();
         }
@@ -458,7 +460,7 @@ public:
                 for (int st = 0; st < maxSteps; ++st) { a.flags[(size_t) st].store (d.flags[(size_t) p][(size_t) st]); a.amt[(size_t) st].store (d.amt[(size_t) p][(size_t) st]); }
                 a.length.store (d.length[(size_t) p]); a.speed.store (d.speed[(size_t) p]); a.division.store (d.division[(size_t) p]);
             }
-            for (int l = 0; l < numLanes; ++l) { tr.laneMute[(size_t) l].store (d.laneMute[(size_t) l]); tr.laneSolo[(size_t) l].store (d.laneSolo[(size_t) l]); }
+            for (int l = 0; l < numLanes; ++l) { tr.laneMute[(size_t) l].store (d.laneMute[(size_t) l]); tr.laneSolo[(size_t) l].store (d.laneSolo[(size_t) l]); tr.laneLockGlide[(size_t) l].store (d.laneLockGlide[(size_t) l]); tr.laneLockMute[(size_t) l].store (d.laneLockMute[(size_t) l]); }
             tr.mute.store (d.mute); tr.solo.store (d.solo);
             tr.playing.store (d.playing); tr.queued.store (d.queued); tr.editing.store (d.editing); tr.accent.store (d.accent);
         }
@@ -527,6 +529,11 @@ public:
     Direction getDirection (int t, int lane) const noexcept { return validTL (t, lane) ? (Direction) trk (t).direction[(size_t) lane].load() : Direction::forward; }
     void setLaneMute (int t, int lane, bool m) noexcept { if (validTL (t, lane)) { trk (t).laneMute[(size_t) lane].store (m); bump(); } }
     bool getLaneMute (int t, int lane) const noexcept { return validTL (t, lane) && trk (t).laneMute[(size_t) lane].load(); }
+    // 1.0 (6 nov.) : verrous de la ligne glissés d'un pas à l'autre (au lieu de sauter), ou coupés (gardés, pas joués)
+    void setLaneLockGlide (int t, int lane, bool on) noexcept { if (validTL (t, lane)) { trk (t).laneLockGlide[(size_t) lane].store (on); bump(); } }
+    bool getLaneLockGlide (int t, int lane) const noexcept { return validTL (t, lane) && trk (t).laneLockGlide[(size_t) lane].load (std::memory_order_relaxed); }
+    void setLaneLockMute (int t, int lane, bool on) noexcept { if (validTL (t, lane)) { trk (t).laneLockMute[(size_t) lane].store (on); bump(); } }
+    bool getLaneLockMute (int t, int lane) const noexcept { return validTL (t, lane) && trk (t).laneLockMute[(size_t) lane].load (std::memory_order_relaxed); }
     void setLaneSolo (int t, int lane, bool s) noexcept { if (validTL (t, lane)) { trk (t).laneSolo[(size_t) lane].store (s); bump(); } }
     bool getLaneSolo (int t, int lane) const noexcept { return validTL (t, lane) && trk (t).laneSolo[(size_t) lane].load(); }
 
@@ -859,6 +866,7 @@ private:
         std::array<PatternData, numPatterns> pat;
         std::array<std::atomic<int>, numLanes> direction, position;
         std::array<std::atomic<bool>, numLanes> laneMute, laneSolo;
+        std::array<std::atomic<bool>, numLanes> laneLockGlide {}, laneLockMute {}; // 1.0 : verrous glissés / coupés
         std::atomic<bool> mute { false }, solo { false }, soloFollow { false };
         std::atomic<bool> laneAudioMute { false }; // v0.43 : coupure des lignes faite par l'instrument (son seul)
         std::atomic<int> playing { 0 }, queued { -1 }, editing { 0 };

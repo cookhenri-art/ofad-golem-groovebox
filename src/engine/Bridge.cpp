@@ -74,7 +74,7 @@ std::string paramJson (const ParamDesc& p)
 std::string moduleJson (const ModuleDesc& d)
 {
     std::string o = "{\"type\":" + quote (d.type) + ",\"name\":" + quote (d.name) + ",\"family\":" + quote (d.family)
-                  + ",\"principle\":" + quote (d.principle) + (d.form.empty() ? std::string() : ",\"form\":" + quote (d.form)) + (d.role.empty() ? std::string() : ",\"role\":" + quote (d.role)) + ",\"drumKit\":" + (d.drumKit ? "true" : "false") + ",\"params\":[";
+                  + ",\"principle\":" + quote (d.principle) + (d.form.empty() ? std::string() : ",\"form\":" + quote (d.form)) + (d.role.empty() ? std::string() : ",\"role\":" + quote (d.role)) + ",\"drumKit\":" + (d.drumKit ? "true" : "false") + (d.laneNotes ? ",\"laneNotes\":true" : "") + ",\"params\":[";
     for (size_t i = 0; i < d.params.size(); ++i) o += (i ? "," : "") + paramJson (d.params[i]);
     o += "],\"sections\":[";
     for (size_t i = 0; i < d.sections.size(); ++i)
@@ -322,6 +322,7 @@ std::string patternJson (const Engine& e, int t)
         o += (l ? "," : "") + std::string ("{\"dir\":") + std::to_string ((int) s.getDirection (t, l))
            + ",\"length\":" + std::to_string (s.getLaneLength (t, l))
            + ",\"mute\":" + (s.getLaneMute (t, l) ? "true" : "false") + ",\"solo\":" + (s.getLaneSolo (t, l) ? "true" : "false")
+           + ",\"lglide\":" + (s.getLaneLockGlide (t, l) ? "true" : "false") + ",\"lmute\":" + (s.getLaneLockMute (t, l) ? "true" : "false")
            + ",\"vel\":\"" + hexRow (s, t, l, 0) + "\",\"note\":\"" + hexRow (s, t, l, 1) + "\",\"len3\":\"" + hexRow (s, t, l, 2)
            + "\",\"micro\":\"" + hexRow (s, t, l, 3) + "\"}";
     }

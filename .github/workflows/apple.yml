@@ -14,6 +14,8 @@ on:
       - "ui/**"
       - "resources/**"
       - "CMakeLists.txt"
+      - "cmake/**"
+      - "third_party/**"
       - ".github/workflows/apple.yml"
 
 concurrency:
@@ -51,7 +53,13 @@ jobs:
           git clone --depth 1 --branch "$JUCE_TAG" https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
           test "$(git -C "$RUNNER_TEMP/JUCE" rev-parse HEAD)" = "$JUCE_SHA"
 
+      # v0.49 : émulateur FM-1 du FM Player (Rust ; compilé par CMake avec cargo)
+      - name: Rust (iPhone / iPad)
+        run: rustup target add aarch64-apple-ios
+
       - name: Projet Xcode (iPhone / iPad)
+        env:
+          IPHONEOS_DEPLOYMENT_TARGET: "15.0"
         run: |
           cmake -S . -B build-ios -G Xcode \
             -DCMAKE_SYSTEM_NAME=iOS \
@@ -61,6 +69,8 @@ jobs:
             -DJUCE_DIR="$RUNNER_TEMP/JUCE"
 
       - name: Compilation (sans signature)
+        env:
+          IPHONEOS_DEPLOYMENT_TARGET: "15.0"
         run: |
           xcodebuild -project build-ios/Groovebox.xcodeproj -scheme Groovebox_Standalone \
             -configuration Release -sdk iphoneos -destination "generic/platform=iOS" \
@@ -111,7 +121,12 @@ jobs:
           git clone --depth 1 --branch "$JUCE_TAG" https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
           test "$(git -C "$RUNNER_TEMP/JUCE" rev-parse HEAD)" = "$JUCE_SHA"
 
+      - name: Rust (Mac Apple Silicon et Intel)
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
       - name: Compilation (Mac Apple Silicon et Intel)
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
         run: |
           cmake -S . -B build-mac -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \

@@ -1,0 +1,13 @@
+[package]
+name = "fm1-bridge"
+description = "Pont C entre le moteur de GOLEM (C++) et l'émulateur FM-1 : bibliothèque statique"
+version.workspace = true
+edition.workspace = true
+license = "MIT"
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+fm1-core = { path = "../fm1-core" }
+fm1-soc = { path = "../fm1-soc" }

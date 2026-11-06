@@ -107,6 +107,10 @@ void Engine::prepare (double sr, int maxBlock)
     for (auto& c : *state) { c.seenVersion = 0xFFFFFFFFu; for (auto& m : c.mods) m.reset(); }
     numPendingOffs = 0;
     loudness.prepare (sampleRate);
+    const auto compLen = (size_t) std::min (maxCompensation * 4, (int) (sampleRate * 0.25) + controlBlock + 1);
+    for (int t = 0; t < numTracks; ++t) { compL[(size_t) t].assign (compLen, 0.0f); compR[(size_t) t].assign (compLen, 0.0f); compWrite[(size_t) t] = 0; }
+    compDelay = 0;
+    compReported.store (0);
 }
 
 void Engine::applyDefaults (int channel, int baseSlot, const ModuleDesc& d) noexcept
@@ -1453,12 +1457,14 @@ void Engine::play (const Graph& g, int track, int note, float velocity, bool on)
                 if ((int) mp[msType] == 2 && (int) mp[msFollowSrc] == numTracks + 1 + track) cc.mods[(size_t) m].sideNote (velocity);
             }
         }
-        int lane = drum ? (note < 16 ? std::max (0, note) : note >= 128 ? std::clamp ((note - 128) / 128, 0, 15)
+        // GOLEM 1.0 : sur le FM Player, toutes les notes (même 0 à 15) sont des touches de la piste T jouée
+        const int lowKey = inst->desc().laneLowKeys ? 0 : 16;
+        int lane = drum ? (note < lowKey ? std::max (0, note) : note >= 128 ? std::clamp ((note - 128) / 128, 0, 15)
                                                : std::clamp (playLane[(size_t) track].load (std::memory_order_relaxed), 0, 15)) : ((note % 16) + 16) % 16;
         int stepNote = note;
-        if (drum && note >= 16 && note < 128 && inst->mapNote (note, lane, stepNote)) lane = std::clamp (lane, 0, 15); // v0.43 : zones du clavier
+        if (drum && note >= lowKey && note < 128 && inst->mapNote (note, lane, stepNote)) lane = std::clamp (lane, 0, 15); // v0.43 : zones du clavier
         hits[(size_t) track][(size_t) lane].fetch_add (1, std::memory_order_relaxed);
-        const bool keys = ! drum || (note >= 16 && note < 128 && inst->desc().laneNotes); // v0.43 : touches jouées sur une Pieuvre
+        const bool keys = ! drum || (note >= lowKey && note < 128 && inst->desc().laneNotes); // v0.43 : touches jouées sur une Pieuvre
         if (keys && note >= 0 && note < 128)
         {
             noteHits[(size_t) track][(size_t) note].fetch_add (1, std::memory_order_relaxed);
@@ -1468,7 +1474,7 @@ void Engine::play (const Graph& g, int track, int note, float velocity, bool on)
     else
     {
         inst->noteOff (note);
-        if (! drum || (note >= 16 && note < 128 && inst->desc().laneNotes)) setNoteDown (track, note, false);
+        if (! drum || (note >= (inst->desc().laneLowKeys ? 0 : 16) && note < 128 && inst->desc().laneNotes)) setNoteDown (track, note, false);
     }
 }
 
@@ -1495,7 +1501,7 @@ void Engine::dispatch (const Graph& g, int track, int note, float velocity, bool
     auto* inst = g.ch[(size_t) track].instrument;
     if (inst == nullptr) return;
     auto& c = (*state)[(size_t) track];
-    const auto n = (size_t) std::clamp (note, 0, 127);
+    const auto n = (size_t) std::clamp (note, 0, ChannelState::noteSlots - 1); // GOLEM 1.0 : notes d'une T comprises
     const auto& cg = g.ch[(size_t) track];
     if (c.arpOwner != inst)
     {
@@ -1547,7 +1553,7 @@ void Engine::expression (const Graph& g, int track, int kind, float value) noexc
             if (c.sustainDown && ! down)
             {
                 c.sustainDown = false;
-                for (int k = 0; k < 128; ++k)
+                for (int k = 0; k < ChannelState::noteSlots; ++k)
                     if (c.sustained[(size_t) k]) { c.sustained[(size_t) k] = false; dispatch (g, track, k, 0.0f, false); }
             }
             c.sustainDown = down;
@@ -1617,6 +1623,15 @@ void Engine::runArpeggiators (const Graph& g, double ppq, bool playing, double b
 void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, double bpm, double ppq, bool playing) noexcept
 {
     auto& st = *state;
+    // v0.49 : plus grand retard d'instrument de ce morceau (FM Player)
+    {
+        int d = 0;
+        for (int t = 0; t < numTracks; ++t)
+            if (const auto* ci = g.ch[(size_t) t].instrument; ci != nullptr && g.ch[(size_t) t].used) d = std::max (d, ci->latencySamples());
+        const auto cap = compL[0].empty() ? 0 : (int) compL[0].size() - controlBlock - 1;
+        compDelay = std::clamp (d, 0, std::max (0, cap));
+        compReported.store (compDelay, std::memory_order_relaxed);
+    }
     float masterL[controlBlock] {}, masterR[controlBlock] {};
     float retL[numReturns][controlBlock] {}, retR[numReturns][controlBlock] {};
     float grpL[numGroups][controlBlock] {}, grpR[numGroups][controlBlock] {}; // bus de groupe (v0.24)
@@ -1943,6 +1958,21 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
         scPtrL[t] = scPtrR[t] = scSilence.data(); // jamais sa propre sortie : pas de boucle de réinjection
         cg.instrument->setSidechainSources (scPtrL, scPtrR);
         cg.instrument->render (L, R, n, c.eff.data() + instrumentBase);
+        // v0.49 : retard ajouté pour tomber avec l'instrument le plus en retard (FM Player)
+        if (const auto dly = compDelay - std::min (compDelay, std::max (0, cg.instrument->latencySamples())); dly > 0 || compDelay > 0)
+        {
+            auto& bl = compL[(size_t) t]; auto& br = compR[(size_t) t];
+            const auto len = (int) bl.size();
+            auto w = compWrite[(size_t) t];
+            for (int i = 0; i < n; ++i)
+            {
+                bl[(size_t) w] = L[i]; br[(size_t) w] = R[i];
+                auto r = w - dly; if (r < 0) r += len;
+                L[i] = bl[(size_t) r]; R[i] = br[(size_t) r];
+                if (++w >= len) w = 0;
+            }
+            compWrite[(size_t) t] = w;
+        }
         const auto* next = t + 1 < numTracks && g.ch[(size_t) (t + 1)].used ? g.ch[(size_t) (t + 1)].instrument : nullptr;
         const bool absorbed = next != nullptr && next->absorbsNeighbor (st[(size_t) (t + 1)].eff.data() + instrumentBase);
         // piste prise par la suivante (voix d'un vocodeur) : elle suit le solo de celle-ci
@@ -2067,6 +2097,7 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
         for (int i = 0; i < maxSamples; ++i)
         {
             const auto* smp = g->ch[(size_t) t].samples[(size_t) i];
+            if (smp != nullptr && smp->firmware != inst->acceptsFirmware()) smp = nullptr; // v0.49 : firmware → FM Player seulement
             if (smp != c.appliedSamples[(size_t) i]) { inst->setSample (i, smp); c.appliedSamples[(size_t) i] = smp; }
         }
         if (const auto* sp = g->ch[(size_t) t].speech; sp != c.appliedSpeech) { inst->setSpeech (sp); c.appliedSpeech = sp; }
@@ -2137,13 +2168,25 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
             {
                 // v0.42 : clavier d'une Pieuvre (notes 16 et plus) → sa ligne jouée, avec la note jouée
                 // v0.43 : zones du clavier — la note va dans la ligne de sa zone, transposée par rapport à la zone
-                int pp = -1, pos = -1, want = e.note < 16 ? e.note : playLane[(size_t) e.track].load (std::memory_order_relaxed), stepNote = e.note;
-                if (e.note >= 16 && e.note < 128) inst->mapNote (e.note, want, stepNote);
+                const int lowKey = inst->desc().laneLowKeys ? 0 : 16; // GOLEM 1.0 : FM Player, toutes les notes sont des touches
+                // GOLEM 1.0 : note arrivée sur le canal MIDI propre d'une T (128 + T × 128 + note) : dans cette T
+                const bool laneAddr = e.note >= 128 && inst->desc().laneNotes;
+                int pp = -1, pos = -1, want = laneAddr ? std::clamp ((e.note - 128) / 128, 0, 15)
+                                                       : e.note < lowKey ? e.note : playLane[(size_t) e.track].load (std::memory_order_relaxed),
+                    stepNote = laneAddr ? (e.note - 128) % 128 : e.note;
+                if (! laneAddr && e.note >= lowKey && e.note < 128) inst->mapNote (e.note, want, stepNote);
                 const auto lane = seq->recordHit (e.track, want, e.note, e.velocity, offset, false, &pp, &pos);
-                if (lane >= 0 && e.note >= 16 && inst->desc().laneNotes) seq->setNoteP (e.track, pp, lane, pos, stepNote);
+                if (lane >= 0 && (laneAddr || e.note >= lowKey) && inst->desc().laneNotes) seq->setNoteP (e.track, pp, lane, pos, stepNote);
             }
         }
         if (e.type == InputEvent::noteOff) seq->recordRelease (e.track, e.note, offset); // durée de la note enregistrée
+        // GOLEM 1.0 : note jouée sur le canal d'une T : sa touche s'allume aussi sur les claviers de l'écran
+        if (e.note >= 128 && inst->desc().drumKit && inst->desc().laneNotes)
+        {
+            const auto key = (e.note - 128) % 128;
+            if (e.type == InputEvent::noteOn) noteHits[(size_t) e.track][(size_t) key].fetch_add (1, std::memory_order_relaxed);
+            setNoteDown (e.track, key, e.type == InputEvent::noteOn);
+        }
         add ({ offset, e.track, 0, e.note, e.velocity, e.type == InputEvent::noteOn, 0.0, nullptr, false });
     };
 
@@ -2203,6 +2246,8 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
                 if (auto* inst = g->ch[(size_t) e.track].instrument) inst->recordAction (std::clamp (e.kind - kindRecord, 0, 3));
                 continue;
             }
+            // v0.49 : CC non appris d'un contrôleur → l'instrument (FM Player : vers le firmware)
+            if (e.kind == InputEvent::controller) { if (auto* ci = g->ch[(size_t) e.track].instrument) ci->controller (std::clamp (e.note, 0, 127), std::clamp (e.vel, 0.0f, 1.0f)); continue; }
             if (e.kind != 0) { expression (*g, e.track, e.kind, e.vel); continue; }
             // pas « sans déclenchement » : il pose ses verrous sans jouer de note
             const bool trigless = e.fromSeq && (e.flags & stepTrigless) != 0;
@@ -2223,7 +2268,9 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
                 auto& count = c.numPlocks[lane];
                 c.anyPlocks -= count > 0 ? 1 : 0;
                 count = 0;
-                if (e.extra != nullptr)
+                // 1.0 (6 nov.) : verrous de la ligne coupés : gardés dans le pas, mais pas joués
+                const bool locksOff = seq != nullptr && seq->getLaneLockMute (e.track, (int) lane);
+                if (e.extra != nullptr && ! locksOff)
                     for (const auto& l : e.extra->locks)
                         if (count < (int) c.plocks[lane].size())
                         {
@@ -2251,7 +2298,8 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
                             c.plocks[lane][(size_t) count++] = { slot, norm };
                         }
                 c.anyPlocks += count > 0 ? 1 : 0;
-                const bool slide = (e.flags & stepSlide) != 0 && count > 0;
+                // glissé du pas (Gl.), ou verrous glissés pour toute la ligne (1.0) : d'une valeur à la suivante
+                const bool slide = ((e.flags & stepSlide) != 0 || (seq != nullptr && seq->getLaneLockGlide (e.track, (int) lane))) && count > 0;
                 c.slideLen[lane] = slide ? std::max (1.0, e.stepLen) : 0.0;
                 c.slidePos[lane] = 0.0;
             }

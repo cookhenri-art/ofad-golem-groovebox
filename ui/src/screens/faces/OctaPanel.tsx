@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 // Groovebox — OFAD — AGPL-3.0-or-later
 // Façade du sampler de performance : principe des samplers de performance à écran et pages —
 // machines Flex et Pickup (Thru et Neighbor retirées en v0.12.7, Static en v0.15 : elle jouait comme Flex) ;
@@ -406,7 +407,12 @@ function OtZones({ channel, module: m, T }: { channel: number; module: ModuleDes
     verrous. Longueur de la ligne de T : 1 à 4 mesures (les autres T gardent la leur). */
 /** Rangée de pas à verrous (principe des séquenceurs à verrous) : pages de 16, Suivre, Mesures, Verrous.
     v0.45.2 : aussi dans l'onglet Pas des synthés (ligne 1) et des boîtes à rythmes (pad choisi). */
-export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", melodic = false, octaNote }: { T: number; slotAddr?: number; slotName?: (norm: number) => string; name?: string; shift?: "lane" | "all" | "none"; melodic?: boolean;
+export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", melodic = false, octaNote, toolsHost, stepEdit = true }: { T: number; slotAddr?: number; slotName?: (norm: number) => string; name?: string; shift?: "lane" | "all" | "none"; melodic?: boolean;
+  /** 1.0 (6 nov.) : où poser Copier / Coller / Effacer / Verrous (FM Player en grand : à gauche de T1 et Tout,
+      pour que la rangée des pas ne passe pas sur deux lignes) ; sinon dans la tête des pas */
+  toolsHost?: Element | null;
+  /** 1.0 (6 nov.) : sans le détail du pas choisi (FM Player en grand : il cachait le piano) */
+  stepEdit?: boolean;
   /** v0.47 (maj. 5 nov.) : Pieuvre 8 — note écrite pour la touche jouée (null : hors de la zone de cette T) ; donnée = mode « notes » de la rangée */
   octaNote?: (played: number) => number | null }) {
   const nm = name ?? `T${T + 1}`;
@@ -414,7 +420,12 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
   const extras = useStore((s) => s.extras);
   const pos = useStore((s) => s.tick.pos);
   const playing = useStore((s) => s.tick.t.playing);
-  const sel = useStore((s) => (s.ui.stepEdit && s.ui.lane === T ? s.ui.step : null));
+  // 1.0 (6 nov., soir) : synthé (ligne 1 mélodique) — une note enregistrée au clavier peut être rangée sur une
+  // autre ligne interne (comme un accord) : le pas choisi, son détail et ses verrous suivent la ligne qui porte la
+  // note (sinon le détail ne s'affichait pas et les verrous posés sur la ligne 1 ne jouaient pas)
+  const chordish = melodic && T === 0;
+  const sel = useStore((s) => (s.ui.stepEdit && (s.ui.lane === T || (chordish && s.ui.lane >= 0 && s.ui.lane < (s.pattern?.lanes.length ?? 0))) ? s.ui.step : null));
+  const uiLane = useStore((s) => s.ui.lane);
   const focus = useStore((s) => s.focus);
   useStore((s) => s.ui.message); // le bouton Coller suit la copie (message affiché)
   const [page, setPage] = useState(0);
@@ -430,6 +441,9 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
   // v0.47 (5 nov. après-midi) : le clavier ne change plus la note du pas choisi (il choisit seulement la note des pas
   // qu'on pose ensuite) ; la note d'un pas posé se change par Note ◀ ▶ dans son menu
   const ln = pattern?.lanes[T];
+  const L = chordish && sel !== null ? uiLane : T;                                   // ligne du pas choisi
+  const allLanes = chordish ? (pattern?.lanes.map((_, i) => i) ?? [T]) : [T];        // lignes de cette rangée
+  const inRow = (lane: number) => (chordish ? lane >= 0 : lane === T);
   const patLen = pattern?.length ?? 16;
   const len = ln && ln.length > 0 ? ln.length : patLen;
   const pages = Math.max(1, Math.min(4, Math.ceil(len / 16)));
@@ -442,7 +456,7 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
 
   const choose = (step: number) => {
     if (sel === step) { setUi({ step: null, stepEdit: false }); return; }
-    setUi({ lane: T, step, stepEdit: true, selection: [] });
+    setUi({ lane: chordish ? (stepLanes(getState().pattern, step)[0] ?? T) : T, step, stepEdit: true, selection: [] });
     showMessage(`Pas ${step + 1} de ${nm} : tournez les boutons pour y poser des verrous`);
   };
   const down = (step: number) => {
@@ -474,6 +488,42 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
     setPage(Math.min(page, b - 1));
   };
   const bars = Math.max(1, Math.min(4, Math.ceil(len / 16)));
+  const tools = (
+    <>
+        {sel !== null && (
+          <span className="ot-steps-locks" role="group" aria-label="Verrous du pas">
+            <button type="button" className="ot-steps-opt" disabled={!extras.some((e) => e.lane === L && e.step === sel && e.locks.length > 0)}
+              onClick={() => actions.copyStepLocks(L, sel)} title={`Copier les verrous du pas ${sel + 1} (emplacement, réglages, effets)`}>Copier</button>
+            <button type="button" className="ot-steps-opt" disabled={getLockClip()?.track !== focus}
+              onClick={() => void actions.pasteStepLocks(L, sel)} title={`Coller les verrous copiés sur le pas ${sel + 1} (d'une T à une autre : réglages de la T d'arrivée)`}>Coller</button>
+            <button type="button" className="ot-steps-opt" disabled={!extras.some((e) => e.lane === L && e.step === sel && e.locks.length > 0)}
+              onClick={() => void actions.clearLocks([L], sel).then((n) => showMessage(`${n} verrou${n > 1 ? "s" : ""} retiré${n > 1 ? "s" : ""} du pas ${sel + 1}`))}
+              title={`Retirer tous les verrous du pas ${sel + 1} (emplacement, réglages, effets) : le pas rejoue les réglages de ${nm}`}>Effacer</button>
+          </span>
+        )}
+        {sel === null && extras.some((e) => inRow(e.lane) && e.locks.length > 0) && (
+          <button type="button" className="ot-steps-opt" onClick={() => void actions.clearLocks(allLanes).then((n) => showMessage(`${n} verrou${n > 1 ? "s" : ""} retiré${n > 1 ? "s" : ""} des pas de ${nm}`))}
+            title={`Retirer les verrous de tous les pas de ${nm} dans ce pattern`}>Sans verrous</button>
+        )}
+        {/* 1.0 (6 nov.) : verrous de la ligne glissés d'un pas à l'autre (au lieu de sauter), ou coupés : gardés dans les
+            pas mais pas joués, à rallumer d'un geste (mouvement de jeu) */}
+        {extras.some((e) => inRow(e.lane) && e.locks.length > 0) && (
+          <>
+            <button type="button" className={`ot-steps-opt${ln.lockGlide ? " on" : ""}`} aria-pressed={!!ln.lockGlide}
+              onClick={() => void Promise.all(allLanes.map((l) => actions.seq("seqLaneLockGlide", l, !ln.lockGlide))).then(() => showMessage(ln.lockGlide ? `Verrous de ${nm} nets : ils sautent d'un pas à l'autre` : `Verrous de ${nm} glissés : ils voyagent d'un pas à l'autre`))}
+              title={`Verrous glissés : les réglages de ${nm} voyagent en douceur d'un verrou au suivant (sinon ils sautent au début du pas)`}>Glissés</button>
+            <button type="button" className={`ot-steps-opt ot-steps-opt--mute${ln.lockMute ? " on" : ""}`} aria-pressed={!!ln.lockMute}
+              onClick={() => void Promise.all(allLanes.map((l) => actions.seq("seqLaneLockMute", l, !ln.lockMute))).then(() => showMessage(ln.lockMute ? `Verrous de ${nm} rallumés` : `Verrous de ${nm} coupés : gardés, pas joués`))}
+              title={`Couper les verrous de ${nm} sans les effacer (les pas jouent le son de base) ; toucher à nouveau pour les rallumer`}>{ln.lockMute ? "Coupés" : "Couper"}</button>
+          </>
+        )}
+        {/* v0.47 (5 nov. après-midi) : « Verrous » s'allume aussi quand un pas est choisi (appui long), avec son numéro :
+            on voit sur le téléphone que les boutons écrivent dans ce pas ; le toucher libère le pas */}
+        <button type="button" className={`ot-steps-opt${lockMode || sel !== null ? " on" : ""}`} aria-pressed={lockMode || sel !== null}
+          onClick={() => { if (lockMode || sel !== null) { setLockMode(false); setUi({ step: null, stepEdit: false }); } else setLockMode(true); }}
+          title={sel !== null ? `Pas ${sel + 1} choisi : les boutons écrivent dans ce pas seulement. Toucher pour le libérer.` : "Mode verrous : toucher un pas le choisit (sans le poser ni l'enlever) ; les boutons écrivent alors dans ce pas. Sinon : appui long sur un pas."}>Verrous{sel !== null ? ` · pas ${sel + 1} ✕` : ""}</button>
+    </>
+  );
   return (
     <div className="ot-steps" aria-label={`Pas de ${nm}`}>
       <div className="ot-steps-head">
@@ -500,26 +550,7 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
             <button key={b} type="button" className={bars === b && len === b * 16 ? "on" : ""} onClick={() => void setBars(b)} title={`${nm} sur ${b} mesure${b > 1 ? "s" : ""} (${b * 16} pas)`}>{b}</button>
           ))}
         </span>
-        {sel !== null && (
-          <span className="ot-steps-locks" role="group" aria-label="Verrous du pas">
-            <button type="button" className="ot-steps-opt" disabled={!extras.some((e) => e.lane === T && e.step === sel && e.locks.length > 0)}
-              onClick={() => actions.copyStepLocks(T, sel)} title={`Copier les verrous du pas ${sel + 1} (emplacement, réglages, effets)`}>Copier</button>
-            <button type="button" className="ot-steps-opt" disabled={getLockClip()?.track !== focus}
-              onClick={() => void actions.pasteStepLocks(T, sel)} title={`Coller les verrous copiés sur le pas ${sel + 1} (d'une T à une autre : réglages de la T d'arrivée)`}>Coller</button>
-            <button type="button" className="ot-steps-opt" disabled={!extras.some((e) => e.lane === T && e.step === sel && e.locks.length > 0)}
-              onClick={() => void actions.clearLocks([T], sel).then((n) => showMessage(`${n} verrou${n > 1 ? "s" : ""} retiré${n > 1 ? "s" : ""} du pas ${sel + 1}`))}
-              title={`Retirer tous les verrous du pas ${sel + 1} (emplacement, réglages, effets) : le pas rejoue les réglages de ${nm}`}>Effacer</button>
-          </span>
-        )}
-        {sel === null && extras.some((e) => e.lane === T && e.locks.length > 0) && (
-          <button type="button" className="ot-steps-opt" onClick={() => void actions.clearLocks([T]).then((n) => showMessage(`${n} verrou${n > 1 ? "s" : ""} retiré${n > 1 ? "s" : ""} des pas de ${nm}`))}
-            title={`Retirer les verrous de tous les pas de ${nm} dans ce pattern`}>Sans verrous</button>
-        )}
-        {/* v0.47 (5 nov. après-midi) : « Verrous » s'allume aussi quand un pas est choisi (appui long), avec son numéro :
-            on voit sur le téléphone que les boutons écrivent dans ce pas ; le toucher libère le pas */}
-        <button type="button" className={`ot-steps-opt${lockMode || sel !== null ? " on" : ""}`} aria-pressed={lockMode || sel !== null}
-          onClick={() => { if (lockMode || sel !== null) { setLockMode(false); setUi({ step: null, stepEdit: false }); } else setLockMode(true); }}
-          title={sel !== null ? `Pas ${sel + 1} choisi : les boutons écrivent dans ce pas seulement. Toucher pour le libérer.` : "Mode verrous : toucher un pas le choisit (sans le poser ni l'enlever) ; les boutons écrivent alors dans ce pas. Sinon : appui long sur un pas."}>Verrous{sel !== null ? ` · pas ${sel + 1} ✕` : ""}</button>
+        {toolsHost ? createPortal(<span className="ot-steps-tools">{tools}</span>, toolsHost) : tools}
       </div>
       <div className="ot-steps-keys" data-paint-row>
         {Array.from({ length: 16 }, (_, k) => {
@@ -529,7 +560,7 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
           const on = (ln.vel[s] ?? 0) > 0 || held.length > 0;
           const ml = held.length > 0 && !held.includes(T) ? held[0] : T;
           const more = Math.max(0, held.length - 1);
-          const ex = extras.find((e) => e.lane === T && e.step === s);
+          const ex = extras.find((e) => inRow(e.lane) && e.step === s && (!chordish || e.locks.length > 0)) ?? extras.find((e) => e.lane === T && e.step === s);
           const cls = ["ot-step"];
           if (on) cls.push("on");
           if (out) cls.push("out");
@@ -564,7 +595,7 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
           );
         })}
       </div>
-      {sel !== null && (ln.vel[sel] ?? 0) > 0 && <OctaStepEdit T={T} step={sel} withNote={notes} octa={!!octaNote} />}
+      {stepEdit && sel !== null && (pattern?.lanes[L]?.vel[sel] ?? 0) > 0 && <OctaStepEdit T={L} step={sel} withNote={notes} octa={!!octaNote} />}
     </div>
   );
 }

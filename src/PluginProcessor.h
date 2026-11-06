@@ -330,6 +330,18 @@ public:
     int getMidiCtrlChannel() const noexcept { return midiCtrlChan.load(); }
     bool getMidiCtrlOn() const noexcept { return midiCtrlOn.load(); }
     int getTrackMidiChannel (int track) const noexcept { return track >= 0 && track < engine::numTracks ? trackMidiChan[(size_t) track].load() : 0; }
+    /** GOLEM 1.0 : canal MIDI propre à une piste interne T (FM Player, Pieuvre 8) : 0 = elle suit la T
+        choisie à l'écran ; un canal = ce canal joue toujours cette T (avant le canal de la piste). */
+    static constexpr int maxLaneChans = 8;
+    void setLaneMidiChannel (int track, int lane, int chan) noexcept
+    {
+        if (track >= 0 && track < engine::numTracks && lane >= 0 && lane < maxLaneChans)
+        { laneMidiChan[(size_t) track][(size_t) lane].store (juce::jlimit (0, 16, chan)); midiVersion.fetch_add (1); }
+    }
+    int getLaneMidiChannel (int track, int lane) const noexcept
+    {
+        return track >= 0 && track < engine::numTracks && lane >= 0 && lane < maxLaneChans ? laneMidiChan[(size_t) track][(size_t) lane].load() : 0;
+    }
     int getMidiLearn() const noexcept { return learnTarget.load(); }
     void clearMidiTarget (int target) noexcept;
     /** Affectations : (genre 0 = CC, 1 = note ; canal 0..15 ; numéro ; cible). */
@@ -437,6 +449,8 @@ private:
     /** Change dès qu'un réglage, une séquence ou la structure change (sauvegarde auto, historique). */
     std::uint64_t changeStamp() const;
     juce::String loadSampleBytes (int track, int index, const juce::String& fileName, std::shared_ptr<const std::vector<std::uint8_t>> bytes);
+    /** v0.49 : firmware du lecteur FM-1 (.fwsc) dans l'emplacement 1 d'une piste FM Player. */
+    juce::String loadFirmwareBytes (int track, int index, const juce::String& fileName, std::shared_ptr<const std::vector<std::uint8_t>> bytes);
 
     /** Échantillon gardé par l'historique : les octets du fichier sont partagés, jamais recopiés. */
     struct SampleRef : juce::ReferenceCountedObject
@@ -499,6 +513,7 @@ private:
     std::atomic<int> midiNoteChan { 0 }, midiCtrlChan { 0 }; // v0.46 : 0 = tous les canaux
     std::atomic<bool> midiCtrlOn { true };
     std::array<std::atomic<int>, engine::numTracks> trackMidiChan {};
+    std::array<std::array<std::atomic<int>, 8>, engine::numTracks> laneMidiChan {}; // GOLEM 1.0 : canal par piste interne T
     std::array<std::array<MacroSlot, macroLinks>, numMacros> macroSlots {};
     std::array<std::atomic<float>, numMacros> lastMacro {};
 
@@ -528,6 +543,8 @@ private:
     struct MoveStep { juce::ValueTree before, redoMarker; std::array<int, engine::numTracks> newIndex {}; };
     std::vector<MoveStep> moveSteps;
     std::vector<const engine::SampleBuffer*> reuseSamples; // échantillons décodés réutilisables (restoreSnapshot)
+    /** v0.49 : FM Player — mémoire flash d'un firmware lue dans le projet, reprise à son chargement. */
+    std::array<std::shared_ptr<std::vector<std::uint8_t>>, engine::numTracks> pendingFlash;
     void prepareTrackPermutation (const std::array<int, engine::numTracks>& newIndex);
     void applyTrackPermutationExtras (const std::array<int, engine::numTracks>& newIndex);
 
@@ -571,6 +588,7 @@ private:
     bool restoredFromAutosave = false;
     std::shared_ptr<std::atomic<bool>> autosaveBusy = std::make_shared<std::atomic<bool>> (false);
     double constructedAt = 0.0;
+    bool launchOk = false; // v0.49 (essai 3)
    #endif
 
     std::array<engine::InputEvent, 1024> midiEvents {};

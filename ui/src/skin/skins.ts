@@ -14,7 +14,7 @@
 // Changer une matière, une teinte ou un bouton : une ligne de FACE_SKINS / PEDAL_SKINS / RACK_SKINS.
 // Fichiers : ui/public/skin/ (préfixe « sk- » : noms uniques pour le fournisseur de ressources).
 
-import type { CSSProperties } from "react";
+import { useSyncExternalStore, type CSSProperties } from "react";
 
 // URL absolue : une URL relative dans une variable CSS serait résolue depuis la feuille de style (assets/)
 const abs = (f: string) => { try { return new URL(f, document.baseURI).href; } catch { return f; } };
@@ -224,4 +224,32 @@ export const MODULE_SKINS: Record<string, ModuleSkin> = {
 export function moduleSkinStyle(type: string): { skin: ModuleSkin; style: CSSProperties } {
   const s = MODULE_SKINS[type] ?? { tex: "alu-sombre" as Texture, knob: "noir" as KnobName, accent: "#e9b949" };
   return { skin: s, style: { ...texVars(s.tex, s.tint, "--sk-panel"), "--sk-vis": img("vis"), ...knobVars(s.knob), ...inkVars("light"), "--mp-acc": s.accent } as CSSProperties };
+}
+
+/** 1.0 : FM Player — fonds façon pédales (couleur laquée, matière brossée, emblème d'une onde modulée
+    en fréquence), au choix par un petit bouton ; « sobre » : le fond d'origine, sans emblème. */
+export const FM1_FONDS = {
+  ambre:    { c1: "oklch(0.6 0.15 58)",   c2: "oklch(0.32 0.11 42)",  emb: "creme", swatch: "oklch(0.66 0.16 58)",  label: "Ambre" },
+  nuit:     { c1: "oklch(0.38 0.15 285)", c2: "oklch(0.16 0.08 280)", emb: "onde",  swatch: "oklch(0.48 0.17 285)", label: "Nuit" },
+  emeraude: { c1: "oklch(0.44 0.09 165)", c2: "oklch(0.18 0.05 170)", emb: "or",    swatch: "oklch(0.52 0.1 165)",  label: "Émeraude" },
+  sobre:    { c1: "oklch(0.24 0.01 250)", c2: "oklch(0.13 0.006 250)", emb: "",     swatch: "oklch(0.3 0.01 250)",  label: "Sobre" },
+} as const;
+export type Fm1Fond = keyof typeof FM1_FONDS;
+export function fm1FondStyle(f: Fm1Fond): CSSProperties {
+  const d = FM1_FONDS[f] ?? FM1_FONDS.ambre;
+  const emb = (pale: boolean) => (d.emb ? `url("${abs(`skin/sk-fm1-embleme-${d.emb}${pale ? "-pale" : ""}.svg`)}")` : "none");
+  return { "--fm1-c1": d.c1, "--fm1-c2": d.c2, "--fm1-emb": emb(false), "--fm1-emb-pale": emb(true), "--fm1-tex": img("t-alu-brosse") } as CSSProperties;
+}
+// choix gardé sur l'appareil (clé locale « grv.fm1Fond » ; ambre par défaut), partagé par la façade et le mode Grand
+const FOND_KEY = "grv.fm1Fond";
+let fondNow: Fm1Fond = (() => { try { const v = localStorage.getItem(FOND_KEY); if (v && v in FM1_FONDS) return v as Fm1Fond; } catch { /* stockage absent */ } return "ambre"; })();
+const fondListeners = new Set<() => void>();
+export function fm1Fond(): Fm1Fond { return fondNow; }
+export function setFm1Fond(f: Fm1Fond) {
+  fondNow = f;
+  try { localStorage.setItem(FOND_KEY, f); } catch { /* stockage absent */ }
+  fondListeners.forEach((l) => l());
+}
+export function useFm1Fond(): Fm1Fond {
+  return useSyncExternalStore((l) => { fondListeners.add(l); return () => { fondListeners.delete(l); }; }, () => fondNow);
 }

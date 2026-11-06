@@ -4,6 +4,7 @@
 
 #include "PluginProcessor.h"
 #include "StandaloneInput.h" // v0.46 fix11 : journal du démarrage
+#include "CrashGuard.h"      // v0.49 (essai 3) : journal de plantage (Android)
 #include "ParseGuard.h"       // v0.46.1 (audit F3)
 
 #include <set>
@@ -12,6 +13,7 @@
 #include "instruments/Sampler.h"
 #include "instruments/Octa.h"
 #include "instruments/Vocoders.h"
+#include "instruments/FmPlayer.h"
 #include "effects/Distortion.h"
 #if ! GROOVEBOX_NO_EDITOR
  #include "PluginEditor.h"
@@ -153,9 +155,23 @@ GrooveboxProcessor::GrooveboxProcessor()
     grv::startupMark ("moteur : projet de depart charge");
    #if JUCE_ANDROID
     constructedAt = nowMs();
-    if (auto f = autosaveFile(); f.existsAsFile())
+    grv::crashguard::install();
+    if (grv::crashguard::safeStart())
+    {
+        // v0.49 (essai 3) : le lancement précédent a planté : séance gardée de côté, pas rouverte
+        // (ni l'enregistrement automatique, ni l'état gardé par l'application : voir setStateInformation)
+        if (auto f = autosaveFile(); f.existsAsFile())
+            f.moveFileTo (f.getSiblingFile ("autosave-apres-plantage.gbx"));
+        restoredFromAutosave = true;
+        grv::startupMark ("lancement precedent interrompu : seance gardee de cote, non rouverte");
+    }
+    else if (auto f = autosaveFile(); f.existsAsFile())
+    {
+        grv::startupMark ("derniere seance (enregistrement auto) : lecture");
         if (auto in = f.createInputStream())
             restoredFromAutosave = readProjectFile (*in).isEmpty();
+        grv::startupMark ("derniere seance (enregistrement auto) : relue");
+    }
    #endif
     startTimer (40);
 }
@@ -281,6 +297,13 @@ std::uint64_t GrooveboxProcessor::changeStamp() const
 
 void GrooveboxProcessor::timerCallback()
 {
+   #if JUCE_ANDROID
+    // v0.49 (essai 3) : lancement allé au bout (12 s sans plantage)
+    if (! launchOk && nowMs() - constructedAt > 12000.0) { launchOk = true; grv::crashguard::launchConfirmed(); grv::startupMark ("lancement confirme (12 s)"); }
+   #endif
+    // v0.49 : greffon — retard compensé (FM Player) annoncé au logiciel hôte, qui recale GOLEM sur le temps
+    if (wrapperType != wrapperType_Standalone)
+        if (const auto c = engine.compensationSamples(); c != getLatencySamples()) setLatencySamples (c);
     engine.collectGarbage (nowMs());
     engine.songTick (nowMs());                          // morceau : mesures et mouvements enregistrés
     if (const auto sc = engine.takeSongScene(); sc >= 0) launchScene (sc, false);
@@ -782,6 +805,10 @@ void GrooveboxProcessor::applyTrackPermutationExtras (const std::array<int, numT
         std::array<int, numTracks> ch {};
         for (int t = 0; t < numTracks; ++t) ch[(size_t) newIndex[(size_t) t]] = trackMidiChan[(size_t) t].load();
         for (int t = 0; t < numTracks; ++t) trackMidiChan[(size_t) t].store (ch[(size_t) t]);
+        // GOLEM 1.0 : les canaux de ses pistes internes T aussi
+        std::array<std::array<int, maxLaneChans>, numTracks> lc {};
+        for (int t = 0; t < numTracks; ++t) for (int l = 0; l < maxLaneChans; ++l) lc[(size_t) newIndex[(size_t) t]][(size_t) l] = laneMidiChan[(size_t) t][(size_t) l].load();
+        for (int t = 0; t < numTracks; ++t) for (int l = 0; l < maxLaneChans; ++l) laneMidiChan[(size_t) t][(size_t) l].store (lc[(size_t) t][(size_t) l]);
     }
     midiVersion.fetch_add (1);
 }
@@ -1513,6 +1540,14 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
     const bool ctrlOn = midiCtrlOn.load (std::memory_order_relaxed);
     std::array<int, numTracks> trackCh {};
     for (int t = 0; t < numTracks; ++t) trackCh[(size_t) t] = trackMidiChan[(size_t) t].load (std::memory_order_relaxed);
+    // GOLEM 1.0 : canaux des pistes internes T (FM Player, Pieuvre 8), lus une fois par bloc
+    std::array<std::array<int, maxLaneChans>, numTracks> laneCh {};
+    std::array<int, numTracks> laneCount {};
+    for (int t = 0; t < numTracks; ++t)
+    {
+        laneCount[(size_t) t] = engine.laneNoteCount (t);
+        for (int l = 0; l < laneCount[(size_t) t]; ++l) laneCh[(size_t) t][(size_t) l] = laneMidiChan[(size_t) t][(size_t) l].load (std::memory_order_relaxed);
+    }
     // v0.46 fix24 : une cible pilotée par une commande MIDI ou un bouton assignable (valeur 0..1).
     // Les commandes (lecture, arrêt, rangées…) partent à 0,5 et plus ; coupure, solo, Fill, Break suivent la moitié.
     const auto applyTarget = [&] (int target, float v)
@@ -1607,9 +1642,19 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
         const bool ctrlMsg = ctrlOn && ctrlChan;
         int dest[numTracks];
         int numDest = 0;
-        for (int t = 0; t < numTracks; ++t) if (trackCh[(size_t) t] == chan + 1) dest[numDest++] = t;
-        const bool toFocus = numDest == 0 && (noteCh == 0 || noteCh == chan + 1) && trackCh[(size_t) focus] == 0;
+        // GOLEM 1.0 : une piste interne T avec son canal joue ce canal (elle passe avant le canal de sa piste)
+        int laneDest[numTracks * maxLaneChans][2];
+        int numLaneDest = 0;
+        bool viaLane[numTracks] = {};
+        for (int t = 0; t < numTracks; ++t)
+            for (int l = 0; l < laneCount[(size_t) t]; ++l)
+                if (laneCh[(size_t) t][(size_t) l] == chan + 1) { laneDest[numLaneDest][0] = t; laneDest[numLaneDest][1] = l; ++numLaneDest; viaLane[t] = true; }
+        for (int t = 0; t < numTracks; ++t) if (trackCh[(size_t) t] == chan + 1 && ! viaLane[t]) dest[numDest++] = t;
+        const bool toFocus = numDest == 0 && numLaneDest == 0 && (noteCh == 0 || noteCh == chan + 1) && trackCh[(size_t) focus] == 0;
         if (toFocus) dest[numDest++] = focus;
+        // expression et commandes du canal d'une T : vers sa piste (une fois)
+        if (! msg.isNoteOnOrOff())
+            for (int t = 0; t < numTracks; ++t) if (viaLane[t]) dest[numDest++] = t;
 
         // Apprentissage : le premier CC (ou la première note) reçu prend la cible demandée
         if (const auto learn = learnTarget.load (std::memory_order_relaxed); learn != midiNone && ctrlChan && (msg.isController() || msg.isNoteOn()))
@@ -1656,6 +1701,13 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
             else if (target == midiNone && msg.getControllerNumber() == 64) expression (InputEvent::sustain, v >= 0.5f ? 1.0f : 0.0f);
             else if (isKnobTarget (target)) { const auto k = midiKnobBase - target; knobVal[(size_t) k].store (v, std::memory_order_relaxed); driveKnob (k, v); }
             else if (target != midiNone) applyTarget (target, v);
+            else if (msg.getControllerNumber() != 1 && msg.getControllerNumber() != 64)
+                for (int d = 0; d < numDest && numEvents < (int) midiEvents.size(); ++d) // v0.49 : CC libres → instrument (FM Player)
+                {
+                    InputEvent e;
+                    e.type = InputEvent::controller; e.track = dest[d]; e.note = msg.getControllerNumber(); e.offset = offset; e.velocity = v; e.record = false;
+                    midiEvents[(size_t) numEvents++] = e;
+                }
             continue;
         }
         if (msg.isNoteOnOrOff() && ctrlMsg)
@@ -1667,6 +1719,9 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
                 else if (target == midiPlay && on) playToggleRequests.fetch_add (1);
                 else if (target <= midiStart && target >= midiLastSpecial) { if (on) transportCommand (target); }
                 else if (target == midiXfade && on) { bi.fader = bi.fader < 0.5f ? 1.0f : 0.0f; xfadeFromMidi.store (bi.fader); engine.recordFaderAudio (bi.fader); }
+                // GOLEM 1.0 : bouton maintenu (touches du FM Player) : appuyé tant que la note est tenue
+                else if (target >= 0 && engine.isMomentary (target))
+                { engine.setParam (target, on ? 1.0f : 0.0f); markTouched (target); }
                 else if (target >= 0 && on) { engine.setParam (target, engine.getParam (target) < 0.5f ? 1.0f : 0.0f); markTouched (target); }
                 // v0.46 fix24 : bouton assignable, réglage global, valeur d'écran : chaque appui bascule 0 / 1
                 else if (isKnobTarget (target) && on)
@@ -1735,6 +1790,18 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
                 e.track = t; e.note = note; e.offset = offset;
                 e.velocity = msg.isNoteOn() ? msg.getFloatVelocity() : 0.0f;
                 e.record = rec && t == focus; // l'enregistrement en direct suit la piste choisie
+                midiEvents[(size_t) numEvents++] = e;
+            }
+            // GOLEM 1.0 : note vers une piste interne T (adressée comme le séquenceur : 128 + T × 128 + note)
+            for (int d = 0; d < numLaneDest && numEvents < (int) midiEvents.size(); ++d)
+            {
+                InputEvent e;
+                e.type = msg.isNoteOn() ? InputEvent::noteOn : InputEvent::noteOff;
+                e.track = laneDest[d][0];
+                e.note = 128 + laneDest[d][1] * 128 + msg.getNoteNumber();
+                e.offset = offset;
+                e.velocity = msg.isNoteOn() ? msg.getFloatVelocity() : 0.0f;
+                e.record = rec && e.track == focus;
                 midiEvents[(size_t) numEvents++] = e;
             }
         }
@@ -1984,7 +2051,7 @@ void GrooveboxProcessor::clearProject()
         seq.setTrackMute (tr, false); seq.setTrackSolo (tr, false);
         for (int l = 0; l < Sequencer::numLanes; ++l)
         {
-            seq.setDirection (tr, l, Direction::forward); seq.setLaneMute (tr, l, false); seq.setLaneSolo (tr, l, false);
+            seq.setDirection (tr, l, Direction::forward); seq.setLaneMute (tr, l, false); seq.setLaneSolo (tr, l, false); seq.setLaneLockGlide (tr, l, false); seq.setLaneLockMute (tr, l, false);
         }
     }
     seq.setDivision (Division::sixteenth);
@@ -2082,6 +2149,10 @@ juce::String GrooveboxProcessor::loadSampleBytes (int track, int index, const ju
 {
     if (track < 0 || track >= numTracks || index < 0 || index >= maxSamples) return "Piste inconnue";
     if (bytes == nullptr || bytes->empty()) return "Fichier vide";
+    // v0.49 : firmware du FM-1 (.fwsc) — pas un son : la machine émulée est créée ici, hors du fil audio
+    if (instruments::fmplayer::looksLikeFirmware (fileName.toStdString(), bytes->data(), bytes->size())
+        || fileName.endsWithIgnoreCase (".fwsc"))
+        return loadFirmwareBytes (track, index, fileName, std::move (bytes));
     std::unique_ptr<juce::AudioFormatReader> reader (
         formats.createReaderFor (std::make_unique<juce::MemoryInputStream> (bytes->data(), bytes->size(), false)));
     if (reader == nullptr || reader->sampleRate < 8000.0 || reader->sampleRate > 384000.0)
@@ -2111,6 +2182,37 @@ juce::String GrooveboxProcessor::loadSampleBytes (int track, int index, const ju
     engine.setSample (track, index, std::move (s), nowMs());
     projectVersion.fetch_add (1);
     return {};
+}
+
+juce::String GrooveboxProcessor::loadFirmwareBytes (int track, int index, const juce::String& fileName, std::shared_ptr<const std::vector<std::uint8_t>> bytes)
+{
+    if (index != 0) return juce::String::fromUTF8 ("Un firmware se charge dans l'emplacement 1");
+    const auto* inst = engine.instrumentAt (track);
+    if (inst == nullptr || ! inst->acceptsFirmware())
+        return juce::String::fromUTF8 ("Un firmware .fwsc se charge sur une piste FM Player");
+    if (! instruments::fmplayer::looksLikeFirmware (fileName.toStdString(), bytes->data(), bytes->size()))
+        return juce::String::fromUTF8 ("Firmware non reconnu (fichier .fwsc de 4 Ko \xC3\xA0 8 Mo)");
+   #if GROOVEBOX_FM1
+    auto s = std::make_unique<SampleBuffer>();
+    s->firmware = true;
+    s->sampleRate = 44100.0;
+    std::vector<std::uint8_t> flash;
+    if (auto& pf = pendingFlash[(size_t) track]; pf != nullptr) { flash = *pf; pf.reset(); } // mémoire flash du projet
+    grv::startupMark (("FM Player : demarrage du firmware " + fileName.fromLastOccurrenceOf ("/", false, false).substring (0, 60) + " (flash " + juce::String ((int) flash.size()) + " o)").toRawUTF8());
+    const auto err = instruments::fmplayer::start (*bytes, flash, s->runtime, fileName.toStdString()); // nom : réglages « Auto »
+    grv::startupMark (err.empty() ? "FM Player : firmware demarre" : "FM Player : firmware refuse");
+    if (! err.empty()) return juce::String::fromUTF8 (err.c_str());
+    auto name = fileName.fromLastOccurrenceOf ("/", false, false).fromLastOccurrenceOf ("\\", false, false)
+                    .removeCharacters ("\r\n\t\"<>").substring (0, 80);
+    s->name = name.toStdString();
+    s->original = std::move (bytes);
+    engine.setSample (track, index, std::move (s), nowMs());
+    projectVersion.fetch_add (1);
+    return {};
+   #else
+    juce::ignoreUnused (track, bytes);
+    return juce::String::fromUTF8 ("Lecteur de firmwares absent de cette version (compil\xC3\xA9" "e sans Rust)");
+   #endif
 }
 
 void GrooveboxProcessor::keepVoiceCaptures()
@@ -2307,6 +2409,17 @@ juce::ValueTree GrooveboxProcessor::projectToTree (bool withSamples) const
         if (! info.speech.empty()) tr.setProperty ("speech", juce::String::fromUTF8 (info.speech.c_str()), nullptr); // v0.33 : phrase tapée
         tr.setProperty ("instrument", juce::String (info.instrumentType), nullptr);
         tr.setProperty ("preset", juce::String::fromUTF8 (info.preset.c_str()), nullptr);
+       #if GROOVEBOX_FM1
+        // v0.49 : FM Player — ce que le firmware a écrit dans sa mémoire flash (ses sons, ses réglages)
+        if (withSamples)
+            if (const auto* fp = dynamic_cast<const instruments::FmPlayer*> (engine.instrumentAt (t)); fp != nullptr && fp->machine() != nullptr)
+                if (const auto need = fm1_sectors (fp->machine(), nullptr, 0); need > 0 && need <= (size_t) 16 * 1024 * 1024)
+                {
+                    juce::MemoryBlock mb (need);
+                    if (fm1_sectors (fp->machine(), (std::uint8_t*) mb.getData(), mb.getSize()) == need)
+                        tr.setProperty ("fm1flash", mb.toBase64Encoding(), nullptr);
+                }
+       #endif
         project.appendChild (tr, nullptr);
     }
     // v0.31 : retours et groupes — coupure, solo, nom
@@ -2409,13 +2522,16 @@ juce::ValueTree GrooveboxProcessor::projectToTree (bool withSamples) const
         if (seq.getAccentAmount (t) != 50) tr.setProperty ("accent", seq.getAccentAmount (t), nullptr);
         for (int l = 0; l < Sequencer::numLanes; ++l)
         {
-            const bool settings = seq.getDirection (t, l) != Direction::forward || seq.getLaneMute (t, l) || seq.getLaneSolo (t, l);
+            const bool settings = seq.getDirection (t, l) != Direction::forward || seq.getLaneMute (t, l) || seq.getLaneSolo (t, l)
+                                  || seq.getLaneLockGlide (t, l) || seq.getLaneLockMute (t, l);
             if (! settings) continue;
             juce::ValueTree lane ("LANE");
             lane.setProperty ("l", l, nullptr);
             lane.setProperty ("dir", (int) seq.getDirection (t, l), nullptr);
             lane.setProperty ("mute", seq.getLaneMute (t, l), nullptr);
             lane.setProperty ("solo", seq.getLaneSolo (t, l), nullptr);
+            if (seq.getLaneLockGlide (t, l)) lane.setProperty ("lglide", true, nullptr); // 1.0 : verrous glissés
+            if (seq.getLaneLockMute (t, l)) lane.setProperty ("lmute", true, nullptr);   // 1.0 : verrous coupés
             tr.appendChild (lane, nullptr);
         }
         for (int p = 0; p < Sequencer::numPatterns; ++p)
@@ -2526,6 +2642,14 @@ juce::ValueTree GrooveboxProcessor::projectToTree (bool withSamples) const
         juce::String tc;
         for (int t = 0; t < numTracks; ++t) tc << (t ? "," : "") << trackMidiChan[(size_t) t].load();
         mr.setProperty ("tracks", tc, nullptr);
+        // GOLEM 1.0 : canaux des pistes internes T, piste par piste (« 1.0.4.0… » ; vide si aucun)
+        juce::String lc; bool anyLane = false;
+        for (int t = 0; t < numTracks; ++t)
+        {
+            lc << (t ? "," : "");
+            for (int l = 0; l < maxLaneChans; ++l) { const auto c = laneMidiChan[(size_t) t][(size_t) l].load(); anyLane |= c != 0; lc << (l ? "." : "") << c; }
+        }
+        if (anyLane) mr.setProperty ("lanes", lc, nullptr);
         project.appendChild (mr, nullptr);
     }
     for (const auto& mm : getMidiMappings())
@@ -2647,6 +2771,14 @@ void GrooveboxProcessor::projectFromTree (const juce::ValueTree& projectIn)
             engine.setTrackColor (i, clampInt (c.getProperty ("color"), 0, 15, 0));
             engine.setTrackOutput (i, clampInt (c.getProperty ("out"), 0, numGroups, 0));
             engine.setTrackSpeech (i, c.getProperty ("speech").toString().toStdString(), t); // v0.33
+            // v0.49 : FM Player — mémoire flash du firmware, reprise au chargement du firmware (SAMPLE qui suit)
+            pendingFlash[(size_t) i].reset();
+            if (c.hasProperty ("fm1flash"))
+            {
+                juce::MemoryBlock mb;
+                if (mb.fromBase64Encoding (c.getProperty ("fm1flash").toString()) && mb.getSize() <= (size_t) 16 * 1024 * 1024)
+                    pendingFlash[(size_t) i] = std::make_shared<std::vector<std::uint8_t>> ((const std::uint8_t*) mb.getData(), (const std::uint8_t*) mb.getData() + mb.getSize());
+            }
         }
         else if (c.hasType ("INSERT") && validChannel (c))
             engine.setInsert (clampInt (c.getProperty ("c"), 0, numChannels - 1, 0), clampInt (c.getProperty ("s"), 0, numInserts - 1, 0),
@@ -2894,6 +3026,8 @@ void GrooveboxProcessor::applyProjectContent (const juce::ValueTree& project, bo
                         seq.setDirection (ti, l, (Direction) clampInt (child.getProperty ("dir"), 0, 3, 0));
                         seq.setLaneMute (ti, l, (bool) child.getProperty ("mute", false));
                         seq.setLaneSolo (ti, l, (bool) child.getProperty ("solo", false));
+                        seq.setLaneLockGlide (ti, l, (bool) child.getProperty ("lglide", false));
+                        seq.setLaneLockMute (ti, l, (bool) child.getProperty ("lmute", false));
                         if (child.hasProperty ("vel")) readLane (child, ti, 0);
                     }
                     else if (child.hasType ("PAT"))
@@ -2985,6 +3119,12 @@ void GrooveboxProcessor::applyProjectContent (const juce::ValueTree& project, bo
             midiCtrlOn.store ((bool) c.getProperty ("ctrlOn", true));
             const auto parts = juce::StringArray::fromTokens (c.getProperty ("tracks").toString(), ",", "");
             for (int t = 0; t < numTracks; ++t) trackMidiChan[(size_t) t].store (t < parts.size() ? juce::jlimit (0, 16, parts[t].getIntValue()) : 0);
+            const auto lanes = juce::StringArray::fromTokens (c.getProperty ("lanes").toString(), ",", "");
+            for (int t = 0; t < numTracks; ++t)
+            {
+                const auto ls = t < lanes.size() ? juce::StringArray::fromTokens (lanes[t], ".", "") : juce::StringArray();
+                for (int l = 0; l < maxLaneChans; ++l) laneMidiChan[(size_t) t][(size_t) l].store (l < ls.size() ? juce::jlimit (0, 16, ls[l].getIntValue()) : 0);
+            }
             midiVersion.fetch_add (1);
         }
         else if (c.hasType ("KNOB") && withSamplesAndMidi)
@@ -3219,6 +3359,8 @@ void GrooveboxProcessor::restoreSnapshot (const juce::ValueTree& snap)
             if (seq.getDirection (tr, l) != dir) seq.setDirection (tr, l, dir);
             if (seq.getLaneMute (tr, l) != (bool) c.getProperty ("mute", false)) seq.setLaneMute (tr, l, (bool) c.getProperty ("mute", false));
             if (seq.getLaneSolo (tr, l) != (bool) c.getProperty ("solo", false)) seq.setLaneSolo (tr, l, (bool) c.getProperty ("solo", false));
+            if (seq.getLaneLockGlide (tr, l) != (bool) c.getProperty ("lglide", false)) seq.setLaneLockGlide (tr, l, (bool) c.getProperty ("lglide", false));
+            if (seq.getLaneLockMute (tr, l) != (bool) c.getProperty ("lmute", false)) seq.setLaneLockMute (tr, l, (bool) c.getProperty ("lmute", false));
         }
         for (int p = 0; p < Sequencer::numPatterns; ++p)
         {
@@ -3380,7 +3522,7 @@ void GrooveboxProcessor::restoreSnapshot (const juce::ValueTree& snap)
             // déjà décodé ailleurs (piste déplacée, étape d'historique) : simple copie, bien plus rapide
             // (les échantillons retirés restent en vie dans la corbeille du moteur pendant 3 s)
             const SampleBuffer* known = nullptr;
-            for (const auto* r : reuseSamples) if (r->original == w->bytes && r->name == w->name) { known = r; break; }
+            for (const auto* r : reuseSamples) if (r->original == w->bytes && r->name == w->name && ! r->firmware) { known = r; break; } // v0.49 : un firmware a sa propre machine
             if (known != nullptr)
             {
                 engine.setSample (tr, i, std::make_unique<SampleBuffer> (*known), nowMs());

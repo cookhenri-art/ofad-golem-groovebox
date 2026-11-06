@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger_0.47.0-Windows_·_Mac_·_Android_·_iPhone-F5A623?style=for-the-badge" alt="Télécharger la 0.47.0 pour Windows, Mac, Android et iPhone"></a>
+  <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger_1.0.0-Windows_·_Mac_·_Android_·_iPhone-F5A623?style=for-the-badge" alt="Télécharger la 1.0.0 pour Windows, Mac, Android et iPhone"></a>
   <a href="docs/NOTICE.pdf"><img src="https://img.shields.io/badge/📘_Notice-PDF-2B2F3A?style=for-the-badge" alt="Notice de prise en main (PDF)"></a>
   <a href="docs/NOTICE-EN.pdf"><img src="https://img.shields.io/badge/📘_Manual_(English)-PDF-2B2F3A?style=for-the-badge" alt="Manual in English (PDF)"></a>
   <a href="docs/CATALOGUE.pdf"><img src="https://img.shields.io/badge/🎹_Catalogue-PDF-2B2F3A?style=for-the-badge" alt="Catalogue des sons et effets (PDF)"></a>
@@ -29,37 +29,35 @@
   <b><a href="../../releases/latest">Télécharger</a></b> ·
   <b><a href="docs/NOTICE.pdf">Notice de prise en main et raccourcis (PDF)</a></b> ·
   <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
-  <b><a href="docs/CATALOGUE.pdf">Catalogue des 36 instruments et 38 effets (PDF)</a></b>
+  <b><a href="docs/CATALOGUE.pdf">Catalogue des 37 instruments et 38 effets (PDF)</a></b>
 </p>
 
 <p align="center"><b>🇬🇧 English speakers: <a href="#-english-summary">English summary below ↓</a></b></p>
 
 ---
 
-## 🆕 Nouveautés de la 0.47.0 — mise à jour du 5 novembre 2026
+## 🆕 Nouveautés de la 1.0.0 — le FM Player
 
-<p align="center"><b><a href="../../releases/tag/v0.47.0">Tout le détail et les téléchargements sur la page de la version 0.47.0</a></b></p>
+<p align="center"><b><a href="../../releases/tag/v1.0.0">Tout le détail et les téléchargements sur la page de la version 1.0.0</a></b></p>
 
-- **Good Doctor**, nouveau synthé : trois oscillateurs à **tables d'ondes « hybrides »** (12 tables), **deux déformations à la suite** par oscillateur (18 au choix), sous-oscillateur et bruit, **deux filtres** (14 types) en série ou en parallèle, distorsion par voix, matrice de 32 routages, 8 macros, unisson jusqu'à 8 voix ; **91 sons**.
-- **Glutamake**, nouveau synthé : tables d'ondes à morphs et **une bille qui roule sur une surface** (physique de mouvement) qui module le son, séquence de mouvement à 4 couloirs.
-- **Au moins 90 sons d'usine par synthé** (plus de 2 400) et **au moins 20 réglages par effet** (plus de 770), tous mis au même niveau.
-- **Menu du pas**, en écriture **Acide** comme **À verrous** : **clic droit** sur PC, **appui long** au doigt : note, octave, **Accent** et **Glissé** en grand, vélocité, durée, décalage, condition, probabilité, répétitions.
-- **Valeur d'un pas** : appui long (ou clic droit) sur Acc. / Gl. : **force de l'accent** et **durée du glissé** réglées pas par pas ; **verrous** de réglages sur chaque pas ; **pinceau** pour poser plusieurs pas d'un geste.
-- **Durée des notes visible** (Acide et À verrous) : une note longue est encadrée sur toute sa longueur ; **un pas retiré repart de zéro** (plus d'anciens réglages qui traînent) ; **pas choisi entouré en orange**, et le clavier ne change plus la note d'un pas déjà posé.
-- **Pieuvre 8** : la note jouée s'écrit sur le pas, durée des notes au glisser.
-- **Enregistrement audio calé** sur la lecture et **boucle parfaite** (un tour d'élan, puis exactement un tour, sans clic) ; **MP3 sans blanc** ; montage : export de la boucle ou de tout le montage, réglage de plusieurs clips d'un coup.
-- **Bibliothèque** : **MP3** acceptés partout ; sur tablette, « Échantillon… » range le son dans **Bibliothèque › Importés**, **Dossier perso…** remplit **Bibliothèque › Perso**, vos prises sont dans **Mes enregistrements**.
-- **Envois A à D** en boutons dans le mixeur et la vue live ; **valeur exacte** par appui long ou clic droit.
-- **Sécurité renforcée** et fichier `SHA256SUMS.txt` pour vérifier les téléchargements.
-- **Tablette et téléphone Android** enfin stables (écran fixe, projets dans l'application, son jamais coupé) ; versions **Mac** (application, VST3, AU) et **iPhone / iPad** (essai).
-- **Interface en français ou en anglais**, notice en français et en anglais.
+- **FM Player**, nouvel instrument : il **émule le processeur du boîtier de synthèse M-VAVE FM-1** et fait tourner ses **firmwares** (fichiers `.fwsc`) dans GOLEM, avec **l'écran du boîtier en direct** et toutes ses commandes.
+- **15 firmwares libres fournis** (Felucca, sloopDX, SLOOP, Melodee, JIANT FM, X0X, FIZZ, MYCELIUM, GR!MM, FM-106, OberVave, FMini-1, Frodhes, B1, zp12), avec leurs auteurs, leurs licences et leurs sources ; **Firmware…** charge n'importe quel autre `.fwsc`.
+- **Quatre pistes T1 à T4** comme sur Pieuvre 8 : un canal MIDI par piste, écrites en **Acide**, **À verrous** ou dans l'écran **SÉQUENCE**.
+- **Les 8 commandes et les 14 touches du boîtier** au contrôleur MIDI par **appui long** (ou clic droit), et sous les 8 encodeurs ; boutons de **0 à 100 %**, course réglable bouton par bouton.
+- **Horloge MIDI** envoyée au firmware : ses séquenceurs suivent le tempo de GOLEM ; notes du piano, des pads et de n'importe quel contrôleur.
+- **Mode Grand** pour téléphone et tablette (écran, gros boutons, piano, T1 à T4 avec M / S et rangée de pas), boutons **à tourner** au doigt, **quatre fonds** (Ambre, Nuit, Émeraude, Sobre).
+- **Partout** : **verrous glissés** (les réglages voyagent d'un pas à l'autre) et **verrous coupés** (éteints et rallumés d'un geste, sans les effacer) ; **un canal MIDI par T** sur Pieuvre 8 et le FM Player, clavier sur toutes ses octaves.
+- **Android** : après une fermeture au lancement, redémarrage **sans rouvrir la séance** (gardée de côté) et explication affichée.
 
 <table>
-<tr><td align="center" colspan="2"><a href="docs/img/v047/good-doctor.jpg"><img src="docs/img/v047/good-doctor.jpg" alt="Good Doctor"></a><br><b>Good Doctor</b> · trois oscillateurs à tables, deux déformations chacun</td></tr>
-<tr><td align="center"><a href="docs/img/v047/menu-pas-acide.jpg"><img src="docs/img/v047/menu-pas-acide.jpg" alt="Menu du pas en écriture Acide"></a><br><b>Menu du pas · Acide</b><br>clic droit ou appui long : Accent et Glissé en grand</td><td align="center"><a href="docs/img/v047/menu-pas-verrous.jpg"><img src="docs/img/v047/menu-pas-verrous.jpg" alt="Menu du pas en écriture À verrous"></a><br><b>Menu du pas · À verrous</b><br>note, vélocité, durée, condition…</td></tr>
-<tr><td align="center" colspan="2"><a href="docs/img/v047/duree-notes-acide.jpg"><img src="docs/img/v047/duree-notes-acide.jpg" alt="Durée des notes en écriture Acide"></a><br><b>Durée des notes</b> · une note de trois pas, encadrée sur toute sa longueur (Acide et À verrous)</td></tr>
-<tr><td align="center"><a href="docs/img/v047/glutamake.jpg"><img src="docs/img/v047/glutamake.jpg" alt="Glutamake"></a><br><b>Glutamake</b><br>la bille, les tables d'ondes, le filtre</td><td align="center"><a href="docs/img/v047/enregistreur.jpg"><img src="docs/img/v047/enregistreur.jpg" alt="Enregistrement audio"></a><br><b>Enregistrement audio</b><br>calé sur la lecture, boucle parfaite</td></tr>
+<tr><td align="center" colspan="2"><a href="docs/img/v100/fm-player-ambre.jpg"><img src="docs/img/v100/fm-player-ambre.jpg" alt="FM Player"></a><br><b>FM Player</b> · l'écran du firmware, ses commandes, T1 à T4 sous le piano</td></tr>
+<tr><td align="center"><a href="docs/img/v100/fm-player-grand-telephone.jpg"><img src="docs/img/v100/fm-player-grand-telephone.jpg" alt="Mode Grand au téléphone"></a><br><b>Mode Grand · téléphone</b></td><td align="center"><a href="docs/img/v100/fm-player-sequence-t1-t4.jpg"><img src="docs/img/v100/fm-player-sequence-t1-t4.jpg" alt="Séquence T1 à T4"></a><br><b>Séquence · T1 à T4</b></td></tr>
+<tr><td align="center" colspan="2"><a href="docs/img/v100/fm-player-fonds.jpg"><img src="docs/img/v100/fm-player-fonds.jpg" alt="Les quatre fonds"></a><br><b>Quatre fonds</b> · Ambre, Nuit, Émeraude, Sobre</td></tr>
 </table>
+
+<sub>M-VAVE et FM-1 sont des marques de leurs propriétaires respectifs. OFAD GOLEM n'est ni affilié, ni approuvé, ni sponsorisé par M-VAVE ; ces noms indiquent seulement la compatibilité avec les firmwares écrits pour le FM-1. Aucun logiciel d'origine de M-VAVE n'est fourni.</sub>
+
+**Version précédente** : [nouveautés de la 0.47.0](../../releases/tag/v0.47.0) (Good Doctor, Glutamake, plus de 2 400 sons d'usine, menus des pas, montage audio…).
 
 ---
 
@@ -112,7 +110,7 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
 
 <p align="center"><i>Les repères numérotés sont expliqués dans la <a href="docs/NOTICE.md">notice</a>.</i></p>
 
-### 🎹 Les 36 instruments
+### 🎹 Les 37 instruments
 
 <p align="center">
   <img src="docs/img/galerie/instruments-1.jpg" alt="Instruments : batteries et basses">
@@ -240,7 +238,7 @@ contrôleur.
 <summary><b>Les 36 instruments</b> (cliquer pour déplier)</summary>
 
 <!-- CATALOGUE:INSTRUMENTS -->
-36 instruments, 2432 sons d'usine rangés par catégories. Le détail (vignettes, principe, sons par catégorie) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
+37 instruments, 2432 sons d'usine rangés par catégories. Le détail (vignettes, principe, sons par catégorie) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
 
 ### Batteries
 
@@ -273,6 +271,7 @@ contrôleur.
 | **World Tour** | Polyphonique analogique 8 voix : 2 oscillateurs à forme continue, oscillateur de modulation, 2 filtres en échelle (série, parallèle, stéréo), retard diffusant | 103 (Basses 12, Leads 12, Nappes 12, Plucks 11, Claviers 11, Cordes 11, Cuivres 11, Arpèges 11, Effets 12) |
 | **Glutamake** | Tables d'ondes à morphs, bille sur une surface (physique de mouvement) et séquence à couloirs | 89 (Basses 20, Leads 16, Nappes 17, Plucks 10, Claviers 6, Cordes 4, Cuivres 3, Arpèges 4, Effets 4, Synthés 4, Séquences 1) |
 | **Good Doctor** | Trois oscillateurs à tables d'ondes à double déformation, deux filtres en série ou parallèle, distorsion, matrice | 90 (Basses 26, Leads 12, Nappes 12, Plucks 8, Claviers 7, Cordes 5, Cuivres 5, Arpèges 6, Effets 5, Acide 4) |
+| **FM Player** | Lecteur de firmwares du boîtier de synthèse FM-1 (processeur émulé) : chaque firmware .fwsc devient un instrument | — |
 
 ### Nappes
 
@@ -444,27 +443,27 @@ In English: **[Manual (PDF)](docs/NOTICE-EN.pdf)** · [text version](docs/NOTICE
 **OFAD GOLEM** is a complete groovebox for your computer, phone or tablet, made for all electronic music
 (techno, house, acid, hardtek, drum & bass, electro, ambient, beatmaking…). It follows the workflow of
 standalone pad-based production stations: 16 tracks, 16 pads, patterns launched like clips, scenes on a
-crossfader, song mode and audio editing. Its **36 instruments** and **38 effects** follow the architecture of
+crossfader, song mode and audio editing. Its **37 instruments** and **38 effects** follow the architecture of
 the machines that made this music, rebuilt from scratch with their own names, panels and sounds. The whole
 interface is available **in English** (choose it when installing on Windows, at first launch on Android, or in
 Settings). Free software (AGPL-3.0).
 
-**What's new in 0.47.0 (update of 5 November 2026)**:
-- New **Good Doctor** synth: hybrid wavetables, two warps per oscillator, two filters in series or parallel, per-voice distortion, 32-slot matrix, 8 macros, 91 sounds.
-- New **Glutamake** synth: morphing wavetables and a ball rolling on a surface that modulates the sound, with a 4-lane motion sequence.
-- **At least 90 factory sounds per synth** (over 2,400) and **20 settings per effect** (over 770), all levelled.
-- **Step menu** in Acid and Locks writing (**right-click** on a computer, **long press** on touch screens): note, octave, large Accent and Slide, velocity, length, offset, condition, probability, repeats.
-- **Step amount**: accent strength and slide time set step by step; parameter **locks** on every step; **paint** several steps in one gesture.
-- **Visible note lengths** (Acid and Locks): a long note is framed along its whole length; **a removed step starts from scratch** (no leftover settings); **selected step framed in orange**, and the keyboard no longer changes a step already set.
-- **Pieuvre 8**: the note played is written to the step; drag to lengthen notes.
-- Audio recording **locked to playback** and **perfect loops** (one run-up loop, then exactly one loop, click-free); gapless MP3; export the loop or the whole montage; edit several clips at once.
-- **Library**: MP3 everywhere; on tablets "Sample…" stores the sound in Library › Imported, "Personal folder…" fills Library › Custom, your takes are in "My recordings".
-- **Sends A to D** as knobs in the mixer and live view; exact value entry by long press or right-click.
-- Stronger security with `SHA256SUMS.txt`; stable Android tablets and phones; **Mac** (app, VST3, AU) and **iPhone / iPad** (preview) builds.
-- Interface and manual **in English and French**.
+**What's new in 1.0.0 — the FM Player**:
+- New **FM Player** instrument: it **emulates the processor of the M-VAVE FM-1 synth box** and runs its **firmwares** (`.fwsc` files) inside GOLEM, with **the box's live screen** and all its controls.
+- **15 free firmwares included** (Felucca, sloopDX, SLOOP, Melodee, JIANT FM, X0X, FIZZ, MYCELIUM, GR!MM, FM-106, OberVave, FMini-1, Frodhes, B1, zp12), with their authors, licences and sources; **Firmware…** loads any other `.fwsc`.
+- **Four tracks T1 to T4** as on Pieuvre 8: one MIDI channel per track, written in **Acid**, **Locks** or the **SEQUENCE** screen.
+- **The box's 8 controls and 14 keys** on your MIDI controller with a **long press** (or right-click), and under the 8 encoders; knobs from **0 to 100 %**, with a travel set knob by knob.
+- **MIDI clock** sent to the firmware, so its sequencers follow GOLEM's tempo; notes from the piano, pads and any controller.
+- **Big mode** for phones and tablets (screen, large knobs, piano, T1 to T4 with M / S and a step row), knobs you can **turn**, **four backgrounds** (Amber, Night, Emerald, Plain).
+- **Everywhere**: **gliding locks** (settings travel from one step to the next) and **muted locks** (switched off and on with one touch, without deleting them); **one MIDI channel per T** on Pieuvre 8 and the FM Player, keyboard across all its octaves.
+- **Android**: after a crash at launch, the app restarts **without reopening the session** (kept aside) and explains what happened.
+
+<sub>M-VAVE and FM-1 are trademarks of their respective owners. OFAD GOLEM is not affiliated with, endorsed or sponsored by M-VAVE; these names only state compatibility with firmware written for the FM-1. No original M-VAVE software is included.</sub>
+
+Previous release: [what's new in 0.47.0](../../releases/tag/v0.47.0) (Good Doctor, Glutamake, over 2,400 factory sounds, step menus, audio editing…).
 
 <p align="center">
-  <b><a href="../../releases/tag/v0.47.0">Download 0.47.0 (Windows · Mac · Android · iPhone)</a></b> ·
+  <b><a href="../../releases/tag/v1.0.0">Download 1.0.0 (Windows · Mac · Android · iPhone)</a></b> ·
   <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
   <b><a href="docs/CATALOGUE.pdf">Catalogue (PDF)</a></b>
 </p>
@@ -548,7 +547,7 @@ latence (AAudio) ; un appui long vaut un clic droit ; un contrôleur MIDI USB br
 GROOVEBOX/
 ├── src/
 │   ├── engine/        moteur : pistes, séquenceur, scènes, morceau, modulations
-│   ├── instruments/   les 36 instruments
+│   ├── instruments/   les 37 instruments
 │   ├── effects/       les 38 effets
 │   ├── dsp/, synth/   briques de traitement et de synthèse
 │   ├── Montage.*      montage audio

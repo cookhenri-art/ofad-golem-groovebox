@@ -4,7 +4,7 @@ Fichier écrit par `scripts/gen-docs.py` à partir du catalogue du moteur (`groo
 Les noms sont propres au Groovebox ; chaque module reprend le **principe** d'une famille de machines, jamais son nom,
 sa façade ni ses sons.
 
-**36 instruments** (2432 sons d'usine) et **38 effets**.
+**37 instruments** (2432 sons d'usine) et **38 effets**.
 
 ## Instruments
 
@@ -39,6 +39,7 @@ sa façade ni ses sons.
 | <img src="../ui/public/thumbs/muse.webp" width="120" alt=""> | **World Tour** | Polyphonique analogique 8 voix : 2 oscillateurs à forme continue, oscillateur de modulation, 2 filtres en échelle (série, parallèle, stéréo), retard diffusant | 103 (Basses 12, Leads 12, Nappes 12, Plucks 11, Claviers 11, Cordes 11, Cuivres 11, Arpèges 11, Effets 12) |
 | <img src="../ui/public/thumbs/gluta.webp" width="120" alt=""> | **Glutamake** | Tables d'ondes à morphs, bille sur une surface (physique de mouvement) et séquence à couloirs | 89 (Basses 20, Leads 16, Nappes 17, Plucks 10, Claviers 6, Cordes 4, Cuivres 3, Arpèges 4, Effets 4, Synthés 4, Séquences 1) |
 | <img src="../ui/public/thumbs/gooddoc.webp" width="120" alt=""> | **Good Doctor** | Trois oscillateurs à tables d'ondes à double déformation, deux filtres en série ou parallèle, distorsion, matrice | 90 (Basses 26, Leads 12, Nappes 12, Plucks 8, Claviers 7, Cordes 5, Cuivres 5, Arpèges 6, Effets 5, Acide 4) |
+| <img src="../ui/public/thumbs/fmplayer.webp" width="120" alt=""> | **FM Player** | Lecteur de firmwares du boîtier de synthèse FM-1 (processeur émulé) : chaque firmware .fwsc devient un instrument | — |
 
 ### Nappes
 

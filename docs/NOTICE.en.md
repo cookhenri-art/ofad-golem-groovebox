@@ -330,6 +330,10 @@ its note.
    step; so does placing or removing a note on another step. In **Acid** writing, the same "Locks · step 5 ✕"
    button lights up above the row while that step is selected.
 5. **Copy / Paste / Clear** the locks of the selected step ("No locks": all those of the line).
+6. **Glide** and **Mute** (as soon as the line has locks): **Glide** makes the settings travel smoothly from one
+   lock to the next, over the step's length, instead of jumping at the start of the step; **Mute** silences the
+   line's locks without deleting them (the steps play the base sound) — touch **Muted** to bring them back. Both
+   are saved with the project. A lock only plays on a step that holds a note.
 
 <figure class="wide"><img src="img/v047/pas-choisi-verrous.jpg" alt="Locks writing: step 5 selected, orange frame, Locks · step 5 button lit"><figcaption>"Locks" writing: step 5 selected, "Locks · step 5 ✕" button lit</figcaption></figure>
 
@@ -691,6 +695,58 @@ goes back to it in one gesture (and can be undone with Ctrl+Z).
 
 <figure><img src="img/v047/glutamake.jpg" alt="Glutamake: the ball, the wavetables, the filter"><figcaption>Glutamake: the ball, the wavetables, the filter</figcaption></figure>
 
+### 13. FM Player: M-VAVE FM-1 firmwares
+
+The **FM Player** runs inside GOLEM the **firmwares** (`.fwsc` files) written for the M-VAVE **FM-1** synth
+box: its processor is **emulated**, and each firmware becomes a GOLEM instrument, played by the sequencer, the
+piano, the pads and MIDI, with its screen and controls on the panel. It also works inside music software (VST3 /
+AU plugin).
+
+- **15 free firmwares included**, copied once to **Library › Samples › Firmwares** at first launch: B1, FIZZ,
+  FM-106, FMini-1, Felucca, Frodhes, GR!MM, JIANT FM, MYCELIUM, Melodee, OberVave, SLOOP, X0X, sloopDX, zp12
+  (authors, GPL-3.0 / MPL-2.0 licences and sources in `FIRMWARES-LICENCES.md`). **Firmware…** loads another
+  `.fwsc` file (your own, or a community firmware).
+- **The machine**: the live screen, KNOB 1 to 4, SELECT, PRESETS, ALGORITHM, the MASTER pot, the 14 function
+  keys (FX… REC, OCT − / +) and the 27 small keys with their LEDs (in the firmwares' SEQ mode they act as steps).
+  Knobs are set by dragging up or down, or **by turning** around the knob.
+- **Tracks T1 to T4** (under the piano, as on Pieuvre 8): each T plays on **its own MIDI channel** — T1's channel
+  ("T1 channel", Auto by default), then the next ones. Multi-track firmwares (SLOOP, sloopDX, JIANT…) thus play
+  their 4 tracks. The selected T is the one you write (**Acid** and **Locks** rows, **SEQUENCE** screen with 4 lines
+  and "T in notes ♪") and the one played by the piano, the pads and MIDI.
+- **⤢ Big**: the machine on the whole screen area (phone and tablet), with GOLEM's piano and T1 to T4 at the
+  bottom, **M / S** above each T, the chosen T's **step row** (locks, bars, shifting the T or everything; Copy /
+  Paste / Clear and **Locks** under the screen) and **Library** to switch firmware. **✕ Close** goes back to the
+  panel.
+- **Background of your choice**: the dots next to "Big" — **Amber**, **Night**, **Emerald** or **Plain** (kept on
+  the device).
+- **Settings**: Level, Transpose, **Lead** (how far ahead the emulation runs, 40 ms by default: raise it if the
+  sound crackles on a slow device), **MIDI clock** (the firmwares' sequencers follow GOLEM's tempo), **Notes played
+  by** (Auto, MIDI, or the box's keys for firmwares that don't read MIDI).
+- **The box's 8 controls on your controller**: KNOB 1 to 4, SELECT, PRESETS, ALGORITHM and MASTER are also
+  instrument settings. **Long press** (or right-click) a knob: **MIDI learn**, assignable button, modulation, as
+  on every synth. On the **SOUND** screen, the **Box** section puts them under the **8 encoders**. The knobs go
+  from **0 to 100 %**: by finger, the whole travel in one drag (or by turning).
+- **Knob travel** (Firmware panel, folded): how many firmware clicks go from minimum to maximum, knob by knob —
+  **128** for KNOB 1 to 4, **4** for ALGORITHM (a quarter turn per algorithm), 256 for SELECT and PRESETS.
+  Firmwares don't all count the same: if a setting reaches its end too early, lower its travel. At **0 %** and
+  **100 %**, GOLEM re-aligns the firmware on its end stops.
+- **The box's 14 keys** (FX, SCL, ENV, LFO, EDIT, GLO, HOME, SAVE, ARP, SEQ, PLAY, REC, OCT − and OCT +):
+  **right-click** or **long press** to learn them — a controller button then presses the box key (it lights up
+  blue while learning).
+- **MIDI controller controls** that GOLEM has not learned go straight to the firmware.
+- **Paused** after 20 s without playing (saves battery): a note or a key wakes it up.
+
+<figure><img src="img/v100/fm-player-ambre.jpg" alt="FM Player, Amber background: the machine, the sloopDX screen, T1 to T4 and the Acid row under the piano"><figcaption>FM Player (Amber background): the machine, T1 to T4 and the Acid row under the piano</figcaption></figure>
+
+<figure><img src="img/v100/fm-player-grand-telephone.jpg" alt="Big mode on a phone, Night background"><figcaption>Big mode on a phone (Night background): screen, knobs, piano and T1 to T4</figcaption></figure>
+
+<figure><img src="img/v100/fm-player-sequence-t1-t4.jpg" alt="Sequence screen: the 4 lines T1 to T4"><figcaption>Sequence screen: one line per T track (one firmware MIDI channel each)</figcaption></figure>
+
+<sub>M-VAVE and FM-1 are trademarks of their respective owners. OFAD GOLEM is not affiliated with, endorsed or
+sponsored by M-VAVE; these names are used only to state compatibility with firmware written for the FM-1.
+Emulation is based on fm1-emu (Joakim Eriksson, MIT licence). No original M-VAVE software is included: the bundled
+firmwares are free community works, with their authors and sources credited.</sub>
+
 ## MIDI controller
 
 ### Plugging in a controller: plug and play
@@ -704,7 +760,9 @@ goes back to it in one gesture (and can be undone with Ctrl+Z).
 - **On PC**, a Bluetooth controller only works if Windows presents it as a MIDI port: USB is the simplest.
 - **In a host application** (VST3): the host receives the controller and sends it to the Groovebox.
 - Notes play the selected track (or the tracks set to a channel, Settings › MIDI); on a drum kit, notes 36
-  to 51 play the 16 pads. The mod wheel, pitch bend and sustain pedal follow the track being played.
+  to 51 play the 16 pads. On **Pieuvre 8** and the **FM Player**, the keyboard plays the chosen T **across all its
+  octaves**, and each T can have **its own channel** (TRACKS screen, "T1 … T8"): an external keyboard or sequencer
+  then plays several Ts at once. The mod wheel, pitch bend and sustain pedal follow the track being played.
 - Phone with a single USB-C port: a USB-C hub with charging (PD) lets you plug in the keyboard, the USB
   audio output to the mixing desk and the charger at the same time.
 

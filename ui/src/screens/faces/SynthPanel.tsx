@@ -7,7 +7,7 @@
 // Chaque commande se comporte comme un encodeur : glisser, molette, double-clic, clic droit
 // (valeur exacte, modulation, MIDI), verrous de pas et de scène.
 
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { ModuleDesc } from "../../engine/protocol";
 import { paramAddress, useParam } from "../../controls/bindings";
 import { Encoder, ParamMenuZone } from "../../controls/Encoder";
@@ -32,6 +32,7 @@ import { BigWave, ZonePads } from "./SamplerPanels";
 import { BigKnobView } from "./BigKnob";
 import { Fm4AlgoPanel, FmAlgoPanel, setGroupBank, useGroupBank } from "./FmPanels";
 import { MaskPanel } from "./DronePanels";
+import { Fm1Firmware, Fm1Panel } from "./FmPlayerPanel";
 
 /** Sections particulières (autre chose que des commandes de réglage). */
 const CUSTOM: Record<string, (p: { channel: number; module: ModuleDesc; args: string[] }) => ReactNode> = {
@@ -56,6 +57,9 @@ const CUSTOM: Record<string, (p: { channel: number; module: ModuleDesc; args: st
   // v0.47 (maj. 5 nov.) : Good Doctor — écran d'un oscillateur (« gdosc:a »), schéma des sorties
   gdosc: ({ channel, module, args }) => <GoodDocOsc channel={channel} module={module} osc={args[0] ?? "a"} />,
   gdroute: ({ channel, module }) => <GoodDocRoute channel={channel} module={module} />,
+  // v0.49 : FM Player — la machine émulée (écran, commandes, clavier) et la section du firmware
+  fm1: ({ channel }) => <Fm1Panel channel={channel} />,
+  fm1fw: ({ channel }) => <Fm1Firmware channel={channel} />,
   dfamseq: ({ channel, module }) => <DfamSeqPanel channel={channel} module={module} />,
   dfamtransport: ({ channel, module }) => <DfamTransport channel={channel} module={module} />,
   impstrips: ({ channel, module }) => <ImpactStrips channel={channel} module={module} />,
@@ -87,6 +91,7 @@ export interface Ctl {
   short?: string[];      // libellés courts des positions (interrupteurs)
   on?: number;           // interrupteur : position allumée (par défaut toute position autre que 0)
   bit?: number;          // interrupteur qui allume / éteint un bit de la valeur (chorus I et II cumulables)
+  vcols?: number;        // 1.0 (6 nov.) : sélecteur vertical rangé sur n colonnes en façade « en flux » (téléphone)
 }
 export type CtlSpec = string | Ctl | { stack: (string | Ctl)[] } | { gap: true };
 
@@ -102,7 +107,12 @@ export interface Panel {
   copyExtra?: string[];   // réglages copiés avec la section sans être des boutons (ondes W de l'orbiteur, v0.39)
   wideLabels?: boolean;   // v0.43.6 : noms des boutons plus larges que le bouton (section aérée : noms entiers)
   bankGroup?: string;     // v0.44 : banque partagée par plusieurs sections (même opérateur choisi partout)
+  bankAll?: boolean;      // 1.0 (6 nov.) : en façade « en flux » (téléphone), toutes les banques l'une sous l'autre, sans onglets
+  flowCols?: number;      // 1.0 (6 nov.) : colonnes en façade « en flux » (sinon calculées)
 }
+
+/** 1.0 : la page est « en flux » (téléphone, ou PC agrandi) : sections à la suite, la façade défile. */
+const FlowContext = createContext(false);
 
 export interface FacePage { id: string; label: string; rows: Panel[][] }
 export interface FaceLayout {
@@ -188,6 +198,7 @@ export function PanelPage({ channel, module: m, page, lane, bigText = false }: {
   }, [page, m, big, flow, bigText]);
   return (
     <BigTextContext.Provider value={bigText}>
+    <FlowContext.Provider value={flow}>
     <div ref={ref} className={`fp-page${flow ? " fp-page--big" : ""}${bigText ? " fp-page--bigtext" : ""}`}>
       {flow ? (
         <div className="fp-row fp-row--flow">
@@ -199,6 +210,7 @@ export function PanelPage({ channel, module: m, page, lane, bigText = false }: {
         </div>
       ))}
     </div>
+    </FlowContext.Provider>
     </BigTextContext.Provider>
   );
 }
@@ -209,14 +221,18 @@ function PanelSection({ channel, module: m, panel, lane }: { channel: number; mo
   const bank = shared ?? localBank;
   const setBank = (i: number) => { if (panel.bankGroup) setGroupBank(panel.bankGroup, i); else setLocalBank(i); };
   const b = panel.banks?.[Math.min(bank, panel.banks.length - 1)]?.value ?? "";
+  const flow = useContext(FlowContext);
+  const all = !!(flow && panel.bankAll && panel.banks);
   // « {z} » : numéro de la zone / du pad choisi sur 2 chiffres, « {n} » : sans zéro (samplers)
   const z = String(lane + 1).padStart(2, "0"), n = String(lane + 1);
-  const sub = (c: Ctl): Ctl => ({ ...c, id: c.id.replace("{b}", b).replace("{z}", z).replace("{n}", n), ...(c.label ? { label: c.label.replace("{b}", b) } : {}) });
+  const subB = (bb: string) => (c: Ctl): Ctl => ({ ...c, id: c.id.replace("{b}", bb).replace("{z}", z).replace("{n}", n), ...(c.label ? { label: c.label.replace("{b}", bb) } : {}) });
+  const sub = subB(b);
   const visual = panel.visual ? m.sections.find((s) => s.id === panel.visual) : undefined;
   // v0.32.1 : copier / coller / remettre à zéro la section (enveloppes, LFO, oscillateurs, filtres)
   const bankLabel = panel.banks?.[Math.min(bank, panel.banks.length - 1)]?.label;
-  const sectionTitle = bankLabel ? `${panel.title} · ${bankLabel}` : panel.title;
-  const ctlIds = panel.ctl.flatMap((c) => (typeof c === "object" && "gap" in c ? [] : typeof c === "object" && "stack" in c ? c.stack.map((x) => sub(normCtl(x)).id) : [sub(normCtl(c as string | Ctl)).id]));
+  const sectionTitle = bankLabel && !all ? `${panel.title} · ${bankLabel}` : panel.title;
+  const idsOf = (f: (c: Ctl) => Ctl) => panel.ctl.flatMap((c) => (typeof c === "object" && "gap" in c ? [] : typeof c === "object" && "stack" in c ? c.stack.map((x) => f(normCtl(x)).id) : [f(normCtl(c as string | Ctl)).id]));
+  const ctlIds = all ? panel.banks!.flatMap((x) => idsOf(subB(x.value))) : idsOf(sub);
   if (panel.copyExtra) ctlIds.push(...panel.copyExtra.map((id) => id.replace("{b}", b)));
   useStore((s) => s.channels[channel]?.inst); // valeurs à jour pour « Copier »
   const sectionMenu = makeSectionMenu(channel, m, sectionTitle, ctlIds);
@@ -224,15 +240,15 @@ function PanelSection({ channel, module: m, panel, lane }: { channel: number; mo
   // v0.46 fix26 : façade « en flux » (téléphone, grande taille) : un petit panneau rangé en colonne
   // (Mélangeur, Séquence…) passe à l'horizontale : une colonne par commande, jusqu'à 6
   const nItems = panel.ctl.filter((c) => !(typeof c === "object" && "gap" in c)).length;
-  const flowCols = (panel.cols ?? 4) < nItems && nItems <= 6 ? nItems : panel.cols ?? 4;
+  const flowCols = panel.flowCols ?? ((panel.cols ?? 4) < nItems && nItems <= 6 ? nItems : panel.cols ?? 4);
   return (
     <SectionMenuContext.Provider value={sectionMenu}>
     <section className={panel.wideLabels ? "fp fp--wide-labels" : "fp"} style={{ "--cols": panel.cols ?? 4, "--cols-flow": flowCols, "--grow": panel.grow ?? 1, ...(panel.tone ? { "--tone": panel.tone } : {}),
       // le bandeau (titre + banques) est posé au-dessus du cadre : la section garde assez de largeur pour lui
-      ...(panel.banks ? { minWidth: `${36 + panel.title.length * 9 + panel.banks.reduce((n, x) => n + 30 + x.label.length * 7, 0)}px` } : {}) } as React.CSSProperties}>
+      ...(panel.banks && !all ? { minWidth: `${36 + panel.title.length * 9 + panel.banks.reduce((n, x) => n + 30 + x.label.length * 7, 0)}px` } : {}) } as React.CSSProperties}>
       <header className="fp-head">
         <h3 className="fp-title">{panel.title}</h3>
-        {panel.banks && (
+        {panel.banks && !all && (
           <span className="fp-banks" role="tablist" aria-label={`${panel.title} : banque`}>
             {panel.banks.map((x, i) => (
               <button key={x.value} type="button" role="tab" aria-selected={i === bank} className={i === bank ? "on" : ""} onClick={() => setBank(i)}>
@@ -253,14 +269,21 @@ function PanelSection({ channel, module: m, panel, lane }: { channel: number; mo
         const [key, ...args] = panel.custom.replace(/\{b\}/g, b).replace(/\{n\}/g, n).split(":");
         return CUSTOM[key] ? CUSTOM[key]({ channel, module: m, args }) : null;
       })()}
-      <div className="fp-grid">
-        {panel.ctl.map((c, i) => {
-          if (typeof c === "object" && "gap" in c) return <span key={i} className="fc-gap" />;
-          if (typeof c === "object" && "stack" in c)
-            return <div key={i} className="fc-stack">{c.stack.map((x, k) => <Control key={k} channel={channel} module={m} ctl={sub(normCtl(x))} />)}</div>;
-          return <Control key={i} channel={channel} module={m} ctl={sub(normCtl(c as string | Ctl))} />;
-        })}
-      </div>
+      {(all ? panel.banks! : [null]).map((x) => {
+        const f = x ? subB(x.value) : sub;
+        const grid = (
+          <div className="fp-grid">
+            {panel.ctl.map((c, i) => {
+              if (typeof c === "object" && "gap" in c) return <span key={i} className="fc-gap" />;
+              if (typeof c === "object" && "stack" in c)
+                return <div key={i} className="fc-stack">{c.stack.map((y, k) => <Control key={k} channel={channel} module={m} ctl={f(normCtl(y))} />)}</div>;
+              return <Control key={i} channel={channel} module={m} ctl={f(normCtl(c as string | Ctl))} />;
+            })}
+          </div>
+        );
+        // 1.0 : banques l'une sous l'autre, chacune avec son numéro à gauche
+        return x ? <div key={x.value} className="fp-bank-row"><span className="fp-bank-tag">{x.label}</span>{grid}</div> : <Fragment key="g">{grid}</Fragment>;
+      })}
     </section>
     </SectionMenuContext.Provider>
   );
@@ -396,7 +419,7 @@ function Switch({ global, ctl, vertical }: { global: number; ctl: Ctl; vertical:
   const cur = Math.round(e.choices ? e.plain : e.plain - e.min);
   return (
     <ParamMenuZone binding={b}>
-    <div className={`fc-switch${vertical ? " fc-switch--v" : ""}${b.locked ? ` fc--lock-${b.locked}` : ""}`} role="radiogroup" aria-label={b.label}>
+    <div className={`fc-switch${vertical ? " fc-switch--v" : ""}${ctl.vcols ? ` fc-switch--cols${ctl.vcols}` : ""}${b.locked ? ` fc--lock-${b.locked}` : ""}`} role="radiogroup" aria-label={b.label}>
       <span className="fc-switch-label">{ctl.label ?? b.label}</span>
       <div className="fc-switch-opts">
         {labels.map((l, i) => (

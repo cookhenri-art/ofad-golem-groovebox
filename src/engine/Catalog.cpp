@@ -32,6 +32,7 @@
 #include "../instruments/GoodDoctor.h"
 #include "../instruments/Dfam.h"
 #include "../instruments/Vocoders.h"
+#include "../instruments/FmPlayer.h"
 #include "../effects/Distortion.h"
 #include "../effects/Delay.h"
 #include "../effects/Reverb.h"
@@ -101,6 +102,7 @@ namespace
             { [] { return &input::desc(); },   [] { return std::make_unique<AudioInput>(); } },
             { [] { return &gluta::desc(); },   [] { return std::make_unique<Glutamake>(); } }, // v0.47 : à la fin (ordre des instruments inchangé)
             { [] { return &gdoc::desc(); },    [] { return std::make_unique<GoodDoctor>(); } }, // v0.47 (maj. 5 nov.) : à la fin (ordre des instruments inchangé)
+            { [] { return &fmplayer::desc(); }, [] { return std::make_unique<FmPlayer>(); } }, // v0.49 : lecteur de firmwares FM-1, à la fin
         };
         return e;
     }

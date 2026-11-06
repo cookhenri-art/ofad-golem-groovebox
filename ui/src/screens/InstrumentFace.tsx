@@ -21,7 +21,7 @@ import { ModeBar } from "./ScreenFrame";
 import { MacroPage } from "./MacroPage";
 import { FACE_LAYOUTS } from "./faces/layouts";
 import { PanelPage, Wheels } from "./faces/SynthPanel";
-import { faceSkinStyle } from "../skin/skins";
+import { faceSkinStyle, fm1FondStyle, useFm1Fond } from "../skin/skins";
 
 /** Couleurs de façade par instrument (dessin propre, aucune reprise d'une façade existante). */
 const FACES: Record<string, { accent: string; panel: string; cheeks?: boolean; tag: string }> = {
@@ -47,6 +47,7 @@ const FACES: Record<string, { accent: string; panel: string; cheeks?: boolean; t
   orbit:   { accent: "oklch(0.78 0.15 230)", panel: "oklch(0.15 0.012 260)", tag: "Synthèse vectorielle à orbite" },
   gluta:   { accent: "oklch(0.72 0.19 42)",  panel: "oklch(0.14 0.004 40)",  tag: "Tables d'ondes et physique de mouvement" },
   gooddoc: { accent: "oklch(0.8 0.13 195)",  panel: "oklch(0.15 0.02 245)",  tag: "Tables d'ondes hybrides, double déformation" },
+  fmplayer: { accent: "oklch(0.8 0.15 70)",  panel: "oklch(0.2 0.008 250)",  tag: "Lecteur de firmwares FM-1" },
   fm6:     { accent: "oklch(0.8 0.12 175)",  panel: "oklch(0.16 0.008 40)",  cheeks: true, tag: "FM à 6 opérateurs" },
   fm4:     { accent: "oklch(0.82 0.15 300)", panel: "oklch(0.17 0.012 290)", tag: "FM à 4 opérateurs" },
   fmx:     { accent: "oklch(0.8 0.16 55)",   panel: "oklch(0.16 0.01 50)",   tag: "FM à 6 opérateurs, matrice libre" },
@@ -105,7 +106,7 @@ function FaceModule({ channel, module: m, section, lane }: { channel: number; mo
 
 /** Clavier : 2 octaves et demie ; la hauteur de l'appui donne la vélocité ; glisser d'une
     touche à l'autre rejoue (legato) ; plusieurs doigts à la fois. */
-function Keyboard({ track, color }: { track: number; color: string }) {
+export function Keyboard({ track, color }: { track: number; color: string }) {
   const [octave, setOctave] = useState(3);
   const [ownHeld, setHeld] = useState<number[]>([]);
   // touches allumées : jouées ici, au contrôleur MIDI, par la séquence ou l'arpège
@@ -347,6 +348,7 @@ export function InstrumentFace() {
   }, [open]);
   useEffect(() => { if (open && !m) { setUi({ face: false }); showMessage("Choisissez d'abord une piste qui a un instrument"); } }, [open, m]);
 
+  const fond = useFm1Fond(); // 1.0 : fond du FM Player (petit bouton de couleur)
   if (!open || !m || !track) return null;
   // (v0.46 fix20 : sur téléphone la façade est toujours en grand et défile : pas de bouton Taille)
   const face = FACES[m.type] ?? FACES.input;
@@ -373,13 +375,14 @@ export function InstrumentFace() {
   const slotIdx = m.params.findIndex((p) => p.id === `t${Math.min(7, lane) + 1}_slot`);
   const octaRaw = octa && slotIdx >= 0 ? Math.round(toPlain(m.params[slotIdx], instValues?.[slotIdx] ?? 0)) : 0;
   const octaSlot = octaRaw >= 1 && octaRaw <= 16 ? Math.min(7, lane) * 16 + octaRaw - 1 : octaRaw >= 17 && octaRaw < 145 ? octaRaw - 17 : Math.min(7, lane) * 16;
-  const sampleIndex = m.type === "sampler" || m.type === "keys" ? 0 : m.type === "octa" ? octaSlot : lane;
-  const takesSamples = m.drumKit || m.type === "keys" || m.type === "octa";
+  const sampleIndex = m.type === "sampler" || m.type === "keys" || m.type === "fmplayer" ? 0 : m.type === "octa" ? octaSlot : lane;
+  const fmp = m.type === "fmplayer"; // v0.49 : FM Player — son « échantillon » est le firmware (.fwsc)
+  const takesSamples = m.drumKit || m.type === "keys" || m.type === "octa" || fmp;
 
   return (
     <MacroMenuContext.Provider value={true}>
-    <div className={`face face--skin${sk.skin.cheek ? " face--cheeks" : ""}${layout ? ` face--panel face--t-${layout.theme}` : ""}`} role="dialog" aria-label={`${m.name} — façade de l'instrument`}
-      style={{ ...(layout ? { "--k": color } : { "--face-accent": face.accent, "--face-panel": face.panel, "--k": color }), ...sk.style } as React.CSSProperties}>
+    <div className={`face face--skin${sk.skin.cheek ? " face--cheeks" : ""}${layout ? ` face--panel face--t-${layout.theme}` : ""}${fmp ? " face--fm1bg" : ""}`} role="dialog" aria-label={`${m.name} — façade de l'instrument`}
+      style={{ ...(layout ? { "--k": color } : { "--face-accent": face.accent, "--face-panel": face.panel, "--k": color }), ...sk.style, ...(fmp ? fm1FondStyle(fond) : {}) } as React.CSSProperties}>
       {/* v0.46 fix26 : en-tête sur trois lignes fixes (PC et téléphone) : 1. nom, transport, piste, ✕ ;
           2. les pages (elles défilent si la place manque) ; 3. les outils de l'instrument. Rien ne change
           de ligne d'un instrument à l'autre. */}
@@ -405,8 +408,10 @@ export function InstrumentFace() {
         <div className="face-head-row face-head-row--tools">
           {takesSamples && (
             <span className="face-sample">
-              <span>{samples?.[sampleIndex] ?? "Voix de synthèse"}</span>
-              <button type="button" onClick={() => (hasNative("chooseSample") ? actions.chooseSample(focus, sampleIndex) : setUi({ face: false, screen: "sound" }))}>Échantillon…</button>
+              <span>{samples?.[sampleIndex] ?? (fmp ? "Aucun firmware" : "Voix de synthèse")}</span>
+              {fmp
+                ? <button type="button" onClick={() => actions.chooseFirmware(focus)} disabled={!hasNative("chooseSample")}>Firmware…</button>
+                : <button type="button" onClick={() => (hasNative("chooseSample") ? actions.chooseSample(focus, sampleIndex) : setUi({ face: false, screen: "sound" }))}>Échantillon…</button>}
               <button type="button" className={library ? "on" : ""} onClick={() => { setLibrary(!library); setPresets(null); }} title="Les échantillons du dossier choisi dans les Réglages">Bibliothèque</button>
             </span>
           )}
@@ -415,11 +420,11 @@ export function InstrumentFace() {
           {/* v0.46 fix6 : raccourci vers les effets de la piste (et du pad), en pédales par-dessus la façade ;
               on les referme (✕ ou Échap) pour revenir à l'instrument. L'écran EFFETS reste là. */}
           <button type="button" className="face-btn face-btn--fx" onClick={() => setUi({ pedals: true })}
-            title={m.drumKit ? `Les effets de la piste et ceux du ${octa ? `T${lane + 1}` : `pad ${lane + 1}`}, en pédales, sans quitter l'instrument (✕ ou Échap pour revenir)` : "Les effets de cette piste, en pédales, sans quitter l'instrument (✕ ou Échap pour revenir)"}>FX · Effets</button>
+            title={m.drumKit && !fmp ? `Les effets de la piste et ceux du ${octa ? `T${lane + 1}` : `pad ${lane + 1}`}, en pédales, sans quitter l'instrument (✕ ou Échap pour revenir)` : "Les effets de cette piste, en pédales, sans quitter l'instrument (✕ ou Échap pour revenir)"}>FX · Effets</button>
           {!octa && <button type="button" className={`face-btn${presets === "inst" ? " on" : ""}`} onClick={() => { setPresets(presets === "inst" ? null : "inst"); setLibrary(false); }}>
-            {m.drumKit ? "Kit · préréglages" : "Préréglages"}{track.preset ? ` · ${track.preset}` : ""}
+            {m.drumKit && !fmp ? "Kit · préréglages" : "Préréglages"}{track.preset ? ` · ${track.preset}` : ""}
           </button>}
-          {m.drumKit && <button type="button" className={`face-btn${presets === "pad" ? " on" : ""}`} onClick={() => { setPresets(presets === "pad" ? null : "pad"); setLibrary(false); }}>{octa ? `T${lane + 1}` : `Pad ${lane + 1}`} · préréglages</button>}
+          {m.drumKit && !fmp && <button type="button" className={`face-btn${presets === "pad" ? " on" : ""}`} onClick={() => { setPresets(presets === "pad" ? null : "pad"); setLibrary(false); }}>{octa ? `T${lane + 1}` : `Pad ${lane + 1}`} · préréglages</button>}
           {layout && !phoneUi && <button type="button" className={`face-btn${faceBig ? " on" : ""}`} aria-pressed={faceBig}
             onClick={() => { setUi({ faceBig: !faceBig }); writePref("faceBig", !faceBig); }}
             title={faceBig ? "Grand : une façade trop chargée n'est plus réduite, on la fait défiler vers le bas (toucher pour tout faire tenir dans l'écran)" : "Tout tient dans l'écran, quitte à réduire (toucher pour garder la taille normale et faire défiler)"}>{faceBig ? "Taille : grande" : "Taille : ajustée"}</button>}
@@ -445,7 +450,8 @@ export function InstrumentFace() {
         </FitScale>)}
         {library && takesSamples && !presets && (
           <div className="face-presets">
-            <FolderBrowser kind="samples" title={`Bibliothèque · ${m.drumKit ? `pad ${lane + 1}` : m.type === "octa" ? `emplacement ${sampleIndex + 1}` : "échantillon"}`}
+            <FolderBrowser kind="samples" title={`Bibliothèque · ${fmp ? "firmwares" : m.drumKit ? `pad ${lane + 1}` : m.type === "octa" ? `emplacement ${sampleIndex + 1}` : "échantillon"}`}
+              start={fmp ? ["Firmwares"] : undefined}
               onPick={(rel) => actions.loadSampleFile(focus, sampleIndex, rel)} onClose={() => setLibrary(false)} />
           </div>
         )}
@@ -461,9 +467,10 @@ export function InstrumentFace() {
         )}
       </div>
       {stepsPage.length > 0 && current !== "steps" && <StepsDock />}
+      {fmp && <StepsDock lanes />}
 
       <footer className="face-foot">
-        {(m.drumKit && !octa) || m.type === "sampler" ? <PadStrip track={focus} module={m} lane={lane} />
+        {(m.drumKit && !octa && !fmp) || m.type === "sampler" ? <PadStrip track={focus} module={m} lane={lane} />
           : <div className={layout?.wheels ? "face-play face-play--wheels" : "face-play"}>{layout?.wheels && <Wheels track={focus} />}<Keyboard track={focus} color={layout ? "var(--fp-led)" : face.accent} /></div>}
       </footer>
     </div>

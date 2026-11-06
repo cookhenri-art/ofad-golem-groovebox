@@ -8,6 +8,8 @@
 #include "UserPresets.h"
 #include "Folders.h"
 #include "PerfStats.h"
+#include "instruments/FmPlayer.h"
+#include "CrashGuard.h" // v0.49 (essai 3)
 
 #include <unordered_map>
 
@@ -80,7 +82,7 @@ juce::String chosenFileName (const juce::URL& url)
    #if JUCE_ANDROID
     const auto info = juce::AndroidDocument::fromDocument (url).getInfo();
     if (info.getName().isNotEmpty()) name = info.getName();
-    if (! juce::File::createFileWithoutCheckingPath ("/" + name).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3"))
+    if (! juce::File::createFileWithoutCheckingPath ("/" + name).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3;fwsc"))
     {
         const auto mime = info.getType().toLowerCase();
         const char* ext = mime.contains ("mpeg") || mime.contains ("mp3") ? ".mp3" : mime.contains ("wav") ? ".wav" : mime.contains ("flac") ? ".flac"
@@ -106,7 +108,7 @@ struct SampleImport
     juce::int64 total = 0;
 
     static constexpr juce::int64 maxFile = (juce::int64) 64 * 1024 * 1024, maxTotal = (juce::int64) 2048 * 1024 * 1024;
-    static bool isAudioName (const juce::String& n) { return juce::File::createFileWithoutCheckingPath ("/" + n).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3"); }
+    static bool isAudioName (const juce::String& n) { return juce::File::createFileWithoutCheckingPath ("/" + n).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3;fwsc"); } // v0.49 : firmwares .fwsc aussi
 
     /** Prépare la liste (adresses des fichiers, ou contenu d'un dossier et de ses sous-dossiers). */
     void gather (const juce::Array<juce::URL>& urls, bool wholeFolder)
@@ -717,6 +719,8 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
     patternFn ("seqLaneDir",     [&seq, L] (const Args& a, int t) { seq.setDirection (t, intArg (a, 1, 0, L, 0), (Direction) intArg (a, 2, 0, 3, 0)); });
     patternFn ("seqLaneMute",    [&seq, L] (const Args& a, int t) { seq.setLaneMute (t, intArg (a, 1, 0, L, 0), boolArg (a, 2)); });
     patternFn ("seqLaneSolo",    [&seq, L] (const Args& a, int t) { seq.setLaneSolo (t, intArg (a, 1, 0, L, 0), boolArg (a, 2)); });
+    patternFn ("seqLaneLockGlide", [&seq, L] (const Args& a, int t) { seq.setLaneLockGlide (t, intArg (a, 1, 0, L, 0), boolArg (a, 2)); });
+    patternFn ("seqLaneLockMute",  [&seq, L] (const Args& a, int t) { seq.setLaneLockMute (t, intArg (a, 1, 0, L, 0), boolArg (a, 2)); });
     // division du pattern édité de la piste (les autres pistes et patterns gardent la leur)
     patternFn ("seqDivision",    [&seq] (const Args& a, int t) { seq.setPatternDivision (t, seq.getEditing (t), (Division) intArg (a, 1, 0, numDivisions - 1, 2)); });
     patternFn ("seqClearLane",   [&seq, L] (const Args& a, int t) { seq.clearLane (t, intArg (a, 1, 0, L, 0)); });
@@ -846,6 +850,38 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         const auto t = intArg (a, 0, 0, T, -1);
         if (t >= 0) eng.touchInstrument (t, intArg (a, 1, 0, 7, 0), floatArg (a, 2, -8.0f, 8.0f, 0.0f), floatArg (a, 3, -8.0f, 8.0f, 0.0f));
         done (juce::var());
+    });
+    // v0.49 : FM Player — gestes sur la façade (piste, genre, a, b) : touche (id 0..40, enfoncée 0/1),
+    // bouton rotatif (0..7, crans -64..64), entrée analogique (0..22, 0..1023), force des touches (1..127)
+    fn ("fm1Touch", [&eng, T] (const Args& a, Completion done)
+    {
+        const auto t = intArg (a, 0, 0, T, -1), kind = intArg (a, 1, 1, 4, 0);
+        if (t >= 0 && kind > 0) eng.touchInstrument (t, kind, floatArg (a, 2, -2048.0f, 2048.0f, 0.0f), floatArg (a, 3, -2048.0f, 2048.0f, 0.0f));
+        done (juce::var());
+    });
+    // v0.49 : FM Player — écran (240 × 240, RGB565 petit-boutiste, en base64) et diodes (41 valeurs 0..1)
+    fn ("fm1Screen", [&eng, T] (const Args& a, Completion done)
+    {
+        const auto t = intArg (a, 0, 0, T, -1);
+       #if GROOVEBOX_FM1
+        const auto* fp = dynamic_cast<const instruments::FmPlayer*> (eng.instrumentAt (t));
+        auto* f = fp != nullptr ? fp->machine() : nullptr;
+        if (f == nullptr) { done (juce::var()); return; }
+        static std::vector<std::uint16_t> lcd ((size_t) FM1_LCD_W * FM1_LCD_H);
+        float leds[FM1_NLEDS] {};
+        const auto state = fm1_view (f, lcd.data(), leds);
+        auto* o = new juce::DynamicObject();
+        o->setProperty ("lcd", juce::Base64::toBase64 (lcd.data(), lcd.size() * sizeof (std::uint16_t)));
+        juce::Array<juce::var> l;
+        for (auto v : leds) l.add (std::round (juce::jlimit (0.0f, 1.0f, v) * 100.0f) / 100.0f);
+        o->setProperty ("leds", l);
+        o->setProperty ("booted", (state & 1u) != 0);
+        o->setProperty ("halted", (state & 2u) != 0);
+        done (juce::var (o));
+       #else
+        juce::ignoreUnused (t);
+        done (juce::var());
+       #endif
     });
     fn ("resetLanes", [&proc, &eng, T] (const Args& a, Completion done) // v0.43 : une piste interne (ou les 8 : -1) remise à l'origine
     {
@@ -1173,6 +1209,12 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         if (const auto t = intArg (a, 0, 0, T, -1); t >= 0) proc.setTrackMidiChannel (t, intArg (a, 1, 0, 16, 0));
         done (json (midiJson()));
     });
+    fn ("setLaneMidiChannel", [this, &proc, T] (const Args& a, Completion done)
+    {
+        // GOLEM 1.0 : canal MIDI d'une piste interne T (piste, T 0..7, canal 0..16)
+        if (const auto t = intArg (a, 0, 0, T, -1); t >= 0) proc.setLaneMidiChannel (t, intArg (a, 1, 0, 7, 0), intArg (a, 2, 0, 16, 0));
+        done (json (midiJson()));
+    });
     fn ("midiResolve", [this, &proc] (const Args& a, Completion done)
     {
         proc.resolveMidiConflict (boolArg (a, 0));
@@ -1189,18 +1231,21 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
     fn ("chooseSample", [this, &proc, T] (const Args& a, Completion done)
     {
         const auto t = intArg (a, 0, 0, T, -1), i = intArg (a, 1, 0, maxSamples - 1, -1);
+        const auto firmware = strArg (a, 2, 16) == "firmware"; // v0.49 : firmware .fwsc du FM Player
         done (juce::var());
         if (t < 0 || i < 0) return;
-        chooser = std::make_unique<juce::FileChooser> (juce::String::fromUTF8 ("Choisir un fichier audio"), Folders::get (Folders::samples), "*.wav;*.aif;*.aiff;*.flac;*.ogg;*.mp3");
+        chooser = firmware
+            ? std::make_unique<juce::FileChooser> (juce::String::fromUTF8 ("Choisir un firmware FM-1 (.fwsc)"), Folders::get (Folders::samples), "*.fwsc")
+            : std::make_unique<juce::FileChooser> (juce::String::fromUTF8 ("Choisir un fichier audio"), Folders::get (Folders::samples), "*.wav;*.aif;*.aiff;*.flac;*.ogg;*.mp3");
         chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-                              [this, &proc, t, i] (const juce::FileChooser& fc)
+                              [this, &proc, t, i, firmware] (const juce::FileChooser& fc)
         {
             const auto url = fc.getURLResult();
             if (url.isEmpty()) return;
             // v0.47.0 : sur tablette, le travail commence une fois l'application revenue au premier plan
             // (lire et charger pendant son retour la faisait planter)
             juce::Component::SafePointer<GrooveboxEditor> self (this);
-            juce::Timer::callAfterDelay (Folders::canChoose() ? 1 : 400, [self, &proc, t, i, url]
+            juce::Timer::callAfterDelay (Folders::canChoose() ? 1 : 400, [self, &proc, t, i, url, firmware]
             {
             if (self == nullptr) return;
             auto* ed = self.getComponent();
@@ -1220,7 +1265,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
                 // tablette : le fichier est copié dans la Bibliothèque de l'application (dossier « Importés »),
                 // pour être retrouvé ensuite sans repasser par le sélecteur (jamais d'écrasement)
                 const auto clean = Folders::cleanFileName (name);
-                const auto dir = Folders::get (Folders::samples).getChildFile (juce::String::fromUTF8 ("Import\xC3\xA9s"));
+                const auto dir = Folders::get (Folders::samples).getChildFile (firmware ? juce::String ("Firmwares") : juce::String::fromUTF8 ("Import\xC3\xA9s"));
                 if (clean.isNotEmpty() && dir.createDirectory())
                 {
                     auto f = dir.getChildFile (clean);
@@ -1327,7 +1372,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         if (! kindArg (a, 0, k) || k == Folders::presets) { done (json ("null")); return; }
         const auto rel = strArg (a, 1, 2048);
         juce::StringArray ext;
-        if (k == Folders::samples) ext.addArray ({ "wav", "aif", "aiff", "flac", "ogg", "mp3" });
+        if (k == Folders::samples) ext.addArray ({ "wav", "aif", "aiff", "flac", "ogg", "mp3", "fwsc" }); // v0.49 : firmwares du FM Player
         else ext.add ("gbx");
         bool ok = false;
         const auto items = Folders::list (k, rel, ext, ok);
@@ -1716,12 +1761,35 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
 }
 
 //==============================================================================
+/** v0.49 : firmwares fournis (interface, dossier firmwares/) copiés une fois dans la Bibliothèque, dossier
+    « Firmwares », avec leurs licences. Jamais d'écrasement ; un firmware retiré par l'utilisateur ne revient
+    pas (repère .golem-firmwares-1). Fil de l'interface, en tâche différée (quelques Mo au plus). */
+static void installBundledFirmwares()
+{
+    const auto dir = grv::Folders::get (grv::Folders::samples).getChildFile ("Firmwares");
+    const auto marker = dir.getChildFile (".golem-firmwares-1");
+    if (marker.existsAsFile() || ! dir.createDirectory()) return;
+    int written = 0;
+    for (int i = 0; i < UiData::namedResourceListSize; ++i)
+    {
+        const juce::String name (UiData::getNamedResourceOriginalFilename (UiData::namedResourceList[i]));
+        if (! name.endsWithIgnoreCase (".fwsc") && name != "FIRMWARES-LICENCES.md" && name != "GPL-3.0.txt" && name != "MPL-2.0.txt") continue;
+        const auto f = dir.getChildFile (grv::Folders::cleanFileName (name));
+        if (f.exists()) continue;
+        int size = 0;
+        if (const auto* data = UiData::getNamedResource (UiData::namedResourceList[i], size); data != nullptr && size > 0)
+            if (f.replaceWithData (data, (size_t) size)) ++written;
+    }
+    marker.replaceWithText (juce::String::fromUTF8 ("OFAD GOLEM 0.49 : firmwares fournis install\xC3\xA9s (") + juce::String (written) + ")\n");
+}
+
 GrooveboxEditor::GrooveboxEditor (GrooveboxProcessor& p)
     : AudioProcessorEditor (&p),
       processor (p),
       browser (createOptions())
 {
     grv::Folders::setRecordingsFolder (grv::Recorder::rootFolder()); // v0.47.0 : enregistrements dans la Bibliothèque
+    juce::Timer::callAfterDelay (1500, [] { installBundledFirmwares(); }); // v0.49 : après l'ouverture de l'interface
     addAndMakeVisible (browser);
     grv::startupMark ("vue web creee, chargement de la page");
 
@@ -2061,6 +2129,13 @@ std::string GrooveboxEditor::midiJson() const
     o += ",\"route\":{\"note\":" + std::to_string (processor.getMidiNoteChannel()) + ",\"ctrl\":" + std::to_string (processor.getMidiCtrlChannel())
        + ",\"ctrlOn\":" + (processor.getMidiCtrlOn() ? "true" : "false") + ",\"tracks\":[";
     for (int t = 0; t < numTracks; ++t) o += (t ? "," : "") + std::to_string (processor.getTrackMidiChannel (t));
+    o += "],\"lanes\":["; // GOLEM 1.0 : canaux des pistes internes T (FM Player, Pieuvre 8)
+    for (int t = 0; t < numTracks; ++t)
+    {
+        o += t ? ",[" : "[";
+        for (int l = 0; l < GrooveboxProcessor::maxLaneChans; ++l) o += (l ? "," : "") + std::to_string (processor.getLaneMidiChannel (t, l));
+        o += "]";
+    }
     o += "]}";
     // v0.46 fix24 : boutons assignables [cible, position] et table des valeurs d'écran (texte JSON de l'interface)
     o += ",\"knobs\":[";

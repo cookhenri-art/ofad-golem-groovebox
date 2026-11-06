@@ -44,6 +44,9 @@ export function TracksScreen() {
   const [hover, setHover] = useState<string | null>(null);
   const [picker, setPicker] = useState(false);
   const midiRoute = useStore((s) => s.midi.route); // v0.46 : canal MIDI propre à la piste
+  // GOLEM 1.0 : pistes internes T jouables au clavier (FM Player : 4, Pieuvre 8 : 8)
+  const trackInst = cat.instruments.find((x) => x.type === track?.instrument);
+  const laneCount = trackInst?.drumKit && trackInst.laneNotes ? Math.min(8, trackInst.padNames?.length ?? 0) : 0;
 
   const encoders: (EncoderBinding | null)[] = [
     steppedBinding("Piste", Array.from({ length: L.numTracks }, (_, i) => i), t, (i) => void actions.focus(i), (i) => `${i + 1} · ${tracks.tracks[i]?.name ?? ""}`),
@@ -85,6 +88,21 @@ export function TracksScreen() {
                 {Array.from({ length: 16 }, (_, c) => <option key={c} value={c + 1}>Canal {c + 1}</option>)}
               </select>
             </label>
+            {/* GOLEM 1.0 : FM Player, Pieuvre 8 — un canal MIDI par piste interne T */}
+            {isTrack && laneCount > 0 && (
+              <span className="tracks-lanes" role="group" aria-label="Canal MIDI de chaque piste interne T">
+                {Array.from({ length: laneCount }, (_, l) => (
+                  <label key={l} className="tracks-out" title={`T${l + 1} : « T choisie » = elle joue quand on la choisit à l'écran ; un canal = ce canal joue toujours T${l + 1}, même si une autre T est choisie`}>
+                    T{l + 1}
+                    <select className="chip chip--select" value={midiRoute?.lanes?.[t]?.[l] ?? 0}
+                      onChange={(e) => void actions.setLaneMidiChannel(t, l, Number(e.target.value))}>
+                      <option value={0}>T choisie</option>
+                      {Array.from({ length: 16 }, (_, c) => <option key={c} value={c + 1}>Canal {c + 1}</option>)}
+                    </select>
+                  </label>
+                ))}
+              </span>
+            )}
             {numGroups(L) > 0 && (
               <label className="tracks-out" title="Sortie de la piste : bus principal ou bus de groupe (inserts et volume communs au mixeur)">
                 Sortie

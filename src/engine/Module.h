@@ -31,6 +31,10 @@ struct SampleBuffer
     std::string name;
     std::shared_ptr<const std::vector<std::uint8_t>> original; // fichier d'origine (sauvegarde du projet, historique)
     std::vector<float> onsets;          // attaques détectées au chargement (fractions, 64 au plus)
+    // v0.49 : firmware du lecteur FM-1 (pas de son : data vide) et sa machine émulée, créée au chargement
+    // hors du fil audio et détruite avec l'échantillon (corbeille du moteur)
+    bool firmware = false;
+    std::shared_ptr<void> runtime;
 };
 
 class Effect;
@@ -74,6 +78,9 @@ public:
     /** Commandes d'expression de la piste, appelées à chaque bloc : pitch bend -1..1, molette
         de modulation 0..1, pression (aftertouch de canal) 0..1. */
     virtual void setExpression (float /*bend*/, float /*wheel*/, float /*pressure*/) noexcept {}
+
+    /** v0.49 : commande MIDI (CC) d'un contrôleur que GOLEM n'a pas apprise (n° 0..127, valeur 0..1). Fil audio. */
+    virtual void controller (int /*cc*/, float /*value*/) noexcept {}
 
     /** Entrée audio (piste « Entrée audio »). */
     virtual void setInput (const float* /*left*/, const float* /*right*/) noexcept {}
@@ -121,6 +128,13 @@ public:
     virtual void touch (int /*kind*/, float /*a*/, float /*b*/) noexcept {}
     /** v0.42 : copie du tampon de l'enregistreur d'une piste interne (fil de l'interface). */
     virtual bool copyRecording (int /*lane*/, std::vector<float>& /*l*/, std::vector<float>& /*r*/, double& /*rate*/) const { return false; }
+
+    /** v0.49 : l'instrument lit des firmwares (FM Player) ; les autres ne reçoivent jamais un firmware
+        à la place d'un échantillon (ni l'inverse). */
+    virtual bool acceptsFirmware() const noexcept { return false; }
+    /** v0.49 : retard propre de l'instrument (échantillons) : le moteur retarde d'autant les autres pistes
+        pour que tout tombe ensemble (FM Player : avance de l'émulation). Fil audio. */
+    virtual int latencySamples() const noexcept { return 0; }
 
     /** État à montrer dans l'interface (fil de l'interface, lit des valeurs atomiques) ;
         renvoie le nombre de valeurs écrites. */

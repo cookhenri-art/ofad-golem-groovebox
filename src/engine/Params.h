@@ -83,6 +83,7 @@ struct ParamDesc
     std::vector<std::string> choices; // réglage à crans nommés (formes d'onde, modes…)
     bool integer = false; // réglage à crans numériques
     bool keepOnPreset = false; // v0.25 : réglage de branchement (source d'un vocodeur…) gardé quand on choisit un son
+    bool momentary = false; // GOLEM 1.0 : bouton maintenu (touches du FM Player) : une note apprise l'appuie puis le relâche
 
     bool stepped() const noexcept { return ! choices.empty() || integer; }
 
@@ -183,6 +184,7 @@ struct ModuleDesc
     std::vector<Preset> presets;
     bool drumKit = false;    // 16 sons sur les 16 pads (séquenceur à lignes)
     bool laneNotes = false;  // v0.42 : lignes qui jouent aussi la note du pas (Pieuvre 8 : note = 128 + ligne × 128 + note du pas)
+    bool laneLowKeys = false; // GOLEM 1.0 : avec laneNotes, les notes 0 à 15 sont aussi des touches (FM Player), pas des pads
     std::vector<std::string> padNames, padKinds; // batteries : nom et famille de chaque pad
     // Modulation commune des synthés (synth/ModHub.h) : destinations de la matrice (index des
     // réglages, 0 = aucune) et nombre d'enveloppes, de LFO et de routages ajoutés.

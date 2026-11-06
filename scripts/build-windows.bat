@@ -31,6 +31,15 @@ call npm ci --no-audit --no-fund || exit /b 1
 call npm run build || exit /b 1
 popd
 
+rem v0.49 : FM Player (emulateur FM-1 en Rust). Rust ne sert qu a compiler : rien a installer chez les
+rem utilisateurs. Sans Rust, GOLEM se compile quand meme, sans le lecteur de firmwares.
+where cargo >nul 2>&1
+if errorlevel 1 (
+  echo Rust ^(cargo^) introuvable : GOLEM sera compile sans le FM Player. Installer : https://rustup.rs
+) else (
+  rustup target add x86_64-pc-windows-msvc >nul 2>&1
+)
+
 rem Pas de -G : CMake choisit la version de Visual Studio installee (2026 chez toi).
 "%CMAKE%" -S "%ROOT%" -B "%ROOT%\build" -A x64 -DJUCE_DIR="%JUCE_DIR%" || exit /b 1
 "%CMAKE%" --build "%ROOT%\build" --config Release --parallel || exit /b 1

@@ -7,7 +7,7 @@
 
 <JUCERPROJECT id="GrvbAn" name="Groovebox" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" companyName="One For All Distribution"
-              bundleIdentifier="ofad.groovebox" version="0.47.0" cppLanguageStandard="20"
+              bundleIdentifier="ofad.groovebox" version="1.0.0" cppLanguageStandard="20"
               pluginFormats="buildStandalone" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn,pluginEditorRequiresKeys"
               pluginName="Groovebox" pluginDesc="Groovebox" pluginManufacturer="One For All Distribution"
               pluginManufacturerCode="Ofad" pluginCode="Grvb" pluginChannelConfigs=""
@@ -137,11 +137,11 @@
                    androidScreenOrientation="landscape" androidTheme="@android:style/Theme.NoTitleBar.Fullscreen"
                    androidInternetNeeded="0" microphonePermissionNeeded="1" androidReadMediaAudioPermission="0"
                    androidReadMediaImagesPermission="0" androidReadMediaVideoPermission="0" androidExternalWriteNeeded="0"
-                   androidPushNotifications="0" androidEnableRemoteNotifications="0" androidVersionCode="48"
-                   extraDefs="GROOVEBOX_ANDROID=1">
+                   androidPushNotifications="0" androidEnableRemoteNotifications="0" androidVersionCode="51"
+                   extraDefs="GROOVEBOX_ANDROID=1&#10;GROOVEBOX_FM1=1" externalLibraries="fm1_bridge">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" androidArchitectures="arm64-v8a" headerPath="../../generated&#10;../../../src/third_party/lame/include"/>
-        <CONFIGURATION isDebug="0" name="Release" optimisation="3" androidArchitectures="arm64-v8a armeabi-v7a" headerPath="../../generated&#10;../../../src/third_party/lame/include"/>
+        <CONFIGURATION isDebug="1" name="Debug" androidArchitectures="arm64-v8a" headerPath="../../generated&#10;../../../src/third_party/lame/include&#10;../../../third_party/fm1emu/include" libraryPath="../../../third_party/fm1emu/android/${ANDROID_ABI}"/>
+        <CONFIGURATION isDebug="0" name="Release" optimisation="3" androidArchitectures="arm64-v8a armeabi-v7a" headerPath="../../generated&#10;../../../src/third_party/lame/include&#10;../../../third_party/fm1emu/include" libraryPath="../../../third_party/fm1emu/android/${ANDROID_ABI}"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../JUCE/juce-8.0.12-windows/JUCE/modules"/>

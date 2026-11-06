@@ -138,6 +138,25 @@ export function ModeBar() {
 
 /** Attente d'une affectation (bouton assignable à toucher, commande MIDI à toucher) : voyant clignotant.
     v0.46 fix30f : aussi dans la vue live (elle couvre l'écran : le voyant n'y était pas visible). */
+/** GOLEM 1.0 : le voyant d'apprentissage MIDI (et d'affectation des boutons) aussi par-dessus la façade
+    d'un synthé et les pédales d'effets, qui couvrent l'écran (on ne voyait pas que GOLEM attendait). */
+export function LearnFloat() {
+  const learn = useStore((s) => s.tick.learn ?? -1);
+  const knobWait = useStore((s) => s.ui.knobAssign);
+  const covered = useStore((s) => s.ui.face || s.ui.pedals);
+  if (!covered || (learn === -1 && knobWait === null)) return null;
+  return <div className="learn-float" role="status"><LearnChips /></div>;
+}
+
+/** 1.0 (6 nov.) : le message court (« verrous copiés », « collés », « retirés »…) aussi par-dessus la façade
+    d'un synthé, les pédales et le mode Grand du FM Player : il s'affichait derrière, on ne le voyait pas. */
+export function MessageFloat() {
+  const message = useStore((s) => s.ui.message);
+  const covered = useStore((s) => s.ui.face || s.ui.pedals);
+  if (!covered || !message) return null;
+  return <div className="message-float" role="status">{message}</div>;
+}
+
 export function LearnChips() {
   const learn = useStore((s) => s.tick.learn ?? -1);
   const knobWait = useStore((s) => s.ui.knobAssign);

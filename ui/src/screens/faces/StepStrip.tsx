@@ -40,7 +40,10 @@ function FnButton({ disabled, on, cls, text, amount, onToggle, onEdit }: {
   );
 }
 
-export function StepStrip() {
+/** lane : v0.49 — instrument à pistes internes (FM Player) : la rangée montre la piste T choisie (ligne = T),
+    une note par pas ; sans : ligne 1 d'un synthé et ses notes d'accord. */
+export function StepStrip({ lane: laneMode = false }: { lane?: boolean } = {}) {
+  const T = useStore((s) => (laneMode ? Math.max(0, s.ui.lane) : 0));
   const pattern = useStore((s) => s.pattern);
   const page = useStore((s) => s.ui.page);
   const pos = useStore((s) => s.tick.pos);
@@ -66,7 +69,8 @@ export function StepStrip() {
   const first = pg * 16;
   const flag = (s: number, bit: number) => ((pattern.flags[s] ?? 0) & bit) !== 0;
   // v0.48 : notes plus longues qu'un pas, dessinées sur les pas qu'elles couvrent
-  const spans = noteSpans(pattern, (s) => stepLanes(pattern, s));
+  const lanesAt = (s: number) => (laneMode ? ((pattern.lanes[T]?.vel[s] ?? 0) > 0 ? [T] : []) : stepLanes(pattern, s));
+  const spans = noteSpans(pattern, (s) => (laneMode ? [T] : stepLanes(pattern, s)));
   const toggleFlag = (s: number, bit: number) => void actions.seq("seqStepsFlag", JSON.stringify([s]), bit, !flag(s, bit));
   const setNote = (s: number, n: number, l = 0) => {
     const note = Math.max(0, Math.min(127, n));
@@ -97,13 +101,13 @@ export function StepStrip() {
           const s = first + i;
           const out = s >= pattern.length;
           // v0.46 fix28 : notes d'accord (autres lignes, posées au piano roll) visibles et effaçables ici
-          const held = out ? [] : stepLanes(pattern, s);
+          const held = out ? [] : lanesAt(s);
           const on = held.length > 0;
-          const ml = held.includes(0) || !on ? 0 : held[0];
+          const ml = laneMode ? T : held.includes(0) || !on ? 0 : held[0];
           const note = pattern.lanes[ml]?.note[s] ?? 48;
           const more = held.length - 1;
           const lane = pattern.lanes[ml];
-          const here = playing && (pos[0] ?? -1) === s;
+          const here = playing && (pos[laneMode ? T : 0] ?? -1) === s;
           return (
             <div key={i} className={`step303${on ? " on" : ""}${out ? " out" : ""}${here ? " here" : ""}${i % 4 === 0 ? " beat" : ""}${menu === s ? " sel" : ""}${spanClass(spans, s)}`}
               onPointerDownCapture={() => { if (menu !== null && menu !== s) setMenu(null); }}
@@ -135,8 +139,8 @@ export function StepStrip() {
                   // v0.46 fix28 : un pas posé prend la dernière touche jouée (clavier, pads), comme la rangée à verrous
                   if (d && !d.moved) {
                     if (on) void actions.clearStepLanes(s, held);
-                    else if (played.note >= 0) actions.toggleStep(0, s, played.note);
-                    else void actions.seq("seqSetStep", 0, s, 100);
+                    else if (played.note >= 0) actions.toggleStep(ml, s, played.note);
+                    else void actions.seq("seqSetStep", ml, s, 100);
                   }
                 }}
                 onWheel={(e) => setNote(s, note + (e.deltaY < 0 ? 1 : -1), ml)}>
@@ -165,8 +169,8 @@ export function StepStrip() {
           );
         })}
       </div>
-      {menu !== null && stepLanes(pattern, menu).length > 0 && (() => {
-        const ls = stepLanes(pattern, menu);
+      {menu !== null && lanesAt(menu).length > 0 && (() => {
+        const ls = lanesAt(menu);
         const l = ls.includes(0) ? 0 : ls[0];
         const big = (label: string, isOn: boolean, toggle: () => void, amount: number, kind: StepAmountKind) => (
           <span className="ot-stepedit-item">

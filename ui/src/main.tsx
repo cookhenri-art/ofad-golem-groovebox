@@ -66,7 +66,9 @@ document.addEventListener("scroll", (e) => {
       const dx = e.touches[0].clientX - x0, dy = e.touches[0].clientY - y0;
       if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
       decided = true;
-      allow = canScroll(e.target, dx, dy);
+      // v1.0.0 : un curseur natif (input range : crossfaders, réglages…) se règle par le geste du doigt
+      // lui-même : l'arrêter le figeait dès qu'on le prenait par son bouton
+      allow = (e.target instanceof Element && !!e.target.closest('input[type="range"]')) || canScroll(e.target, dx, dy);
     }
     if (!allow) e.preventDefault();
   }, { passive: false, capture: true });

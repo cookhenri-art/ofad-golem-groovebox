@@ -10,6 +10,25 @@ import { lastChannel, mixerFor, numGroups, toNorm, toPlain } from "./params";
 
 type Listener = (payload: unknown) => void;
 
+const fm1Mock = { leds: new Array<number>(41).fill(0), pos: 0 };
+function fm1MockScreen() {
+  const W = 240, px = new Uint16Array(W * W), t = Date.now() / 1000;
+  const rgb = (r: number, g: number, b: number) => ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
+  for (let y = 0; y < W; y++)
+    for (let x = 0; x < W; x++) {
+      let c = rgb(8, 10, 14);
+      if (y < 26) c = rgb(28, 32, 40);
+      const wave = 130 + Math.round(48 * Math.sin((x / W) * Math.PI * 4 + t * 2 + fm1Mock.pos * 0.2) * Math.sin((x / W) * Math.PI));
+      if (y > 60 && Math.abs(y - wave) < 2) c = rgb(242, 163, 58);
+      if (y > 200 && y < 212 && x > 16 && x < 16 + ((t * 40) % 208)) c = rgb(98, 211, 110);
+      px[y * W + x] = c;
+    }
+  let bin = "";
+  const b8 = new Uint8Array(px.buffer);
+  for (let i = 0; i < b8.length; i++) bin += String.fromCharCode(b8[i]);
+  return { lcd: btoa(bin), leds: fm1Mock.leds, booted: true, halted: false };
+}
+
 export function installMockBackend() {
   if (typeof window.__JUCE__ !== "undefined") return;
   const cat = catalogJson as unknown as Catalog;
@@ -30,7 +49,7 @@ export function installMockBackend() {
   const samples: (string | null)[][] = Array.from({ length: L.numTracks }, () => new Array(16).fill(null));
   const scenes = Array.from({ length: L.numScenes + 1 }, () => ({ muted: false, locks: [] as [number, number][] }));
   const extras = new Map<string, { lane: number; step: number; cond: number; a: number; b: number; prob: number; rat?: number; rs?: number; flam?: number; locks: [number, number][] }>();
-  const mkLane = () => ({ dir: 0, length: 0, mute: false, solo: false, vel: new Array(L.maxSteps).fill(0), note: new Array(L.maxSteps).fill(60), len: new Array(L.maxSteps).fill(8), micro: new Array(L.maxSteps).fill(0) });
+  const mkLane = () => ({ dir: 0, length: 0, mute: false, solo: false, lglide: false, lmute: false, vel: new Array(L.maxSteps).fill(0), note: new Array(L.maxSteps).fill(60), len: new Array(L.maxSteps).fill(8), micro: new Array(L.maxSteps).fill(0) });
   const NP = L.numPatterns ?? 8;
   const mkPattern = () => ({ length: 16, speed: 4, flags: new Array(L.maxSteps).fill(0) as number[], amt: new Array(L.maxSteps).fill(0) as number[], lanes: Array.from({ length: L.numLanes }, mkLane) });
   const pats = Array.from({ length: L.numTracks }, () => Array.from({ length: NP }, mkPattern));
@@ -183,7 +202,7 @@ export function installMockBackend() {
       pattern: trackSeq[t].editing, playing: trackSeq[t].playing, recQuant, accent: trackSeq[t].accent,
       flags: p.flags.map((f) => (f & 15).toString(16)).join(""),
       ...(p.amt.some((v) => v) ? { amt: p.amt.map((v) => (v & 255).toString(16).padStart(2, "0") + ((v >> 8) & 255).toString(16).padStart(2, "0")).join("") } : {}),
-      lanes: p.lanes.map((l) => ({ dir: l.dir, length: l.length, mute: l.mute, solo: l.solo, vel: hex(l.vel), note: hex(l.note), len3: hex3(l.len), micro: hex(l.micro) })) });
+      lanes: p.lanes.map((l) => ({ dir: l.dir, length: l.length, mute: l.mute, solo: l.solo, lglide: l.lglide, lmute: l.lmute, vel: hex(l.vel), note: hex(l.note), len3: hex3(l.len), micro: hex(l.micro) })) });
   };
   const exKey = (t: number, l: number, s: number) => `${t}:${trackSeq[t].editing}:${l}:${s}`;
   const extrasJson = (t: number) => JSON.stringify([...extras.entries()].filter(([k]) => k.startsWith(`${t}:${trackSeq[t].editing}:`)).map(([, e]) => e));
@@ -192,7 +211,7 @@ export function installMockBackend() {
     tracks: trackSeq.map((ts, t) => ({ playing: ts.playing, queued: ts.queued, editing: ts.editing,
       filled: pats[t].map((pt) => (pt.lanes.some((l) => l.vel.some((v) => v > 0)) ? 1 : 0)), length: pats[t].map((pt) => pt.length), division: divs[t] })),
   });
-  const midiRoute = { note: 0, ctrl: 0, ctrlOn: true, tracks: new Array(16).fill(0) as number[] };
+  const midiRoute = { note: 0, ctrl: 0, ctrlOn: true, tracks: new Array(16).fill(0) as number[], lanes: Array.from({ length: 16 }, () => new Array(8).fill(0) as number[]) };
   // v0.46 fix24 : boutons assignables (maquette : la cible n'est pas pilotée, sauf les valeurs d'écran)
   let midiDirty = false; // un appel direct (tests) fait relire les affectations par l'interface
   const knobs: [number, number, number, number][] = Array.from({ length: 16 }, () => [-1, 0, 0, 0] as [number, number, number, number]);
@@ -287,6 +306,8 @@ export function installMockBackend() {
     seqLaneDir: pattern((p, [l, d]) => { p.lanes[l].dir = d; }),
     seqLaneMute: pattern((p, [l, b]) => { p.lanes[l].mute = !!b; }),
     seqLaneSolo: pattern((p, [l, b]) => { p.lanes[l].solo = !!b; }),
+    seqLaneLockGlide: pattern((p, [l, b]) => { p.lanes[l].lglide = !!b; }),
+    seqLaneLockMute: pattern((p, [l, b]) => { p.lanes[l].lmute = !!b; }),
     seqDivision: (t: number, d: number) => { if (divs[t]) divs[t][trackSeq[t].editing] = d; return patternJson(t); },
     seqClearLane: pattern((p, [l]) => { p.lanes[l].vel.fill(0); }),
     seqClearTrack: pattern((p) => { p.lanes.forEach((l) => l.vel.fill(0)); }),
@@ -377,6 +398,7 @@ export function installMockBackend() {
     setCtlTable: (text: string) => { ctlTable = String(text); return midiJson(); },
     setMidiRoute: (n: number, c: number, on: boolean) => { midiRoute.note = n; midiRoute.ctrl = c; midiRoute.ctrlOn = !!on; return midiJson(); },
     setTrackMidiChannel: (t: number, c: number) => { midiRoute.tracks[t] = c; return midiJson(); },
+    setLaneMidiChannel: (t: number, l: number, c: number) => { (midiRoute.lanes[t] ??= Array(8).fill(0))[l] = c; return midiJson(); },
     midiLearn: (target: number) => { midiLearn = target; if (target !== -1) window.setTimeout(() => { midiMaps.push([0, 0, 20 + midiMaps.length, target]); midiLearn = -1; }, 1500); return midiJson(); },
     midiForget: (target: number) => { for (let i = midiMaps.length - 1; i >= 0; --i) if (midiMaps[i][3] === target) midiMaps.splice(i, 1); return midiJson(); },
     // préréglages de l'utilisateur : en mémoire dans l'aperçu (fichiers dans l'application)
@@ -494,6 +516,9 @@ export function installMockBackend() {
     redo: () => { const ok = histMock.redo > 0; if (ok) { histMock.redo--; histMock.undo++; } return [ok, histMock.undo > 0, histMock.redo > 0, histMock.photo]; },
     // v0.32 : enregistrement audio simulé (aperçu dans le navigateur)
     instTouch: (_t: number, kind: number, a: number, b: number) => { glutaHold = kind === 0 ? [a, b] : null; return ""; },
+    // v0.49 : FM Player simulé (aperçu) : un écran d'essai qui bouge, les diodes des touches pressées
+    fm1Touch: (_t: number, kind: number, a: number, b: number) => { if (kind === 1) fm1Mock.leds[Math.max(0, Math.min(40, a))] = b > 0.5 ? 1 : 0; if (kind === 2) fm1Mock.pos += b; return ""; },
+    fm1Screen: () => JSON.stringify(fm1MockScreen()),
     audioRecStart: (mode: number, format: number, _follow?: number) => { audioRecMock.active = true; audioRecMock.mode = mode; audioRecMock.format = format ? "mp3" : "wav"; audioRecMock.t0 = Date.now(); audioRecMock.files = []; return JSON.stringify(recState()); },
     audioRecStop: () => {
       audioRecMock.active = false; audioRecMock.secs = (Date.now() - audioRecMock.t0) / 1000;

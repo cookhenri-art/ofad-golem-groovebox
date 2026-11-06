@@ -13,13 +13,15 @@ interface Props {
   onPick: (relative: string, name: string) => void;
   onClose?: () => void;
   compact?: boolean;
+  /** GOLEM 1.0 : dossier ouvert au départ (ex. ["Firmwares"]) ; s'il n'existe pas, la racine */
+  start?: string[];
 }
 
 const sizeText = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} Mo` : `${Math.max(1, Math.round(b / 1024))} ko`);
 
-export function FolderBrowser({ kind, title, onPick, onClose, compact }: Props) {
+export function FolderBrowser({ kind, title, onPick, onClose, compact, start }: Props) {
   const folders = useStore((s) => s.folders);
-  const [path, setPath] = useState<string[]>([]);
+  const [path, setPath] = useState<string[]>(start ?? []);
   const [list, setList] = useState<FolderList | null>(null);
   const [filter, setFilter] = useState("");
   const [picked, setPicked] = useState<string>("");

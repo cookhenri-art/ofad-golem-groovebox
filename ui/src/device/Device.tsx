@@ -13,13 +13,14 @@ import { AssignKnobs, KnobAssignCapture, openKnobMods } from "./AssignKnobs";
 import { ModSourcesDialog } from "../screens/ModSourcesDialog";
 import { IconNext, IconPlay, IconPrev, IconRec, IconStop } from "../controls/Icons";
 import { actions, hasNative, setPadOctave, setUi, showMessage, useStore, writePref, type PadMode, type ScreenMode } from "../engine/store";
+import { useFaderTouch } from "../controls/useFaderTouch";
 import { MIDI_BREAK, MIDI_PHOTO, MIDI_RECALL, MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_FILL, MIDI_MUTE_BASE, MIDI_RECORD, MIDI_SOLO_BASE, MIDI_START, MIDI_STOP, MIDI_XFADE } from "../engine/protocol";
 import { MidiConflict } from "./MidiConflict";
 import { useLearnPress } from "../controls/useLearnPress";
 import { busName, groupBase, numGroups, trackColor } from "../engine/params";
 import { MixerScreen } from "../screens/MixerScreen";
 import { ScenesScreen } from "../screens/ScenesScreen";
-import { EncoderRowContext } from "../screens/ScreenFrame";
+import { EncoderRowContext, LearnFloat, MessageFloat } from "../screens/ScreenFrame";
 import { SequenceScreen } from "../screens/SequenceScreen";
 import { SoundScreen } from "../screens/SoundScreen";
 import { EffectsScreen } from "../screens/EffectsScreen";
@@ -116,18 +117,21 @@ function useFitScale() {
 }
 
 function Crossfader() {
-  const xfade = useStore((s) => s.tick.g.xfade);
+  const engineXf = useStore((s) => s.tick.g.xfade);
   const jump = (n: number) => actions.setGlobal("xfade", n);
+  // v1.0.0 : toute la glissière suit le doigt (le curseur natif se saisissait mal sur Android)
+  const { shown: xfade, handlers } = useFaderTouch(engineXf, jump, 30);
   return (
     <div className="hw-xfade">
       <span className="silk">Crossfader</span>
       <div className="hw-xfade-row">
         <HwButton size="sm" label="A" led="blue" active={xfade <= 0.001} onPress={() => jump(0)} ariaLabel="Crossfader tout à A" />
-        <div className="hw-xfade-slot" data-ctl={MIDI_XFADE} data-ctl-label="Crossfader" data-ctl-norm={xfade}>
+        <div className="hw-xfade-slot xf-touch" data-ctl={MIDI_XFADE} data-ctl-label="Crossfader" data-ctl-norm={xfade}
+          {...handlers} onDoubleClick={() => jump(0.5)}>
           <span className="hw-xfade-ticks" aria-hidden />
           <input type="range" min={0} max={1000} step={1} value={Math.round(xfade * 1000)} aria-label="Crossfader"
             aria-valuetext={xfade <= 0.001 ? "A" : xfade >= 0.999 ? "B" : `${Math.round(xfade * 100)} % B`}
-            onChange={(e) => jump(Number(e.target.value) / 1000)} onDoubleClick={() => jump(0.5)} />
+            onChange={(e) => jump(Number(e.target.value) / 1000)} />
         </div>
         <HwButton size="sm" label="B" led="magenta" active={xfade >= 0.999} onPress={() => jump(1)} ariaLabel="Crossfader tout à B" />
       </div>
@@ -470,6 +474,8 @@ function PhoneDevice({ scale, ghost, ghostW, ghostH, area }: { scale: number; gh
     <div className="stage" style={area}>
       <KnobAssignCapture />
       <VectorFullLayer />
+      <LearnFloat />
+      <MessageFloat />
       {/* v0.46 fix16 : l'appareil est posé dans une zone qui défile ; s'il ne tient pas en entier
           (bandeau du système, encoche, taille annoncée fausse), on le fait glisser au doigt. */}
       <div className="phone-scroll">
@@ -552,6 +558,8 @@ function TabletDevice({ scale, area }: { scale: number; area?: React.CSSProperti
     <div className="stage" style={area}>
       <KnobAssignCapture />
       <VectorFullLayer />
+      <LearnFloat />
+      <MessageFloat />
       <div className="device" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
         <InstrumentFace />
         <ModSourcesDialog />

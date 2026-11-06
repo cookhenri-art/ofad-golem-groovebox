@@ -90,7 +90,7 @@ struct SceneSet
     valeur dans velocity : pitch bend -1..1, molette 0..1, pression 0..1, pédale 0 ou 1. */
 struct InputEvent
 {
-    enum Type : int { noteOn, noteOff, pitchBend, modWheel, pressure, sustain, recordAction } type; // recordAction : note = action
+    enum Type : int { noteOn, noteOff, pitchBend, modWheel, pressure, sustain, recordAction, controller } type; // recordAction : note = action ; controller (v0.49) : note = n° de CC, velocity = 0..1
     int track, note, offset;
     float velocity;
     bool record;
@@ -383,13 +383,37 @@ public:
         return inst != nullptr && inst->desc().drumKit;
     }
     /** v0.46 : vrai si les notes MIDI de la piste jouent ses 16 pads (notes 36 à 51) — une batterie,
-        mais pas Pieuvre 8, qui se joue au clavier comme un instrument (piste interne choisie). Tout fil. */
+        mais pas Pieuvre 8 ni le FM Player (GOLEM 1.0), qui se jouent au clavier comme un instrument
+        (piste interne T choisie). Tout fil. */
     bool isPadNoteTrack (int track) const noexcept
     {
         if (track < 0 || track >= numTracks) return false;
         const auto* g = graph.get();
         const auto* inst = g != nullptr ? g->ch[(size_t) track].instrument : nullptr;
-        return inst != nullptr && inst->desc().drumKit && inst->desc().type != "octa";
+        return inst != nullptr && inst->desc().drumKit && ! inst->desc().laneNotes;
+    }
+
+    /** GOLEM 1.0 : vrai si le réglage est un bouton maintenu (touches du FM Player), d'après le graphe
+        publié (fil audio, sans verrou). */
+    bool isMomentary (int global) const noexcept
+    {
+        if (global < 0 || global >= numSlots) return false;
+        const auto* g = graph.get();
+        if (g == nullptr) return false;
+        const auto ch = channelOf (global), local = localOf (global);
+        if (ch < 0 || ch >= numChannels || local < 0 || local >= slotsPerChannel) return false;
+        const auto* d = g->ch[(size_t) ch].desc[(size_t) local];
+        return d != nullptr && d->momentary;
+    }
+
+    /** GOLEM 1.0 : nombre de pistes internes T jouables par note (FM Player : 4, Pieuvre 8 : 8), 0 sinon. Tout fil. */
+    int laneNoteCount (int track) const noexcept
+    {
+        if (track < 0 || track >= numTracks) return 0;
+        const auto* g = graph.get();
+        const auto* inst = g != nullptr ? g->ch[(size_t) track].instrument : nullptr;
+        if (inst == nullptr || ! inst->desc().drumKit || ! inst->desc().laneNotes) return 0;
+        return (int) std::min<size_t> (8, inst->desc().padNames.size());
     }
 
     /** Sources de modulation d'un canal à leur réglage d'origine : LFO, LFO, fonction (enveloppe),
@@ -546,7 +570,11 @@ private:
         // jeu : expression, pédale de maintien, arpégiateur
         float bend = 0.0f, wheel = 0.0f, pressure = 0.0f;
         bool sustainDown = false, arpOn = false;
-        std::array<bool, 128> direct {}, sustained {}; // notes envoyées sans l'arpège ; notes tenues par la pédale
+        // notes envoyées sans l'arpège ; notes tenues par la pédale. GOLEM 1.0 : une case par note adressée
+        // à une piste interne T aussi (128 + T × 128 + note, jusqu'à 16 T) : avant, elles partageaient toutes
+        // la case 127, et deux notes qui se chevauchaient laissaient la seconde tenue sans fin
+        static constexpr int noteSlots = 128 + 16 * 128;
+        std::array<bool, noteSlots> direct {}, sustained {};
         Arpeggiator arp;
         const Instrument* arpOwner = nullptr;
     };
@@ -556,6 +584,17 @@ private:
     void touch (ChannelState& c, int local, float norm) noexcept;
     void updateParams (const Graph& g, const SceneSet& s, const BlockInfo& bi, float fader, int n, double ppq) noexcept;
     void renderChunk (const Graph& g, float* outL, float* outR, int n, double bpm, double ppq, bool playing) noexcept;
+    /** v0.49 : compensation du retard des instruments (FM Player) : chaque piste est retardée de
+        (plus grand retard − le sien) ; lignes à retard créées dans prepare(), 0,25 s au plus. */
+    static constexpr int maxCompensation = 48000;
+    std::array<std::vector<float>, numTracks> compL, compR;
+    std::array<int, numTracks> compWrite {};
+    int compDelay = 0;
+    std::atomic<int> compReported { 0 };
+public:
+    /** Retard compensé par le moteur (échantillons), à annoncer au logiciel hôte (fil de l'interface). */
+    int compensationSamples() const noexcept { return compReported.load (std::memory_order_relaxed); }
+private:
     void dispatch (const Graph& g, int track, int note, float velocity, bool on, bool direct = false) noexcept;
     bool arpActive (const Graph& g, int track) const noexcept;
     void play (const Graph& g, int track, int note, float velocity, bool on) noexcept; // directement à l'instrument

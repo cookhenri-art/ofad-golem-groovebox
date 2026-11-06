@@ -2,7 +2,7 @@
 # Moteur C++ / JUCE 8 + interface React unique (WebView), VST3 + application autonome.
 
 cmake_minimum_required(VERSION 3.22)
-project(Groovebox VERSION 0.47.0 LANGUAGES C CXX)
+project(Groovebox VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -39,6 +39,13 @@ else()
     target_compile_options(groovebox_engine PRIVATE -Wall -Wextra -Wshadow -ffp-contract=fast)
 endif()
 
+# --- v0.49 : lecteur de firmwares FM-1 (émulateur en Rust, third_party/fm1emu) ----------------
+include(cmake/Fm1Bridge.cmake)
+if(GROOVEBOX_FM1)
+    target_link_libraries(groovebox_engine PUBLIC fm1_bridge)
+    target_compile_definitions(groovebox_engine PUBLIC GROOVEBOX_FM1=1)
+endif()
+
 # --- Encodeur MP3 (LAME 3.100, LGPL, sources dans src/third_party/lame) : v0.32 ---------------
 file(GLOB GROOVEBOX_LAME_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/third_party/lame/unites/*.c)
 if(NOT GROOVEBOX_LAME_SOURCES)
@@ -65,6 +72,10 @@ if(GROOVEBOX_BUILD_TESTS)
     target_link_libraries(groovebox_catalog PRIVATE groovebox_engine)
 
     # contrôle et mise à niveau des banques d'usine (tools/presets/)
+    if(GROOVEBOX_FM1)
+        add_executable(groovebox_fm1probe tools/Fm1Probe.cpp) # v0.49 : essai d'un firmware FM-1
+        target_link_libraries(groovebox_fm1probe PRIVATE groovebox_engine)
+    endif()
     add_executable(groovebox_presetcheck tools/PresetCheck.cpp)
     target_link_libraries(groovebox_presetcheck PRIVATE groovebox_engine)
 endif()

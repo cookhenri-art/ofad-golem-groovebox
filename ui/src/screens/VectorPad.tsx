@@ -19,6 +19,7 @@ import { BREAK_SCENE, MIDI_XFADE } from "../engine/protocol";
 import { paramAddress, useParam } from "../controls/bindings";
 import { ParamMenuZone } from "../controls/Encoder";
 import { useLearnPress } from "../controls/useLearnPress";
+import { useFaderTouch } from "../controls/useFaderTouch";
 import { Learn } from "../device/Device";
 import { LearnChips, LiveToast } from "./ScreenFrame";
 import { MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_SOLO_BASE } from "../engine/protocol";
@@ -377,6 +378,8 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
   const focusColor = L && focus < L.numTracks ? trackColor(tracks[focus]?.color ?? focus) : "oklch(0.75 0.12 200)";
   // mode crossfader : scènes A / B, banque, grille
   const gg = useStore((s) => s.tick.g);
+  // v1.0.0 : crossfader au doigt : toute la glissière suit le doigt, même posé sur le bouton
+  const xfTouch = useFaderTouch(gg.xfade, (v) => actions.setGlobal("xfade", v), 30);
   const scenes = useStore((s) => s.scenes);
   const bank = useStore((s) => s.ui.sceneBank);
   const sceneA = Math.round(gg.sceneA) - 1, sceneB = Math.round(gg.sceneB) - 1;
@@ -455,9 +458,9 @@ function VectorFull({ pad, settings, on, orbit, rate, drawing, setDrawing }: { p
               <button type="button" className={`livexf-end a${gg.xfade <= 0.001 ? " on" : ""}`} onClick={() => actions.setGlobal("xfade", 0)}>A</button>
               {/* v0.46 fix30 : appui long immobile (clic droit) : affecter le crossfader au contrôleur MIDI */}
               <Learn target={MIDI_XFADE} what="Crossfader">
-              <div className="livexf-track">
-                <input type="range" min={0} max={1000} step={1} value={Math.round(gg.xfade * 1000)} aria-label="Crossfader"
-                  onChange={(e) => actions.setGlobal("xfade", Number(e.target.value) / 1000)} onDoubleClick={() => actions.setGlobal("xfade", 0.5)} />
+              <div className="livexf-track xf-touch" {...xfTouch.handlers} onDoubleClick={() => actions.setGlobal("xfade", 0.5)}>
+                <input type="range" min={0} max={1000} step={1} value={Math.round(xfTouch.shown * 1000)} aria-label="Crossfader"
+                  onChange={(e) => actions.setGlobal("xfade", Number(e.target.value) / 1000)} />
                 <span className="livexf-marks" aria-hidden><i>tout A</i><i>moitié</i><i>tout B</i></span>
               </div>
               </Learn>

@@ -81,6 +81,7 @@ export function setPadOctave(octave: number) {
 /** Dossiers de travail (Réglages) : chemin affiché seulement ; l'interface n'envoie que des chemins relatifs. */
 export type FolderKind = "samples" | "projects" | "presets";
 export interface FolderInfo { path: string; custom: boolean }
+export interface Fm1Screen { lcd: string; leds: number[]; booted: boolean; halted: boolean }
 export interface FoldersData { canChoose: boolean; samples: FolderInfo; projects: FolderInfo; presets: FolderInfo }
 /** Contenu d'un sous-dossier : [nom, dossier (1) ou fichier (0), octets]. */
 export interface FolderList { ok: boolean; items: [string, number, number][] }
@@ -182,8 +183,11 @@ export function setUi(patch: Partial<UiState>) {
 /** v0.42 : piste interne de Pieuvre 8 jouée au clavier = ligne choisie (pads, séquence, façade). */
 function syncPlayLane() {
   const t = state.focus;
-  if (t >= (state.catalog?.layout.numTracks ?? 16) || state.tracks.tracks[t]?.instrument !== "octa") return;
-  void call("setPlayLane", t, Math.max(0, Math.min(7, state.ui.lane)));
+  if (t >= (state.catalog?.layout.numTracks ?? 16)) return;
+  // v0.49 : tout instrument à pistes internes (Pieuvre 8, FM Player : T1 à T4)
+  const m = state.catalog?.instruments.find((i) => i.type === state.tracks.tracks[t]?.instrument);
+  if (!m?.laneNotes) return;
+  void call("setPlayLane", t, Math.max(0, Math.min(Math.max(1, m.padNames.length) - 1, state.ui.lane)));
 }
 export const getState = () => state;
 export function useStore<T>(select: (s: AppState) => T): T {
@@ -216,7 +220,7 @@ function hexToArray(hex: string, signed = false, width = 2): number[] {
   return out;
 }
 
-interface RawLane { dir: number; length?: number; mute: boolean; solo: boolean; vel: string; note: string; len?: string; len3?: string; micro: string }
+interface RawLane { dir: number; length?: number; mute: boolean; solo: boolean; lglide?: boolean; lmute?: boolean; vel: string; note: string; len?: string; len3?: string; micro: string }
 interface RawPattern extends Omit<PatternData, "lanes" | "flags" | "accent" | "accAmt" | "sldAmt"> { lanes: RawLane[]; flags?: string; accent?: number; amt?: string }
 /** v0.46 fix27 : valeurs des pas : 4 chiffres par pas (accent puis glissé, 2 chacun). */
 const decodeAmounts = (hex: string | undefined, which: 0 | 1) =>
@@ -228,7 +232,7 @@ const decodePattern = (p: RawPattern | null): PatternData | null => p && ({
   flags: p.flags ? Array.from(p.flags, (c) => parseInt(c, 16) || 0) : [],
   accAmt: decodeAmounts(p.amt, 0),
   sldAmt: decodeAmounts(p.amt, 1),
-  lanes: p.lanes.map((l): LaneData => ({ dir: l.dir, length: l.length ?? 0, mute: l.mute, solo: l.solo, vel: hexToArray(l.vel), note: hexToArray(l.note), len: l.len3 !== undefined ? hexToArray(l.len3, false, 3) : hexToArray(l.len ?? ""), micro: hexToArray(l.micro, true) })),
+  lanes: p.lanes.map((l): LaneData => ({ dir: l.dir, length: l.length ?? 0, mute: l.mute, solo: l.solo, lockGlide: !!l.lglide, lockMute: !!l.lmute, vel: hexToArray(l.vel), note: hexToArray(l.note), len: l.len3 !== undefined ? hexToArray(l.len3, false, 3) : hexToArray(l.len ?? ""), micro: hexToArray(l.micro, true) })),
 });
 
 // ---------------------------------------------------------------------------
@@ -631,6 +635,18 @@ export const actions = {
   previewSample(track: number, index: number, a: number, b: number) { void call("previewSample", track, index, a, b); },
   /** v0.47 : geste sur un écran d'instrument (pavé de la physique : 0 tenir en (a, b), 1 lâcher avec la vitesse (a, b), 2 lancer). */
   instTouch(track: number, kind: number, a: number, b: number) { void call("instTouch", track, kind, a, b); },
+  /** v0.49 : FM Player — geste sur la façade : 1 touche (id, enfoncée 0/1), 2 bouton rotatif (n°, crans), 3 entrée
+      analogique (canal, 0..1023), 4 force des touches suivantes (1..127, b inutilisé). */
+  fm1Touch(track: number, kind: number, a: number, b: number) { void call("fm1Touch", track, kind, a, b); },
+  /** v0.49 : FM Player — écran (RGB565 en base64) et diodes ; null sans firmware. */
+  async fm1Screen(track: number): Promise<Fm1Screen | null> {
+    if (!hasNative("fm1Screen")) return null;
+    const r = await call("fm1Screen", track);
+    if (!r) return null;
+    return (typeof r === "string" ? JSON.parse(r) : r) as Fm1Screen;
+  },
+  /** v0.49 : FM Player — choisir un firmware .fwsc (emplacement 1 de la piste). */
+  chooseFirmware(track: number) { void call("chooseSample", track, 0, "firmware"); },
   /** v0.43 : Pieuvre 8 — une piste interne (ou les 8 : -1) remise à ses réglages d'origine. */
   async resetLanes(track: number, lane: number) {
     const r = await callJson<TracksData | string>("resetLanes", track, lane);
@@ -1006,6 +1022,8 @@ export const actions = {
   /** v0.46 : canaux MIDI (0 = tous) et commandes apprises actives ; canal propre à une piste (0 = piste choisie). */
   async setMidiRoute(note: number, ctrl: number, ctrlOn: boolean) { set({ midi: await callJson<MidiData>("setMidiRoute", note, ctrl, ctrlOn) }); },
   async setTrackMidiChannel(track: number, chan: number) { set({ midi: await callJson<MidiData>("setTrackMidiChannel", track, chan) }); },
+  /** GOLEM 1.0 : canal MIDI d'une piste interne T (FM Player, Pieuvre 8) ; 0 = elle suit la T choisie. */
+  async setLaneMidiChannel(track: number, lane: number, chan: number) { set({ midi: await callJson<MidiData>("setLaneMidiChannel", track, lane, chan) }); },
 
   // Effets : chaînes, analyseur, mesures --------------------------------------------------
   async applyChain(channel: number, name: string) {

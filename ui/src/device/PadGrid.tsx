@@ -9,7 +9,11 @@ import { padNote } from "../engine/scales";
 import { useEffect, useState, useRef } from "react";
 import { actions, getState, setUi, showMessage, useStore } from "../engine/store";
 import { beginStepPaint } from "../controls/stepPaint";
-import { noteName } from "../engine/params";
+import { noteName, trackColor } from "../engine/params";
+
+/** GOLEM 1.0 : couleur des pas posés (rôle PAS des pads) = celle de la ligne écrite, comme à l'écran Séquence. */
+const KIND_VAR: Record<string, string> = { kick: "--k-kick", snare: "--k-snare", clap: "--k-clap", rim: "--k-rim", hatClosed: "--k-hat", hatOpen: "--k-hat",
+  tom: "--k-tom", cowbell: "--k-cowbell", sample: "--k-sample", cymbal: "--k-cymbal", fm: "--k-fm" };
 
 const KEY_CODES: Record<string, number> = {
   KeyZ: 0, KeyX: 1, KeyC: 2, KeyV: 3, KeyA: 4, KeyS: 5, KeyD: 6, KeyF: 7,
@@ -46,7 +50,10 @@ export function PadGrid() {
   const drum = !!module?.drumKit;
   // v0.43 : Pieuvre 8 — les pads (et les touches du clavier d'ordinateur) jouent en chromatique la piste
   // interne choisie (ou les zones du clavier) ; la coupure et l'effacement restent par ligne (T1 à T8)
-  const drumPads = drum && module?.type !== "octa";
+  const drumPads = drum && !module?.laneNotes; // v0.49 : FM Player aussi (pads en chromatique sur la T choisie)
+  const laneKind = module?.padKinds[lane] ?? "sample";
+  const stepK = !drum ? trackColor(tracks[t]?.color ?? 0)
+    : laneKind === "octa" || laneKind === "fm1" ? trackColor(lane) : `var(${KIND_VAR[laneKind] ?? "--k-sample"})`;
   // v0.31 : rôle Couper sur une batterie — les pads coupent ses sons (lignes du motif) au lieu des pistes
   const muteTarget = useStore((s) => s.ui.muteTarget);
   const padMute = mode === "mute" && drum && muteTarget === "pads";
@@ -165,6 +172,7 @@ export function PadGrid() {
 
         return (
           <button key={pad} type="button" className={classes.join(" ")} data-paint-step={mode === "steps" ? page * 16 + pad : undefined}
+            style={mode === "steps" && (laneVel?.[page * 16 + pad] ?? 0) > 0 ? { "--k": stepK } as React.CSSProperties : undefined}
             aria-label={mode === "scenes" ? `Lancer la scène ${scene + 1}` : `Pad ${pad + 1} : ${caption}`}
             onPointerDown={(e) => {
               if (e.button !== 0) return;

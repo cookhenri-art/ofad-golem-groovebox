@@ -23,6 +23,9 @@
 #include "instruments/FmX.h"
 #include "instruments/Dfam.h"
 #include "instruments/Vocoders.h"
+#include "instruments/FmPlayer.h"
+#include <thread>
+#include <cstdlib>
 #include "engine/Catalog.h"
 #include "effects/StepFx.h"
 #include "StepFxV038.h"
@@ -159,7 +162,8 @@ static void testInstrument (const ModuleDesc& d, const char* outDir)
     }
     std::printf ("  %-10s cr\xC3\xAA" "te %5.2f  fin %.5f  calcul %5.2f %% d'un c\xC5\x93ur\n", name.c_str(), peak, tail, sec / 11.0 * 100.0);
     CHECK (finite, "valeurs invalides");
-    CHECK (peak > 0.05f, "trop faible");
+    if (d.type == "fmplayer") CHECK (peak == 0.0f, "son sans firmware"); // v0.49 : muet tant qu'aucun firmware n'est charg\xC3\xA9
+    else CHECK (peak > 0.05f, "trop faible");
     CHECK (peak < 2.5f, "trop fort");
     CHECK (tail < 0.002f, "ne s'\xC3\xA9teint pas");
     if (outDir) writeWav (std::string (outDir) + "/" + name + ".wav", L, R, sr);
@@ -3377,6 +3381,65 @@ static void testLfoModes()
     CHECK (i >= 0 && d.params[(size_t) i].choices.size() == 6 && d.params[(size_t) i].choices[3] == "Une fois", "6 modes");
 }
 
+// v0.49 : FM Player — un firmware est refusé par les autres instruments ; avec GROOVEBOX_FM1_FIRMWARE
+// (chemin d'un .fwsc), le firmware démarre, joue les notes au rythme réel et l'écran s'allume.
+static void testFmPlayer()
+{
+    const std::string name = "fm player";
+    namespace fmp = grv::instruments::fmplayer;
+    std::printf ("FM Player v0.49\n");
+    const auto* d = findInstrument ("fmplayer");
+    CHECK (d != nullptr, "absent du catalogue");
+    if (d == nullptr) return;
+    auto inst = createInstrument ("fmplayer");
+    auto other = createInstrument ("acid");
+    CHECK (inst->acceptsFirmware() && ! other->acceptsFirmware(), "firmware accept\xC3\xA9 par le mauvais instrument");
+    CHECK (fmp::looksLikeFirmware ("x.FWSC", std::vector<std::uint8_t> (8192).data(), 8192), "extension .fwsc");
+    CHECK (! fmp::looksLikeFirmware ("x.wav", std::vector<std::uint8_t> (8192).data(), 8192), "un .wav pris pour un firmware");
+    CHECK (! fmp::looksLikeFirmware ("x.fwsc", std::vector<std::uint8_t> (100).data(), 100), "firmware trop petit accept\xC3\xA9");
+   #if GROOVEBOX_FM1
+    const char* path = std::getenv ("GROOVEBOX_FM1_FIRMWARE");
+    if (path == nullptr) { std::printf ("  (GROOVEBOX_FM1_FIRMWARE absent : pas d'essai avec un firmware)\n"); return; }
+    std::vector<std::uint8_t> pkg;
+    if (FILE* fp = std::fopen (path, "rb")) { std::uint8_t b[65536]; size_t n; while ((n = std::fread (b, 1, sizeof b, fp)) > 0) pkg.insert (pkg.end(), b, b + n); std::fclose (fp); }
+    SampleBuffer fw;
+    fw.firmware = true;
+    const auto err = fmp::start (pkg, {}, fw.runtime);
+    CHECK (err.empty(), "firmware refus\xC3\xA9");
+    if (! err.empty()) { std::printf ("  %s\n", err.c_str()); return; }
+    const int sr = 48000, block = 256;
+    inst->prepare (sr, block);
+    inst->setSample (0, &fw);
+    std::vector<float> p (d->params.size());
+    for (size_t i = 0; i < p.size(); ++i) p[i] = d->params[i].def;
+    if (const char* ch = std::getenv ("GROOVEBOX_FM1_CHANNEL")) p[(size_t) d->indexOf ("channel")] = (float) (std::atoi (ch) - 1);
+    std::vector<float> L (block), R (block);
+    float peak = 0.0f, quiet = 0.0f;
+    const auto t0 = std::chrono::steady_clock::now();
+    for (int b = 0; b < sr * 8 / block; ++b) // 8 s au rythme réel (le FM-1 démarre, puis 4 notes)
+    {
+        const auto at = b * block;
+        if (at % sr == 0 && at >= sr * 3 && at < sr * 7) inst->noteOn (48 + (at / sr) * 3, 0.9f);
+        if (at % sr == sr / 2 && at >= sr * 3) inst->noteOff (48 + (at / sr) * 3);
+        std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+        inst->render (L.data(), R.data(), block, p.data());
+        for (int i = 0; i < block; ++i)
+        {
+            const auto v = std::max (std::abs (L[(size_t) i]), std::abs (R[(size_t) i]));
+            if (at < sr * 3) quiet = std::max (quiet, v); else peak = std::max (peak, v); // avant les notes / pendant
+        }
+        std::this_thread::sleep_until (t0 + std::chrono::microseconds ((long long) (b + 1) * block * 1000000 / sr));
+    }
+    float st[8] {};
+    inst->status (st, 8);
+    std::printf ("  avant les notes %.3f, ", quiet);
+    std::printf ("  cr\xC3\xAA" "te %.3f, d\xC3\xA9marr\xC3\xA9 %d, vitesse %.2f \xC3\x97, images manquantes %.0f\n", peak, (int) st[1], st[3], st[4]);
+    CHECK (st[0] > 0.5f && st[1] > 0.5f && st[2] < 0.5f, "le firmware ne d\xC3\xA9marre pas");
+    CHECK (peak > 0.01f && peak < 2.0f, "pas de son");
+    inst->setSample (0, nullptr);
+   #endif
+}
+
 int main (int argc, char** argv)
 {
     const char* outDir = argc > 1 ? argv[1] : nullptr;
@@ -3390,6 +3453,7 @@ int main (int argc, char** argv)
     testHybridMatrix();
     testGlutamake();
     testGoodDoctor();
+    testFmPlayer();
     testMorphModes();
     testOcta();
     testPedalEffects();

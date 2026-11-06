@@ -15,6 +15,7 @@
 #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 
 #include "StandaloneInput.h"
+#include "CrashGuard.h"
 
 #include <vector>
 
@@ -361,6 +362,26 @@ public:
 
     void initialise (const juce::String&) override
     {
+        grv::crashguard::install(); // v0.49 (essai 3) : journal de plantage, démarrage sans la séance après un plantage
+       #if JUCE_ANDROID
+        // v0.49 (essai 3) : rapport du plantage précédent montré AVANT de créer le moteur (il reste
+        // lisible même si l'appli replante ensuite au même endroit) ; on continue après « OK »
+        if (const auto report = grv::crashguard::previousReport(); (report.isNotEmpty() || grv::crashguard::safeStart()) && ! reportShown)
+        {
+            reportShown = true;
+            juce::String msg;
+            if (grv::crashguard::safeStart())
+                msg << juce::String::fromUTF8 ("Séance précédente gardée de côté (non rouverte).\n\n");
+            msg << (report.isNotEmpty() ? report.substring (0, 3000) : juce::String::fromUTF8 ("(aucun rapport : la fermeture n'a pas été interceptée)"));
+            juce::NativeMessageBox::showAsync (juce::MessageBoxOptions()
+                                                   .withIconType (juce::MessageBoxIconType::WarningIcon)
+                                                   .withTitle (juce::String::fromUTF8 ("GOLEM s'est fermé au dernier lancement"))
+                                                   .withMessage (msg)
+                                                   .withButton ("OK"),
+                                               [this] (int) { initialise ({}); });
+            return;
+        }
+       #endif
         grv::startupMark ("application lancee");
         if (auto img = golemImage(); img.isValid() && ! juce::Desktop::getInstance().getDisplays().displays.isEmpty())
         {
@@ -435,6 +456,7 @@ private:
     }
 
     juce::ApplicationProperties appProperties;
+    bool reportShown = false; // v0.49 (essai 3)
     std::unique_ptr<GolemSplash> splash;
     std::unique_ptr<juce::StandaloneFilterWindow> mainWindow;
     std::unique_ptr<juce::StandalonePluginHolder> pluginHolder;

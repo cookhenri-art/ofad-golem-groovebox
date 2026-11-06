@@ -6,17 +6,18 @@ import { useSyncExternalStore, type ReactNode } from "react";
 import { actions, useStore } from "../../engine/store";
 import { PATTERN_NAMES } from "../../engine/protocol";
 import { LockSteps } from "./OctaPanel";
+import { Fm1Lanes } from "./FmPlayerPanel";
 import { ShiftButtons } from "./ShiftButtons";
 import { StepStrip } from "./StepStrip";
 
-type Kind = "synth" | "drum";
+type Kind = "synth" | "drum" | "lanes"; // v0.49 : « lanes » — pistes T d'un instrument à pistes internes (FM Player)
 const KEY = (k: Kind) => `grv.stepView.${k}`;
 
 function readView(k: Kind): "classic" | "locks" {
   try { return localStorage.getItem(KEY(k)) === "locks" ? "locks" : "classic"; } catch { return "classic"; }
 }
 // choix partagé entre l'onglet Pas et la rangée sous la page Son (même valeur partout)
-const views: Record<Kind, "classic" | "locks"> = { synth: readView("synth"), drum: readView("drum") };
+const views: Record<Kind, "classic" | "locks"> = { synth: readView("synth"), drum: readView("drum"), lanes: readView("lanes") };
 const listeners = new Set<() => void>();
 function setView(k: Kind, v: "classic" | "locks") {
   views[k] = v;
@@ -37,11 +38,14 @@ function setDockHidden(v: boolean) {
   try { localStorage.setItem(DOCK_KEY, v ? "1" : "0"); } catch { /* stockage absent */ }
   listeners.forEach((f) => f());
 }
-export function StepsDock() {
+export function StepsDock({ lanes = false }: { lanes?: boolean } = {}) {
   const hidden = useSyncExternalStore((f) => { listeners.add(f); return () => { listeners.delete(f); }; }, () => dockHidden);
+  // v0.49 : FM Player — pistes T1 à T4 (une par canal MIDI du firmware) : la rangée montre la T choisie
   return (
     <div className={`steps-dock${hidden ? " is-hidden" : ""}`}>
-      <StepsChoice kind="synth" dock hidden={hidden} onHide={setDockHidden}><StepStrip /></StepsChoice>
+      {lanes
+        ? <StepsChoice kind="lanes" dock hidden={hidden} onHide={setDockHidden} lanesPicker={<Fm1Lanes />}><StepStrip lane /></StepsChoice>
+        : <StepsChoice kind="synth" dock hidden={hidden} onHide={setDockHidden}><StepStrip /></StepsChoice>}
     </div>
   );
 }
@@ -68,8 +72,8 @@ function PatternBadge() {
   );
 }
 
-export function StepsChoice({ kind, children, dock = false, hidden = false, onHide }: {
-  kind: Kind; children: ReactNode; dock?: boolean; hidden?: boolean; onHide?: (hidden: boolean) => void;
+export function StepsChoice({ kind, children, dock = false, hidden = false, onHide, lanesPicker }: {
+  kind: Kind; children: ReactNode; dock?: boolean; hidden?: boolean; onHide?: (hidden: boolean) => void; lanesPicker?: ReactNode;
 }) {
   const view = useStepView(kind);
   const lane = useStore((s) => s.ui.lane);
@@ -78,25 +82,29 @@ export function StepsChoice({ kind, children, dock = false, hidden = false, onHi
   return (
     <div className="steps-choice">
       <div className="steps-choice-head" role="radiogroup" aria-label="Écriture des pas">
+        {lanesPicker}
         <small>Écriture</small>
         <button type="button" role="radio" aria-checked={view === "classic"} className={view === "classic" ? "on" : ""} onClick={() => set("classic")}
-          title={kind === "synth" ? "Rangée de pas façon basse acide : note, octave, accent, glissé" : "Rangée de pas classique de la boîte à rythmes"}>
-          {kind === "synth" ? "Acide" : "Classique"}
+          title={kind !== "drum" ? "Rangée de pas façon basse acide : note, octave, accent, glissé" : "Rangée de pas classique de la boîte à rythmes"}>
+          {kind !== "drum" ? "Acide" : "Classique"}
         </button>
         <button type="button" role="radio" aria-checked={view === "locks"} className={view === "locks" ? "on" : ""} onClick={() => set("locks")}
           title="Séquenceur à verrous : pages de 16 pas, mesures, et réglages verrouillés pas par pas (appui long ou mode Verrous)">
           À verrous
         </button>
-        {dock && <small className="steps-dock-title">Pas · ligne 1</small>}
+        {dock && kind !== "lanes" && <small className="steps-dock-title">Pas · ligne 1</small>}
         <PatternBadge />
         <span className="steps-choice-shift">
           {kind === "drum" && <ShiftButtons lane={lane} label={`Pad ${lane + 1}`} what={`le pad ${lane + 1}`} />}
-          {!hidden && <ShiftButtons label={kind === "drum" ? "Tout" : "Décaler"} what={kind === "drum" ? "tous les pads" : "la séquence"} />}
+          {kind === "lanes" && <ShiftButtons lane={lane} label={`T${lane + 1}`} what={`la piste T${lane + 1}`} />}
+          {!hidden && <ShiftButtons label={kind !== "synth" ? "Tout" : "Décaler"} what={kind === "drum" ? "tous les pads" : kind === "lanes" ? "toutes les pistes T" : "la séquence"} />}
           {onHide && <button type="button" className="steps-dock-hide" onClick={() => onHide(!hidden)}
             title={hidden ? "Afficher la rangée de pas au-dessus du clavier" : "Masquer la rangée de pas (plus de place pour les réglages)"}>{hidden ? "Afficher ▴" : "Masquer ▾"}</button>}
         </span>
       </div>
-      {hidden ? null : view === "classic" ? children : <LockSteps T={T} name={kind === "synth" ? "Ligne 1" : `Pad ${lane + 1}`} shift="none" melodic={kind === "synth"} />}
+      {hidden ? null : view === "classic" ? children : kind === "lanes"
+        ? <LockSteps T={T} name={`T${lane + 1}`} shift="none" octaNote={(n) => n} />
+        : <LockSteps T={T} name={kind === "synth" ? "Ligne 1" : `Pad ${lane + 1}`} shift="none" melodic={kind === "synth"} />}
     </div>
   );
 }

@@ -30,6 +30,7 @@ export interface ModuleDesc {
   role?: string;          // v0.35.1, effets : rôle (« Filtre », « Écho à bande »…) quand le nom est un nom propre
   form?: "pedal" | "rack" | "module";             // v0.34, effets : pédalier ou rack
   drumKit: boolean;
+  laneNotes?: boolean; // v0.49 : pistes internes qui jouent la note du pas (Pieuvre 8, FM Player)
   params: ParamDesc[];
   sections: SectionDesc[];
   presets: string[];
@@ -140,6 +141,8 @@ export interface LaneData {
   length: number;  // longueur propre de la ligne (0 = celle du pattern)
   mute: boolean;
   solo: boolean;
+  lockGlide?: boolean; // 1.0 : verrous de la ligne glissés d'un pas à l'autre
+  lockMute?: boolean;  // 1.0 : verrous de la ligne coupés (gardés, pas joués)
   vel: number[];
   note: number[];
   len: number[];   // en huitièmes de pas
@@ -185,7 +188,7 @@ export interface MidiData {
   maps: [number, number, number, number][]; // [genre 0 = CC / 1 = note, canal, numéro, cible]
   conflict?: [number, number, number, number, number]; // commande déjà affectée : [genre, canal, numéro, ancienne cible, nouvelle cible]
   /** v0.46 : canaux MIDI — notes et commandes (0 = tous, 1 à 16), commandes actives, canal propre à chaque piste (0 = piste choisie). */
-  route?: { note: number; ctrl: number; ctrlOn: boolean; tracks: number[] };
+  route?: { note: number; ctrl: number; ctrlOn: boolean; tracks: number[]; lanes?: number[][] }; // lanes : GOLEM 1.0, canal de chaque piste interne T (0 = la T choisie)
   /** v0.46 fix24 : 16 boutons assignables [cible (-1 = libre), position 0..1] et table des valeurs d'écran (JSON). */
   knobs?: [number, number, number?, number?][]; // [cible, position, LFO des boutons 0..4 (v0.46 fix28), profondeur -1..1]
   ctl?: string;
