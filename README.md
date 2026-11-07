@@ -36,10 +36,11 @@
 
 ---
 
-## 🆕 Nouveautés de la 1.0.0 — le FM Player
+## 🆕 Nouveautés de la 1.0.0 — le FM Player et un nouveau workflow
 
 <p align="center"><b><a href="../../releases/tag/v1.0.0">Tout le détail et les téléchargements sur la page de la version 1.0.0</a></b></p>
 
+- **Nouveau workflow, une seule vue** (ordinateur, tablette, téléphone) : l'écran prend toute la place, un rail donne les 8 écrans, **Live**, **Jeu**, Lecture / Arrêt et Enr. ; **pads dépliables** sur tous les écrans ; **écran Jeu** (pads, Mute / Solo des 16 pistes aux couleurs des pistes, 16 boutons, Fill / Break, crossfader, tempo) ; patterns et rangées au contrôleur MIDI par appui long.
 - **FM Player**, nouvel instrument : il **émule le processeur du boîtier de synthèse M-VAVE FM-1** et fait tourner ses **firmwares** (fichiers `.fwsc`) dans GOLEM, avec **l'écran du boîtier en direct** et toutes ses commandes.
 - **15 firmwares libres fournis** (Felucca, sloopDX, SLOOP, Melodee, JIANT FM, X0X, FIZZ, MYCELIUM, GR!MM, FM-106, OberVave, FMini-1, Frodhes, B1, zp12), avec leurs auteurs, leurs licences et leurs sources ; **Firmware…** charge n'importe quel autre `.fwsc`.
 - **Quatre pistes T1 à T4** comme sur Pieuvre 8 : un canal MIDI par piste, écrites en **Acide**, **À verrous** ou dans l'écran **SÉQUENCE**.
@@ -51,7 +52,8 @@
 
 <table>
 <tr><td align="center" colspan="2"><a href="docs/img/v100/fm-player-ambre.jpg"><img src="docs/img/v100/fm-player-ambre.jpg" alt="FM Player"></a><br><b>FM Player</b> · l'écran du firmware, ses commandes, T1 à T4 sous le piano</td></tr>
-<tr><td align="center"><a href="docs/img/v100/fm-player-grand-telephone.jpg"><img src="docs/img/v100/fm-player-grand-telephone.jpg" alt="Mode Grand au téléphone"></a><br><b>Mode Grand · téléphone</b></td><td align="center"><a href="docs/img/v100/fm-player-sequence-t1-t4.jpg"><img src="docs/img/v100/fm-player-sequence-t1-t4.jpg" alt="Séquence T1 à T4"></a><br><b>Séquence · T1 à T4</b></td></tr>
+<tr><td align="center"><a href="docs/img/v100/fm-player-grand-telephone.jpg"><img src="docs/img/v100/fm-player-grand-telephone.jpg" alt="Mode Grand au téléphone"></a><br><b>Mode Grand · téléphone</b></td><td align="center"><a href="docs/img/v100/captures/pc-fm-sequence-pads.jpg"><img src="docs/img/v100/captures/pc-fm-sequence-pads.jpg" alt="Séquence T1 à T4 et pads dépliés"></a><br><b>Séquence · T1 à T4, pads dépliés</b></td></tr>
+<tr><td align="center"><a href="docs/img/v100/captures/pc-jeu-mute.jpg"><img src="docs/img/v100/captures/pc-jeu-mute.jpg" alt="Écran Jeu"></a><br><b>Écran Jeu</b> · Mute aux couleurs des pistes</td><td align="center"><a href="docs/img/v100/captures/tel-pads-mixeur.jpg"><img src="docs/img/v100/captures/tel-pads-mixeur.jpg" alt="Mixeur et pads dépliés, téléphone"></a><br><b>Mixeur + pads · téléphone</b></td></tr>
 <tr><td align="center" colspan="2"><a href="docs/img/v100/fm-player-fonds.jpg"><img src="docs/img/v100/fm-player-fonds.jpg" alt="Les quatre fonds"></a><br><b>Quatre fonds</b> · Ambre, Nuit, Émeraude, Sobre</td></tr>
 </table>
 
@@ -134,7 +136,7 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
 
 Toute la groovebox tient dans un **téléphone ou une tablette Android** : les mêmes écrans que sur PC
 (lancement, séquence, son, effets, mixeur, scènes, morceau), une disposition pensée pour le doigt
-(onglets **Commandes** et **Pads**, rangées plus grandes, façades qui défilent), la **Vue live** et
+(la même vue unique, pads dépliables, écran Jeu, rangées plus grandes, façades qui défilent), la **Vue live** et
 les **16 boutons assignables**. De quoi faire un live complet avec seulement le téléphone et un
 contrôleur.
 
@@ -149,8 +151,8 @@ contrôleur.
   son vers la table de mixage et le chargeur en même temps.
 
 <table>
-<tr><td align="center"><a href="docs/img/mobile-scenes-crossfader.jpg"><img src="docs/img/mobile-scenes-crossfader.jpg" alt="Téléphone : écran Scènes, crossfader"></a><br><b>Téléphone : Scènes · crossfader</b></td><td align="center"><a href="docs/img/mobile-scenes-vecteur.jpg"><img src="docs/img/mobile-scenes-vecteur.jpg" alt="Téléphone : écran Scènes, pavé vectoriel"></a><br><b>Téléphone : Scènes · pavé vectoriel</b></td></tr>
-<tr><td align="center"><a href="docs/img/mobile-live-crossfader.jpg"><img src="docs/img/mobile-live-crossfader.jpg" alt="Téléphone : vue live, crossfader"></a><br><b>Téléphone : Vue live · crossfader</b></td><td align="center"><a href="docs/img/mobile-live-vecteur.jpg"><img src="docs/img/mobile-live-vecteur.jpg" alt="Téléphone : vue live, pavé vectoriel"></a><br><b>Téléphone : Vue live · pavé vectoriel</b></td></tr>
+<tr><td align="center"><a href="docs/img/v100/captures/tel-07-scenes.jpg"><img src="docs/img/v100/captures/tel-07-scenes.jpg" alt="Téléphone : écran Scènes"></a><br><b>Téléphone : Scènes</b></td><td align="center"><a href="docs/img/v100/captures/tel-pads-sequence.jpg"><img src="docs/img/v100/captures/tel-pads-sequence.jpg" alt="Téléphone : séquence et pads"></a><br><b>Téléphone : Séquence + pads</b></td></tr>
+<tr><td align="center"><a href="docs/img/v100/captures/tel-live-crossfader.jpg"><img src="docs/img/v100/captures/tel-live-crossfader.jpg" alt="Téléphone : vue live, crossfader"></a><br><b>Téléphone : Vue live · crossfader</b></td><td align="center"><a href="docs/img/v100/captures/tel-live-vecteur.jpg"><img src="docs/img/v100/captures/tel-live-vecteur.jpg" alt="Téléphone : vue live, pavé vectoriel"></a><br><b>Téléphone : Vue live · pavé vectoriel</b></td></tr>
 </table>
 
 ---
@@ -448,7 +450,8 @@ the machines that made this music, rebuilt from scratch with their own names, pa
 interface is available **in English** (choose it when installing on Windows, at first launch on Android, or in
 Settings). Free software (AGPL-3.0).
 
-**What's new in 1.0.0 — the FM Player**:
+**What's new in 1.0.0 — the FM Player and a new workflow**:
+- **New workflow, a single view** (computer, tablet, phone): the screen takes all the space, a rail gives the 8 screens, **Live**, **Play view**, Play / Stop and Rec; **fold-out pads** on every screen; **Play view** (pads, Mute / Solo of the 16 tracks in track colours, 16 knobs, Fill / Break, crossfader, tempo); patterns and rows on the MIDI controller with a long press.
 - New **FM Player** instrument: it **emulates the processor of the M-VAVE FM-1 synth box** and runs its **firmwares** (`.fwsc` files) inside GOLEM, with **the box's live screen** and all its controls.
 - **15 free firmwares included** (Felucca, sloopDX, SLOOP, Melodee, JIANT FM, X0X, FIZZ, MYCELIUM, GR!MM, FM-106, OberVave, FMini-1, Frodhes, B1, zp12), with their authors, licences and sources; **Firmware…** loads any other `.fwsc`.
 - **Four tracks T1 to T4** as on Pieuvre 8: one MIDI channel per track, written in **Acid**, **Locks** or the **SEQUENCE** screen.

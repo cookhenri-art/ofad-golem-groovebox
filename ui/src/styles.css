@@ -4098,3 +4098,368 @@ html, body, #root { overflow: clip; }
   padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 650; line-height: 1.35; text-align: center; pointer-events: none;
   background: oklch(0.96 0.01 250); color: oklch(0.18 0.01 250); box-shadow: 0 10px 28px oklch(0 0 0 / 0.5); animation: toast-in 180ms var(--ease-out); }
 .ot-steps-opt--mute.on { background: oklch(0.62 0.18 25); color: oklch(0.98 0.01 25); }
+
+/* 1.0 (7 nov.) : FM Player en grand sur grand écran (PC, tablette) — le bandeau des pas reprend de la taille
+   (sur téléphone il reste serré pour laisser le piano) */
+@media (min-width: 1200px) and (min-height: 760px) {
+  .fm1big .fm1big-play { height: clamp(300px, 44cqh, 470px); }
+  .fm1big-steps { font-size: clamp(13px, 1.8cqh, 17px); gap: 0.8cqh; }
+  .fm1big .fm1big-steps .ot-steps { gap: 6px; padding-top: 8px; padding-bottom: 8px; }
+  .fm1big .fm1big-steps .ot-steps-keys > * { min-height: 50px; font-size: 1em; }
+  .fm1big-steps-head { min-height: 40px; }
+  .fm1big-steps-tools .ot-steps-opt, .fm1big-steps-head .shift-btn, .fm1big-steps-head button { font-size: 15px; padding: 6px 14px; }
+  .fm1big .ot-stepedit { flex-wrap: wrap; overflow: visible; padding: 6px 12px; gap: 6px 18px; }
+  .fm1big .ot-stepedit-item button { min-width: 34px; min-height: 32px; }
+  .fm1big .face-oct { gap: 8px; }
+  .fm1big .face-oct button { width: 44px; height: 38px; font-size: 18px; }
+  .fm1big .face-oct span, .fm1big .face-oct b { font-size: 15px; }
+  .fm1big .face-oct { flex-direction: column; font-size: 14px; padding: 0 6px; }
+  .fm1big .fm1big-steps .ot-steps-head { font-size: 14px; gap: 14px; }
+  .fm1big .fm1big-steps .ot-steps-head button { font-size: 14px; padding: 5px 12px; }
+  .fm1big .ot-stepedit { font-size: 15px; }
+  .fm1big .ot-stepedit-item em { min-width: 4.6em; }
+}
+
+/* 1.1 : écran agrandi sur téléphone — l'écran prend toute la largeur, un rail fin à droite (les 8 écrans,
+   lecture / arrêt, ⤡) ; le panneau de droite reste monté (encodeurs, pads) mais caché */
+.device--phone.device--zoom { grid-template-columns: minmax(0, 1fr) 92px; }
+.device--zoom .phone-side > :not(.zoom-rail) { display: none !important; }
+.zoom-rail { display: flex; flex-direction: column; gap: 6px; height: 100%; min-height: 0; }
+.zoom-rail > button, .zoom-rail-tr > button { appearance: none; border: 0; border-radius: 10px; cursor: pointer; color: oklch(0.9 0.01 250);
+  background: linear-gradient(oklch(0.3 0.01 250), oklch(0.24 0.01 250)); box-shadow: inset 0 -2px 0 oklch(0 0 0 / 0.35), 0 1px 0 oklch(1 0 0 / 0.06);
+  font: 750 13px/1.1 inherit; letter-spacing: 0.04em; }
+.zoom-rail > button { flex: 1 1 0; min-height: 0; }
+.zoom-rail > button.on { background: linear-gradient(oklch(0.84 0.15 75), oklch(0.76 0.15 70)); color: oklch(0.2 0.03 70); }
+.zoom-rail-tr { display: flex; gap: 6px; flex: 1.2 1 0; min-height: 0; }
+.zoom-rail-tr > button { flex: 1 1 0; display: grid; place-items: center; }
+.zoom-rail-tr svg { width: 18px; height: 18px; }
+.zoom-rail-play.on { background: linear-gradient(oklch(0.66 0.16 150), oklch(0.58 0.16 150)); color: oklch(0.15 0.02 150); }
+.zoom-rail-close { flex: 1.1 1 0 !important; font-size: 22px !important; background: linear-gradient(oklch(0.38 0.03 250), oklch(0.31 0.03 250)) !important; }
+.top-zoom { font-size: 18px; }
+/* en écran agrandi : les onglets du haut des écrans à la taille du doigt */
+.device--zoom .screen-tabs { gap: 4px; padding: 3px; }
+.device--zoom .screen-tabs button { font-size: 14px; padding: 7px 13px; }
+/* 1.1 : en écran agrandi, tous les boutons tactiles des écrans à la taille du doigt */
+.device--zoom .screen .touch { min-height: 36px; font-size: 13.5px; padding: 6px 12px; }
+.device--zoom .screen .chip { font-size: 13px; }
+.device--zoom .tracks-tools .touch { padding: 7px 13px; font-size: 14px; }
+.device--zoom .tracks-out { font-size: 13.5px; }
+.device--zoom .tracks-out select { font-size: 14px; padding: 5px 8px; }
+.device--zoom .browser-tabs { gap: 6px; }
+.device--zoom .browser-tabs .touch { font-size: 15px; padding: 8px 15px; }
+.device--zoom .browser-tabs > button { font-size: 15px; padding: 8px 14px; }
+.zoom-rail > button.zoom-rail-gear { font-size: 22px; }
+/* 1.1 : Lancement en écran agrandi — noms de pistes, cases et rangées plus lisibles */
+.device--zoom .launch-name { font-size: 14px; }
+.device--zoom .launch-head { padding: 6px 8px; }
+.device--zoom .launch-cell { font-size: 13px; padding: 0 9px; border-radius: 7px; }
+.device--zoom .launch-rowbtn { font-size: 15px; font-weight: 750; }
+.device--zoom .launch-stop { min-height: 30px; }
+.device--zoom .launch-page { font-size: 13px; padding: 5px 10px; }
+.device--zoom .launch-grid { gap: 5px; }
+/* 1.1 : Séquence en écran agrandi — lettres de patterns, M / S et noms plus gros */
+.device--zoom .pattern-chips button { min-width: 34px; min-height: 34px; font-size: 14px; }
+.device--zoom .seq-ms button, .device--zoom .seq-ms > * { min-width: 28px; font-size: 12px; }
+.device--zoom .seq-name { font-size: 14.5px; }
+/* 1.1 : Son en écran agrandi — numéros des pads et puces de sections à la taille du doigt */
+.device--zoom .section-chips button, .device--zoom .section-chips .chip { min-width: 36px; min-height: 32px; font-size: 14px; padding: 4px 10px; }
+.device--zoom .sound-hint { font-size: 13px; }
+/* 1.1 : Mixeur en écran agrandi — noms, M / S, sortie et FX à la taille du doigt */
+.device--zoom .strip-name { font-size: 14.5px; }
+.device--zoom .strip-ms button, .device--zoom .strip-ms > * { min-width: 30px; font-size: 12.5px; }
+/* 1.1 : Scènes en écran agrandi — les actions d'une scène passent à la ligne au lieu de déborder */
+.device--zoom .slot-actions { flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
+
+/* 1.1 : rail — Enr. à côté de lecture / arrêt (trois touches) ; tempo du haut plus gros (toucher : taper la valeur) */
+.zoom-rail-tr { gap: 4px; }
+.zoom-rail-tr svg { width: 15px; height: 15px; }
+.zoom-rail-rec.on { background: linear-gradient(oklch(0.62 0.2 25), oklch(0.54 0.2 25)); color: oklch(0.98 0.01 25); }
+.zoom-rail-rec svg { color: oklch(0.68 0.2 25); }
+.zoom-rail-rec.on svg { color: currentColor; }
+.device--zoom .screen-bpm { font-size: 19px; padding: 4px 10px; border-radius: 7px; background: oklch(1 0 0 / 0.06); cursor: pointer; }
+.zoom-rail-tr { flex: 1.6 1 0; } .zoom-rail-tr svg { width: 17px; height: 17px; }
+
+/* 1.1 : vue agrandie sur PC — l'écran occupe toute la hauteur et la largeur, le rail à droite */
+.device--zoom-pc { grid-template-columns: minmax(0, 1fr) 120px; }
+.device--zoom-pc .device-left > :not(.bezel) { display: none !important; }
+.device--zoom-pc .device-left .bezel { flex: 1 1 auto; height: auto; min-height: 0; }
+.device--zoom-pc .device-left .bezel .screen { height: 100%; }
+.device--zoom-pc .device-right > :not(.zoom-rail) { display: none !important; }
+.device--zoom-pc .zoom-rail { gap: 8px; }
+.device--zoom-pc .zoom-rail > button { font-size: 15px; }
+.top-zoom.is-on { color: var(--accent); }
+.device-top .top-zoom { font-size: 11px; letter-spacing: 0.08em; }
+.device--zoom-pc .zoom-rail > button.zoom-rail-gear { font-size: 26px; }
+.device-top .top-zoom { font-size: 17px; padding: 2px 10px; letter-spacing: 0; }
+/* 1.0 : « Choisir avec les vignettes » bien visible (couleur d'accent) */
+.browser-tabs .browser-thumbs:not(:disabled) { background: color-mix(in oklab, var(--accent) 22%, var(--scr-raise-hi)); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 60%, transparent); }
+/* 1.0 : écran Pistes en vue agrandie — la piste en haut, une liste à vignettes qui défile */
+.device--zoom .browser { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.bz-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; padding: 8px 10px; border-radius: 10px; background: color-mix(in oklab, var(--k) 16%, var(--scr-raise)); box-shadow: inset 4px 0 0 var(--k); flex: none; }
+.bz-swatch { width: 14px; height: 14px; border-radius: 50%; background: var(--k); box-shadow: 0 0 8px var(--k); flex: none; }
+.bz-name { min-width: 0; flex: 1 1 120px; font-family: inherit; font-weight: 750; font-size: 18px; line-height: 1.2; color: var(--scr-fg); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 6px; }
+.bz-name:focus { border-color: var(--k); background: oklch(0 0 0 / 0.25); outline: none; }
+.bz-colors { display: inline-flex; gap: 5px; flex: none; }
+.bz-colors .color-chip { width: 20px; height: 20px; }
+.bz-assign { flex: 1 1 auto; justify-content: center; font-size: 15px !important; font-weight: 750; padding: 9px 16px !important; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bz-free { flex: none; }
+.bz-list { list-style: none; margin: 0; padding: 0 4px 0 0; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+.bz-item { display: flex; align-items: center; gap: 14px; width: 100%; padding: 8px; border-radius: 10px; border: 1px solid transparent; background: var(--scr-raise); color: var(--scr-fg); text-align: left; cursor: pointer; }
+.bz-item.on { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, var(--scr-raise)); }
+.bz-thumb { flex: none; width: 128px; height: 80px; object-fit: cover; border-radius: 6px; background: oklch(0 0 0 / 0.3); }
+.bz-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.bz-item .bi-name { font-size: 16px; font-weight: 750; }
+.bz-item .bi-name em { font-style: normal; color: var(--accent); font-weight: 650; }
+.bz-item .bi-principle { font-size: 13.5px; line-height: 1.35; color: var(--scr-muted); }
+.device--zoom .browser, .device--zoom .bz-list, .device--zoom .bz-item, .device--zoom .bz-text { min-width: 0; }
+.device--zoom .browser-tabs { min-width: 0; }
+.device--zoom .tracks { grid-template-columns: 290px minmax(0, 1fr); overflow: hidden; }
+
+/* 1.0 : séquence — vue sur une octave ; bouton « 1 oct. / 2 oct. » */
+.roll.roll--one { grid-template-rows: repeat(12, 1fr); }
+.seq-octave .seq-oct-one { width: auto; padding: 0 6px; font-size: 9.5px; }
+.seq-octave .seq-oct-one.on { background: var(--accent); color: var(--scr-bg); }
+/* 1.0 : séquence en vue agrandie — lignes à la hauteur disponible (Pieuvre 8, FM Player : T1 à T8), noms et M / S
+   plus gros, rangées accent / glissé / verrous plus hautes, outils du bas plus hauts */
+.device--zoom .seq-body { grid-template-rows: repeat(var(--rows, 16), minmax(0, 1fr)); }
+.device--zoom .seq-head, .device--zoom .seq-row { grid-template-columns: 150px 32px 32px 1fr; }
+.device--zoom .seq-name { font-size: 15px; }
+.device--zoom .seq-ms { font-size: 12px; min-height: 26px; height: 100%; max-height: 44px; }
+.device--zoom .seq-head-name { font-size: 12px; }
+.device--zoom .flag-row { grid-template-columns: 226px 1fr; }
+.device--zoom .seq-flags--roll .flag-row { grid-template-columns: 64px 1fr; }
+.device--zoom .seq-head--roll, .device--zoom .roll-row { grid-template-columns: 64px 1fr; }
+.device--zoom .fcell { height: 19px; border-radius: 3px; }
+.device--zoom .seq-flags { gap: 4px; margin: 4px 0 5px; }
+.device--zoom .flag-name { font-size: 11.5px; }
+.device--zoom .roll-key { font-size: 12px; }
+.device--zoom .seq-octave button { min-height: 26px; min-width: 30px; font-size: 13px; }
+.device--zoom .seq-octave .seq-oct-one { font-size: 12px; padding: 0 8px; }
+.device--zoom .seq-tools .touch { min-height: 42px; font-size: 14.5px; }
+.device--zoom .seq-tracknav, .device--zoom .seq-tracknav button { font-size: 14px; min-height: 34px; }
+.device--zoom .seq-row { align-items: stretch; padding: 2px 0; }
+.device--zoom .seq-row .seq-cells { height: 100%; align-items: stretch; }
+.device--zoom .seq-row .cell { height: auto; min-height: 20px; max-height: 64px; align-self: center; height: 100%; border-radius: 5px; }
+.device--zoom .seq-row .seq-name, .device--zoom .seq-row .seq-ms { align-self: center; }
+.device--zoom .seq-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.device--zoom .seq-tools .touch { font-size: 13.5px; padding: 6px 10px; white-space: nowrap; flex: none; }
+.device--zoom .seq-head, .device--zoom .seq-row { grid-template-columns: 140px 44px 44px 1fr; }
+.device--zoom .seq-row .seq-ms { height: 44px; max-height: 80%; font-size: 15px; font-weight: 750; border-radius: 7px; }
+.device--zoom .seq-flags--roll .flag-row, .device--zoom .seq-head--roll, .device--zoom .roll-row { grid-template-columns: 124px 1fr; }
+.device--zoom .seq-octave { display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; overflow: visible; }
+.device--zoom .seq-octave button { min-width: 30px; min-height: 28px; padding: 0 4px; }
+.device--zoom .seq-octave .seq-oct-one { min-width: 52px; white-space: nowrap; }
+.seq-head .seq-octave button.seq-oct-one.on { background: var(--led-amber, oklch(0.8 0.15 75)); color: oklch(0.18 0.02 75); border-color: transparent; opacity: 1; }
+/* 1.0 : effets en vue agrandie — même liste à vignettes que l'écran Pistes ; « Choisir avec les vignettes » en couleur */
+.fx-head .fx-swap { background: color-mix(in oklab, var(--accent) 22%, var(--scr-raise-hi)); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 60%, transparent); }
+.bz-head--fx { background: var(--scr-raise); box-shadow: none; padding: 6px; }
+.bz-head--fx .bz-assign { width: 100%; }
+.bz-thumb--fx { object-fit: contain; background: oklch(0.08 0 0); }
+.device--zoom .fx-head h3 { font-size: 18px; }
+.device--zoom .fx-head p { font-size: 13px; }
+.device--zoom .fx-head .fx-swap { font-size: 14px; padding: 8px 14px; }
+.device--zoom .fx-browser { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+
+/* 1.0 : vue agrandie — « Jeu » ouvre le panneau de jeu par-dessus la droite de l'écran (téléphone : Commandes / Pads ;
+   PC : pads, boutons d'écran cachés car le rail les a) */
+.zoom-rail-jeu { flex: 1 1 0 !important; font-weight: 800 !important; letter-spacing: 0.06em !important;
+  background: linear-gradient(oklch(0.36 0.06 300), oklch(0.29 0.06 300)) !important; }
+.zoom-rail-jeu.on { background: linear-gradient(oklch(0.74 0.16 320), oklch(0.64 0.16 320)) !important; color: oklch(0.15 0.02 320) !important; }
+.zoom-rail-duo { display: flex; gap: 5px; flex: 1.1 1 0; min-height: 0; }
+.zoom-rail-duo > button { flex: 1 1 0; appearance: none; border: 0; border-radius: 10px; cursor: pointer; font: 800 12.5px/1 inherit; letter-spacing: 0.03em; color: oklch(0.95 0.01 250); box-shadow: inset 0 -2px 0 oklch(0 0 0 / 0.35); }
+.zoom-rail-live { background: linear-gradient(oklch(0.62 0.17 0), oklch(0.54 0.17 0)); }
+/* 1.0 : bouton ⤢ (vue agrandie) bien visible : vert, plus grand (plus de plein écran sur téléphone) */
+.top-full.top-zoom { background: linear-gradient(oklch(0.72 0.16 150), oklch(0.62 0.16 150)) !important; color: oklch(0.15 0.03 150) !important;
+  border: 0 !important; font-weight: 800; box-shadow: 0 0 10px oklch(0.7 0.16 150 / 0.45), inset 0 -2px 0 oklch(0 0 0 / 0.25); }
+.phone-top .top-zoom { font-size: 22px !important; min-width: 52px; height: 38px; padding: 0 12px !important; border-radius: 9px; }
+.device-top .top-zoom { font-size: 18px !important; min-width: 44px; height: 30px; }
+.device--zoom .seq-row .cell { max-height: clamp(20px, calc(380px / var(--rows, 16)), 64px); }
+
+/* 1.0 : écran Jeu (vue agrandie) — pads à gauche, commandes de jeu à droite, le tout en grand */
+.jeu-view { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 10px 14px; height: 100%; padding: 12px; box-sizing: border-box; background: linear-gradient(oklch(0.24 0.01 250), oklch(0.2 0.01 250)); }
+.jeu-pads { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.jeu-pads .padgrid { width: auto !important; height: auto !important; aspect-ratio: 1; flex: 1 1 auto; min-height: 0; margin: 0 !important; }
+.jeu-pads .button-row { gap: 6px; }
+.jeu-pads .button-row .hw { height: 40px; font-size: 12px; }
+.jeu-ctrl { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; justify-content: space-between; }
+.jeu-knobs { height: auto !important; flex: none; }
+.jeu-ctrl .phone-row, .jeu-ctrl .photo-row { display: flex; gap: 8px; }
+.jeu-ctrl .hw { flex: 1 1 0; height: 52px; font-size: 13px; }
+.jeu-row--xf .hw { flex: 0 0 64px; }
+.jeu-row--xf .hw-xfade { flex: 1 1 auto; }
+.jeu-ctrl .phone-row--tempo .tempo-phone-value { font-size: 24px; }
+.jeu-knobs .encoder { zoom: 1 !important; } .jeu-knobs { gap: 4px 0; }
+.device--phone .jeu-knobs .encoder { zoom: 0.92 !important; }
+.jeu-pads .padgrid { align-self: flex-start; flex: 1 1 0; aspect-ratio: 1; width: auto !important; max-width: 100%; }
+
+/* 1.0 : écran Jeu — en haut la piste jouée (◀ liste ▶) et les rangées A à H ; pads de taille fixe ; 16 boutons sur 2 rangées */
+.jeu-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.jeu-head .rowlaunch { flex: 1 1 auto; min-width: 0; margin: 0; }
+.jeu-tracknav { display: inline-flex; align-items: center; gap: 4px; flex: none; padding: 3px; border-radius: 9px; border: 2px solid var(--k); background: color-mix(in oklab, var(--k) 14%, oklch(0.2 0.01 250)); }
+.jeu-tracknav button { appearance: none; border: 0; width: 38px; height: 38px; border-radius: 7px; background: oklch(1 0 0 / 0.08); color: oklch(0.92 0.01 250); font-size: 15px; cursor: pointer; }
+.jeu-tracknav select { height: 38px; min-width: 190px; max-width: 260px; font: 750 15px/1 inherit; color: oklch(0.95 0.01 250); background: transparent; border: 0; padding: 0 6px; }
+.jeu-tracknav select option { color: #111; }
+.device--phone .jeu-pads .padgrid { width: 330px !important; height: 330px !important; flex: none !important; aspect-ratio: auto !important; align-self: auto !important; }
+.device--zoom-pc .jeu-pads .padgrid { width: 520px !important; height: 520px !important; flex: none !important; aspect-ratio: auto !important; align-self: auto !important; }
+.device--zoom-pc .jeu-knobs { grid-template-columns: repeat(8, 1fr) !important; row-gap: 10px; }
+.device--zoom-pc .jeu-knobs .encoder { zoom: 1.15; }
+.device--phone .jeu-view .jeu-knobs .encoder { zoom: 0.9 !important; }
+.jeu-view .pad--solo { box-shadow: inset 0 0 0 3px var(--led-blue), 0 0 12px var(--led-blue); }
+/* 1.0 : vue agrandie — les 8 valeurs du bas se règlent au doigt (glisser vers le haut / le bas) : plus grandes, en relief */
+.device--zoom .screen-encoders { min-height: 62px; }
+.device--zoom .enc-label--drag { background: linear-gradient(oklch(0.27 0.02 245), oklch(0.22 0.02 245)); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06); }
+.device--zoom .enc-name { font-size: 11.5px; }
+.device--zoom .enc-value { font-size: 17px; }
+.device--zoom .enc-label--drag::after { content: "↕"; position: absolute; right: 6px; top: 4px; font-size: 11px; opacity: 0.35; }
+.device--zoom .enc-label { position: relative; }
+/* 1.0 : mixeur en vue agrandie — envois A à D plus gros, panoramique et nom lisibles */
+.device--zoom .strip-sends2.is-grid .mknob { max-width: 36px; } .device--zoom .strip-sends2.is-grid .mknob svg { width: 32px; height: 32px; }
+.device--zoom .strip-sends2 .mknob { max-width: 34px; } .device--zoom .strip-sends2 .mknob svg { width: 28px; height: 28px; }
+.device--zoom .strip-pan { font-size: 13px; }
+.device--zoom .strip-num { font-size: 12px; }
+/* 1.0 (7 nov.) : l'écran coupe ce qui dépasse sans jamais défiler (le menu d'une valeur du bas le faisait
+   remonter de 16 px en vue agrandie). */
+.screen { overflow: clip; }
+/* 1.0 (7 nov.) : Réglages › Projet — une étiquette à gauche, ses boutons à droite */
+.settings-project { gap: 7px; }
+.proj-line { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 8px; }
+.proj-label { font-size: 11px; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; color: var(--scr-muted); }
+.proj-btns { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.proj-btns .lang-choice { display: inline-flex; gap: 6px; }
+.proj-list { margin-left: 100px; }
+.device--phone .proj-list { margin-left: 0; }
+/* 1.0 (7 nov.) : vue agrandie — la rangée des valeurs du bas a sa vraie hauteur (elle était coupée) et le
+   texte est centré dans chaque case */
+.device--zoom .screen-frame { grid-template-rows: 30px auto minmax(0, 1fr) 62px; }
+.device--zoom .screen-encoders .enc-label { align-items: center; text-align: center; padding: 0 16px; }
+.device--zoom .screen-encoders .enc-name, .device--zoom .screen-encoders .enc-value { max-width: 100%; }
+.project-save input { min-width: 110px; }
+.device--zoom .screen-encoders .enc-label { padding: 0 8px; }
+.device--phone.device--zoom .enc-value { font-size: 16px; }
+/* 1.0 (7 nov.) : Mute / Solo — les pads gardent la couleur de leur piste ; coupé = grisé, solo = cadre bleu */
+.pad--track.pad--trackcol { --k: var(--tk); background: radial-gradient(120% 120% at 50% 40%, color-mix(in oklab, var(--k) 52%, oklch(0.36 0.005 250)), color-mix(in oklab, var(--k) 20%, oklch(0.26 0.005 250)) 80%); }
+.pad--track.pad--trackcol.pad--lit { background: radial-gradient(120% 120% at 50% 40%, color-mix(in oklab, var(--k) 92%, white), var(--k) 75%); }
+.pad--track.pad--trackcol .pad-led { box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--k) 80%, transparent); }
+.jeu-view { grid-template-rows: auto auto minmax(0, 1fr); }
+.jeu-mode { grid-column: 1 / -1; min-width: 0; }
+.jeu-mode:has(.screen-mode--off) { display: none; }
+/* 1.0 (7 nov.) : vue live — Fill / Break / Break 1 mes. / Maj dans la colonne du milieu */
+.liveperf-play { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.liveperf-play > * { min-width: 0; display: flex; }
+.liveperf-play .hw { width: 100%; min-width: 0; height: 52px; }
+.liveperf-play *:has(> .hw) { display: flex; width: 100%; min-width: 0; }
+.liveperf-play .hw { height: 56px; font-size: 12px; }
+/* bandeau visible : les pads rétrécissent un peu pour garder la rangée du bas (1–16, Éditer A / B) */
+.device--zoom-pc .jeu-view:has(.jeu-mode .screen-mode:not(.screen-mode--off)) .jeu-pads .padgrid { width: 476px !important; height: 476px !important; }
+.device--phone .jeu-view:has(.jeu-mode .screen-mode:not(.screen-mode--off)) .jeu-pads .padgrid { width: 290px !important; height: 290px !important; }
+.jeu-mode .screen-mode { min-height: 0; }
+/* 1.0 (7 nov.) : séquence agrandie — les outils passent à la ligne (Verrouiller…, Fermer le pas restaient cachés) */
+.device--zoom .seq-tools { flex-wrap: wrap; overflow-x: visible; }
+/* 1.0 (7 nov.) : téléphone, vue agrandie — 16 lignes de batterie : des lignes d'au moins 26 px qui défilent
+   au doigt (en dessous, les cases se chevauchaient en colonnes) */
+.device--phone.device--zoom .seq-body { grid-template-rows: repeat(var(--rows, 16), minmax(26px, 1fr)); overflow-y: auto; overscroll-behavior: contain; }
+.device--phone.device--zoom .seq-row { padding: 1px 0; min-height: 26px; }
+.device--phone.device--zoom .seq-row .cell { min-height: 22px; }
+.device--phone.device--zoom .seq-row .seq-ms { height: 24px; font-size: 12px; }
+/* 1.0 (7 nov.) : écran Jeu — « MIDI : touchez une commande… », « Bouton N : touchez la valeur… » et les
+   messages courts s'affichent par-dessus (ils restaient dans l'écran caché derrière) */
+.jeu-view { position: relative; }
+.jeu-view .learn-float { top: 64px; pointer-events: auto; }
+.jeu-view .message-float { top: 112px; }
+/* 1.0 (7 nov.) : mixeur agrandi — numéro et nom sur une ligne (« 10 · Piste 10 »), panoramique collé
+   dessous : le fader gagne toute la hauteur libérée */
+.device--zoom .strip { gap: 4px; padding-top: 6px; }
+.device--zoom .strip-name { grid-template-columns: auto auto minmax(0, 1fr); column-gap: 5px; }
+.device--zoom .strip-label { grid-column: auto; height: auto; display: block; white-space: nowrap; text-overflow: ellipsis; -webkit-line-clamp: unset; font-size: 14px; }
+.device--zoom .strip-pan { margin-top: 2px; }
+.device--zoom .strip-pan-text { min-height: 0; line-height: 1.1; }
+/* téléphone : les 4 envois sur une seule rangée (une rangée de plus pour le fader) */
+.device--phone.device--zoom .strip-sends2.is-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 2px 3px; width: 100%; }
+.device--phone.device--zoom .strip-sends2.is-grid .mknob { max-width: 24px; }
+.device--phone.device--zoom .strip-sends2.is-grid .mknob svg { width: 22px; height: 22px; }
+.device--phone.device--zoom .strip-sends2.is-grid .strip-pre { grid-column: 1 / -1; }
+/* 1.0 (7 nov.) : vue agrandie — les onglets du mixeur (Pistes et groupes, Retours…, Groupes, Spectre) à la
+   même taille que ceux des autres écrans ; envois A à D un peu plus gros au téléphone */
+.device--zoom .segmented--screen button { font-size: 14px; padding: 7px 13px; }
+.device--zoom .mixer-pos { font-size: 14px; gap: 6px; }
+.device--zoom .mixer-pos .touch { font-size: 14px; padding: 6px 12px; }
+.device--phone.device--zoom .strip-sends2.is-grid .mknob { max-width: 28px; }
+.device--phone.device--zoom .strip-sends2.is-grid .mknob svg { width: 27px; height: 27px; }
+/* 1.0 (7 nov.) : rail sans retour à la vue classique — Lecture / Arrêt en haut, Enr. en grand en bas.
+   Les boutons sont dans une zone d'apprentissage MIDI (appui long / clic droit). */
+.zoom-rail > .learn-zone, .zoom-rail-tr > .learn-zone { display: flex; flex: 1 1 0; min-height: 0; min-width: 0; }
+.zoom-rail .learn-zone > button { flex: 1 1 auto; min-width: 0; appearance: none; border: 0; border-radius: 10px; cursor: pointer; color: oklch(0.9 0.01 250);
+  background: linear-gradient(oklch(0.3 0.01 250), oklch(0.24 0.01 250)); box-shadow: inset 0 -2px 0 oklch(0 0 0 / 0.35), 0 1px 0 oklch(1 0 0 / 0.06);
+  font: 750 13px/1.1 inherit; letter-spacing: 0.04em; display: grid; place-items: center; }
+.zoom-rail-tr { flex: 1.1 1 0; }
+.zoom-rail-tr svg { width: 20px; height: 20px; }
+.zoom-rail > .learn-zone:last-child { flex: 1.3 1 0; }
+.zoom-rail .zoom-rail-recbig { display: flex !important; align-items: center; justify-content: center; gap: 8px; font-size: 16px !important; }
+.zoom-rail .zoom-rail-recbig svg { width: 18px; height: 18px; color: oklch(0.68 0.2 25); }
+.zoom-rail .zoom-rail-recbig.on { background: linear-gradient(oklch(0.62 0.2 25), oklch(0.54 0.2 25)); color: oklch(0.98 0.01 25); }
+.zoom-rail .zoom-rail-recbig.on svg { color: oklch(0.98 0.01 25); }
+.zoom-rail .zoom-rail-play.on { background: linear-gradient(oklch(0.66 0.16 150), oklch(0.58 0.16 150)); color: oklch(0.15 0.02 150); }
+/* 1.0 (7 nov.) : téléphone — annuler / rétablir et enregistreur audio dans la barre d'état de chaque écran */
+.screen-extra { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.screen-extra .top-hist { margin-right: 0; }
+.device--zoom .screen-extra .top-hist-btn { width: 40px; height: 32px; font-size: 18px; }
+.device--zoom .screen-extra .top-full, .device--zoom .screen-extra button { font-size: 12px; }
+/* Photo / Rappel / Mod. boutons restent dans Jeu et Live : la barre d'état ne garde qu'annuler / rétablir
+   et l'enregistreur (sinon tempo et position sortaient de l'écran) */
+.screen-extra .top-photo { display: none; }
+.screen-extra .top-hist { gap: 3px; }
+/* téléphone : la barre d'avancement de la boucle laisse sa place pour que le tempo reste visible */
+.device--phone.device--zoom .screen-status:has(.screen-extra) .screen-loop { display: none; }
+.device--phone.device--zoom .screen-extra .top-full, .device--phone.device--zoom .screen-extra .rec-audio { padding: 4px 8px; }
+.device--phone.device--zoom .screen-extra .top-hist-btn { width: 34px; }
+.device--phone.device--zoom .screen-extra { gap: 4px; }
+.device--phone.device--zoom .screen-tabs button { padding: 7px 10px; }
+/* 1.0 (maquette 7 nov.) : pads dépliables à droite de l'écran */
+.zoom-split { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); height: 100%; min-height: 0; }
+.zoom-split.is-open { grid-template-columns: minmax(0, 1fr) auto; }
+.zoom-split-main { min-width: 0; min-height: 0; height: 100%; }
+.zoom-pads { display: flex; flex-direction: column; gap: 8px; padding: 10px 26px 10px 10px; min-height: 0; border-left: 1px solid var(--scr-line);
+  background: linear-gradient(oklch(0.24 0.01 250), oklch(0.2 0.01 250)); }
+.zoom-pads .jeu-tracknav { align-self: stretch; }
+.zoom-pads .jeu-tracknav select { min-width: 0; flex: 1; }
+.zoom-pads .padgrid { flex: none !important; aspect-ratio: auto !important; }
+.device--zoom-pc .zoom-pads .padgrid { width: 440px !important; height: 440px !important; }
+.device--phone .zoom-pads .padgrid { width: 236px !important; height: 236px !important; }
+.device--phone .zoom-pads { gap: 5px; padding: 6px 24px 6px 6px; }
+.device--phone .zoom-pads .jeu-tracknav select { height: 30px; font-size: 13px; }
+.zoom-pads-tab { position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 30; width: 22px; height: 110px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 0; cursor: pointer;
+  border: 0; border-radius: 8px 0 0 8px; color: oklch(0.15 0.02 75); background: linear-gradient(oklch(0.84 0.15 75), oklch(0.76 0.15 70));
+  box-shadow: -2px 0 8px oklch(0 0 0 / 0.45); font: 800 11px/1 inherit; }
+.zoom-pads-tab b { writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.08em; text-transform: uppercase; font-size: 10.5px; }
+.zoom-pads-tab:not(.on) { opacity: 0.92; }
+.device--zoom-pc .zoom-pads .padgrid { width: 380px !important; height: 380px !important; }
+.device--zoom-pc .zoom-pads { width: 416px; box-sizing: border-box; }
+.device--phone .zoom-pads { width: 300px; box-sizing: border-box; }
+.device--phone .zoom-pads .padgrid { width: 270px !important; height: 270px !important; }
+.zoom-pads .pad-modes, .zoom-pads .button-row { min-width: 0; }
+/* 1.0 (7 nov.) : bande verticale réservée à l'onglet Pads (plus rien n'est caché dessous) */
+.zoom-split { grid-template-columns: minmax(0, 1fr) 24px; }
+.zoom-split.is-open { grid-template-columns: minmax(0, 1fr) auto 24px; }
+.zoom-pads-strip { position: relative; height: 100%; min-height: 0; border-left: 1px solid var(--scr-line);
+  background: linear-gradient(oklch(0.22 0.01 250), oklch(0.18 0.01 250)); display: flex; align-items: center; justify-content: center; }
+.zoom-pads-strip .zoom-pads-tab { position: static; transform: none; width: 20px; border-radius: 7px; box-shadow: 0 2px 6px oklch(0 0 0 / 0.4); }
+.zoom-pads { padding-right: 10px; }
+.device--phone .zoom-pads { padding-right: 6px; }
+/* 1.0 (7 nov.) : téléphone — charge du processeur dans la barre d'état, à côté du tempo (court : CPU et %) */
+.screen-extra .perf-meter { margin-right: 0; padding: 3px 6px; font-size: 11px; }
+.device--phone .screen-extra .perf-sep, .device--phone .screen-extra .perf-val--mem { display: none; }
+.device--phone .screen-extra .perf-bar { width: 28px; }
+.device--phone .screen-extra .perf-bar { display: none; }
+.device--phone .screen-extra .perf-meter { gap: 4px; padding: 3px 5px; }
+/* le tempo reste toujours visible : les onglets longs (SON) défilent au doigt au lieu de le pousser dehors */
+.device--phone.device--zoom .screen-status { min-width: 0; }
+.device--phone.device--zoom .screen-status .screen-bpm, .device--phone.device--zoom .screen-status .screen-extra { flex: none; }
+/* téléphone : l'état ARRÊT / LECTURE est déjà sur le rail (▶ allumé) — sa place revient au tempo */
+.device--phone.device--zoom .screen-status:has(.screen-extra) .transport-state { display: none; }
+/* CPU seulement là où il y a la place : pas sur SON, SÉQUENCE ni MIXEUR (le tempo serait coupé) */
+.device--phone .screen-status[data-screen="Son"] .screen-extra .perf-meter,
+.device--phone .screen-status[data-screen="Séquence"] .screen-extra .perf-meter,
+.device--phone .screen-status[data-screen="Mixeur"] .screen-extra .perf-meter { display: none; }
+.face-transport .perf-meter { margin-right: 6px; }
+.face-transport .perf-sep, .face-transport .perf-val--mem, .face-transport .perf-bar { display: none; }

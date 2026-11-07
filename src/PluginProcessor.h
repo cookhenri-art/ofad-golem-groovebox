@@ -60,7 +60,7 @@ public:
     static constexpr int numMacros = 8;
     static constexpr int firstPadNote = 36; // C1 : convention des contrôleurs à pads
 
-    enum class PadMode { play = 0, mute = 1, scenes = 2, erase = 3, steps = 4 };
+    enum class PadMode { play = 0, mute = 1, scenes = 2, solo = 3, steps = 4 }; // 1.0 : « Effacer » remplacé par « Solo »
 
     GrooveboxProcessor();
     ~GrooveboxProcessor() override;

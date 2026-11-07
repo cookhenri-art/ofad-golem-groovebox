@@ -13,7 +13,7 @@ import { lastChannel, resolve, setBusNameSource, toNorm, type Resolved } from ".
 import { getLockClip, setLockClip } from "./selection";
 
 export type ScreenMode = "tracks" | "launch" | "sequence" | "sound" | "effects" | "mixer" | "scenes" | "settings";
-export type PadMode = "play" | "mute" | "scenes" | "erase" | "steps";
+export type PadMode = "play" | "mute" | "scenes" | "solo" | "steps"; // 1.0 : « Effacer » remplacé par « Solo »
 
 export interface UiState {
   screen: ScreenMode;
@@ -37,6 +37,7 @@ export interface UiState {
   root: number;                 // pads mélodiques : tonique (0 = Do)
   padLevels: boolean;           // « 16 niveaux » : le son choisi sur les 16 pads, 16 vélocités
   rollBase: number;             // séquence mélodique : note la plus grave affichée
+  rollOne?: boolean;            // 1.0 : séquence mélodique sur une seule octave (cases plus hautes)
   shift: boolean;
   browserFamily: string;
   browserIndex: number;
@@ -148,7 +149,7 @@ let state: AppState = {
   ui: {
     screen: "sequence", page: 0, lane: 0, step: null, stepEdit: false, editSlot: null, editBreak: false,
     soundTab: "", soundSection: 0, fxSlot: 0, fxTab: "", fxSection: 0, modSlot: 0, mixerBank: 0, mixerFirst: 0,
-    padMode: "play", octave: 0, scale: 0, root: 0, padLevels: false, rollBase: 36, shift: false, browserFamily: "Batteries", browserIndex: 0, sceneBank: 0, message: null, trackClip: null,
+    padMode: "play", octave: 0, scale: 0, root: 0, padLevels: false, rollBase: 36, rollOne: readPref("rollOne", false), shift: false, browserFamily: "Batteries", browserIndex: 0, sceneBank: 0, message: null, trackClip: null,
     selection: [], selectMode: false, paint: false, copyDrag: false, modAssign: null, macroAssign: null, knobAssign: null, modPanel: null, knobLfoAssign: null, face: false, pedals: false, fullscreen: false, launchView: "grid", rowPage: 0, seqView: "notes", launchAll: readPref("launchAll", true), muteTarget: readPref("muteTracks", false) ? "tracks" : "pads", faceBig: readPref("faceBig", true),
   },
 };
@@ -159,7 +160,7 @@ function set(patch: Partial<AppState>) {
   state = { ...state, ...patch };
   listeners.forEach((l) => l());
 }
-const PAD_MODE_IDS: PadMode[] = ["play", "mute", "scenes", "erase", "steps"];
+const PAD_MODE_IDS: PadMode[] = ["play", "mute", "scenes", "solo", "steps"];
 /** Le contrôleur MIDI suit le rôle des pads, la banque de scènes, la ligne et la page affichées. */
 function syncPadMode() {
   if (hasNative("setPadMode")) void call("setPadMode", PAD_MODE_IDS.indexOf(state.ui.padMode), state.ui.sceneBank, state.ui.lane, state.ui.page);

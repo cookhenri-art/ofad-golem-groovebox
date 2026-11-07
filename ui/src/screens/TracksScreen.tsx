@@ -3,12 +3,12 @@
 // à droite le navigateur d'instruments par famille, leur principe et leurs préréglages.
 
 import { InstrumentPicker, thumbUrl } from "./InstrumentPicker";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { actions, setUi, showMessage, useStore } from "../engine/store";
 import { numGroups, trackColor } from "../engine/params";
 import { paramAddress, steppedBinding, useParam } from "../controls/bindings";
 import type { EncoderBinding } from "../controls/Encoder";
-import { ScreenFrame } from "./ScreenFrame";
+import { ScreenFrame, ZoomContext } from "./ScreenFrame";
 
 export function TracksScreen() {
   const cat = useStore((s) => s.catalog);
@@ -42,6 +42,7 @@ export function TracksScreen() {
   const track = tracks.tracks[t];
   const assign = (type: string) => { void actions.setInstrument(t, type); };
   const [hover, setHover] = useState<string | null>(null);
+  const zoom = useContext(ZoomContext);
   const [picker, setPicker] = useState(false);
   const midiRoute = useStore((s) => s.midi.route); // v0.46 : canal MIDI propre à la piste
   // GOLEM 1.0 : pistes internes T jouables au clavier (FM Player : 4, Pieuvre 8 : 8)
@@ -158,6 +159,43 @@ export function TracksScreen() {
             <button type="button" className="touch touch--small browser-thumbs" disabled={!isTrack} onClick={() => setPicker(true)}
               title={`Choisir l'instrument de la piste ${t + 1} en touchant l'image de sa façade`}>Choisir avec les vignettes…</button>
           </div>
+          {/* 1.0 : vue agrandie — la piste en haut (couleur, nom, Mettre sur la piste), puis une seule liste qui
+              défile : vignette de la façade à gauche, nom et principe à droite (les préréglages sont dans SON) */}
+          {zoom ? (<>
+            <div className="bz-head" style={{ "--k": trackColor(track?.color ?? 0) } as React.CSSProperties}>
+              <span className="bz-swatch" />
+              <input className="bz-name" type="text" maxLength={40} defaultValue={track?.name ?? ""} key={`${t}:${track?.name}`} aria-label="Nom de la piste"
+                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); e.stopPropagation(); }}
+                onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== track?.name) void actions.renameTrack(t, v); }} />
+              <span className="bz-colors" role="group" aria-label="Couleur de la piste">
+                {Array.from({ length: 8 }, (_, c) => (
+                  <button key={c} type="button" className={`color-chip${track?.color === c ? " on" : ""}`} style={{ background: trackColor(c) }}
+                    onClick={() => void actions.setTrackColor(t, c)} aria-label={`Couleur ${c + 1}`} />
+                ))}
+              </span>
+              {track?.instrument && <button type="button" className="touch touch--quiet bz-free" onClick={() => assign("")}>Libérer</button>}
+              {/* 1.0 (7 nov.) : comme « Ouvrir le module » des effets */}
+              {track?.instrument && <button type="button" className="touch touch--on bz-open face-open" onClick={() => setUi({ face: true })}
+                title="Ouvrir l'instrument de la piste en grand, comme un synthé, avec son clavier (Échap pour refermer)">Ouvrir le synthé ↗</button>}
+              <button type="button" className="touch touch--on bz-assign" disabled={!isTrack} onClick={() => assign(current.type)}>
+                {current.type === track?.instrument ? `Recharger « ${current.name} »` : `Mettre « ${current.name} » sur la piste ${t + 1}`}
+              </button>
+            </div>
+            <ul className="bz-list" ref={listRef}>
+              {list.map((inst, i) => (
+                <li key={inst.type}>
+                  <button type="button" className={`bz-item${i === browserIndex ? " on" : ""}${inst.type === track?.instrument ? " is-used" : ""}`}
+                    onClick={() => setUi({ browserIndex: i })} onDoubleClick={() => assign(inst.type)}>
+                    <img className="bz-thumb" src={thumbUrl(inst.type)} alt="" draggable={false} loading="lazy" />
+                    <span className="bz-text">
+                      <span className="bi-name">{inst.name}{inst.type === track?.instrument && <em> · sur la piste</em>}</span>
+                      <span className="bi-principle">{inst.principle}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>) : (
           <div className="browser-body">
             <ul className="browser-list" ref={listRef}>
               {list.map((inst, i) => (
@@ -208,6 +246,7 @@ export function TracksScreen() {
               </label>
             </div>
           </div>
+          )}
         </section>
       </div>
     </ScreenFrame>

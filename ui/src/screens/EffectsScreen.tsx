@@ -6,7 +6,7 @@
 
 import { formClass, formLabel, GAIN_REDUCTION_FAMILIES, groupEffects } from "../engine/effectGroups";
 import { EffectPicker, fxThumbUrl } from "./EffectPicker";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { actions, setUi, useStore } from "../engine/store";
 import { PresetPanel } from "../controls/PresetPanel";
 import { channelName, groupChannels, isGroup, toPlain, trackColor } from "../engine/params";
@@ -14,7 +14,7 @@ import { paramAddress, useParam } from "../controls/bindings";
 import { ParamMenuZone, type EncoderBinding } from "../controls/Encoder";
 import { useBypass } from "../controls/useBypass";
 import type { ModuleDesc } from "../engine/protocol";
-import { ScreenFrame } from "./ScreenFrame";
+import { ScreenFrame, ZoomContext } from "./ScreenFrame";
 import { ModulePanel } from "./ModulePanel";
 import { ModSources, SectionVisual, moduleTabs, sectionsFor, useModSourceEncoders, useSectionEncoders } from "./ModuleView";
 
@@ -222,10 +222,39 @@ function EffectBrowser({ effects, onAssign, slotLabel }: { effects: ModuleDesc[]
   const [family, setFamily] = useState(groups[0]?.family ?? "");
   const [index, setIndex] = useState(0);
   const [hover, setHover] = useState<string | null>(null);
+  const zoom = useContext(ZoomContext);
   const list = groups.find((g) => g.family === family)?.items ?? groups[0]?.items ?? [];
   const current = list[Math.min(index, list.length - 1)];
   if (!current) return null;
   const shown = effects.find((e) => e.type === hover) ?? current;
+  // 1.0 : vue agrandie — comme l'écran Pistes : en haut le bouton pour poser l'effet choisi, puis une seule liste
+  // qui défile, vignette à gauche, nom, rôle et principe à droite
+  if (zoom) return (
+    <section className="browser fx-browser" aria-label="Choix de l'effet">
+      <div className="browser-tabs" role="tablist">
+        {groups.map((g) => (
+          <button key={g.family} type="button" role="tab" aria-selected={g.family === family} className={g.family === family ? "on" : ""}
+            onClick={() => { setFamily(g.family); setIndex(0); }}>{g.family}</button>
+        ))}
+      </div>
+      <div className="bz-head bz-head--fx">
+        <button type="button" className="touch touch--on bz-assign" onClick={() => onAssign(current.type)}>Mettre « {current.name} » sur {slotLabel}</button>
+      </div>
+      <ul className="bz-list">
+        {list.map((e, i) => (
+          <li key={e.type}>
+            <button type="button" className={`bz-item${e === current ? " on" : ""}`} onClick={() => setIndex(i)} onDoubleClick={() => onAssign(e.type)}>
+              <img className="bz-thumb bz-thumb--fx" src={fxThumbUrl(e.type)} alt="" draggable={false} loading="lazy" />
+              <span className="bz-text">
+                <span className="bi-name">{e.name}{e.role && <small className="fx-role"> · {e.role}</small>} <span className={`fx-form fx-form--${formClass(e)}`}>{formLabel(e)}</span></span>
+                <span className="bi-principle">{e.principle}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
   return (
     <section className="browser fx-browser" aria-label="Choix de l'effet">
       <div className="browser-tabs" role="tablist">

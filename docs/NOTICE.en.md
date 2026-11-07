@@ -9,10 +9,11 @@ This manual covers the basics; the instruments and effects are described in deta
 
 | In this manual | On screen (French) |
 |---|---|
-| Screens TRACKS, LAUNCH, SEQUENCE, SOUND, EFFECTS, MIXER, SCENES, SETTINGS | PISTES, LANCEMENT, SÉQUENCE, SON, EFFETS, MIXEUR, SCÈNES, RÉGLAGES |
-| LAUNCH tabs: Grid, Song, Audio | Grille, Morceau, Audio |
+| Screens TRACKS, CLIPS, SEQUENCE, SOUND, EFFECTS, MIXER, SCENES, SETTINGS | PISTES, CLIPS, SÉQUENCE, SON, EFFETS, MIXEUR, SCÈNES, RÉGLAGES |
+| Rail: Track, Clips, Seq., Sound, FX, Mix., Scene, ⚙ · Live · Play view · Rec | Piste, Clips, Séq., Son, FX, Mix., Scène, ⚙ · Live · Jeu · Enr. |
+| CLIPS tabs: Grid, Song, Audio | Grille, Morceau, Audio |
 | Transport: Rec, Play, Stop, Fill, Break, Shift | Enr., Lecture, Arrêt, Fill, Break, Maj |
-| Pad roles: Play, Mute, Scenes, Step, Erase | Jouer, Couper, Scènes, Pas, Effacer |
+| Pad roles: Play, Mute, Solo, Scenes, Steps · Pads (fold-out) | Jouer, Mute, Solo, Scènes, Pas · Pads |
 | Open the synth · Photo · Recall · Knob mods · Live view | Ouvrir le synthé · Photo · Rappel · Mod. boutons · Vue live |
 | Assign to… · Free the knob · Learn MIDI | Assigner à… · Libérer le bouton · Apprendre MIDI |
 | Accent · Slide · Locks · Locks only | Accent · Glissé · Verrous · Verrous seuls |
@@ -33,21 +34,25 @@ This manual covers the basics; the instruments and effects are described in deta
 | **Esc** | Close the open window: synth panel, pedalboard, instrument or effect picker, presets, menu, home screen |
 | **B** held | Break: the Break scene while the key is held (and Fill at the same time) |
 | **N** held | Fill: FILL steps play, NOT FILL steps go silent |
-| Right-click (long press with a finger) on an LED button, Photo, Recall, M / S… | Assign to the MIDI controller |
-| Touch the **tempo** (status bar, or the Tempo row on a phone) | Type the tempo (40 to 240 BPM, to a tenth) |
+| Right-click (long press with a finger) on an LED button, Photo, Recall, M / S, rows A to P, sequence patterns A to P… | Assign to the MIDI controller |
+| Touch the **tempo** (status bar, or the Tempo row of the Play view) | Type the tempo (40 to 240 BPM, to a tenth) |
+| **Mouse wheel** on the mixer | Scroll the tracks left and right (over a control: adjust it) |
 
 <figure class="wide"><img src="img/appareil-reperes.jpg" alt="The main controls, numbered"><figcaption>Where the main controls are</figcaption></figure>
 
 1. **Open the synth**: the track's instrument panel, full size.
-2. **Undo / Redo** (Ctrl + Z / Ctrl + Y), **Photo** and **Recall** of all settings.
+2. **Undo / Redo** (Ctrl + Z / Ctrl + Y), **Photo** and **Recall** of all settings, **Knob mods**.
 3. **Audio**: record what comes out (master or separate tracks).
 4. **Full screen** (F11).
-5. The **16 assignable knobs** (blue diamond): each one drives the value you gave it (see below).
-6. **M / S**: mute and solo of the tracks shown.
-7. **Transport**: Rec, Play, Stop (space bar); Fill (N), Break (B), timed Break, Shift.
-8. **Crossfader** for scenes A / B (double-click: back to the middle).
-9. The **8 screens**.
-10. The **pad role**: Play, Mute, Scenes, Step, Erase.
+5. The **rail**: the **8 screens** (Track, Clips, Seq., Sound, FX, Mix., Scene, ⚙ Settings).
+6. **Live** (live view: crossfader or vector, 16-track console) and **Play view** ("Jeu": pads, 16 knobs, Fill / Break, crossfader, tempo).
+7. **Play** and **Stop** (space bar).
+8. **Rec**: record into the pattern.
+9. **Pads**: fold out the 16 pads on the right of the screen, on every screen.
+10. The **values at the bottom** of the screen: drag ↑↓ to adjust, long press for the menu.
+
+On a phone, undo / redo and **Audio** are in each screen's status bar; Photo, Recall and Knob mods are in the
+**Play view**.
 
 ### Pads on the computer keyboard (AZERTY)
 
@@ -59,7 +64,7 @@ This manual covers the basics; the instruments and effects are described in deta
 | **W X C V** | 1 to 4 (bottom row) |
 | **Shift** + key | Accented hit (full velocity) |
 
-The keys follow the pad role chosen on the right: Play, Mute, Scenes, Step, Erase.
+The keys follow the chosen pad role (Play, Mute, Solo, Scenes, Steps), whether the pads are folded out or not.
 
 <figure class="pads"><img src="img/pads-clavier.jpg" alt="The computer key on each pad"><figcaption>The keyboard key on each pad (the same small letter is shown in the top right corner of each pad)</figcaption></figure>
 
@@ -139,8 +144,11 @@ crossfader, scenes, vector pad and macros always respond.
 | Touch an **Accent** / **Slide** cell | Turn the step's accent or slide on / off |
 | Long press (right-click) on an **Accent** / **Slide** cell | The step's value: accent strength, slide time |
 | ◀ ▶ next to the pattern (or the small dots) | Turn pages (one page = 16 steps) |
-| **Shift** + Octave ◀ ▶ (transport) | Previous / next page |
+| **Shift** + Octave ◀ ▶ (Play view) | Previous / next page |
 | **Rec** then play | The notes you play are written into the pattern (quantise: Settings) |
+| Touch a **lane name** (drum kit, T1 to T8, T1 to T4) | Select the lane and **hear its sound** while the finger stays down |
+| Long press (right-click) on **A … P** under the sequence | Assign that pattern to the MIDI controller (it launches it on the chosen track) |
+| **◀ Pads** | Fold out the pads next to the sequence to play while writing |
 
 <figure class="wide"><img src="img/sequence-reperes.jpg" alt="The SEQUENCE screen of a bass: piano roll, Accent and Slide lines, pages"><figcaption>The SEQUENCE screen of a melodic instrument (here the acid bass)</figcaption></figure>
 
@@ -154,7 +162,7 @@ crossfader, scenes, vector pad and macros always respond.
 7. **Notes / Curves**: the knob movements recorded with **REC** in this pattern.
 8. The **track settings** when no step is selected (swing, length, speed…) — see "3. Writing a sequence".
 
-### LAUNCH screen › Grid
+### CLIPS screen › Grid
 
 | Key or gesture | Action |
 |---|---|
@@ -163,7 +171,7 @@ crossfader, scenes, vector pad and macros always respond.
 | **Ctrl + C** then a cell, **Ctrl + V** | Copy a pattern to another cell (same track or another track) |
 | ▶ at the head of a row | Launch the same letter on all tracks (and the scene linked to the row) |
 
-<figure class="wide"><img src="img/lancement-reperes.jpg" alt="LAUNCH › Grid"><figcaption>LAUNCH › Grid</figcaption></figure>
+<figure class="wide"><img src="img/lancement-reperes.jpg" alt="CLIPS › Grid"><figcaption>CLIPS › Grid</figcaption></figure>
 
 1. The **Grid**, **Song**, **Audio** tabs.
 2. The **grid**: one column per track, one cell per pattern; ▶ launches a row, ■ stops a track. The 16 rows (A to P)
@@ -171,7 +179,7 @@ crossfader, scenes, vector pad and macros always respond.
 3. Copy, clear or edit the selected pattern or row.
 4. The values at the bottom: track, edited pattern, **launch quantise**, row, **linked scene**.
 
-### LAUNCH screen › Song and curves
+### CLIPS screen › Song and curves
 
 | Key or gesture | Action |
 |---|---|
@@ -179,14 +187,14 @@ crossfader, scenes, vector pad and macros always respond.
 | Curve editor: **Shift** + drag | Draw a straight line |
 | Curve editor: right-click + drag | Erase |
 
-<figure class="wide"><img src="img/morceau-reperes.jpg" alt="LAUNCH › Song"><figcaption>LAUNCH › Song</figcaption></figure>
+<figure class="wide"><img src="img/morceau-reperes.jpg" alt="CLIPS › Song"><figcaption>CLIPS › Song</figcaption></figure>
 
 1. **Song mode** (the rows play one after another) or **Loop** (the grid plays).
 2. **● Rec performance** (your playing becomes rows) and **● Rec motion** (knobs, faders, mutes, solos, crossfader as curves).
 3. The **rows** played one after the other; the **curves** below.
 4. Add what is playing as a row, clear the rows or the curves.
 
-### LAUNCH screen › Audio (arrangement)
+### CLIPS screen › Audio (arrangement)
 
 | Key or gesture | Action |
 |---|---|
@@ -207,7 +215,7 @@ crossfader, scenes, vector pad and macros always respond.
 | Drag the orange loop bar | Move the loop; its edges: lengthen or shorten it |
 | **Loop** on + "● Record a take" | The take lasts exactly the loop and **stops by itself** at its end |
 
-<figure class="wide"><img src="img/montage-reperes.jpg" alt="LAUNCH › Audio: the arrangement"><figcaption>LAUNCH › Audio (arrangement)</figcaption></figure>
+<figure class="wide"><img src="img/montage-reperes.jpg" alt="CLIPS › Audio: the arrangement"><figcaption>CLIPS › Audio (arrangement)</figcaption></figure>
 
 1. **● Record a take** (it lands at the playhead, or at the start of the loop when Loop is on).
 2. **Arrange mode**: playback plays the clips instead of the instruments.
@@ -229,21 +237,49 @@ crossfader, scenes, vector pad and macros always respond.
 
 <figure><img src="img/accueil.jpg" alt="The home screen at launch: resume, new project, demo, open, projects in the folder"><figcaption>The home screen at launch: resume, new project, demo, open, projects in the folder</figcaption></figure>
 
-## The device
+## The device: a single view
 
-- **8 screens** (buttons on the right): Tracks, Launch, Sequence, Sound, Effects, Mixer, Scenes, Settings.
-- **16 assignable knobs** under the screen: each one drives the value you gave it (see "Knobs and
-  values"). The screen's own values are adjusted directly at the bottom of the screen.
-- **16 pads** on the right: their role (Play, Mute, Scenes, Step, Erase) is chosen above them.
-- **Transport** at the bottom: Rec (record into the pattern), Play, Stop; Fill, Break, Shift; octave;
-  crossfader for scenes A / B.
-- **On a phone**: next to the screen, two tabs. **Controls**: the screens, the 16 knobs, the transport,
-  Fill and Break, the crossfader, Photo / Recall and the **Tempo** row (− / value to touch to type it /
-  + / **Tap**: tap in time, the tempo follows). **Pads**: the pad role, the 16 pads, the scene bank.
-- **Top bar**: "Open the synth" (the instrument panel, full size), CPU load, undo / redo, Photo and
-  Recall of the settings, Audio recording, full screen.
+Since 1.0, GOLEM has **a single view**, the same on computer, tablet and phone: **the screen takes all the space**
+and a **rail** on the right gives everything else.
 
-<figure><img src="img/appareil.jpg" alt="The device: the screen (here LAUNCH › Grid), the 16 assignable knobs, M / S, transport, the 8 screens and the 16 pads"><figcaption>The device: the screen (here LAUNCH › Grid), the 16 assignable knobs, M / S, transport, the 8 screens and the 16 pads</figcaption></figure>
+- **Rail**: the **8 screens** (Track, Clips, Seq., Sound, FX, Mix., Scene, ⚙ Settings), **Live** and **Play view**,
+  **Play / Stop**, and **Rec** at the bottom.
+- **Fold-out pads**: the yellow **◀ Pads** tab, on its own strip at the right edge of the screen, folds out the 16
+  pads next to the chosen screen, on every screen. Edit the sequence, the mixer or the sound on the left and play
+  the track on the right. **▶ Pads** folds them back; GOLEM remembers the choice.
+- The pad panel: the **played track** (◀ ▶ or list), the **pad role** (Play, Mute, Solo, Scenes, Steps), the 16
+  pads, the **scene bank** (1 – 16, 17 – 32) and **Edit A / B**. On a drum kit in Mute or Solo, "Drum sounds /
+  16 tracks" chooses what the pads mute.
+- **Values at the bottom** of each screen: adjust them with a finger or the mouse (drag ↑↓), long press for the menu.
+- **Top bar** (computer): "Open the synth", CPU load, undo / redo, Photo, Recall, Knob mods, Audio recording,
+  full screen. On a phone, undo / redo and Audio are in each screen's status bar.
+- The **computer keyboard** always plays the pads (even folded): space, B, N and the pad keys.
+
+<figure class="wide"><img src="img/pads-reperes.jpg" alt="The pads folded out next to the Sequence screen"><figcaption>The pads folded out next to the Sequence screen</figcaption></figure>
+
+1. The played track. 2. The pad role. 3. The 16 pads. 4. Scene bank, Edit A / B. 5. Fold the pads back.
+
+<figure><img src="img/appareil.jpg" alt="The Sequence screen with the pads folded out and the rail"><figcaption>Sequence and pads side by side (computer)</figcaption></figure>
+
+<figure><img src="img/v100/pads-telephone.jpg" alt="The mixer with the pads folded out, on a phone"><figcaption>The mixer with the pads folded out (phone)</figcaption></figure>
+
+### The Play view
+
+**Play view** ("Jeu" on the rail) replaces the screen with a full playing surface: the played track (◀ ▶), **rows A
+to H**, the 16 pads and their role, the **16 assignable knobs**, **Photo / Recall / Knob mods**, **Fill, Break,
+Break 1 bar, Shift**, octave and **crossfader**, the **tempo** (− / value / + / Tap). Touch **Play view** again, or a
+screen on the rail, to close it.
+
+In the Play view, **Mute** and **Solo** act on the **16 mixer tracks**; each pad keeps its **track colour** (greyed:
+muted; blue frame: solo). Elsewhere, on a drum kit, the FM Player or Pieuvre 8, they can mute the sounds or the
+inner tracks.
+
+<figure class="wide"><img src="img/jeu-reperes.jpg" alt="The Play view, numbered"><figcaption>The Play view</figcaption></figure>
+
+1. Played track. 2. Rows A to H. 3. Pad role. 4. The 16 pads (Mute / Solo: the 16 tracks). 5. The 16 assignable
+knobs. 6. Photo, Recall, Knob mods. 7. Fill, Break, Break 1 bar, Shift. 8. Octave and crossfader. 9. Tempo.
+
+<figure><img src="img/v100/jeu-telephone.jpg" alt="The Play view on a phone"><figcaption>The Play view on a phone</figcaption></figure>
 
 ## Editing basics
 
@@ -448,7 +484,7 @@ variations and small fills without writing other patterns.
 
 #### Fill and Break: live fills and drops
 
-- **Fill** (transport button, or **N** key held): while it is held, the **FILL** steps play and the
+- **Fill** (Play view, live view, or **N** key held): while it is held, the **FILL** steps play and the
   **NOT FILL** steps go silent. In the same pattern you can prepare a snare fill, a tom roll (with
   **Repeats** ↗), an open hi-hat… which only appear when you press: mini-breaks on demand.
 - **Break** (button, or **B** key held): applies the **Break scene** while it is held — it's a scene like
@@ -488,7 +524,7 @@ The gestures:
 
 ### 4. Launching
 
-LAUNCH › Grid screen: each cell launches a pattern (at the start of the next bar); ▶ at the head of a row
+CLIPS › Grid screen: each cell launches a pattern (at the start of the next bar); ▶ at the head of a row
 launches the same letter on all tracks; ■ stops a track.
 
 **16 rows, on two pages.** Each track has 16 patterns: the rows go from **A to P**. The **Rows** bar
@@ -499,7 +535,7 @@ launches the same letter on all tracks; ■ stops a track.
 - **−1 / +1** launch the previous or next row and **turn the page by themselves** (from H, +1 goes to I).
   They **skip empty rows**: if I to P are not written, +1 from H goes back to A.
 - The page follows the row launched, also from the MIDI controller or the song, and it is the same
-  everywhere (rows bar, LAUNCH grid).
+  everywhere (rows bar, CLIPS grid).
 - From a MIDI controller, each of the 16 rows can be learned (right-click on its button), like −1 / +1 and ■.
 
 ### 5. Shaping the sound
@@ -544,13 +580,12 @@ settings stored in A or B move: everything else stays as it is.
    setting you touch is added to the scene with its value. "Done" to exit. Values can also be adjusted in
    the list (drag), × removes a setting.
 2. **Scene B**: the same, on the other side.
-3. The **crossfader position**.
+3. The A ↔ B **crossfader** (touch or drag; also in the Play view, the live view and from the MIDI controller).
 4. The **scene grid**: touching a scene places it **on the side you hear** (where the crossfader is); with
    **Shift**, it goes **to the other side**, ready to be brought in with the crossfader. Right-click:
    mute scene. The "Scene A" / "Scene B" values at the bottom also choose the scene on each side.
 5. The **Break scene**: applied while **Break** (or the **B** key) is held.
-6. The transport **crossfader** (also from the MIDI controller; double-click: back to the middle).
-7. **Rows A to P**: launching a row also launches its **linked scene** (set in LAUNCH).
+6. **Rows A to P**: launching a row also launches its **linked scene** (set in CLIPS).
 
 **Playing several scenes in a chain**: crossfader on the left on scene 1. **Shift** + scene 2: it goes to
 B. Push the crossfader to the right: the sound glides from scene 1 to scene 2. **Shift** + scene 3: it
@@ -580,7 +615,7 @@ dot on the pad: in the centre, all four in equal parts; in a corner, that corner
 
 <figure class="wide"><img src="img/scenes-vecteur-pc.jpg" alt="SCENES › Vector on PC: the pad, the four corners, the Infinity motion shown at 95 % size"><figcaption>SCENES › Vector (PC): the "Infinity" motion travels through the four scenes</figcaption></figure>
 
-**⛶ Live view** (raspberry button next to the Crossfader / Vector tabs): the whole performance on a
+**Live** (raspberry button on the rail, or ⛶ Live view next to the Crossfader / Vector tabs): the whole performance on a
 single screen, the showcase for playing live. At the top: Back, ● ▶ ■, **Crossfader** or **Vector** mode
 (with, in Vector, the motion, cycle length, Draw), the selected track and **Open the instrument**; then
 the **16 assignable knobs with the name of their function**; the **rows** (see below).
@@ -597,7 +632,7 @@ the **16 assignable knobs with the name of their function**; the **rows** (see b
   **M / S**; **Tracks / Groups** shows the mixer groups, and in Tracks view the groups in use take the
   place of tracks with no instrument. Touching a track's name or fader selects it (Open the instrument,
   effects, knobs to assign); ✕ in the instrument or the effects brings you back to the live view.
-- At the bottom: the **position** (bar, beat, loop, song row) and **Photo / Recall / Knob mods**.
+- At the bottom: the **position** (bar, beat, loop, song row), **Fill, Break, Break 1 bar, Shift** and **Photo / Recall / Knob mods**.
 - On a phone, the console becomes the track list (name: select, M / S).
 
 <figure class="wide"><img src="img/vue-live-crossfader.jpg" alt="Live view in Crossfader mode: scene 1 and scene 9, big crossfader, scene grid, console of the 16 tracks with faders, FX, M / S, 16 named knobs"><figcaption>Live view · Crossfader</figcaption></figure>
@@ -608,16 +643,16 @@ the **16 assignable knobs with the name of their function**; the **rows** (see b
 
 ### 8. Song
 
-LAUNCH › Song screen: **rows** played one after another in song mode. "Rec performance" turns your
+CLIPS › Song screen: **rows** played one after another in song mode. "Rec performance" turns your
 playing into rows; **REC** (or "Rec motion") records the movements: knobs, faders, EQs, mutes, solos,
 groups, crossfader. In song mode they go to the song; in loop mode, a track's settings go into its
 pattern's loop.
 
-<figure><img src="img/morceau.jpg" alt="LAUNCH › Song: the rows (pattern of each track) and, below, the recorded curves"><figcaption>LAUNCH › Song: the rows (pattern of each track) and, below, the recorded curves</figcaption></figure>
+<figure><img src="img/morceau.jpg" alt="CLIPS › Song: the rows (pattern of each track) and, below, the recorded curves"><figcaption>CLIPS › Song: the rows (pattern of each track) and, below, the recorded curves</figcaption></figure>
 
 ### 9. Audio arrangement
 
-LAUNCH › Audio screen: place the playhead, "● Record a take", play (the take starts at the beginning of
+CLIPS › Audio screen: place the playhead, "● Record a take", play (the take starts at the beginning of
 the next bar and lands at the playhead); at the end, each track becomes audio clips, to split, move,
 duplicate; **Arrange mode** to hear them; WAV or MP3 export of the finished track.
 
@@ -646,7 +681,7 @@ exactly to length, as 24-bit WAV or 320 kbit/s MP3. **Several clips at once**: t
 all its clips, **Ctrl+A** selects everything, and dragging the edge of a selected clip adjusts every selected
 clip.
 
-<figure><img src="img/montage.jpg" alt="LAUNCH › Audio: the clips of each track, the ruler, the playhead; below, the selected clip (volume, fades, split, copy, duplicate)"><figcaption>LAUNCH › Audio: the clips of each track, the ruler, the playhead; below, the selected clip (volume, fades, split, copy, duplicate)</figcaption></figure>
+<figure><img src="img/montage.jpg" alt="CLIPS › Audio: the clips of each track, the ruler, the playhead; below, the selected clip (volume, fades, split, copy, duplicate)"><figcaption>CLIPS › Audio: the clips of each track, the ruler, the playhead; below, the selected clip (volume, fades, split, copy, duplicate)</figcaption></figure>
 
 ### 10. Saving
 
@@ -668,9 +703,27 @@ goes back to it in one gesture (and can be undone with Ctrl+Z).
 
 ### 11. Samples and Library
 
+**Do this first: tell GOLEM where your sounds are.** The Library (pads, samplers, "Sample…") opens in the
+samples folder; set it right and you land straight on your sounds.
+
+- **On a computer (Windows, Mac)**: **SETTINGS** screen (⚙ on the rail) › **Folders** block › **Samples** row ›
+  **Choose…**, then pick the folder where you keep your sounds (for example `Documents\My samples`). It is kept
+  for every project; **Default** goes back to `Documents\Groovebox`, **Open** shows it in the file explorer. Do
+  the same for **Projects** (Open… and Save… start there) and **Presets** (one subfolder per synth or effect,
+  then your banks).
+- **On a phone or tablet**: the system does not let the app read a folder freely, so the sounds are **copied**
+  once. **SETTINGS › Folders › Samples › Personal folder…**: pick your sound folder, everything in it (subfolders
+  included) is copied to **Library › Custom**; running "Personal folder…" again only adds the new ones.
+  **Import files…** copies a few chosen sounds to **Library › Imported**.
+
 - Formats accepted everywhere (pads, samplers, import, Library): **WAV, AIFF, FLAC, OGG and MP3**.
-- **"Sample…"** on a track: the chosen sound is loaded at once **and** stored in **Library › Imported**
-  (imported), so you can find it later.
+- **"Sample…"** (a sound taken from outside the Library): the sound is loaded at once on the pad or sampler,
+  and **saved inside the project** (.gbx) at the next save — the project stays complete even if the original
+  file moves.
+  - **On a computer**, the original file stays where it is: nothing is copied. To find it in the Library, put it
+    in your samples folder (see above).
+  - **On a phone or tablet**, it is also copied to **Library › Imported**, so you can pick it again later without
+    the file picker.
 - **Settings › Personal folder…**: copies every sound of a folder of the phone or computer (subfolders
   included) into **Library › Custom**; doing it again only adds the new ones.
 - **Library › My recordings**: your audio takes ("● Audio" button).
@@ -740,7 +793,9 @@ AU plugin).
 
 <figure><img src="img/v100/fm-player-grand-telephone.jpg" alt="Big mode on a phone, Night background"><figcaption>Big mode on a phone (Night background): screen, knobs, piano and T1 to T4</figcaption></figure>
 
-<figure><img src="img/v100/fm-player-sequence-t1-t4.jpg" alt="Sequence screen: the 4 lines T1 to T4"><figcaption>Sequence screen: one line per T track (one firmware MIDI channel each)</figcaption></figure>
+<figure><img src="img/v100/fm-sequence-pads.jpg" alt="FM Player Sequence screen: the 4 lines T1 to T4, pads folded out"><figcaption>Sequence screen: one line per T track (one firmware MIDI channel each), pads folded out to play</figcaption></figure>
+
+<figure><img src="img/v100/fm-sequence-telephone.jpg" alt="FM Player Sequence screen on a phone"><figcaption>The same sequence on a phone</figcaption></figure>
 
 <sub>M-VAVE and FM-1 are trademarks of their respective owners. OFAD GOLEM is not affiliated with, endorsed or
 sponsored by M-VAVE; these names are used only to state compatibility with firmware written for the FM-1.

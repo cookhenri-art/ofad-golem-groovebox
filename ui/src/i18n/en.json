@@ -1973,6 +1973,7 @@
 "Plateau haut": "High shelf",
 "Plein": "Full",
 "Plein écran": "Full screen",
+"Quitter plein écran": "Exit full screen",
 "Plein écran : l'application prend tout l'écran (F#)": "Full screen: the application takes the whole screen (F#)",
 "Plein écran indisponible ici": "Full screen unavailable here",
 "Pleurage": "Wow",
@@ -3660,5 +3661,15 @@
 "Verrous glissés : les réglages de {1} voyagent en douceur d'un verrou au suivant (sinon ils sautent au début du pas)": "Gliding locks: the settings of {1} travel smoothly from one lock to the next (otherwise they jump at the start of the step)",
 "Couper les verrous de {1} sans les effacer (les pas jouent le son de base) ; toucher à nouveau pour les rallumer": "Mute the locks of {1} without deleting them (the steps play the base sound); touch again to bring them back",
 "Les firmwares déjà dans la bibliothèque (dossier Firmwares). Pour en importer un nouveau : « Firmware… » en haut": "The firmwares already in the library (Firmwares folder). To import a new one: “Firmware…” at the top",
-"Changer de firmware : la bibliothèque, ouverte sur le dossier Firmwares": "Change firmware: the library, opened on the Firmwares folder"
+"Changer de firmware : la bibliothèque, ouverte sur le dossier Firmwares": "Change firmware: the library, opened on the Firmwares folder",
+"Clips": "Clips",
+"Nouveau": "New",
+"Fichiers": "Files",
+"Langue": "Language",
+"Enregistre le projet dans l'application, sous le nom écrit ici (ou la date)": "Saves the project in the app, under the name typed here (or the date)",
+"Nom (sinon : la date)": "Name (otherwise: the date)",
+"Dans le dossier": "In the folder",
+"Enregistrer sous…": "Save as…",
+"Comme modèle…": "As template…",
+"Enregistrer dans le dossier des projets, sous ce nom": "Save in the projects folder, under this name"
 }

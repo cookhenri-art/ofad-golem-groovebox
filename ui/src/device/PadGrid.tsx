@@ -23,7 +23,8 @@ const KEY_LABELS = ["W", "X", "C", "V", "Q", "S", "D", "F", "A", "Z", "E", "R", 
 const ROWS = [[12, 13, 14, 15], [8, 9, 10, 11], [4, 5, 6, 7], [0, 1, 2, 3]];
 
 
-export function PadGrid() {
+/** tracksOnly (1.0, écran Jeu) : Mute et Solo agissent toujours sur les 16 pistes du mixeur. */
+export function PadGrid({ tracksOnly = false }: { tracksOnly?: boolean } = {}) {
   const cat = useStore((s) => s.catalog);
   const focus = useStore((s) => s.focus);
   const tracks = useStore((s) => s.tracks.tracks);
@@ -56,7 +57,7 @@ export function PadGrid() {
     : laneKind === "octa" || laneKind === "fm1" ? trackColor(lane) : `var(${KIND_VAR[laneKind] ?? "--k-sample"})`;
   // v0.31 : rôle Couper sur une batterie — les pads coupent ses sons (lignes du motif) au lieu des pistes
   const muteTarget = useStore((s) => s.ui.muteTarget);
-  const padMute = mode === "mute" && drum && muteTarget === "pads";
+  const padMute = (mode === "mute" || mode === "solo") && drum && muteTarget === "pads" && !tracksOnly;
   const laneMs = useStore((s) => s.pattern?.lanes.map((l) => (l.solo ? 2 : 0) + (l.mute ? 1 : 0)).join(",") ?? "");
   const laneFlags = laneMs.split(",").map(Number);
 
@@ -72,7 +73,7 @@ export function PadGrid() {
         break;
       }
       case "mute": {
-        if (drum && s.ui.muteTarget === "pads") {
+        if (drum && s.ui.muteTarget === "pads" && !tracksOnly) {
           // Maj + pad : solo du son ; pad : coupure du son
           const ln = s.pattern?.lanes[pad];
           if (s.ui.shift) void actions.seq("seqLaneSolo", pad, !ln?.solo);
@@ -91,15 +92,10 @@ export function PadGrid() {
         actions.toggleStep(s.ui.lane, step);
         break;
       }
-      case "erase": {
-        const p = s.pattern;
-        if (!p) return;
-        if (drum) { void actions.seq("seqClearLane", pad); showMessage(`${module?.padNames[pad] ?? "Pad"} effacé`); }
-        else {
-          const n = padNote(pad, false, s.ui.octave, s.ui.scale, s.ui.root);
-          p.lanes.forEach((ln, l) => ln.vel.forEach((v, st) => { if (v > 0 && ln.note[st] === n) void actions.seq("seqSetStep", l, st, 0); }));
-          showMessage(`${noteName(n)} effacé de la séquence`);
-        }
+      case "solo": {
+        // 1.0 : solo des 16 pistes (sur une batterie réglée « pads » : solo du son, comme Maj + pad en Mute)
+        if (drum && s.ui.muteTarget === "pads" && !tracksOnly) { const ln = s.pattern?.lanes[pad]; void actions.seq("seqLaneSolo", pad, !ln?.solo); break; }
+        void actions.trackSolo(pad, !s.tracks.tracks[pad]?.solo);
         break;
       }
     }
@@ -142,10 +138,10 @@ export function PadGrid() {
     <div className="padgrid" role="grid" aria-label="Pads" data-paint-row>
       {ROWS.flat().map((pad) => {
         const note = padNote(pad, drumPads, octave, scale, root);
-        const kind = mode === "play" || padMute ? (drumPads ? module?.padKinds[pad] ?? "sample" : padMute ? "sample" : "melodic") : mode === "mute" ? "track" : "sample";
+        const kind = mode === "play" || padMute ? (drumPads ? module?.padKinds[pad] ?? "sample" : padMute ? "sample" : "melodic") : mode === "mute" || mode === "solo" ? "track" : "sample";
         const scene = sceneBank * 16 + pad;
         const classes = ["pad", `pad--${kind}`, `pad--mode-${mode}`];
-        const isLit = padMute ? (litLanes[pad] ?? 0) > 0 : mode === "mute" ? (litTracks[pad] ?? 0) > 0 : mode === "play" ? (drumPads ? (litLanes[pad] ?? 0) > 0 : (litNotes[note] ?? 0) > 0) : false; // mélodique : la note exacte du pad, sinon rien
+        const isLit = padMute ? (litLanes[pad] ?? 0) > 0 : mode === "mute" || mode === "solo" ? (litTracks[pad] ?? 0) > 0 : mode === "play" ? (drumPads ? (litLanes[pad] ?? 0) > 0 : (litNotes[note] ?? 0) > 0) : false; // mélodique : la note exacte du pad, sinon rien
         if (isLit) classes.push("pad--lit");
         if (mode === "play" && drumPads && pad === lane) classes.push("pad--selected");
         if (padMute) {
@@ -153,7 +149,10 @@ export function PadGrid() {
           if ((laneFlags[pad] ?? 0) & 2) classes.push("pad--solo");
         } else {
           if (mode === "mute" && tracks[pad]?.mute) classes.push("pad--muted");
-          if (mode === "mute" && !tracks[pad]?.instrument) classes.push("pad--empty");
+          if (mode === "solo" && tracks[pad]?.solo) classes.push("pad--solo");
+          if ((mode === "mute" || mode === "solo") && !tracks[pad]?.instrument) classes.push("pad--empty");
+          // 1.0 (7 nov.) : en Mute et Solo, chaque pad garde la couleur de sa piste (on s'y retrouve mieux)
+          else if (mode === "mute" || mode === "solo") classes.push("pad--trackcol");
         }
         if (mode === "scenes") {
           if (scene === Math.round(g.sceneA) - 1) classes.push("pad--sceneA");
@@ -168,11 +167,12 @@ export function PadGrid() {
           if (playStep === st) classes.push("pad--lit");
         }
         if (dropTarget === pad) classes.push("pad--drop");
-        const caption = mode === "steps" ? `Pas ${page * 16 + pad + 1}` : mode === "scenes" ? `Scène ${scene + 1}` : padMute ? `${module?.padNames[pad] ?? ""}${(laneFlags[pad] ?? 0) & 2 ? " · solo" : ""}` : mode === "mute" ? tracks[pad]?.name ?? "" : !module ? "" : levels ? `Vélocité ${Math.round(((pad + 1) / 16) * 127)}` : drumPads ? module.padNames[pad] ?? "" : noteName(note);
+        const caption = mode === "steps" ? `Pas ${page * 16 + pad + 1}` : mode === "scenes" ? `Scène ${scene + 1}` : padMute ? `${module?.padNames[pad] ?? ""}${(laneFlags[pad] ?? 0) & 2 ? " · solo" : ""}` : mode === "mute" || mode === "solo" ? tracks[pad]?.name ?? "" : !module ? "" : levels ? `Vélocité ${Math.round(((pad + 1) / 16) * 127)}` : drumPads ? module.padNames[pad] ?? "" : noteName(note);
 
         return (
           <button key={pad} type="button" className={classes.join(" ")} data-paint-step={mode === "steps" ? page * 16 + pad : undefined}
-            style={mode === "steps" && (laneVel?.[page * 16 + pad] ?? 0) > 0 ? { "--k": stepK } as React.CSSProperties : undefined}
+            style={mode === "steps" && (laneVel?.[page * 16 + pad] ?? 0) > 0 ? { "--k": stepK } as React.CSSProperties
+              : !padMute && (mode === "mute" || mode === "solo") && tracks[pad]?.instrument ? { "--tk": trackColor(tracks[pad]?.color ?? 0) } as React.CSSProperties : undefined}
             aria-label={mode === "scenes" ? `Lancer la scène ${scene + 1}` : `Pad ${pad + 1} : ${caption}`}
             onPointerDown={(e) => {
               if (e.button !== 0) return;

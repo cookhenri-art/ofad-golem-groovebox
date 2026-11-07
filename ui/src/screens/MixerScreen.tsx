@@ -331,7 +331,16 @@ export function MixerScreen() {
           {bank === 2 ? <LoudnessPanel /> : channels.length <= 6 ? <GroupHelp /> : null}
         </div>
       ) : (
-        <div className="mixer-scroll" ref={scroller} onScroll={onScroll}>
+        <div className="mixer-scroll" ref={scroller} onScroll={onScroll}
+          onWheel={(e) => {
+            // 1.0 (7 nov.) : la molette fait défiler les pistes de gauche à droite, une tranche par cran
+            // (sauf au-dessus d'un réglage : envois, panoramique, fader, qui se règlent à la molette)
+            const el = e.currentTarget;
+            if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+            if ((e.target as HTMLElement).closest(".mknob, .drag-value, .tfader, .strip-pan, input, select")) return;
+            const strip = el.querySelector<HTMLElement>(".strip");
+            el.scrollBy({ left: Math.sign(e.deltaY) * (strip?.offsetWidth ?? 160), behavior: "smooth" });
+          }}>
           <div className="mixer mixer--all">
             {channels.map((ch) => <Strip key={ch} channel={ch} />)}
             <MonoWarning />

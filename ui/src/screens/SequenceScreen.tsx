@@ -19,11 +19,11 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { actions, baseValue, getState, resolveGlobal, ROLL_MAX, ROLL_MIN, setRollBase, setUi, showMessage, slots, useStore } from "../engine/store";
+import { actions, baseValue, getState, resolveGlobal, ROLL_MAX, ROLL_MIN, setRollBase, setUi, showMessage, slots, useStore, writePref } from "../engine/store";
 import { StepAmountEditor, useLongPress, type StepAmountKind } from "../controls/StepAmount";
 import { allKeys, cellKey, flagMoves, getClipboard, getLockClip, laneOf, origin, payload, place, retarget, setClipboard, snapshot, stepOf, type CellData, type Plan } from "../engine/selection";
 import { condChoices, DIRECTIONS, RATCHET_CHOICES, condKey, condText, parseCond, ratchetKey, ratchetText, DIVISIONS, DIVISION_ORDER, PATTERN_NAMES, ROW_PAGE, ROW_PAGES, rowPageName, SPEEDS, STEPS_PER_BAR, FLAM_CHOICES, flamText, STEP_ACCENT, STEP_SLIDE, STEP_REC, STEP_TRIGLESS, type PatternData, hostCode } from "../engine/protocol";
-import { inScale } from "../engine/scales";
+import { inScale, padNote } from "../engine/scales";
 import { formatNorm, noteName, toPlain, trackColor } from "../engine/params";
 import { rangeEntry, steppedBinding, valueBinding, withCtl } from "../controls/bindings";
 import type { EncoderBinding } from "../controls/Encoder";
@@ -32,6 +32,7 @@ import type { EncoderBinding } from "../controls/Encoder";
 const MAX_LEN8 = 1024;
 const LEN_CHOICES = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 640, 768, 896, MAX_LEN8];
 import { ScreenFrame } from "./ScreenFrame";
+import { registerCtl, uiCode } from "../engine/ctl";
 import { CurveEditor } from "../controls/CurveEditor";
 import { describeGlobal } from "../engine/describe";
 
@@ -39,6 +40,9 @@ const PAGE = 16;
 const LANE_LENGTHS = [0, ...Array.from({ length: 32 }, (_, i) => i + 1), 48, 64, 96, 128, 192, 256, 384, 512];
 const BAR_CHOICES = [1, 2, 3, 4, 8, 12, 16, 24, 32];
 const ROLL_ROWS = 24; // deux octaves affichées
+/** 1.0 : vue sur une octave (cases deux fois plus hautes) ou sur deux */
+const rollRows = (u: { rollOne?: boolean }) => (u.rollOne ? 12 : ROLL_ROWS);
+const toggleRollOne = () => { const v = !getState().ui.rollOne; setUi({ rollOne: v }); writePref("rollOne", v); };
 
 /** v0.46 fix28 : clavier du rouleau de notes : toucher joue la note ; glisser le doigt vers le haut ou le
     bas fait défiler les octaves (comme la molette sur PC), sans jouer. */
@@ -77,6 +81,32 @@ function rollKeyHandlers(t: number, n: number) {
     sombres, dièse ou pas ; sans gamme (chromatique), le dessin du clavier (touches noires). */
 const scaleRowClass = (_n: number, black: boolean, out: boolean, scale: number) =>
   scale > 0 ? (out ? " roll-row--out" : " roll-row--in") : black ? " roll-row--black" : "";
+
+/** 1.0 (7 nov.) : boutons A à P du bas de la séquence au contrôleur MIDI (appui long ou clic droit, comme les
+    rangées du mixeur) : la commande apprise lance ce pattern sur la piste choisie. Valeurs d'écran
+    « Séquence.Pattern X » enregistrées dès le chargement : elles marchent quel que soit l'écran affiché.
+    Un appui (note : bascule 0/1 ; CC : appui puis relâché) = un lancement (relâché ignoré pendant 250 ms). */
+const patLaunchAt = new Map<number, number>();
+const patCtlId = (p: number) => `Séquence.Pattern ${PATTERN_NAMES[p]}`;
+const patCtlLabel = (p: number) => `Lancer le pattern ${PATTERN_NAMES[p]} (piste choisie)`;
+PATTERN_NAMES.forEach((_, p) => registerCtl(patCtlId(p), {
+  kind: "continuous", label: patCtlLabel(p), text: "", normalised: 0,
+  onChange: () => {
+    const now = performance.now();
+    if (now - (patLaunchAt.get(p) ?? 0) < 250) return;
+    patLaunchAt.set(p, now);
+    void actions.launchPattern(Math.min(getState().focus, 15), p);
+  },
+}));
+async function learnPattern(p: number) {
+  const code = await uiCode(patCtlId(p), patCtlLabel(p));
+  if (code === null) return;
+  void actions.midiLearn(code);
+  showMessage(`Pattern ${PATTERN_NAMES[p]} : touchez un bouton ou un pad du contrôleur MIDI`);
+}
+
+/** 1.0 : note jouée en touchant le nom d'une ligne (relâchée au lever du doigt). */
+let auditionNote: { t: number; n: number } | null = null;
 
 export function SequenceScreen() {
   const cat = useStore((s) => s.catalog);
@@ -238,7 +268,7 @@ export function SequenceScreen() {
     drum ? steppedBinding("Longueur du pad", LANE_LENGTHS.filter((n) => n <= L.maxSteps), LANE_LENGTHS.includes(L0?.length ?? 0) ? L0?.length ?? 0 : 0,
       (n) => void actions.seq("seqLaneLength", lane, n), (n) => (n === 0 ? "Pattern" : `${n} pas`)) : accentBinding,
     drum ? accentBinding
-      : steppedBinding("Octaves vues", Array.from({ length: ROLL_MAX / 12 + 1 }, (_, i) => i * 12), Math.min(ROLL_MAX, Math.max(ROLL_MIN, Math.round(ui.rollBase / 12) * 12)), (b) => setRollBase(b), (b) => `${noteName(b)} – ${noteName(b + ROLL_ROWS - 1)}`),
+      : steppedBinding("Octaves vues", Array.from({ length: ROLL_MAX / 12 + 1 }, (_, i) => i * 12), Math.min(ROLL_MAX, Math.max(ROLL_MIN, Math.round(ui.rollBase / 12) * 12)), (b) => setRollBase(b), (b) => `${noteName(b)} – ${noteName(b + rollRows(ui) - 1)}`),
   ];
 
   const flamBinding = (cur: number, set: (ms: number) => void) => steppedBinding("Flam", FLAM_CHOICES, FLAM_CHOICES.includes(cur) ? cur : 0, set, flamText);
@@ -350,6 +380,31 @@ export function SequenceScreen() {
     window.addEventListener("pointercancel", end);
   };
   // appui sur le nom d'un pad : le choisir et sélectionner tous ses pas ; 2e appui : désélectionner
+  // 1.0 (7 nov.) : toucher le nom d'une ligne (batterie, Pieuvre, FM Player) joue son son tant que le doigt
+  // reste posé, comme le clavier du rouleau pour les synthés (la vue agrandie n'a pas de pads)
+  const laneAudition = (r: number, on: boolean) => {
+    const cur = auditionNote;
+    if (cur) { actions.noteOff(cur.t, cur.n); auditionNote = null; }
+    if (!on || !module) return;
+    let n = r;
+    if (laneInst) {
+      const u = getState().ui, ln = getState().pattern?.lanes[r];
+      if (u.lane !== r) setUi({ lane: r }); // la piste interne jouée suit la ligne
+      const st = ln ? ln.vel.findIndex((v) => v > 0) : -1;
+      n = st >= 0 && ln ? ln.note[st] : padNote(0, false, u.octave, 0, u.root);
+    }
+    actions.noteOn(t, n, 0.8, false);
+    auditionNote = { t, n };
+  };
+  const chipPress = useRef<number | null>(null);
+  const chipLearn = (p: number) => {
+    const cancel = () => { if (chipPress.current !== null) { window.clearTimeout(chipPress.current); chipPress.current = null; } };
+    return {
+      onPointerDown: (e: React.PointerEvent) => { if (e.pointerType === "mouse") return; cancel(); chipPress.current = window.setTimeout(() => { chipPress.current = null; void learnPattern(p); }, 600); },
+      onPointerUp: cancel, onPointerLeave: cancel,
+      onContextMenu: (e: React.MouseEvent) => { e.preventDefault(); cancel(); void learnPattern(p); },
+    };
+  };
   const selectLane = (r: number) => {
     const u = getState().ui;
     const p = getState().pattern;
@@ -564,12 +619,14 @@ export function SequenceScreen() {
       <div className={`seq${drum ? "" : " seq--melodic"}`} style={drum ? undefined : { "--k": trackColor(track?.color ?? 0) } as React.CSSProperties}>
         <div className={`seq-head${drum && !showLaneRoll ? "" : " seq-head--roll"}`}>
           {drum && !showLaneRoll ? (laneInst
-            ? <button type="button" className="seq-head-name seq-head-roll" onClick={() => { setLaneRoll(true); if (ui.rollBase > 60 || ui.rollBase + ROLL_ROWS - 1 < 60) setRollBase(48); }} aria-label={`T${Math.min(lane, 7) + 1} en notes (clavier chromatique)`}
+            ? <button type="button" className="seq-head-name seq-head-roll" onClick={() => { setLaneRoll(true); if (ui.rollBase > 60 || ui.rollBase + rollRows(ui) - 1 < 60) setRollBase(48); }} aria-label={`T${Math.min(lane, 7) + 1} en notes (clavier chromatique)`}
                 title="Déplier la piste T choisie en clavier chromatique : chaque pas reçoit sa note (Clavier « Chromatique » de la piste)">T{Math.min(lane, 7) + 1} en notes ♪</button>
             : <span className="seq-head-name">Pad</span>) : (
           <span className="seq-head-name seq-octave" title="Octave affichée (accordée avec l'octave des pads ; molette sur le clavier, ou Maj + Page / octave)">
             <button type="button" onClick={() => setRollBase(ui.rollBase - 12)} disabled={ui.rollBase <= ROLL_MIN} aria-label="Octave plus bas">▼</button>
             <button type="button" onClick={() => setRollBase(ui.rollBase + 12)} disabled={ui.rollBase >= ROLL_MAX} aria-label="Octave plus haut">▲</button>
+            <button type="button" className={`seq-oct-one${ui.rollOne ? " on" : ""}`} onClick={toggleRollOne} aria-pressed={!!ui.rollOne}
+              title="Afficher une seule octave, cases deux fois plus hautes (toucher à nouveau : deux octaves)">{ui.rollOne ? "1 oct." : "2 oct."}</button>
           </span>)}
           <div className="seq-ruler">
             {Array.from({ length: PAGE }, (_, i) => {
@@ -587,7 +644,7 @@ export function SequenceScreen() {
           <OctaLaneRoll t={t} T={Math.min(lane, 7)} first={first} stepsPerBeat={stepsPerBeat} playStep={showsPlaying ? (pos[Math.min(lane, 7)] ?? -1) : -1}
             lengthHint={(T) => { if (octa && octaParam(`t${T + 1}_holdmode`) !== 1) showMessage(`Durée de la note : elle s'entend quand le Déclenchement de T${T + 1} est sur « Tant qu'appuyé » (page Ampli)`); }} />
         ) : drum ? (
-        <div className="seq-body" onPointerLeave={() => { hover.current = null; }}>
+        <div className="seq-body" style={{ "--rows": Math.max(1, rows.length) } as React.CSSProperties} onPointerLeave={() => { hover.current = null; }}>
           {rows.map((r) => {
             const ln = pattern.lanes[r];
             if (!ln) return null;
@@ -598,6 +655,8 @@ export function SequenceScreen() {
             return (
               <div key={r} className={`seq-row${r === lane ? " seq-row--selected" : ""}${ln.mute ? " seq-row--muted" : ""}`}>
                 <button type="button" className={`seq-name kind--${kind}${(lit[r] ?? 0) > 0 ? " is-lit" : ""}`} style={kStyle} onClick={() => selectLane(r)}
+                  onPointerDown={(e) => { if (e.button === 0) laneAudition(r, true); }} onPointerUp={() => laneAudition(r, false)}
+                  onPointerCancel={() => laneAudition(r, false)} onPointerLeave={() => laneAudition(r, false)}
                   title="Choisir ce pad et sélectionner tous ses pas (puis ← → ou ◀ ▶ pour les décaler en boucle ; un 2e appui désélectionne)">
                   <span className="seq-swatch" aria-hidden />
                   <span className="seq-num">{r + 1}</span>
@@ -645,10 +704,10 @@ export function SequenceScreen() {
           })}
         </div>
         ) : (
-        <div className="roll" role="grid" aria-label="Notes de la séquence" onPointerLeave={() => { hover.current = null; }}
+        <div className={`roll${ui.rollOne ? " roll--one" : ""}`} role="grid" aria-label="Notes de la séquence" onPointerLeave={() => { hover.current = null; }}
           onWheel={(e) => { if (!(e.target as HTMLElement).closest(".roll-key")) return; setRollBase(getState().ui.rollBase + (e.deltaY < 0 ? 12 : -12)); }}>
-          {Array.from({ length: ROLL_ROWS }, (_, k) => {
-            const n = ui.rollBase + ROLL_ROWS - 1 - k;
+          {Array.from({ length: rollRows(ui) }, (_, k) => {
+            const n = ui.rollBase + rollRows(ui) - 1 - k;
             const black = [1, 3, 6, 8, 10].includes(n % 12);
             const outOfScale = ui.scale > 0 && !inScale(n, ui.scale, ui.root);
             return (
@@ -744,8 +803,8 @@ export function SequenceScreen() {
                 <button key={name} type="button" role="tab" aria-selected={p === pattern.pattern}
                   className={`pchip${p === pattern.pattern ? " on" : ""}${filled[p] ? " filled" : ""}${isPlay ? " playing" : ""}${isQueued ? " queued" : ""}`}
                   onClick={() => void actions.editPattern(t, p)}
-                  onContextMenu={(e) => { e.preventDefault(); void actions.launchPattern(t, p); }}
-                  title={`Éditer le pattern ${name} (clic droit : le lancer)`}>{name}</button>
+                  {...chipLearn(p)}
+                  title={`Éditer le pattern ${name} — appui long ou clic droit : affecter au contrôleur MIDI (la commande lance ${name} sur la piste choisie)`}>{name}</button>
               );
             })())}
           </span>
@@ -1245,10 +1304,10 @@ function OctaLaneRoll({ t, T, first, stepsPerBeat, playStep, lengthHint }: { t: 
   return (
     <>
     {rect && <MarqueeBox />}
-    <div className="roll roll--lane" role="grid" aria-label={`Notes de T${T + 1}`} style={{ "--k": trackColor(T) } as React.CSSProperties}
+    <div className={`roll roll--lane${ui.rollOne ? " roll--one" : ""}`} role="grid" aria-label={`Notes de T${T + 1}`} style={{ "--k": trackColor(T) } as React.CSSProperties}
       onWheel={(e) => { if (!(e.target as HTMLElement).closest(".roll-key")) return; setRollBase(getState().ui.rollBase + (e.deltaY < 0 ? 12 : -12)); }}>
-      {Array.from({ length: ROLL_ROWS }, (_, k) => {
-        const n = ui.rollBase + ROLL_ROWS - 1 - k;
+      {Array.from({ length: rollRows(ui) }, (_, k) => {
+        const n = ui.rollBase + rollRows(ui) - 1 - k;
         const black = [1, 3, 6, 8, 10].includes(n % 12);
         const outOfScale = ui.scale > 0 && !inScale(n, ui.scale, ui.root);
         return (

@@ -84,14 +84,14 @@ export function LaunchScreen() {
     return () => window.removeEventListener("keydown", onKey);
   }, [view]);
 
-  if (!launch) return <ScreenFrame title="Lancement" encoders={[]}><div className="empty-screen"><h2>Chargement…</h2></div></ScreenFrame>;
+  if (!launch) return <ScreenFrame title="Clips" encoders={[]}><div className="empty-screen"><h2>Chargement…</h2></div></ScreenFrame>;
 
   const tabs = [{ id: "grid", label: "Grille" }, { id: "song", label: "Morceau" }, { id: "audio", label: "Audio" }];
   type View = "grid" | "song" | "audio";
   if (view === "audio") {
     // v0.46 fix8 : montage audio
     return (
-      <ScreenFrame title="Lancement" encoders={[]} tabs={tabs} tab="audio" onTab={(id) => setUi({ launchView: id as View })}
+      <ScreenFrame title="Clips" encoders={[]} tabs={tabs} tab="audio" onTab={(id) => setUi({ launchView: id as View })}
         status={<MontageChip />}>
         <MontageView />
       </ScreenFrame>
@@ -110,7 +110,7 @@ export function LaunchScreen() {
       sr ? steppedBinding("Scène", [-1, ...Array.from({ length: 32 }, (_, i) => i)], sr[1], (v) => setRowField(1, v), (v) => (v < 0 ? "aucune" : `scène ${v + 1}`)) : null,
     ];
     return (
-      <ScreenFrame title="Lancement" encoders={songEncoders} tabs={tabs} tab="song" onTab={(id) => setUi({ launchView: id as View })}
+      <ScreenFrame title="Clips" encoders={songEncoders} tabs={tabs} tab="song" onTab={(id) => setUi({ launchView: id as View })}
         status={<span className="chip">{song?.mode ? "Mode morceau" : "Jeu libre"}</span>}>
         <SongView sel={songSel} setSel={setSongSel} />
       </ScreenFrame>
@@ -149,7 +149,7 @@ export function LaunchScreen() {
   ];
 
   return (
-    <ScreenFrame title="Lancement" encoders={encoders} tabs={tabs} tab="grid" onTab={(id) => setUi({ launchView: id as View })}
+    <ScreenFrame title="Clips" encoders={encoders} tabs={tabs} tab="grid" onTab={(id) => setUi({ launchView: id as View })}
       status={<span className="chip">Lancement · {LAUNCH_QUANTS[launch.quant]}</span>}>
       <div className="launch">
         <div className={`launch-hscroll${all ? " is-all" : ""}`} ref={hscroll} onScroll={syncMuteRow}

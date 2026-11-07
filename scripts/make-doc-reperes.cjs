@@ -59,12 +59,15 @@ async function mark(p, items, letters = []) {
 
 (async () => {
   const b = await chromium.launch();
+  // 1.0 : une seule vue (écran + rail à droite). « rail:N » ouvre le N-ième écran du rail (0 = Pistes … 7 = Réglages).
   const shot = async (name, steps, marks, opts = {}) => {
     const p = await b.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
-    await p.goto(URL); await p.waitForTimeout(1600);
+    await p.addInitScript(() => { try { localStorage.setItem("groovebox.sidePads", "0"); } catch { /* */ } });
+    await p.goto(URL); await p.waitForTimeout(1800);
     await p.evaluate(() => { try { localStorage.removeItem("grv.stepView.synth"); } catch { /* */ } });
     for (const s of steps) {
       if (typeof s === "function") await s(p);
+      else if (s.startsWith("rail:")) { await p.locator(".zoom-rail > button").nth(Number(s.slice(5))).click(); await p.waitForTimeout(500); }
       else if (s.startsWith("css:")) { await p.locator(s.slice(4)).first().click(); await p.waitForTimeout(450); }
       else { await p.getByText(s, { exact: true }).first().click(); await p.waitForTimeout(450); }
     }
@@ -77,88 +80,110 @@ async function mark(p, items, letters = []) {
     await p.close();
     console.log(name);
   };
-  const acid = ["Pistes", async (p) => { await p.getByText("Basse acide").first().click(); await p.waitForTimeout(400); }];
+  const acid = ["rail:0", async (p) => { await p.locator(".track-row", { hasText: "Basse acide" }).first().click(); await p.waitForTimeout(400); }];
+  const pads = async (p) => { if (!(await p.locator(".zoom-pads").count())) { await p.locator(".zoom-pads-tab").click(); await p.waitForTimeout(500); } };
 
-  // 1. L'appareil : où sont les commandes générales
-  await shot("appareil-reperes", ["Lancement"], [
-    { sel: ".top-synth", text: "Façade du synthé en grand", pos: "b", n: 1 },
-    { sel: ".top-hist", text: "Annuler · Rétablir · Photo · Rappel", pos: "b", n: 2 },
-    { sel: ".top-rec", text: "Enregistrement audio", pos: "b", n: 3 },
-    { sel: ".top-full", text: "Plein écran (F11)", pos: "b", n: 4 },
-    { sel: ".encoder-row", text: "16 boutons assignables (appui long : Assigner à…)", pos: "t", n: 5 },
-    { sel: ".track-ms-row", text: "M / S des pistes", pos: "b", n: 6 },
-    { sel: ".device-left .cluster", nth: 0, sel2: ".device-left .cluster", nth2: 1, text: "Transport : Enr. · Lecture · Arrêt · Fill · Break · Maj", pos: "t", n: 7 },
-    { sel: ".hw-xfade", text: "Crossfader des scènes A / B", pos: "t", n: 8 },
-    { sel: ".button-row--screens", text: "Les 8 écrans", pos: "b", n: 9 },
-    { sel: ".button-row--padmodes", text: "Rôle des pads", pos: "b", n: 10 },
+  // 1. L'appareil : l'écran, le rail, l'en-tête
+  await shot("appareil-reperes", ["rail:1"], [
+    { sel: ".top-synth", text: "Façade du synthé en grand", n: 1 },
+    { sel: ".top-hist", text: "Annuler · Rétablir · Photo · Rappel · Mod. boutons", n: 2 },
+    { sel: ".top-rec", text: "Enregistrement audio", n: 3 },
+    { sel: ".top-full", text: "Plein écran (F11)", n: 4 },
+    { sel: ".zoom-rail > button", nth: 0, sel2: ".zoom-rail > button", nth2: 7, text: "Les 8 écrans", n: 5 },
+    { sel: ".zoom-rail-duo", text: "Live · Jeu", n: 6 },
+    { sel: ".zoom-rail-tr", text: "Lecture · Arrêt", n: 7 },
+    { sel: ".zoom-rail-recbig", text: "Enregistrer", n: 8 },
+    { sel: ".zoom-pads-tab", text: "Déplier les pads", n: 9, dx: -20 },
+    { sel: ".screen-encoders", text: "Valeurs du bas", n: 10 },
+  ]);
+
+  // 1 bis. Les pads dépliés à droite de l'écran
+  await shot("pads-reperes", ["rail:2", pads], [
+    { sel: ".zoom-pads .jeu-tracknav", text: "Piste jouée", n: 1 },
+    { sel: ".zoom-pads .button-row--padmodes", text: "Jouer · Mute · Solo · Scènes · Pas", n: 2 },
+    { sel: ".zoom-pads .padgrid", text: "16 pads", n: 3 },
+    { sel: ".zoom-pads > .button-row", nth: 1, text: "Banque de scènes · Éditer A / B", n: 4 },
+    { sel: ".zoom-pads-tab", text: "Replier", n: 5, dx: -20 },
+  ]);
+
+  // 1 ter. L'écran Jeu
+  await shot("jeu-reperes", ["css:.zoom-rail-jeu"], [
+    { sel: ".jeu-tracknav", text: "Piste jouée", n: 1 },
+    { sel: ".jeu-head .rowlaunch", text: "Rangées A à H", n: 2 },
+    { sel: ".jeu-pads .button-row--padmodes", text: "Rôle des pads", n: 3 },
+    { sel: ".jeu-pads .padgrid", text: "16 pads (Mute / Solo : les 16 pistes)", n: 4 },
+    { sel: ".jeu-knobs", text: "16 boutons assignables", n: 5 },
+    { sel: ".jeu-ctrl .phone-row--photo", text: "Photo · Rappel · Mod. boutons", n: 6 },
+    { sel: ".jeu-ctrl .jeu-row", nth: 0, text: "Fill · Break · Break 1 mes. · Maj", n: 7 },
+    { sel: ".jeu-row--xf", text: "Octave · crossfader", n: 8 },
+    { sel: ".jeu-ctrl .phone-row--tempo", text: "Tempo", n: 9 },
   ]);
 
   // 2. Les pads au clavier de l'ordinateur (AZERTY)
   const keys = ["1", "2", "3", "4", "A", "Z", "E", "R", "Q", "S", "D", "F", "W", "X", "C", "V"];
-  await shot("pads-clavier", [], [
-    { sel: ".button-row--padmodes", text: "Rôle des pads : Jouer · Couper · Scènes · Pas · Effacer", pos: "t" },
-  ], { clip: ".device-right", pad: 12, letters: keys.map((k, i) => [".padgrid .pad", i, k]) });
+  await shot("pads-clavier", ["rail:2", pads], [
+    { sel: ".zoom-pads .button-row--padmodes", text: "Rôle des pads : Jouer · Mute · Solo · Scènes · Pas" },
+  ], { clip: ".zoom-pads", pad: 12, letters: keys.map((k, i) => [".zoom-pads .padgrid .pad", i, k]) });
 
   // 3. Boutons et valeurs : une valeur du bas de l'écran et son menu (clic droit ou appui long)
-  await shot("boutons-reperes", ["Son", async (p) => {
+  await shot("boutons-reperes", ["rail:3", async (p) => {
     const e = p.locator(".screen-encoders .enc-label").nth(1); const bb = await e.boundingBox();
     await p.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2, { button: "right" }); await p.waitForTimeout(400);
   }], [
-    { sel: ".screen-encoders .enc-label", nth: 0, text: "Glisser ↑↓ · double-clic : valeur d'origine", pos: "t", n: 1 },
-    { sel: ".mod-menu", text: "Appui long / clic droit : valeur exacte · modulation · MIDI · bouton 1 à 16", pos: "l", n: 2 },
-    { sel: ".encoder-row", text: "16 boutons assignables", pos: "t", n: 3 },
+    { sel: ".screen-encoders .enc-label", nth: 0, text: "Glisser ↑↓ · double-clic : valeur d'origine", n: 1 },
+    { sel: ".mod-menu", text: "Appui long / clic droit : valeur exacte · modulation · MIDI · bouton 1 à 16", n: 2 },
   ]);
 
   // 4. Séquence : rouleau de notes de la basse, lignes Accent / Glissé, pages
-  await shot("sequence-reperes", [...acid, "Séquence", "css:.screen-status .chip--button", "8", "Fermer"], [
-    { sel: ".seq-tracknav", text: "Piste affichée", pos: "b", n: 1 },
-    { sel: ".screen-status .chip--button", text: "Pattern : mesures · division · vitesse", pos: "b", n: 2 },
-    { sel: ".page-nav", text: "Tourner les pages ◀ ▶", pos: "b", n: 3 },
-    { sel: ".flag-row--acc", sel2: ".flag-row--slide", text: "Lignes Accent et Glissé", pos: "r", n: 4 },
+  await shot("sequence-reperes", [...acid, "rail:2", "css:.screen-status .chip--button", "8", "Fermer"], [
+    { sel: ".seq-tracknav", text: "Piste affichée", n: 1 },
+    { sel: ".screen-status .chip--button", text: "Pattern : mesures · division · vitesse", n: 2 },
+    { sel: ".page-nav", text: "Tourner les pages ◀ ▶", n: 3 },
+    { sel: ".flag-row--acc", sel2: ".flag-row--slide", text: "Lignes Accent et Glissé", n: 4 },
     { sel: ".roll", text: "Clic : poser / retirer une note · tirer : déplacer", pos: "in", n: 5 },
-    { sel: ".seq-tools", text: "Sélection · Pinceau · Tout sélect. · patterns A à H", pos: "t", n: 6 },
-    { sel: ".screen-tabs", text: "Notes / Courbes (mouvements ENR.)", pos: "b", n: 7 },
+    { sel: ".seq-tools", text: "Sélection · Pinceau · Tout sélect. · patterns A à H", n: 6 },
+    { sel: ".screen-tabs", text: "Notes / Courbes (mouvements ENR.)", n: 7 },
     { sel: ".screen-encoders", text: "Réglages de la piste (rien de choisi)", n: 8 },
   ]);
 
-  // 4 bis. Séquence d'une batterie : un pas choisi (ses réglages aux encodeurs) et les boutons du bas
+  // 4 bis. Séquence d'une batterie : un pas choisi (ses réglages en bas) et les boutons du bas
   const pickStep = async (p) => { await p.locator(".cell--on").nth(2).click(); await p.waitForTimeout(450); };
-  await shot("sequence-pas", ["Séquence", pickStep], [
-    { sel: ".seq-name", nth: 0, text: "Ligne (pad) : la choisir", n: 1 },
+  await shot("sequence-pas", ["rail:2", pickStep], [
+    { sel: ".seq-name", nth: 0, text: "Ligne (pad) : la choisir et l'écouter", n: 1 },
     { sel: ".seq-ms", nth: 0, sel2: ".seq-ms", nth2: 1, text: "M / S de la ligne", n: 2 },
     { sel: ".cell--on", nth: 2, text: "Pas choisi", n: 3 },
     { sel: ".flag-row--acc", sel2: ".flag-row--trigless", text: "Accent · Verrous seuls", n: 4 },
     { sel: ".seq-tools", text: "Outils", n: 5 },
     { sel: ".screen-encoders", text: "Réglages du pas choisi", n: 6 },
   ]);
-  // 4 ter. Tout sélectionné : les encodeurs règlent tous les pas à la fois
-  await shot("sequence-selection", ["Séquence", "Tout sélect.", async (p) => { await p.waitForTimeout(6500); }], [
+  // 4 ter. Tout sélectionné : les valeurs du bas règlent tous les pas à la fois
+  await shot("sequence-selection", ["rail:2", "Tout sélect.", async (p) => { await p.waitForTimeout(6500); }], [
     { sel: ".seq-body", text: "Sélection", n: 1 },
     { sel: ".screen-encoders", text: "Tous les pas choisis à la fois", n: 2 },
     { sel: ".seq-tools", text: "Outils de la sélection", n: 3 },
   ]);
 
-  // 5. Lancement › Grille
-  await shot("lancement-reperes", ["Lancement"], [
-    { sel: ".screen-tabs", text: "Grille · Morceau · Audio", pos: "b", n: 1 },
+  // 5. Clips › Grille
+  await shot("lancement-reperes", ["rail:1"], [
+    { sel: ".screen-tabs", text: "Grille · Morceau · Audio", n: 1 },
     { sel: ".launch-hscroll", text: "Toucher une case : lancer et éditer", pos: "r", n: 2 },
-    { sel: ".launch-actions", text: "Copier · effacer · éditer le pattern ou la rangée", pos: "t", n: 3 },
-    { sel: ".screen-encoders", text: "Piste · pattern · quantification du lancement · rangée", pos: "t", n: 4 },
+    { sel: ".launch-actions", text: "Copier · effacer · éditer le pattern ou la rangée", n: 3 },
+    { sel: ".screen-encoders", text: "Piste · pattern · quantification du lancement · rangée", n: 4 },
   ]);
 
-  // 6. Lancement › Morceau
-  await shot("morceau-reperes", ["Lancement", "Morceau"], [
-    { sel: ".song-bar button", nth: 0, text: "Mode morceau / Boucle", pos: "b", n: 1 },
-    { sel: ".song-rec", nth: 0, sel2: ".song-rec", nth2: 1, text: "Enregistrer le jeu (rangées) ou les mouvements (courbes)", pos: "b", n: 2 },
+  // 6. Clips › Morceau
+  await shot("morceau-reperes", ["rail:1", "Morceau"], [
+    { sel: ".song-bar button", nth: 0, text: "Mode morceau / Boucle", n: 1 },
+    { sel: ".song-rec", nth: 0, sel2: ".song-rec", nth2: 1, text: "Enregistrer le jeu (rangées) ou les mouvements (courbes)", n: 2 },
     { sel: ".song-scroll", text: "Rangées jouées l'une après l'autre ; courbes en bas", pos: "in", n: 3 },
-    { sel: ".song-actions", text: "Ajouter ce qui joue · vider", pos: "t", n: 4 },
+    { sel: ".song-actions", text: "Ajouter ce qui joue · vider", n: 4 },
   ]);
 
-  // 7. Lancement › Audio (montage)
-  await shot("montage-reperes", ["Lancement", "Audio", async (p) => { const c = p.locator(".mt-clip").nth(2); const bb = await c.boundingBox(); await p.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.waitForTimeout(300); }], [
-    { sel: ".mt-bar button", nth: 1, text: "Prise à la tête de lecture", pos: "b", n: 1 },
-    { sel: ".mt-bar button", nth: 0, text: "Écouter le montage", pos: "t", n: 2 },
-    { sel: ".mt-clip", nth: 2, text: "Clip : glisser · rogner les bords · clic droit : menu", pos: "b", n: 3 },
+  // 7. Clips › Audio (montage)
+  await shot("montage-reperes", ["rail:1", "Audio", async (p) => { const c = p.locator(".mt-clip").nth(2); const bb = await c.boundingBox(); await p.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.waitForTimeout(300); }], [
+    { sel: ".mt-bar button", nth: 1, text: "Prise à la tête de lecture", n: 1 },
+    { sel: ".mt-bar button", nth: 0, text: "Écouter le montage", n: 2 },
+    { sel: ".mt-clip", nth: 2, text: "Clip : glisser · rogner les bords · clic droit : menu", n: 3 },
     { sel: "text=Export WAV", text: "Export WAV / MP3", n: 4 },
     { sel: ".mt-ruler", text: "Règle : tête de lecture ; clic droit + tirer : boucle", n: 5 },
     { sel: ".segmented--screen", text: "Choisir / Ciseaux", n: 6 },
@@ -166,36 +191,35 @@ async function mark(p, items, letters = []) {
   ]);
 
   // 8. Façade de la basse : séquenceur acide
-  await shot("facade-acide", [...acid, "Ouvrir le synthé ↗"], [
-    { sel: ".steps-choice-head", text: "Écriture : Acide ou À verrous", pos: "r", n: 1 },
-    { sel: ".steps303-pages button", text: "Pages de 16 pas", pos: "r", n: 2 },
-    { sel: ".step303-key", nth: 2, text: "Note : toucher pose / retire · tirer ↑↓ ou molette : demi-ton", pos: "t", n: 3 },
-    { sel: ".step303 .step303-fn", nth: 10, text: "▲▼ octave", pos: "r", n: 4 },
-    { sel: ".step303 .step303-vals", nth: 8, text: "Vélocité · durée", pos: "t", n: 5 },
-    { sel: ".step303 .step303-fn", nth: 25, text: "Accent · Glissé", pos: "b", n: 6 },
-    { text0: "FX · Effets", text: "Les effets en pédales", pos: "b", n: 7 },
+  await shot("facade-acide", [...acid, "css:.bz-open"], [
+    { sel: ".steps-choice-head", text: "Écriture : Acide ou À verrous", n: 1 },
+    { sel: ".steps303-pages button", text: "Pages de 16 pas", n: 2 },
+    { sel: ".step303-key", nth: 2, text: "Note : toucher pose / retire · tirer ↑↓ ou molette : demi-ton", n: 3 },
+    { sel: ".step303 .step303-fn", nth: 10, text: "▲▼ octave", n: 4 },
+    { sel: ".step303 .step303-vals", nth: 8, text: "Vélocité · durée", n: 5 },
+    { sel: ".step303 .step303-fn", nth: 25, text: "Accent · Glissé", n: 6 },
+    { text0: "FX · Effets", text: "Les effets en pédales", n: 7 },
     { sel: "text=Modulations de la piste >> xpath=..", text: "Son · modulations · macros", n: 8 },
     { sel: ".face-btn--swap", text: "Changer d'instrument", n: 9 },
   ]);
 
   // 9. Façade de la basse : séquenceur à verrous
-  await shot("facade-verrous", [...acid, "Ouvrir le synthé ↗", "À verrous", "Verrous", async (p) => { await p.locator(".ot-step").nth(4).click(); await p.waitForTimeout(400); }], [
-    { sel: ".ot-steps-pages", text: "Pages 1 à 4 (16 pas chacune)", pos: "t", n: 1 },
-    { text0: "Suivre", text: "La page suit la lecture", pos: "t", n: 2 },
-    { sel: ".ot-steps-bars", text: "Longueur : 1 à 4 mesures", pos: "t", n: 3 },
-    { sel: ".ot-step.sel", text: "Pas choisi : les boutons écrivent dans ce pas", pos: "b", n: 4 },
-    { sel: ".ot-steps-locks", text: "Copier · Coller · Effacer les verrous", pos: "t", n: 5 },
+  await shot("facade-verrous", [...acid, "css:.bz-open", "À verrous", "Verrous", async (p) => { await p.locator(".ot-step").nth(4).click(); await p.waitForTimeout(400); }], [
+    { sel: ".ot-steps-pages", text: "Pages 1 à 4 (16 pas chacune)", n: 1 },
+    { text0: "Suivre", text: "La page suit la lecture", n: 2 },
+    { sel: ".ot-steps-bars", text: "Longueur : 1 à 4 mesures", n: 3 },
+    { sel: ".ot-step.sel", text: "Pas choisi : les boutons écrivent dans ce pas", n: 4 },
+    { sel: ".ot-steps-locks", text: "Copier · Coller · Effacer les verrous", n: 5 },
   ]);
 
   // 10. Scènes
-  await shot("scenes-reperes", ["Scènes"], [
+  await shot("scenes-reperes", ["rail:6"], [
     { sel: ".slot--A", text: "Scène A : « Éditer » puis tourner les réglages", pos: "in", n: 1 },
     { sel: ".slot--B", text: "Scène B", pos: "in", n: 2 },
-    { sel: ".xf-meter", text: "Position du crossfader", pos: "b", n: 3 },
-    { sel: ".scenes-grid", text: "Toucher : lancer (Maj : de l'autre côté) · clic droit : muette", pos: "t", n: 4 },
-    { sel: ".scenes-bottom .slot", text: "Scène de Break", pos: "t", n: 5 },
-    { sel: ".hw-xfade", text: "Crossfader A ↔ B", pos: "t", n: 6 },
-    { sel: ".rowlaunch", text: "Rangées A à H (lancent aussi leur scène liée)", pos: "b", n: 7 },
+    { sel: ".xf-meter", text: "Crossfader A ↔ B", n: 3 },
+    { sel: ".scenes-grid", text: "Toucher : lancer (Maj : de l'autre côté) · clic droit : muette", n: 4 },
+    { sel: ".scenes-bottom .slot", text: "Scène de Break", n: 5 },
+    { sel: ".rowlaunch", text: "Rangées A à H (lancent aussi leur scène liée)", n: 6 },
   ]);
   await b.close();
 })();

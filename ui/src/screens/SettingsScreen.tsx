@@ -124,51 +124,70 @@ export function SettingsScreen() {
   return (
     <ScreenFrame title="Réglages" encoders={encoders}>
       <div className="settings">
-        <section className="settings-block">
+        {/* 1.0 (7 nov.) : bloc Projet rangé par lignes étiquetées (Nouveau, Enregistrer, liste, Fichiers, Langue) */}
+        <section className="settings-block settings-project">
           <h3>Projet</h3>
-          <div className="settings-row">
-            {/* v0.46 fix27 : le bouton touché s'allume en jaune un instant (on voit qu'il a pris) */}
-            <button type="button" className={`touch${lit === "demo" ? " touch--on" : ""}`}
-              onClick={() => press("demo", () => actions.newProject(false), "Projet de démonstration chargé")}>Projet de démonstration</button>
-            <button type="button" className={`touch${lit === "empty" ? " touch--on" : ""}`}
-              onClick={() => press("empty", () => actions.newProject(true), "Nouveau projet vide")}>Nouveau projet vide</button>
-            {inApp ? <>
-              <button type="button" className="touch touch--on" onClick={() => quickSave(false)}
-                title="Enregistre le projet dans l'application, sous le nom écrit plus bas (ou la date)">Enregistrer</button>
-              <button type="button" className="touch" onClick={() => quickSave(true)}
-                title="Modèle : tous les réglages restent (sons, échantillons, effets, mixeur, scènes, macros, MIDI) ; patterns, notes, verrous de pas et morceau sont retirés">Enregistrer comme modèle</button>
-              <button type="button" className="touch" onClick={() => listRef.current?.scrollIntoView({ block: "center" })}>Ouvrir</button>
-              <button type="button" className="touch touch--quiet" disabled={!files} onClick={() => press("open", () => actions.openProject())}
-                title="Ouvrir un projet venu d'ailleurs (Téléchargements, Drive…) avec le sélecteur du système">Importer un fichier…</button>
-              <button type="button" className="touch touch--quiet" disabled={!files} onClick={() => actions.saveProject()}
-                title="Enregistrer une copie hors de l'application (Téléchargements, Drive…) avec le sélecteur du système">Exporter une copie…</button>
-            </> : <>
-            <button type="button" className={`touch${lit === "open" ? " touch--on" : ""}`} disabled={!files}
-              onClick={() => press("open", () => actions.openProject())}>Ouvrir…</button>
-            <button type="button" className="touch touch--on" disabled={!files} onClick={() => actions.saveProject()}>Enregistrer…</button>
-            <button type="button" className="touch" disabled={!files} onClick={() => actions.saveProject(true)}
-              title="Modèle : tous les réglages restent (sons, échantillons, effets, mixeur, scènes, macros, MIDI) ; patterns, notes, verrous de pas et morceau sont retirés">Enregistrer comme modèle…</button>
-            </>}
-            {hasNative("appStart") && <WelcomeToggle />}
-            <LangChoice />
+          <div className="proj-line">
+            <span className="proj-label">Nouveau</span>
+            <span className="proj-btns">
+              {/* v0.46 fix27 : le bouton touché s'allume en jaune un instant (on voit qu'il a pris) */}
+              <button type="button" className={`touch${lit === "demo" ? " touch--on" : ""}`}
+                onClick={() => press("demo", () => actions.newProject(false), "Projet de démonstration chargé")}>Projet de démonstration</button>
+              <button type="button" className={`touch${lit === "empty" ? " touch--on" : ""}`}
+                onClick={() => press("empty", () => actions.newProject(true), "Nouveau projet vide")}>Nouveau projet vide</button>
+            </span>
           </div>
-          {folders && (<>
-            <div className="project-save">
-              <input type="text" value={projectName} maxLength={60} placeholder={inApp ? "Nom du projet (sinon : la date)" : "Nom du projet"} aria-label="Nom du projet à enregistrer dans le dossier des projets"
-                onChange={(e) => { setProjectName(e.target.value); setConfirmReplace(false); }}
-                onKeyDown={(e) => { if (e.key === "Enter") void saveNamed(false); }} />
-              {confirmReplace
-                ? <><span className="settings-note">« {cleanName(projectName)} » existe déjà.</span>
-                    <button type="button" className="touch touch--small touch--on" onClick={() => void saveNamed(true)}>Remplacer</button>
-                    <button type="button" className="touch touch--small touch--quiet" onClick={() => setConfirmReplace(false)}>Annuler</button></>
-                : inApp ? null : <>
-                    <button type="button" className="touch touch--small touch--on" disabled={!cleanName(projectName)} onClick={() => void saveNamed(false, false)}>Enregistrer dans le dossier</button>
-                    <button type="button" className="touch touch--small" disabled={!cleanName(projectName)} onClick={() => void saveNamed(false, true)}
-                      title="Modèle : mêmes réglages et sons, sans patterns, verrous ni morceau">Comme modèle</button>
-                  </>}
+          {folders && (
+            <div className="proj-line">
+              <span className="proj-label">Enregistrer</span>
+              <div className="project-save">
+                <input type="text" value={projectName} maxLength={60} placeholder={inApp ? "Nom (sinon : la date)" : "Nom du projet"} aria-label="Nom du projet à enregistrer dans le dossier des projets"
+                  onChange={(e) => { setProjectName(e.target.value); setConfirmReplace(false); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") void saveNamed(false); }} />
+                {confirmReplace
+                  ? <><span className="settings-note">« {cleanName(projectName)} » existe déjà.</span>
+                      <button type="button" className="touch touch--small touch--on" onClick={() => void saveNamed(true)}>Remplacer</button>
+                      <button type="button" className="touch touch--small touch--quiet" onClick={() => setConfirmReplace(false)}>Annuler</button></>
+                  : inApp ? <>
+                      <button type="button" className="touch touch--on" onClick={() => quickSave(false)}
+                        title="Enregistre le projet dans l'application, sous le nom écrit ici (ou la date)">Enregistrer</button>
+                      <button type="button" className="touch" onClick={() => quickSave(true)}
+                        title="Modèle : tous les réglages restent (sons, échantillons, effets, mixeur, scènes, macros, MIDI) ; patterns, notes, verrous de pas et morceau sont retirés">Comme modèle</button>
+                    </> : <>
+                      <button type="button" className="touch touch--small touch--on" disabled={!cleanName(projectName)} onClick={() => void saveNamed(false, false)}
+                        title="Enregistrer dans le dossier des projets, sous ce nom">Dans le dossier</button>
+                      <button type="button" className="touch touch--small" disabled={!cleanName(projectName)} onClick={() => void saveNamed(false, true)}
+                        title="Modèle : mêmes réglages et sons, sans patterns, verrous ni morceau">Comme modèle</button>
+                    </>}
+              </div>
             </div>
-            <div ref={listRef}><FolderBrowser key={listKey} kind="projects" title={inApp ? "Projets enregistrés (toucher pour ouvrir)" : "Projets du dossier"} compact onPick={(rel) => actions.openProjectFile(rel)} /></div>
-          </>)}
+          )}
+          {folders && <div ref={listRef} className="proj-list"><FolderBrowser key={listKey} kind="projects" title={inApp ? "Projets enregistrés (toucher pour ouvrir)" : "Projets du dossier"} compact onPick={(rel) => actions.openProjectFile(rel)} /></div>}
+          <div className="proj-line">
+            <span className="proj-label">Fichiers</span>
+            <span className="proj-btns">
+              {inApp ? <>
+                {!folders && <>
+                  <button type="button" className="touch touch--on" onClick={() => quickSave(false)}>Enregistrer</button>
+                  <button type="button" className="touch" onClick={() => quickSave(true)}>Enregistrer comme modèle</button>
+                </>}
+                <button type="button" className="touch touch--quiet" disabled={!files} onClick={() => press("open", () => actions.openProject())}
+                  title="Ouvrir un projet venu d'ailleurs (Téléchargements, Drive…) avec le sélecteur du système">Importer un fichier…</button>
+                <button type="button" className="touch touch--quiet" disabled={!files} onClick={() => actions.saveProject()}
+                  title="Enregistrer une copie hors de l'application (Téléchargements, Drive…) avec le sélecteur du système">Exporter une copie…</button>
+              </> : <>
+                <button type="button" className={`touch${lit === "open" ? " touch--on" : ""}`} disabled={!files}
+                  onClick={() => press("open", () => actions.openProject())}>Ouvrir…</button>
+                <button type="button" className="touch touch--on" disabled={!files} onClick={() => actions.saveProject()}>Enregistrer sous…</button>
+                <button type="button" className="touch" disabled={!files} onClick={() => actions.saveProject(true)}
+                  title="Modèle : tous les réglages restent (sons, échantillons, effets, mixeur, scènes, macros, MIDI) ; patterns, notes, verrous de pas et morceau sont retirés">Comme modèle…</button>
+              </>}
+            </span>
+          </div>
+          <div className="proj-line">
+            <span className="proj-label">Langue</span>
+            <span className="proj-btns"><LangChoice />{hasNative("appStart") && <WelcomeToggle />}</span>
+          </div>
           <p className="settings-note">Un projet (.gbx) contient tout : pistes, réglages, patterns, scènes, échantillons. Dans un logiciel hôte, le projet est aussi enregistré avec la session. Toucher un projet de la liste l'ouvre.</p>
         </section>
 

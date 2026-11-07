@@ -7,11 +7,61 @@
 
 <h2 align="center">OFAD GOLEM — Groovebox 1.0.0</h2>
 
-<p align="center"><b>La version 1.0 ! Et un nouvel instrument pas comme les autres : le <u>FM Player</u>, qui fait tourner dans GOLEM les firmwares du boîtier de synthèse M-VAVE FM-1.</b></p>
+<p align="center"><b>🚀 La grosse mise à jour.</b> Il y a eu beaucoup de versions ces derniers jours, mais là, on est sur du lourd : <b>le <u>FM Player</u></b>, qui fait tourner dans GOLEM les firmwares écrits pour le boîtier FM-1, et <b>un nouveau workflow</b>, plus intuitif et encore plus tourné vers le live.</p>
+
+<p align="center">🔔 <b>Suivez le projet, testez-le et partagez-le un max</b> pour que tout le monde puisse en profiter : les instruments valent vraiment le détour, ils s'inspirent des meilleurs synthétiseurs et boîtes à rythmes.</p>
 
 <p align="center">OFAD GOLEM, c'est une groovebox complète dans l'ordinateur, la tablette ou le téléphone, pensée pour <b>toutes les musiques électroniques</b> : techno, house, acid, hardtek et tribe, hardcore, drum & bass, électro, ambient, beatmaking… 37 instruments, 38 effets, les séquenceurs qu'on connaît tous (pas à pas, verrous, acide, conditions), 16 pistes, 16 pads, scènes, morceau et montage audio. Logiciel libre (AGPL-3.0).</p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-ambre.jpg" width="820" alt="FM Player : la machine, l'écran de sloopDX, T1 à T4 et la rangée Acide sous le piano"></p>
+
+
+### 🖐️ Nouveau workflow : une seule vue, plus intuitive, plus live
+
+GOLEM a maintenant **une seule vue**, la même sur ordinateur, tablette et téléphone : **l'écran prend toute la place**, un **rail** à droite donne les 8 écrans, **Live**, **Jeu**, Lecture / Arrêt et **Enr.**
+
+- **Pads dépliables sur tous les écrans** : l'onglet **◀ Pads** ouvre les 16 pads à côté de l'écran. On écrit la séquence ou on mixe à gauche, on joue la piste à droite.
+- **Écran Jeu** : pads et leurs modes (Jouer, Mute, Solo, Scènes, Pas), les 16 boutons assignables, Fill / Break / Break 1 mes. / Maj, crossfader, tempo, rangées A à H : tout le jeu sur un écran.
+- **Mute et Solo** des 16 pistes depuis les pads, **aux couleurs des pistes**.
+- **Vue Live** en crossfader ou en pavé vectoriel, avec Fill / Break / Maj et la console des 16 pistes.
+- **Toucher le nom d'une ligne** du séquenceur joue son son (batterie, T1 à T8, T1 à T4), même sans pads.
+- **Tout s'affecte au contrôleur MIDI** par un appui long : rangées A à P, patterns A à P de la séquence, crossfader, boutons, M / S…
+- **Le nom de la piste suit la machine** tant que vous ne l'avez pas renommée ; la **molette** fait défiler les pistes du mixeur ; Réglages › Projet rangé par lignes.
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-pads-sequence.jpg" alt="Séquence et pads dépliés (PC)"><br><b>Séquence + pads dépliés · PC</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-pads-mixeur.jpg" alt="Mixeur et pads dépliés (téléphone)"><br><b>Mixeur + pads dépliés · téléphone</b></td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-jeu-mute.jpg" alt="Écran Jeu, Mute aux couleurs des pistes (PC)"><br><b>Écran Jeu · PC</b><br>Mute aux couleurs des pistes</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-jeu.jpg" alt="Écran Jeu (téléphone)"><br><b>Écran Jeu · téléphone</b></td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-live-crossfader.jpg" alt="Vue live crossfader (PC)"><br><b>Vue Live · crossfader · PC</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-live-vecteur.jpg" alt="Vue live vecteur (téléphone)"><br><b>Vue Live · vecteur · téléphone</b></td>
+</tr>
+</table>
+
+<details>
+<summary><b>📸 Tous les écrans, sur PC et sur téléphone</b> (cliquer pour ouvrir)</summary>
+
+<table>
+<tr><th>PC</th><th>Téléphone</th></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-01-pistes.jpg" alt="Pistes (PC)"><br><b>Pistes</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-01-pistes.jpg" alt="Pistes (téléphone)"><br><b>Pistes</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-02-clips.jpg" alt="Clips (PC)"><br><b>Clips</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-02-clips.jpg" alt="Clips (téléphone)"><br><b>Clips</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-03-sequence.jpg" alt="Séquence (PC)"><br><b>Séquence</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-03-sequence.jpg" alt="Séquence (téléphone)"><br><b>Séquence</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-04-son.jpg" alt="Son (PC)"><br><b>Son</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-04-son.jpg" alt="Son (téléphone)"><br><b>Son</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-05-effets.jpg" alt="Effets (PC)"><br><b>Effets</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-05-effets.jpg" alt="Effets (téléphone)"><br><b>Effets</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-06-mixeur.jpg" alt="Mixeur (PC)"><br><b>Mixeur</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-06-mixeur.jpg" alt="Mixeur (téléphone)"><br><b>Mixeur</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-07-scenes.jpg" alt="Scènes (PC)"><br><b>Scènes</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-07-scenes.jpg" alt="Scènes (téléphone)"><br><b>Scènes</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-08-reglages.jpg" alt="Réglages (PC)"><br><b>Réglages</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-08-reglages.jpg" alt="Réglages (téléphone)"><br><b>Réglages</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-jeu.jpg" alt="Jeu (PC)"><br><b>Jeu</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-jeu.jpg" alt="Jeu (téléphone)"><br><b>Jeu</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-live-crossfader.jpg" alt="Live · crossfader (PC)"><br><b>Live · crossfader</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-live-crossfader.jpg" alt="Live · crossfader (téléphone)"><br><b>Live · crossfader</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-live-vecteur.jpg" alt="Live · vecteur (PC)"><br><b>Live · vecteur</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-live-vecteur.jpg" alt="Live · vecteur (téléphone)"><br><b>Live · vecteur</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-fm-sequence-pads.jpg" alt="FM Player · séquence et pads (PC)"><br><b>FM Player · séquence et pads</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-fm-sequence-pads.jpg" alt="FM Player · séquence et pads (téléphone)"><br><b>FM Player · séquence et pads</b></td></tr>
+</table>
+</details>
 
 ### 🎛️ En vedette : le FM Player — les firmwares du FM-1 dans GOLEM
 
@@ -30,14 +80,14 @@ Le FM-1 de M-VAVE est un petit synthé FM dont la communauté a écrit des dizai
 <table>
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-grand-telephone.jpg" alt="Mode Grand au téléphone, fond Nuit"><br><b>Mode Grand · téléphone</b><br>écran, boutons, piano et T1 à T4 (fond Nuit)</td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-sequence-t1-t4.jpg" alt="Écran Séquence : 4 lignes T1 à T4"><br><b>Séquence · T1 à T4</b><br>une ligne par canal MIDI du firmware</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-fm-sequence-pads.jpg" alt="Séquence T1 à T4 et pads dépliés"><br><b>Séquence · T1 à T4</b><br>une ligne par canal MIDI du firmware, pads dépliés</td>
 </tr>
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-nuit.jpg" alt="FM Player, fond Nuit, JIANT FM"><br><b>JIANT FM · fond Nuit</b></td>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-emeraude.jpg" alt="FM Player, fond Émeraude, zp12"><br><b>zp12 · fond Émeraude</b></td>
 </tr>
 <tr>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-pistes-t1-t4.jpg" alt="Rangée Acide de la piste T2 sous le piano"><br><b>T1 à T4 sous le piano</b><br>rangées Acide et À verrous de la T choisie</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-fm-sequence.jpg" alt="Séquence T1 à T4 sur téléphone"><br><b>Séquence · téléphone</b><br>T1 à T4 au doigt</td>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-grand-telephone-emeraude.jpg" alt="Mode Grand, Felucca, fond Émeraude"><br><b>Felucca · mode Grand</b></td>
 </tr>
 </table>
@@ -69,7 +119,7 @@ Le FM-1 de M-VAVE est un petit synthé FM dont la communauté a écrit des dizai
 
 > **Windows** : le programme n'est pas encore signé. Si Windows affiche « Windows a protégé votre ordinateur », cliquer sur « Informations complémentaires » puis « Exécuter quand même ».
 
-> **📱 Version Android (APK) : maintenant pour téléphones et tablettes.** L'application s'adapte à l'écran du téléphone en paysage (onglets Commandes / Pads). Le son est réglé pour les mobiles : il tourne sur les cœurs rapides du processeur, et le micro reste fermé tant qu'on ne l'ouvre pas. Le compteur CPU · MÉM montre la charge en direct.
+> **📱 Version Android (APK) : maintenant pour téléphones et tablettes.** La même vue que sur ordinateur, en paysage, avec les pads dépliables et l'écran Jeu. Le son est réglé pour les mobiles : il tourne sur les cœurs rapides du processeur, et le micro reste fermé tant qu'on ne l'ouvre pas. Le compteur CPU · MÉM montre la charge en direct.
 >
 > **À savoir :** le projet de démonstration est volontairement chargé (10 instruments et 14 effets). Il tourne bien sur un téléphone récent. Sur une petite tablette d'entrée de gamme, il peut craquer : commencez alors par un projet vide ou quelques pistes.
 
@@ -103,7 +153,7 @@ Le FM-1 de M-VAVE est un petit synthé FM dont la communauté a écrit des dizai
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/scenes-reperes.jpg" alt="Scènes et crossfader"><br><b>Scènes A / B et crossfader</b><br>enchaîner les scènes sans coupure</td>
 </tr>
 <tr>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/morceau.jpg" alt="Morceau"><br><b>Morceau</b><br>rangées, mouvements enregistrés en courbes</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/morceau-reperes.jpg" alt="Morceau"><br><b>Morceau</b><br>rangées, mouvements enregistrés en courbes</td>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/montage-reperes.jpg" alt="Montage audio"><br><b>Montage audio</b><br>prises en clips, édition, export WAV / MP3</td>
 </tr>
 </table>
@@ -118,8 +168,8 @@ Le FM-1 de M-VAVE est un petit synthé FM dont la communauté a écrit des dizai
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/vue-live-vecteur.jpg" alt="Vue live : pavé vectoriel et console"><br><b>Vue live · pavé vectoriel</b><br>quatre scènes mélangées par une forme en mouvement</td>
 </tr>
 <tr>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/scenes-vecteur-pc.jpg" alt="Écran Scènes : pavé vectoriel"><br><b>Scènes · pavé vectoriel</b><br>formes, vitesse, taille, hauteur, rotation</td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/modulations-boutons.jpg" alt="Modulations des 16 boutons"><br><b>Modulations des 16 boutons</b><br>4 sources propres aux boutons, indépendantes des synthés</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-07-scenes.jpg" alt="Écran Scènes"><br><b>Scènes</b><br>scènes A / B, crossfader, grille, Break</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-live-vecteur.jpg" alt="Vue live, pavé vectoriel en mouvement"><br><b>Pavé vectoriel en mouvement</b><br>quatre scènes, taille, hauteur, rotation</td>
 </tr>
 </table>
 
@@ -132,12 +182,12 @@ Le FM-1 de M-VAVE est un petit synthé FM dont la communauté a écrit des dizai
 
 <table>
 <tr>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/mobile-scenes-crossfader.jpg" alt="Téléphone : écran Scènes, crossfader"><br><b>Téléphone · Scènes, crossfader</b></td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/mobile-scenes-vecteur.jpg" alt="Téléphone : écran Scènes, pavé vectoriel"><br><b>Téléphone · Scènes, pavé vectoriel</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-07-scenes.jpg" alt="Téléphone : écran Scènes"><br><b>Téléphone · Scènes</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-pads-sequence.jpg" alt="Téléphone : séquence et pads"><br><b>Téléphone · Séquence + pads</b></td>
 </tr>
 <tr>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/mobile-live-crossfader.jpg" alt="Téléphone : vue live, crossfader"><br><b>Téléphone · Vue live, crossfader</b></td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/mobile-live-vecteur.jpg" alt="Téléphone : vue live, pavé vectoriel"><br><b>Téléphone · Vue live, pavé vectoriel</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-live-crossfader.jpg" alt="Téléphone : vue live, crossfader"><br><b>Téléphone · Vue live, crossfader</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-live-vecteur.jpg" alt="Téléphone : vue live, pavé vectoriel"><br><b>Téléphone · Vue live, pavé vectoriel</b></td>
 </tr>
 </table>
 
@@ -172,6 +222,14 @@ Le FM-1 de M-VAVE est un petit synthé FM dont la communauté a écrit des dizai
 - **Notice illustrée** : une capture annotée sous chaque tableau de raccourcis.
 - Mascotte **OFAD GOLEM**, écran de lancement et accueil des projets.
 
+### 🔜 À venir
+- 📱 **Le téléphone comme contrôleur MIDI**, en Bluetooth ou en USB.
+- 🎛️ **De nombreux nouveaux firmwares** pour le FM Player.
+
+🔔 **Abonnez-vous / suivez le dépôt** (bouton **Watch › Releases** en haut de la page GitHub) pour les dernières mises à jour et infos.
+
+🧪 **Vos retours de test sont précieux** : ce qui coince, ce qui manque, et vos idées de **synthés, boîtes à rythmes, instruments ou firmwares FM-1** à ajouter, dans l'onglet **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)**.
+
 ### 🤝 Un projet qui évolue avec vous
 Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous manque, un effet, une fonction de séquenceur ? Essayez-la et dites-moi ce qui marche, ce qui coince, quel contrôleur vous utilisez… et surtout votre **liste de courses** des fonctions que vous aimeriez, dans l'onglet **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)** : vos idées font les prochaines versions.
 
@@ -183,11 +241,62 @@ Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous
 
 ## English version
 
-<p align="center"><b>OFAD GOLEM — Groovebox 1.0.0 · version 1.0, with a one-of-a-kind new instrument: the <u>FM Player</u>, which runs the firmwares of the M-VAVE FM-1 synth box inside GOLEM</b></p>
+<p align="center"><b>🚀 OFAD GOLEM 1.0.0 — the big update.</b> There have been a lot of releases these last days, but this one is the big one: <b>the <u>FM Player</u></b>, which runs firmware written for the FM-1 box inside GOLEM, and <b>a new workflow</b>, more intuitive and even more geared towards live playing.</p>
+
+<p align="center">🔔 <b>Follow the project, try it and share it as much as you can</b> so everyone can enjoy it: the instruments are really worth it, they are inspired by the best synthesizers and drum machines.</p>
 
 <p align="center">A complete groovebox in your computer, tablet or phone, made for <b>all electronic music</b>: techno, house, acid, hardtek and tribe, hardcore, drum & bass, electro, ambient, beatmaking… 37 instruments, 38 effects, the sequencers we all know (step, parameter locks, acid, conditions), 16 tracks, 16 pads, scenes, song mode and audio editing. Free software (AGPL-3.0).</p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-ambre.jpg" width="820" alt="FM Player: the machine, the sloopDX screen, T1 to T4 and the Acid row under the piano"></p>
+
+
+### 🖐️ New workflow: a single view, more intuitive, more live
+
+GOLEM now has **a single view**, the same on computer, tablet and phone: **the screen takes all the space**, and a **rail** on the right gives the 8 screens, **Live**, **Play view**, Play / Stop and **Rec**.
+
+- **Fold-out pads on every screen**: the **◀ Pads** tab opens the 16 pads next to the screen. Write the sequence or mix on the left, play the track on the right.
+- **Play view**: pads and their modes (Play, Mute, Solo, Scenes, Steps), the 16 assignable knobs, Fill / Break / Break 1 bar / Shift, crossfader, tempo, rows A to H: the whole performance on one screen.
+- **Mute and Solo** of the 16 tracks from the pads, **in the track colours**.
+- **Live view** with crossfader or vector pad, with Fill / Break / Shift and the 16-track console.
+- **Touch a sequencer lane name** to hear its sound (drum kit, T1 to T8, T1 to T4), even without pads.
+- **Everything maps to a MIDI controller** with a long press: rows A to P, sequence patterns A to P, crossfader, knobs, M / S…
+- **The track name follows the machine** until you rename it; the **mouse wheel** scrolls the mixer tracks; Settings › Project laid out in rows.
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-pads-sequence.jpg" alt="Sequence with fold-out pads (PC)"><br><b>Sequence + fold-out pads · PC</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-pads-mixeur.jpg" alt="Mixer with fold-out pads (phone)"><br><b>Mixer + fold-out pads · phone</b></td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-jeu-mute.jpg" alt="Play view, Mute in track colours (PC)"><br><b>Play view · PC</b><br>Mute in track colours</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-jeu.jpg" alt="Play view (phone)"><br><b>Play view · phone</b></td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-live-crossfader.jpg" alt="Live view, crossfader (PC)"><br><b>Live view · crossfader · PC</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-live-vecteur.jpg" alt="Live view, vector (phone)"><br><b>Live view · vector · phone</b></td>
+</tr>
+</table>
+
+<details>
+<summary><b>📸 Every screen, on PC and on phone</b> (click to open)</summary>
+
+<table>
+<tr><th>PC</th><th>Phone</th></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-01-pistes.jpg" alt="Tracks (PC)"><br><b>Tracks</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-01-pistes.jpg" alt="Tracks (phone)"><br><b>Tracks</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-02-clips.jpg" alt="Clips (PC)"><br><b>Clips</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-02-clips.jpg" alt="Clips (phone)"><br><b>Clips</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-03-sequence.jpg" alt="Sequence (PC)"><br><b>Sequence</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-03-sequence.jpg" alt="Sequence (phone)"><br><b>Sequence</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-04-son.jpg" alt="Sound (PC)"><br><b>Sound</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-04-son.jpg" alt="Sound (phone)"><br><b>Sound</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-05-effets.jpg" alt="Effects (PC)"><br><b>Effects</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-05-effets.jpg" alt="Effects (phone)"><br><b>Effects</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-06-mixeur.jpg" alt="Mixer (PC)"><br><b>Mixer</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-06-mixeur.jpg" alt="Mixer (phone)"><br><b>Mixer</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-07-scenes.jpg" alt="Scenes (PC)"><br><b>Scenes</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-07-scenes.jpg" alt="Scenes (phone)"><br><b>Scenes</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-08-reglages.jpg" alt="Settings (PC)"><br><b>Settings</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-08-reglages.jpg" alt="Settings (phone)"><br><b>Settings</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-jeu.jpg" alt="Play view (PC)"><br><b>Play view</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-jeu.jpg" alt="Play view (phone)"><br><b>Play view</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-live-crossfader.jpg" alt="Live · crossfader (PC)"><br><b>Live · crossfader</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-live-crossfader.jpg" alt="Live · crossfader (phone)"><br><b>Live · crossfader</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-live-vecteur.jpg" alt="Live · vector (PC)"><br><b>Live · vector</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-live-vecteur.jpg" alt="Live · vector (phone)"><br><b>Live · vector</b></td></tr>
+<tr><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-fm-sequence-pads.jpg" alt="FM Player · sequence and pads (PC)"><br><b>FM Player · sequence and pads</b></td><td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-fm-sequence-pads.jpg" alt="FM Player · sequence and pads (phone)"><br><b>FM Player · sequence and pads</b></td></tr>
+</table>
+<sub>Screenshots of the French interface; the English interface has the same layout.</sub>
+</details>
 
 ### 🎛️ Spotlight: the FM Player — FM-1 firmwares inside GOLEM
 
@@ -206,7 +315,7 @@ M-VAVE's FM-1 is a small FM synth for which the community has written dozens of 
 <table>
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-grand-telephone.jpg" alt="Big mode on a phone, Night background"><br><b>Big mode · phone</b><br>screen, knobs, piano and T1 to T4 (Night)</td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-sequence-t1-t4.jpg" alt="Sequence screen: 4 lines T1 to T4"><br><b>Sequence · T1 to T4</b><br>one line per firmware MIDI channel</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-fm-sequence-pads.jpg" alt="Sequence screen: 4 lines T1 to T4"><br><b>Sequence · T1 to T4</b><br>one line per firmware MIDI channel</td>
 </tr>
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/fm-player-nuit.jpg" alt="FM Player, Night background, JIANT FM"><br><b>JIANT FM · Night</b></td>
@@ -241,7 +350,7 @@ M-VAVE's FM-1 is a small FM synth for which the community has written dozens of 
 
 > **Windows**: the program is not signed yet. If Windows shows “Windows protected your PC”, click “More info”, then “Run anyway”.
 
-> **📱 Android (APK): phones and tablets.** The app adapts to a phone screen in landscape (Controls / Pads tabs). Audio is tuned for mobile: it runs on the fast processor cores, and the microphone stays closed until you open it. The CPU · MEM meter shows the load live.
+> **📱 Android (APK): phones and tablets.** The same view as on a computer, in landscape, with fold-out pads and the Play view. Audio is tuned for mobile: it runs on the fast processor cores, and the microphone stays closed until you open it. The CPU · MEM meter shows the load live.
 >
 > **Good to know:** the demo project is deliberately heavy (10 instruments and 14 effects). It runs well on a recent phone. On a small entry-level tablet it may crackle: start with an empty project or a few tracks.
 
@@ -268,7 +377,7 @@ M-VAVE's FM-1 is a small FM synth for which the community has written dozens of 
 <table>
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/synth-panel.jpg" alt="Synth panel"><br><b>Synth panel</b><br>every instrument has its own front panel</td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/sequence.jpg" alt="Sequence screen"><br><b>Sequence</b><br>piano roll, accent, slide, conditions, pages</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/sequence-reperes.jpg" alt="Sequence screen"><br><b>Sequence</b><br>piano roll, accent, slide, conditions, pages</td>
 </tr>
 <tr>
 <td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/pedalier.jpg" alt="Effects as pedals"><br><b>Effects as pedals</b><br>4 effects per track, from the panel</td>
@@ -282,8 +391,8 @@ M-VAVE's FM-1 is a small FM synth for which the community has written dozens of 
 
 <table>
 <tr>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/live-view-crossfader.jpg" alt="Live view, crossfader"><br><b>Live view · Crossfader</b><br>A / B scenes, rows, console of the 16 tracks</td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/live-view-vector.jpg" alt="Live view, vector pad"><br><b>Live view · Vector</b><br>four scenes blended by a moving shape</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-live-crossfader.jpg" alt="Live view, crossfader"><br><b>Live view · Crossfader</b><br>A / B scenes, rows, console of the 16 tracks</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/pc-live-vecteur.jpg" alt="Live view, vector pad"><br><b>Live view · Vector</b><br>four scenes blended by a moving shape</td>
 </tr>
 </table>
 
@@ -296,9 +405,9 @@ M-VAVE's FM-1 is a small FM synth for which the community has written dozens of 
 
 <table>
 <tr>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/phone-controls.jpg" alt="Phone: Controls tab"><br><b>Phone · Controls</b></td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/phone-pads.jpg" alt="Phone: Pads tab"><br><b>Phone · Pads</b></td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/en/phone-live-view.jpg" alt="Phone: live view"><br><b>Phone · Live view</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-jeu.jpg" alt="Phone: Play view"><br><b>Phone · Play view</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-pads-sequence.jpg" alt="Phone: sequence and pads"><br><b>Phone · Sequence + pads</b></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v100/captures/tel-live-crossfader.jpg" alt="Phone: live view"><br><b>Phone · Live view</b></td>
 </tr>
 </table>
 
@@ -318,6 +427,14 @@ M-VAVE's FM-1 is a small FM synth for which the community has written dozens of 
 - **Acid and parameter-lock sequencers** on the panels, linked to the Sequence screen; **Fill** and **Break** for live transitions.
 - **Illustrated manual**: an annotated screenshot under every shortcut table.
 - **OFAD GOLEM** mascot, splash screen and project home.
+
+### 🔜 Coming next
+- 📱 **Your phone as a MIDI controller**, over Bluetooth or USB.
+- 🎛️ **Many new firmwares** for the FM Player.
+
+🔔 **Follow / watch the repository** (**Watch › Releases** at the top of the GitHub page) for the latest updates and news.
+
+🧪 **Your test feedback is precious**: what doesn't work, what's missing, and your ideas for **synths, drum machines, instruments or FM-1 firmwares** to add, in the **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)** tab (English or French).
 
 ### 🤝 A project that grows with you
 If we all get involved, we can build our ideal groovebox. A machine you miss, an effect, a sequencer feature? Try it and tell me what works, what doesn't, which controller you use… and above all your **wish list** of features, in the **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)** tab (English or French): your ideas shape the next versions.

@@ -1763,6 +1763,11 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
                         engine.sequencer().setTrackMute (pad, ! engine.sequencer().getTrackMute (pad));
                         engine.recordSwitchAudio (pad, false, engine.sequencer().getTrackMute (pad)); // v0.46
                     }
+                    else if (mode == PadMode::solo) // 1.0 : solo des 16 pistes
+                    {
+                        engine.sequencer().setTrackSolo (pad, ! engine.sequencer().getTrackSolo (pad));
+                        engine.recordSwitchAudio (pad, true, engine.sequencer().getTrackSolo (pad));
+                    }
                     else if (mode == PadMode::steps) // focus est déjà borné à 0..15
                     {
                         // Pose ou retire le pas (mêmes valeurs atomiques que l'écran ; l'interface se met à jour au tick suivant)

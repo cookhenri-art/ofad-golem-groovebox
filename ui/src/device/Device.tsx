@@ -12,15 +12,16 @@ import { TempoRow } from "../controls/TempoBox";
 import { AssignKnobs, KnobAssignCapture, openKnobMods } from "./AssignKnobs";
 import { ModSourcesDialog } from "../screens/ModSourcesDialog";
 import { IconNext, IconPlay, IconPrev, IconRec, IconStop } from "../controls/Icons";
-import { actions, hasNative, setPadOctave, setUi, showMessage, useStore, writePref, type PadMode, type ScreenMode } from "../engine/store";
+import { actions, hasNative, readPref, setPadOctave, setUi, showMessage, useStore, writePref, type PadMode, type ScreenMode } from "../engine/store";
 import { useFaderTouch } from "../controls/useFaderTouch";
-import { MIDI_BREAK, MIDI_PHOTO, MIDI_RECALL, MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_FILL, MIDI_MUTE_BASE, MIDI_RECORD, MIDI_SOLO_BASE, MIDI_START, MIDI_STOP, MIDI_XFADE } from "../engine/protocol";
+import { MIDI_BREAK, MIDI_PHOTO, MIDI_RECALL, MIDI_FILL, MIDI_RECORD, MIDI_START, MIDI_STOP, MIDI_XFADE } from "../engine/protocol";
 import { MidiConflict } from "./MidiConflict";
 import { useLearnPress } from "../controls/useLearnPress";
-import { busName, groupBase, numGroups, trackColor } from "../engine/params";
+import { trackColor } from "../engine/params";
 import { MixerScreen } from "../screens/MixerScreen";
+import { RowLaunchBar } from "../screens/RowLaunchBar";
 import { ScenesScreen } from "../screens/ScenesScreen";
-import { EncoderRowContext, LearnFloat, MessageFloat } from "../screens/ScreenFrame";
+import { HeaderExtraContext, LearnFloat, MessageFloat, ModeBar, ZoomContext } from "../screens/ScreenFrame";
 import { SequenceScreen } from "../screens/SequenceScreen";
 import { SoundScreen } from "../screens/SoundScreen";
 import { EffectsScreen } from "../screens/EffectsScreen";
@@ -36,7 +37,7 @@ const DESIGN_H = 800;
 
 const SCREENS: { id: ScreenMode; label: string }[] = [
   { id: "tracks", label: "Pistes" },
-  { id: "launch", label: "Lancement" },
+  { id: "launch", label: "Clips" },
   { id: "sequence", label: "Séquence" },
   { id: "sound", label: "Son" },
   { id: "effects", label: "Effets" },
@@ -47,10 +48,10 @@ const SCREENS: { id: ScreenMode; label: string }[] = [
 
 const PAD_MODES: { id: PadMode; label: string; led: "amber" | "red" | "blue" }[] = [
   { id: "play", label: "Jouer", led: "amber" },
-  { id: "mute", label: "Couper", led: "amber" },
+  { id: "mute", label: "Mute", led: "amber" },
+  { id: "solo", label: "Solo", led: "blue" },
   { id: "scenes", label: "Scènes", led: "blue" },
   { id: "steps", label: "Pas", led: "red" },
-  { id: "erase", label: "Effacer", led: "red" },
 ];
 
 /** v0.47 : téléphone en paysage (fenêtre large et basse) : disposition propre, l'écran sur toute la
@@ -197,7 +198,7 @@ function FullscreenButton({ compact = false }: { compact?: boolean }) {
   return (
     <button type="button" className="top-full" aria-pressed={on} onClick={() => void actions.toggleFullscreen()}
       title={on ? "Revenir en fenêtre (F11)" : "Plein écran : l'application prend tout l'écran (F11)"}>
-      {compact ? "⛶" : on ? "Quitter le plein écran" : "Plein écran"}
+      {compact ? "⛶" : on ? "Quitter plein écran" : "Plein écran"}
     </button>
   );
 }
@@ -269,7 +270,7 @@ function PhotoRow() {
 
 /** Témoin de charge (v0.23) : calcul audio (moyenne et pointe, en % du temps disponible ; au-delà
     de 100 % le son craque) et mémoire de l'application, dont les échantillons chargés. */
-function PerfMeter({ compact = false }: { compact?: boolean }) {
+export function PerfMeter({ compact = false }: { compact?: boolean }) {
   const perf = useStore((s) => s.tick.perf);
   if (!perf || perf.length < 4) return null;
   const [avg, peak, mem, smp, rate = 0, block = 0, periodMs = 0, total = 0, android = -1] = perf;
@@ -317,61 +318,6 @@ export function Learn({ target, what, children }: { target: number; what: string
   );
 }
 
-/** Coupure (M) et solo (S) des 8 pistes de la banque du mixeur, sous les 8 encodeurs.
-    Clic droit ou appui long : apprentissage MIDI (un bouton ou un pad du contrôleur). */
-function TrackMuteRow() {
-  const bank = useStore((s) => s.ui.mixerBank);
-  const mixerFirst = useStore((s) => s.ui.mixerFirst);
-  const screen = useStore((s) => s.ui.screen);
-  const tracks = useStore((s) => s.tracks.tracks);
-  // les 8 pistes visibles dans le défilement du mixeur ou de la grille de lancement (sous les
-  // 8 encodeurs) ; au mixeur, la page Retours montre les pistes 1 à 8
-  // v0.31 : au mixeur, le défilement continue avec les groupes (positions 17 à 20)
-  const cat = useStore((s) => s.catalog);
-  const nGroups = cat ? numGroups(cat.layout) : 0;
-  const buses = useStore((s) => s.tracks.buses);
-  // v0.46 : page Groupes : la rangée du bas montre les pistes 13 à 16 puis les groupes G1 à G4
-  const first = screen === "mixer" && bank === 3 && nGroups > 0 ? 8 + nGroups
-    : screen === "mixer" && bank >= 2 ? 0 : bank === 1 && screen === "mixer" ? 8
-    : Math.max(0, Math.min(screen === "mixer" ? 8 + nGroups : 8, mixerFirst));
-  const longPress = useLearnPress(); // clic droit / appui long : affecter au contrôleur MIDI
-  return (
-    <div className="track-ms-row" role="group" aria-label={`Coupure et solo des pistes ${first + 1} à ${first + 8}`}>
-      {Array.from({ length: 8 }, (_, i) => {
-        const t = first + i;
-        const tr = tracks[t];
-        if (t >= 16 && cat) {
-          // un groupe : coupure et solo du bus de groupe
-          const k = t - 16, ch = groupBase(cat.layout) + k, b = buses?.[ch - cat.layout.numTracks];
-          const nm = busName(cat.layout, ch);
-          return (
-            <div key={t} className="track-ms track-ms--group">
-              <span className="track-ms-num" title={nm}>G{k + 1}</span>
-              <button type="button" className={`track-ms-btn track-ms-btn--m${b?.mute ? " on" : ""}`} aria-pressed={!!b?.mute}
-                title={`Couper ${nm} — clic droit : affecter au contrôleur MIDI`} onClick={() => void actions.busMute(ch, !b?.mute)}
-                {...longPress(MIDI_BUS_MUTE_BASE - (ch - cat.layout.numTracks), `Coupure de ${nm}`)}>M</button>
-              <button type="button" className={`track-ms-btn track-ms-btn--s${b?.solo ? " on" : ""}`} aria-pressed={!!b?.solo}
-                title={`Solo de ${nm} — clic droit : affecter au contrôleur MIDI`} onClick={() => void actions.busSolo(ch, !b?.solo)}
-                {...longPress(MIDI_BUS_SOLO_BASE - (ch - cat.layout.numTracks), `Solo de ${nm}`)}>S</button>
-            </div>
-          );
-        }
-        return (
-          <div key={t} className="track-ms" style={{ "--k": trackColor(tr?.color ?? 0) } as React.CSSProperties}>
-            <span className="track-ms-num" title={tr?.name}>{t + 1}</span>
-            <button type="button" className={`track-ms-btn track-ms-btn--m${tr?.mute ? " on" : ""}`} aria-pressed={!!tr?.mute}
-              title={`Couper la piste ${t + 1}${tr?.name ? ` (${tr.name})` : ""} — clic droit : affecter au contrôleur MIDI`}
-              onClick={() => void actions.trackMute(t, !tr?.mute)} {...longPress(MIDI_MUTE_BASE - t, `Coupure de la piste ${t + 1}`)}>M</button>
-            <button type="button" className={`track-ms-btn track-ms-btn--s${tr?.solo ? " on" : ""}`} aria-pressed={!!tr?.solo}
-              title={`Solo de la piste ${t + 1}${tr?.name ? ` (${tr.name})` : ""} — clic droit : affecter au contrôleur MIDI`}
-              onClick={() => void actions.trackSolo(t, !tr?.solo)} {...longPress(MIDI_SOLO_BASE - t, `Solo de la piste ${t + 1}`)}>S</button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 export function Device() {
   const fit = useFitScale();
   const area = fit.areaW > 0 ? { width: fit.areaW, height: fit.areaH, right: "auto", bottom: "auto" } as React.CSSProperties : undefined;
@@ -390,19 +336,8 @@ export function Device() {
   if (fit.phone) return <PhoneDevice scale={fit.scale} ghost={fit.ghost} ghostW={fit.ghostW} ghostH={fit.ghostH} area={area} />;
   return <TabletDevice scale={fit.scale} area={area} />;
 }
-
-/** Les boutons d'écran, ceux du transport et du jeu, l'octave : partagés par la tablette et le téléphone. */
-function TransportButtons() {
-  const t = useStore((s) => s.tick.t);
-  return (
-    <>
-      <Learn target={MIDI_RECORD} what="Enregistrement"><HwButton size="lg" led="red" active={t.rec} onPress={actions.toggleRecord} ariaLabel="Enregistrer" label={<><IconRec /><span>Enr.</span></>} /></Learn>
-      <Learn target={MIDI_START} what="Lecture"><HwButton size="lg" led="green" active={t.playing} onPress={actions.play} ariaLabel="Lecture" label={<><IconPlay /><span>Lecture</span></>} /></Learn>
-      <Learn target={MIDI_STOP} what="Arrêt"><HwButton size="lg" led="none" onPress={actions.stop} ariaLabel="Arrêt" label={<><IconStop /><span>Arrêt</span></>} /></Learn>
-    </>
-  );
-}
-function PlayButtons() {
+/** 1.0 (7 nov.) : exporté — servi aussi dans la vue live (bande du milieu). */
+export function PlayButtons() {
   const t = useStore((s) => s.tick.t);
   const shift = useStore((s) => s.ui.shift);
   return (
@@ -429,14 +364,118 @@ function OctaveButtons() {
     </>
   );
 }
-function ScreenButtons() {
-  const screen = useStore((s) => s.ui.screen);
+/** 1.0 : écran « Jeu » de la vue agrandie — tout ce qu'il faut pour jouer, en grand, à la place de l'écran :
+    pads et leurs modes à gauche ; 16 boutons, Photo / Rappel, Fill / Break / Maj, octave, crossfader et tempo à droite. */
+function JeuTrackNav() {
+  const focus = useStore((s) => s.focus);
+  const tracks = useStore((s) => s.tracks.tracks);
+  const t = Math.min(Math.max(0, focus), Math.max(0, tracks.length - 1));
+  const tr = tracks[t];
+  const n = Math.max(1, tracks.length);
   return (
-    <div className="button-row button-row--screens">
-      {SCREENS.map((s) => (
-        <HwButton key={s.id} label={s.label} active={screen === s.id} onPress={() => setUi({ screen: s.id })} />
-      ))}
+    <span className="jeu-tracknav" style={{ "--k": trackColor(tr?.color ?? 0) } as React.CSSProperties} role="group" aria-label="Piste jouée">
+      <button type="button" onClick={() => void actions.focus((t + n - 1) % n)} aria-label="Piste précédente">◀</button>
+      <select value={t} onChange={(e) => void actions.focus(Number(e.target.value))} aria-label="Piste jouée">
+        {tracks.map((x, i) => <option key={i} value={i}>P{i + 1} · {x.instrument ? x.name : "Libre"}</option>)}
+      </select>
+      <button type="button" onClick={() => void actions.focus((t + 1) % n)} aria-label="Piste suivante">▶</button>
+    </span>
+  );
+}
+/** 1.0 (maquette 7 nov.) : pads dépliables à droite de l'écran, sur tous les écrans (flèche sur le bord) :
+    l'écran passe à gauche, les 16 pads et leurs modes à droite ; on joue la piste choisie tout en réglant. */
+/** Batterie, mode Mute / Solo : les pads coupent les sons de la batterie ou les 16 pistes (repris de
+    l'ancienne vue). */
+function MuteTargetToggle() {
+  const padMode = useStore((s) => s.ui.padMode);
+  const muteTarget = useStore((s) => s.ui.muteTarget);
+  const drum = useStore((s) => !!s.catalog?.instruments.find((i) => i.type === s.tracks.tracks[Math.min(s.focus, 15)]?.instrument)?.drumKit);
+  if (!(padMode === "mute" || padMode === "solo") || !drum) return null;
+  return (
+    <span className="mute-target zoom-pads-target" role="group" aria-label="Ce que coupent les pads">
+      <button type="button" className={muteTarget === "pads" ? "on" : ""} aria-pressed={muteTarget === "pads"}
+        title="Sur une batterie : chaque pad coupe un son"
+        onClick={() => { setUi({ muteTarget: "pads" }); writePref("muteTracks", false); }}>Sons de la batterie</button>
+      <button type="button" className={muteTarget === "tracks" ? "on" : ""} aria-pressed={muteTarget === "tracks"}
+        title="Chaque pad coupe une des 16 pistes"
+        onClick={() => { setUi({ muteTarget: "tracks" }); writePref("muteTracks", true); }}>16 pistes</button>
+    </span>
+  );
+}
+
+function SidePads({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  return (
+    <>
+      {open && (
+        <aside className="zoom-pads" aria-label="Pads">
+          <JeuTrackNav />
+          <PadModeButtons />
+          <MuteTargetToggle />
+          <PadGrid />
+          <SceneBankButtons />
+        </aside>
+      )}
+      {/* 1.0 (7 nov.) : l'onglet a sa propre bande verticale : il ne recouvre plus le contenu des écrans */}
+      <div className="zoom-pads-strip">
+        <button type="button" className={`zoom-pads-tab${open ? " on" : ""}`} onClick={onToggle} aria-pressed={open}
+          title={open ? "Replier les pads" : "Déplier les pads à droite de l'écran"} aria-label={open ? "Replier les pads" : "Déplier les pads"}>
+          <span aria-hidden>{open ? "▶" : "◀"}</span><b>Pads</b>
+        </button>
+      </div>
+    </>
+  );
+}
+
+function JeuView() {
+  return (
+    <div className="jeu-view">
+      <header className="jeu-head"><JeuTrackNav /><RowLaunchBar /></header>
+      {/* 1.0 (7 nov.) : Éditer A / B, Break, verrous… le bandeau bleu prévient aussi dans l'écran Jeu */}
+      <div className="jeu-mode"><ModeBar /></div>
+      {/* 1.0 (7 nov.) : « MIDI : touchez une commande… » et les messages courts, par-dessus l'écran Jeu */}
+      <LearnFloat force /><MessageFloat force />
+      <section className="jeu-pads">
+        <PadModeButtons />
+        <PadGrid tracksOnly />
+        <SceneBankButtons />
+      </section>
+      <section className="jeu-ctrl">
+        <div className="encoder-row encoder-row--knobs jeu-knobs"><AssignKnobs /></div>
+        <PhotoRow />
+        <div className="phone-row jeu-row"><PlayButtons /></div>
+        <div className="phone-row jeu-row jeu-row--xf"><OctaveButtons /><Learn target={MIDI_XFADE} what="Crossfader"><Crossfader /></Learn></div>
+        <TempoRow />
+      </section>
     </div>
+  );
+}
+
+/** 1.1 : écran agrandi sur téléphone — le rail de droite (les 8 écrans en raccourci, lecture / arrêt, retour). */
+const SCREEN_SHORT: Partial<Record<ScreenMode, string>> = { tracks: "Piste", launch: "Clips", sequence: "Séq.", sound: "Son", effects: "FX", mixer: "Mix.", scenes: "Scène", settings: "⚙" };
+function ZoomRail({ jeu, onJeu }: { jeu: boolean; onJeu: () => void }) {
+  const screen = useStore((s) => s.ui.screen);
+  const playing = useStore((s) => s.tick.t.playing);
+  const rec = useStore((s) => s.tick.t.rec);
+  return (
+    <nav className="zoom-rail" aria-label="Écrans">
+      {SCREENS.map((s) => (
+        <button key={s.id} type="button" className={`${screen === s.id && !jeu ? "on" : ""}${s.id === "settings" ? " zoom-rail-gear" : ""}`} aria-pressed={screen === s.id} title={s.label} aria-label={s.label}
+          onClick={() => { setUi({ screen: s.id }); if (jeu) onJeu(); }}>{SCREEN_SHORT[s.id] ?? s.label}</button>
+      ))}
+      <div className="zoom-rail-duo">
+      <button type="button" className="zoom-rail-live" onClick={() => setUi({ vecFull: true })}
+        title="Vue live : crossfader ou pavé vectoriel, scènes, console des 16 pistes et les 16 boutons, depuis n'importe quel écran">Live</button>
+      <button type="button" className={`zoom-rail-jeu${jeu ? " on" : ""}`} aria-pressed={jeu} onClick={onJeu}
+        title="Jeu : pads et leurs modes, 16 boutons, Fill / Break / Maj, crossfader, Photo / Rappel (toucher à nouveau pour refermer)">Jeu</button>
+      </div>
+      {/* 1.0 (7 nov.) : la vue agrandie est la seule vue — Lecture / Arrêt en haut, Enr. en grand en bas
+          (à la place de l'ancien bouton ⤡ de retour à la vue classique) */}
+      <div className="zoom-rail-tr">
+        <Learn target={MIDI_START} what="Lecture"><button type="button" className={`zoom-rail-play${playing ? " on" : ""}`} aria-label="Lecture" onClick={actions.play}><IconPlay /></button></Learn>
+        <Learn target={MIDI_STOP} what="Arrêt"><button type="button" aria-label="Arrêt" onClick={actions.stop}><IconStop /></button></Learn>
+      </div>
+      <Learn target={MIDI_RECORD} what="Enregistrement"><button type="button" className={`zoom-rail-rec zoom-rail-recbig${rec ? " on" : ""}`} aria-label="Enregistrer" onClick={actions.toggleRecord}><IconRec /><span>Enr.</span></button></Learn>
+    </nav>
   );
 }
 function PadModeButtons() {
@@ -467,9 +506,11 @@ function SceneBankButtons() {
     Pads (rôle des pads, 16 pads, banque de scènes). Les grandes fenêtres (façade, pédalier, accueil)
     gardent leur dessin de tablette, posées sur toute la fenêtre. */
 function PhoneDevice({ scale, ghost, ghostW, ghostH, area }: { scale: number; ghost: number; ghostW: number; ghostH: number; area?: React.CSSProperties }) {
-  const [encoderRow, setEncoderRow] = useState<HTMLElement | null>(null);
-  const [tab, setTabState] = useState<"ctrl" | "pads">(() => { try { return localStorage.getItem("grv.phoneTab") === "pads" ? "pads" : "ctrl"; } catch { return "ctrl"; } });
-  const setTab = (v: "ctrl" | "pads") => { setTabState(v); try { localStorage.setItem("grv.phoneTab", v); } catch { /* stockage indisponible */ } };
+  // 1.1 : écran agrandi (retenu d'une ouverture à l'autre)
+  const zoom = true; // 1.0 (7 nov.) : la vue agrandie est la seule vue (plus de vue classique)
+  const [jeu, setJeu] = useState(false); // 1.0 : écran Jeu à la place de l'écran choisi
+  const [sidePads, setSidePads] = useState(() => readPref("sidePads", false));
+  const toggleSidePads = () => { setSidePads(!sidePads); writePref("sidePads", !sidePads); };
   return (
     <div className="stage" style={area}>
       <KnobAssignCapture />
@@ -480,49 +521,25 @@ function PhoneDevice({ scale, ghost, ghostW, ghostH, area }: { scale: number; gh
           (bandeau du système, encoche, taille annoncée fausse), on le fait glisser au doigt. */}
       <div className="phone-scroll">
       <div className="phone-box" style={{ width: Math.ceil(PHONE_W * scale), height: Math.ceil(PHONE_H * scale) }}>
-      <div className="device device--phone" style={{ transform: `scale(${scale})` }}>
+      <div className={`device device--phone${zoom ? " device--zoom" : ""}${zoom && jeu ? " device--zoom-jeu" : ""}`} style={{ transform: `scale(${scale})` }}>
         <div className="bezel">
           <div className="screen">
-            <EncoderRowContext.Provider value={encoderRow}>
-              <ScreenSwitch />
-            </EncoderRowContext.Provider>
+            <ZoomContext.Provider value={zoom}>
+            <HeaderExtraContext.Provider value={<><PerfMeter compact /><HistoryButtons /><AudioRecorder /></>}>
+              <div className={`zoom-split${sidePads && !jeu ? " is-open" : ""}`}>
+                <div className="zoom-split-main">{zoom && jeu ? <JeuView /> : <ScreenSwitch />}</div>
+                {!jeu && <SidePads open={sidePads} onToggle={toggleSidePads} />}
+                {/* clavier d'ordinateur (espace, B, N, touches des pads) : une grille cachée quand rien ne l'affiche */}
+                {!jeu && !sidePads && <div hidden><PadGrid /></div>}
+              </div>
+            </HeaderExtraContext.Provider>
+            </ZoomContext.Provider>
           </div>
         </div>
+        {/* 1.0 (7 nov.) : l'ancienne vue (en-tête, onglets Commandes / Pads, panneaux) est retirée : seul le rail
+            reste à droite de l'écran */}
         <div className="phone-side">
-          <header className="phone-top">
-            <img className="top-golem" src="golem/golem-128.png" alt="" draggable={false} />
-            <button type="button" className="top-synth" onClick={() => setUi({ face: true })}
-              title="Ouvrir l'instrument de la piste choisie en grand (Échap ou ✕ pour refermer)">Synthé ↗</button>
-            <span className="device-spacer" />
-            <HistoryButtons />
-            <AudioRecorder />
-            <FullscreenButton compact />
-          </header>
-          <div className="phone-tabs" role="tablist" aria-label="Panneau">
-            <button type="button" role="tab" aria-selected={tab === "ctrl"} className={tab === "ctrl" ? "on" : ""} onClick={() => setTab("ctrl")}>Commandes</button>
-            <button type="button" role="tab" aria-selected={tab === "pads"} className={tab === "pads" ? "on" : ""} onClick={() => setTab("pads")}>Pads</button>
-            {/* v0.46 fix19 : petits ▶ ■ retirés (ils débordaient) ; le transport est dans Commandes */}
-            <PerfMeter compact />
-          </div>
-          {tab === "ctrl" ? (
-            <div className="phone-panel phone-panel--ctrl">
-              <ScreenButtons />
-              <div className="encoder-row encoder-row--knobs" ref={setEncoderRow}><AssignKnobs /></div>
-              {/* v0.46 fix28 : Photo / Rappel / Mod. boutons juste sous les 16 boutons ; le transport juste au-dessus du tempo */}
-              <PhotoRow />
-              <div className="phone-row"><PlayButtons /></div>
-              <div className="phone-row phone-row--xf"><OctaveButtons /><Learn target={MIDI_XFADE} what="Crossfader"><Crossfader /></Learn></div>
-              <div className="phone-row"><TransportButtons /></div>
-              {/* v0.46 fix23 : tempo sous Photo / Rappel (− / valeur à taper / + / Tap) */}
-              <TempoRow />
-            </div>
-          ) : (
-            <div className="phone-panel phone-panel--pads">
-              <PadModeButtons />
-              <PadGrid />
-              <SceneBankButtons />
-            </div>
-          )}
+          {zoom && <ZoomRail jeu={jeu} onJeu={() => setJeu(!jeu)} />}
         </div>
       </div>
       </div>
@@ -539,20 +556,11 @@ function PhoneDevice({ scale, ghost, ghostW, ghostH, area }: { scale: number; gh
 }
 
 function TabletDevice({ scale, area }: { scale: number; area?: React.CSSProperties }) {
-  const [encoderRow, setEncoderRow] = useState<HTMLElement | null>(null);
-  const screen = useStore((s) => s.ui.screen);
-  const shift = useStore((s) => s.ui.shift);
-  const page = useStore((s) => s.ui.page);
-  const length = useStore((s) => s.pattern?.length ?? 16);
-  const t = useStore((s) => s.tick.t);
-  const padMode = useStore((s) => s.ui.padMode);
-  const bank = useStore((s) => s.ui.sceneBank);
-  const editSlot = useStore((s) => s.ui.editSlot);
-  const octave = useStore((s) => s.ui.octave);
-  const muteTarget = useStore((s) => s.ui.muteTarget);
-  const focusDrum = useStore((s) => !!s.catalog?.instruments.find((i) => i.type === s.tracks.tracks[Math.min(s.focus, 15)]?.instrument)?.drumKit);
-  const pages = Math.max(1, Math.ceil(length / 16));
-  const lane = useStore((s) => s.ui.lane);
+  // 1.1 : vue agrandie aussi sur PC (au choix : classique ou agrandie, retenu)
+  const zoom = true; // 1.0 (7 nov.) : la vue agrandie est la seule vue (plus de vue classique)
+  const [jeu, setJeu] = useState(false);
+  const [sidePads, setSidePads] = useState(() => readPref("sidePads", false));
+  const toggleSidePads = () => { setSidePads(!sidePads); writePref("sidePads", !sidePads); };
 
   return (
     <div className="stage" style={area}>
@@ -560,7 +568,7 @@ function TabletDevice({ scale, area }: { scale: number; area?: React.CSSProperti
       <VectorFullLayer />
       <LearnFloat />
       <MessageFloat />
-      <div className="device" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
+      <div className={`device${zoom ? " device--zoom device--zoom-pc" : ""}${zoom && jeu ? " device--zoom-jeu" : ""}`} style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
         <InstrumentFace />
         <ModSourcesDialog />
         <MidiConflict />
@@ -583,90 +591,21 @@ function TabletDevice({ scale, area }: { scale: number; area?: React.CSSProperti
         <div className="device-left">
           <div className="bezel">
             <div className="screen">
-              <EncoderRowContext.Provider value={encoderRow}>
-                <ScreenSwitch />
-              </EncoderRowContext.Provider>
+              <ZoomContext.Provider value={zoom}>
+                <div className={`zoom-split${sidePads && !jeu ? " is-open" : ""}`}>
+                  <div className="zoom-split-main">{zoom && jeu ? <JeuView /> : <ScreenSwitch />}</div>
+                  {!jeu && <SidePads open={sidePads} onToggle={toggleSidePads} />}
+                {/* clavier d'ordinateur (espace, B, N, touches des pads) : une grille cachée quand rien ne l'affiche */}
+                {!jeu && !sidePads && <div hidden><PadGrid /></div>}
+                </div>
+              </ZoomContext.Provider>
             </div>
           </div>
 
-          <div className="encoder-row encoder-row--knobs" ref={setEncoderRow}><AssignKnobs /></div>
-          <TrackMuteRow />
-
-          <div className="device-bottom">
-            <div className="cluster">
-              <span className="silk">Transport</span>
-              <div className="cluster-row">
-                <Learn target={MIDI_RECORD} what="Enregistrement"><HwButton size="lg" led="red" active={t.rec} onPress={actions.toggleRecord} ariaLabel="Enregistrer" label={<><IconRec /><span>Enr.</span></>} /></Learn>
-                <Learn target={MIDI_START} what="Lecture"><HwButton size="lg" led="green" active={t.playing} onPress={actions.play} ariaLabel="Lecture" label={<><IconPlay /><span>Lecture</span></>} /></Learn>
-                <Learn target={MIDI_STOP} what="Arrêt"><HwButton size="lg" led="none" onPress={actions.stop} ariaLabel="Arrêt" label={<><IconStop /><span>Arrêt</span></>} /></Learn>
-              </div>
-            </div>
-
-            <div className="cluster">
-              <span className="silk">Jeu</span>
-              <div className="cluster-row">
-                <Learn target={MIDI_FILL} what="Fill"><HoldButton label="Fill" led="amber" active={t.fill && !t.brk} onChange={actions.fill} /></Learn>
-                <Learn target={MIDI_BREAK} what="Break"><HoldButton label="Break" led="magenta" active={t.brk} onChange={actions.breakKey} /></Learn>
-                <TimedBreak />
-                <HwButton size="md" active={shift} onPress={() => setUi({ shift: !shift })} label="Maj"
-                  title="Maj verrouillée : accent sur les notes posées, scène envoyée de l'autre côté du fader, Fill / Break verrouillés" />
-              </div>
-            </div>
-
-            <div className="cluster">
-              <span className="silk">Octave</span>
-              <div className="cluster-row">
-                <HwButton size="md" led="none" onPress={() => (screen === "sequence" && shift ? setUi({ page: Math.max(0, page - 1) }) : setPadOctave(octave - 1))} ariaLabel="Octave plus bas (Maj : page précédente au séquenceur)" label={<IconPrev />} />
-                <HwButton size="md" led="none" onPress={() => (screen === "sequence" && shift ? setUi({ page: Math.min(pages - 1, page + 1) }) : setPadOctave(octave + 1))} ariaLabel="Octave plus haut (Maj : page suivante au séquenceur)" label={<IconNext />} />
-              </div>
-            </div>
-
-
-            <Learn target={MIDI_XFADE} what="Crossfader"><Crossfader /></Learn>
-          </div>
         </div>
 
         <div className="device-right">
-          <div className="button-block">
-            <span className="silk">Écran</span>
-            <div className="button-row button-row--screens">
-              {SCREENS.map((s) => (
-                <HwButton key={s.id} label={s.label} active={screen === s.id} onPress={() => setUi({ screen: s.id })} />
-              ))}
-            </div>
-          </div>
-
-          <div className="button-block">
-            <span className="silk silk--row">Rôle des pads{padMode === "play" && octave !== 0 ? ` · octave ${octave > 0 ? "+" : ""}${octave}` : ""}{padMode === "steps" ? ` · ligne ${lane + 1}, page ${page + 1}/${pages}` : ""}
-              {padMode === "mute" && focusDrum && (
-                <span className="mute-target" role="group" aria-label="Ce que coupent les pads">
-                  <button type="button" className={muteTarget === "pads" ? "on" : ""} aria-pressed={muteTarget === "pads"}
-                    title="Sur une batterie : chaque pad coupe un son (Maj + pad : solo du son)"
-                    onClick={() => { setUi({ muteTarget: "pads" }); writePref("muteTracks", false); }}>Sons de la batterie</button>
-                  <button type="button" className={muteTarget === "tracks" ? "on" : ""} aria-pressed={muteTarget === "tracks"}
-                    title="Chaque pad coupe une des 16 pistes"
-                    onClick={() => { setUi({ muteTarget: "tracks" }); writePref("muteTracks", true); }}>16 pistes</button>
-                </span>
-              )}
-            </span>
-            <div className="button-row button-row--padmodes">
-              {PAD_MODES.map((m) => (
-                <HwButton key={m.id} label={m.label} led={m.led} active={padMode === m.id} onPress={() => setUi({ padMode: m.id })} />
-              ))}
-            </div>
-          </div>
-
-          <PadGrid />
-
-          <div className="button-block button-block--bank">
-            <span className="silk">Banque de scènes</span>
-            <div className="button-row">
-              <HwButton size="sm" label="1 – 16" led="blue" active={bank === 0} onPress={() => setUi({ sceneBank: 0 })} />
-              <HwButton size="sm" label="17 – 32" led="blue" active={bank === 1} onPress={() => setUi({ sceneBank: 1 })} />
-              <HwButton size="sm" label="Éditer A" led="blue" active={editSlot === "A"} onPress={() => setUi({ editSlot: editSlot === "A" ? null : "A", editBreak: false })} />
-              <HwButton size="sm" label="Éditer B" led="magenta" active={editSlot === "B"} onPress={() => setUi({ editSlot: editSlot === "B" ? null : "B", editBreak: false })} />
-            </div>
-          </div>
+          {zoom && <ZoomRail jeu={jeu} onJeu={() => setJeu(!jeu)} />}
         </div>
       </div>
     </div>

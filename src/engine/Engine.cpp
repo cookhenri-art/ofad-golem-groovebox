@@ -185,9 +185,17 @@ bool Engine::setInstrument (int track, const std::string& type, double nowMs)
     for (auto& smp : samples[(size_t) track]) bin.retire (std::move (smp), nowMs);
 
     auto& ti = info[(size_t) track];
+    // 1.0 (7 nov.) : la piste prend le nom de la machine tant qu'on ne l'a pas renommée : nom par défaut
+    // (« Piste N ») ou nom de la machine précédente → nom de la nouvelle ; piste libérée → « Piste N »
+    const auto* old = findInstrument (ti.instrumentType);
+    const bool autoName = ti.name.rfind ("Piste ", 0) == 0 || (old != nullptr && ti.name == old->name);
     ti.instrumentType = type;
     ti.preset.clear();
-    if (const auto* d = findInstrument (type)) { if (ti.name.rfind ("Piste ", 0) == 0) ti.name = d->name; }
+    if (autoName)
+    {
+        if (const auto* d = findInstrument (type)) ti.name = d->name;
+        else if (type.empty()) ti.name = "Piste " + std::to_string (track + 1);
+    }
 
     // Les verrous de pas et assignations qui visaient l'ancien instrument n'ont plus de sens
     auto& mods = modAssigns[(size_t) track];

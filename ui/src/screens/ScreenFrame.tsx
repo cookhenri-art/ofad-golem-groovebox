@@ -2,7 +2,7 @@
 // Cadre commun des écrans : barre d'état (titre, onglets, transport, position, tempo), contenu,
 // et en bas les libellés des 8 encodeurs placés juste sous l'écran (comme sur une machine à écran).
 
-import { createContext, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { ParamMenuZone, type EncoderBinding } from "../controls/Encoder";
 import { bindingCode, registerCtl } from "../engine/ctl";
 import { actions, getState, setUi, useStore } from "../engine/store";
@@ -12,6 +12,11 @@ import { useValueDrag } from "../controls/useValueDrag";
 import { TempoValue } from "../controls/TempoBox";
 
 export const EncoderRowContext = createContext<HTMLElement | null>(null);
+/** 1.0 : l'écran est en vue agrandie (téléphone ou PC) — certains écrans changent de disposition. */
+export const ZoomContext = createContext(false);
+/** 1.0 (7 nov.) : outils de l'en-tête de l'appareil (annuler / rétablir, enregistreur audio) montrés dans la
+    barre d'état de chaque écran au téléphone : la vue agrandie, seule vue, n'a plus l'en-tête de l'appareil. */
+export const HeaderExtraContext = createContext<ReactNode>(null);
 
 interface ScreenFrameProps {
   title: string;
@@ -140,20 +145,23 @@ export function ModeBar() {
     v0.46 fix30f : aussi dans la vue live (elle couvre l'écran : le voyant n'y était pas visible). */
 /** GOLEM 1.0 : le voyant d'apprentissage MIDI (et d'affectation des boutons) aussi par-dessus la façade
     d'un synthé et les pédales d'effets, qui couvrent l'écran (on ne voyait pas que GOLEM attendait). */
-export function LearnFloat() {
+export function LearnFloat({ force = false }: { force?: boolean } = {}) {
   const learn = useStore((s) => s.tick.learn ?? -1);
   const knobWait = useStore((s) => s.ui.knobAssign);
-  const covered = useStore((s) => s.ui.face || s.ui.pedals);
+  const covered = useStore((s) => force || s.ui.face || s.ui.pedals);
   if (!covered || (learn === -1 && knobWait === null)) return null;
   return <div className="learn-float" role="status"><LearnChips /></div>;
 }
 
 /** 1.0 (6 nov.) : le message court (« verrous copiés », « collés », « retirés »…) aussi par-dessus la façade
     d'un synthé, les pédales et le mode Grand du FM Player : il s'affichait derrière, on ne le voyait pas. */
-export function MessageFloat() {
+export function MessageFloat({ force = false }: { force?: boolean } = {}) {
   const message = useStore((s) => s.ui.message);
-  const covered = useStore((s) => s.ui.face || s.ui.pedals);
-  if (!covered || !message) return null;
+  const covered = useStore((s) => force || s.ui.face || s.ui.pedals);
+  // 1.0 (7 nov.) : pendant l'apprentissage MIDI ou « Assigner à… », le bandeau bleu suffit (pas deux
+  // messages qui disent la même chose)
+  const waiting = useStore((s) => (s.tick.learn ?? -1) !== -1 || s.ui.knobAssign !== null);
+  if (!covered || !message || waiting) return null;
   return <div className="message-float" role="status">{message}</div>;
 }
 
@@ -175,6 +183,11 @@ export function LiveToast() {
   return message ? <div className="screen-toast vecfull-toast" role="status">{message}</div> : null;
 }
 
+function HeaderExtra() {
+  const extra = useContext(HeaderExtraContext);
+  return extra ? <span className="screen-extra">{extra}</span> : null;
+}
+
 export function ScreenFrame({ title, status, tabs, tab, onTab, encoders, children }: ScreenFrameProps) {
   const t = useStore((s) => s.tick.t);
   const message = useStore((s) => s.ui.message);
@@ -182,7 +195,7 @@ export function ScreenFrame({ title, status, tabs, tab, onTab, encoders, childre
 
   return (
     <div className="screen-frame">
-      <header className={`screen-status${tabs ? " screen-status--tabs" : ""}`}>
+      <header className={`screen-status${tabs ? " screen-status--tabs" : ""}`} data-screen={title}>
         <span className="screen-title">{title}</span>
         {tabs && (
           <span className="screen-tabs" role="tablist" aria-label={`Sections de l'écran ${title}`}>
@@ -195,6 +208,7 @@ export function ScreenFrame({ title, status, tabs, tab, onTab, encoders, childre
         <span className="screen-spacer" />
         {(t.fill || t.brk) && <span className="chip chip--edit chip--B">{t.brk ? "BREAK" : "FILL"}</span>}
         <LearnChips />
+        <HeaderExtra />
         <span className={`transport-state${t.rec ? " rec" : ""}${t.playing ? " play" : ""}`}>
           {t.rec ? <><IconRec /> ENR</> : t.playing ? <><IconPlay /> LECTURE</> : <><IconStop /> ARRÊT</>}
         </span>

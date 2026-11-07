@@ -6,6 +6,7 @@
 // glisser, molette, double-clic, clic droit / appui long (valeur exacte, modulation, MIDI),
 // verrous de pas et scènes. Échap ou ✕ : refermer.
 
+import { PerfMeter } from "../device/Device";
 import { StepsDock } from "./faces/StepsChoice";
 import { InstrumentPicker } from "./InstrumentPicker";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -313,8 +314,11 @@ function FitScale({ children, fitKey }: { children: React.ReactNode; fitKey: str
 /** v0.46 fix16 : petit transport dans la façade (enregistrer, lancer, arrêter) sans la quitter. */
 function FaceTransport() {
   const t = useStore((s) => s.tick.t);
+  const phone = useStore((s) => !!s.ui.phone);
   return (
     <span className="face-transport" role="group" aria-label="Transport">
+      {/* 1.0 (7 nov.) : téléphone — la charge du processeur, à gauche de ● (l'en-tête de l'appareil n'existe plus) */}
+      {phone && <PerfMeter compact />}
       <button type="button" className={`ft-rec${t.rec ? " on" : ""}`} aria-pressed={t.rec} onClick={actions.toggleRecord} title="Enregistrer (ENR.) : notes et mouvements dans le pattern">●</button>
       <button type="button" className={`ft-play${t.playing ? " on" : ""}`} aria-pressed={t.playing} onClick={() => (t.playing ? actions.stop() : actions.play())} title={t.playing ? "Arrêter la lecture" : "Lecture"}>{t.playing ? "❚❚" : "▶"}</button>
       <button type="button" className="ft-stop" onClick={actions.stop} title="Arrêt">■</button>

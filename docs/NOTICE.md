@@ -15,21 +15,25 @@ Cette notice donne les bases ; le détail des instruments et des effets est dans
 | **Échap** | Refermer la fenêtre ouverte : façade du synthé, pédalier, choix d'instrument ou d'effet, préréglages, menu, accueil |
 | **B** maintenu | Break : scène de Break tant que la touche est tenue (et Fill en même temps) |
 | **N** maintenu | Fill : les pas à condition FILL jouent, les NON FILL se taisent |
-| Clic droit (appui long au doigt) sur un bouton à diode, Photo, Rappel, M / S… | Affecter au contrôleur MIDI |
-| Toucher le **tempo** (barre d'état, ou rangée Tempo du téléphone) | Taper le tempo au clavier (40 à 240 BPM, au dixième) |
+| Clic droit (appui long au doigt) sur un bouton à diode, Photo, Rappel, M / S, rangées A à P, patterns A à P de la séquence… | Affecter au contrôleur MIDI |
+| Toucher le **tempo** (barre d'état, ou rangée Tempo de l'écran Jeu) | Taper le tempo au clavier (40 à 240 BPM, au dixième) |
+| **Molette** sur le mixeur | Faire défiler les pistes de gauche à droite (au-dessus d'un réglage : régler la valeur) |
 
 <figure class="wide"><img src="img/appareil-reperes.jpg" alt="Les commandes générales, numérotées"><figcaption>Où sont les commandes générales</figcaption></figure>
 
 1. **Ouvrir le synthé** : la façade de l'instrument de la piste, en grand.
-2. **Annuler / Rétablir** (Ctrl + Z / Ctrl + Y), **Photo** et **Rappel** de tous les réglages.
+2. **Annuler / Rétablir** (Ctrl + Z / Ctrl + Y), **Photo** et **Rappel** de tous les réglages, **Mod. boutons**.
 3. **Audio** : enregistrer ce qui sort (master ou pistes séparées).
 4. **Plein écran** (F11).
-5. Les **16 boutons assignables** (losange bleu) : chacun pilote la valeur qu'on lui a donnée (voir plus bas).
-6. **M / S** : coupure et solo des pistes affichées.
-7. **Transport** : Enr., Lecture, Arrêt (barre d'espace) ; Fill (N), Break (B), Break temporisé, Maj.
-8. **Crossfader** des scènes A / B (double-clic : retour au milieu).
-9. Les **8 écrans**.
-10. Le **rôle des pads** : Jouer, Couper, Scènes, Pas, Effacer.
+5. Le **rail** : les **8 écrans** (Piste, Clips, Séq., Son, FX, Mix., Scène, ⚙ Réglages).
+6. **Live** (vue live : crossfader ou vecteur, console des 16 pistes) et **Jeu** (pads, 16 boutons, Fill / Break, crossfader, tempo).
+7. **Lecture** et **Arrêt** (barre d'espace).
+8. **Enr.** : enregistrement dans le pattern.
+9. **Pads** : déplier les 16 pads à droite de l'écran, sur tous les écrans.
+10. Les **valeurs du bas** de l'écran : glisser ↑↓ pour régler, appui long pour le menu.
+
+Sur téléphone, annuler / rétablir et **Audio** sont dans la barre d'état de chaque écran ; Photo, Rappel et
+Mod. boutons sont dans l'écran **Jeu**.
 
 ### Pads au clavier de l'ordinateur (AZERTY)
 
@@ -41,7 +45,7 @@ Cette notice donne les bases ; le détail des instruments et des effets est dans
 | **W X C V** | 1 à 4 (rangée du bas) |
 | **Maj** + touche | Coup accentué (pleine vélocité) |
 
-Les touches suivent le rôle des pads choisi à droite : Jouer, Couper, Scènes, Pas, Effacer.
+Les touches suivent le rôle des pads choisi (Jouer, Mute, Solo, Scènes, Pas), que les pads soient dépliés ou non.
 
 <figure class="pads"><img src="img/pads-clavier.jpg" alt="La touche du clavier de l'ordinateur sur chaque pad"><figcaption>La touche du clavier sur chaque pad (la même petite lettre est rappelée en haut à droite de chaque pad)</figcaption></figure>
 
@@ -123,8 +127,11 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 | Toucher une case **Accent** / **Glissé** | Allumer / éteindre l'accent ou le glissé du pas |
 | Appui long (clic droit) sur une case **Accent** / **Glissé** | La valeur du pas : force de l'accent, durée du glissé |
 | ◀ ▶ à côté du pattern (ou les petites pastilles) | Tourner les pages (une page = 16 pas) |
-| **Maj** + ◀ ▶ d'Octave (transport) | Page précédente / suivante |
+| **Maj** + ◀ ▶ d'Octave (écran Jeu) | Page précédente / suivante |
 | **Enr.** puis jouer | Les notes jouées s'écrivent dans le pattern (quantification : Réglages) |
+| Toucher le **nom d'une ligne** (batterie, T1 à T8, T1 à T4) | Choisir la ligne et **écouter son son** tant que le doigt reste posé |
+| Appui long (clic droit) sur **A … P** sous la séquence | Affecter ce pattern au contrôleur MIDI (la commande le lance sur la piste choisie) |
+| **◀ Pads** | Déplier les pads à côté de la séquence pour jouer en écrivant |
 
 <figure class="wide"><img src="img/sequence-reperes.jpg" alt="L'écran SÉQUENCE d'une basse : rouleau de notes, lignes Accent et Glissé, pages"><figcaption>L'écran SÉQUENCE d'un instrument mélodique (ici la basse acide)</figcaption></figure>
 
@@ -139,7 +146,7 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 8. Les **réglages de la piste** quand aucun pas n'est choisi (swing, longueur, vitesse…) — voir « 3. Écrire
    une séquence ».
 
-### Écran LANCEMENT › Grille
+### Écran CLIPS › Grille
 
 | Touche ou geste | Effet |
 |---|---|
@@ -148,7 +155,7 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 | **Ctrl + C** puis case, **Ctrl + V** | Copier un pattern vers une autre case (même piste ou autre piste) |
 | ▶ en tête de rangée | Lancer la même lettre sur toutes les pistes (et la scène liée à la rangée) |
 
-<figure class="wide"><img src="img/lancement-reperes.jpg" alt="LANCEMENT › Grille"><figcaption>LANCEMENT › Grille</figcaption></figure>
+<figure class="wide"><img src="img/lancement-reperes.jpg" alt="CLIPS › Grille"><figcaption>CLIPS › Grille</figcaption></figure>
 
 1. Les onglets **Grille**, **Morceau**, **Audio**.
 2. La **grille** : une colonne par piste, une case par pattern ; ▶ lance une rangée, ■ arrête une piste. Les 16 rangées (A à P)
@@ -156,7 +163,7 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 3. Copier, effacer ou éditer le pattern ou la rangée choisis.
 4. Les valeurs du bas : piste, pattern édité, **quantification du lancement**, rangée, **scène liée**.
 
-### Écran LANCEMENT › Morceau et courbes
+### Écran CLIPS › Morceau et courbes
 
 | Touche ou geste | Effet |
 |---|---|
@@ -164,14 +171,14 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 | Éditeur de courbe : **Maj** + tirer | Tracer une ligne droite |
 | Éditeur de courbe : clic droit + tirer | Gommer |
 
-<figure class="wide"><img src="img/morceau-reperes.jpg" alt="LANCEMENT › Morceau"><figcaption>LANCEMENT › Morceau</figcaption></figure>
+<figure class="wide"><img src="img/morceau-reperes.jpg" alt="CLIPS › Morceau"><figcaption>CLIPS › Morceau</figcaption></figure>
 
 1. **Mode morceau** (les rangées s'enchaînent) ou **Boucle** (la grille joue).
 2. **● Enr. le jeu** (votre jeu devient des rangées) et **● Enr. les mouvements** (boutons, faders, mutes, solos, crossfader en courbes).
 3. Les **rangées** jouées l'une après l'autre ; les **courbes** en dessous.
 4. Ajouter ce qui joue comme rangée, vider les rangées ou les courbes.
 
-### Écran LANCEMENT › Audio (montage)
+### Écran CLIPS › Audio (montage)
 
 | Touche ou geste | Effet |
 |---|---|
@@ -192,7 +199,7 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 | Glisser la barre orange de la boucle | Déplacer la boucle ; ses bords : l'agrandir ou la raccourcir |
 | **Boucle** allumée + « ● Enregistrer une prise » | La prise dure exactement la boucle et **s'arrête toute seule** à sa fin |
 
-<figure class="wide"><img src="img/montage-reperes.jpg" alt="LANCEMENT › Audio : le montage"><figcaption>LANCEMENT › Audio (montage)</figcaption></figure>
+<figure class="wide"><img src="img/montage-reperes.jpg" alt="CLIPS › Audio : le montage"><figcaption>CLIPS › Audio (montage)</figcaption></figure>
 
 1. **● Enregistrer une prise** (elle se pose à la tête de lecture, ou au début de la boucle si la Boucle est allumée).
 2. **Mode montage** : la lecture joue les clips à la place des instruments.
@@ -214,22 +221,51 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 
 <figure><img src="img/accueil.jpg" alt="L'accueil au lancement : reprendre, nouveau projet, démonstration, ouvrir, projets du dossier"><figcaption>L'accueil au lancement : reprendre, nouveau projet, démonstration, ouvrir, projets du dossier</figcaption></figure>
 
-## L'appareil
+## L'appareil : une seule vue
 
-- **8 écrans** (boutons à droite) : Pistes, Lancement, Séquence, Son, Effets, Mixeur, Scènes, Réglages.
-- **16 boutons assignables** sous l'écran : chacun pilote la valeur qu'on lui a confiée (voir « Boutons
-  et valeurs »). Les valeurs de l'écran se règlent en bas de l'écran, directement.
-- **16 pads** à droite : leur rôle (Jouer, Couper, Scènes, Pas, Effacer) se choisit au-dessus d'eux.
-- **Transport** en bas : Enr. (enregistrement dans le pattern), Lecture, Arrêt ; Fill, Break, Maj ; octave ;
-  crossfader des scènes A / B.
-- **Sur téléphone** : à côté de l'écran, deux onglets. **Commandes** : les écrans, les 16 boutons, le
-  transport, Fill et Break, le crossfader, Photo / Rappel et la rangée **Tempo** (− / valeur à toucher
-  pour la taper / + / **Tap** : touchez en rythme, le tempo suit). **Pads** : le rôle des pads, les 16
-  pads, la banque de scènes.
-- **Barre du haut** : « Ouvrir le synthé » (la façade de l'instrument en grand), charge du processeur,
-  annuler / rétablir, Photo et Rappel des réglages, enregistrement Audio, plein écran.
+Depuis la 1.0, GOLEM a **une seule vue**, la même sur ordinateur, tablette et téléphone : **l'écran prend toute
+la place** et un **rail** à droite donne tout le reste.
 
-<figure><img src="img/appareil.jpg" alt="L'appareil : l'écran (ici LANCEMENT › Grille), les 16 boutons assignables, les M / S, le transport, les 8 écrans et les 16 pads"><figcaption>L'appareil : l'écran (ici LANCEMENT › Grille), les 16 boutons assignables, les M / S, le transport, les 8 écrans et les 16 pads</figcaption></figure>
+- **Rail** : les **8 écrans** (Piste, Clips, Séq., Son, FX, Mix., Scène, ⚙ Réglages), **Live** et **Jeu**,
+  **Lecture / Arrêt**, et **Enr.** en bas.
+- **Pads dépliables** : l'onglet jaune **◀ Pads**, sur sa bande au bord droit de l'écran, déplie les 16 pads à
+  côté de l'écran choisi, sur tous les écrans. On règle la séquence, le mixeur ou le son à gauche et on joue la
+  piste à droite. **▶ Pads** les replie ; GOLEM se souvient du choix.
+- Le panneau des pads : la **piste jouée** (◀ ▶ ou liste), le **rôle des pads** (Jouer, Mute, Solo, Scènes, Pas),
+  les 16 pads, la **banque de scènes** (1 – 16, 17 – 32) et **Éditer A / B**. Sur une batterie en Mute ou Solo,
+  « Sons de la batterie / 16 pistes » choisit ce que coupent les pads.
+- **Valeurs du bas** de chaque écran : se règlent au doigt ou à la souris (glisser ↑↓), appui long pour le menu.
+- **Barre du haut** (ordinateur) : « Ouvrir le synthé », charge du processeur, annuler / rétablir, Photo, Rappel,
+  Mod. boutons, enregistrement Audio, plein écran. Sur téléphone, annuler / rétablir et Audio sont dans la
+  barre d'état de chaque écran.
+- Le **clavier de l'ordinateur** joue toujours les pads (même repliés) : espace, B, N et les touches des pads.
+
+<figure class="wide"><img src="img/pads-reperes.jpg" alt="Les pads dépliés à droite de l'écran Séquence"><figcaption>Les pads dépliés à côté de l'écran Séquence</figcaption></figure>
+
+1. La piste jouée. 2. Le rôle des pads. 3. Les 16 pads. 4. Banque de scènes, Éditer A / B. 5. Replier les pads.
+
+<figure><img src="img/appareil.jpg" alt="L'écran Séquence avec les pads dépliés et le rail"><figcaption>Séquence et pads côte à côte (ordinateur)</figcaption></figure>
+
+<figure><img src="img/v100/pads-telephone.jpg" alt="Le mixeur avec les pads dépliés, sur téléphone"><figcaption>Le mixeur avec les pads dépliés (téléphone)</figcaption></figure>
+
+### L'écran Jeu
+
+**Jeu** (rail) remplace l'écran par une surface de jeu complète : la piste jouée (◀ ▶), les **rangées A à H**,
+les 16 pads et leur rôle, les **16 boutons assignables**, **Photo / Rappel / Mod. boutons**, **Fill, Break, Break
+1 mes., Maj**, l'octave et le **crossfader**, le **tempo** (− / valeur / + / Tap). Toucher **Jeu** à nouveau, ou un
+écran du rail, le referme.
+
+Dans l'écran Jeu, **Mute** et **Solo** agissent sur les **16 pistes du mixeur** ; chaque pad garde la **couleur de
+sa piste** (grisé : coupée ; cadre bleu : solo). Ailleurs, sur une batterie, le FM Player ou Pieuvre 8, ils
+peuvent couper les sons ou les pistes internes.
+
+<figure class="wide"><img src="img/jeu-reperes.jpg" alt="L'écran Jeu numéroté"><figcaption>L'écran Jeu</figcaption></figure>
+
+1. Piste jouée. 2. Rangées A à H. 3. Rôle des pads. 4. Les 16 pads (Mute / Solo : les 16 pistes). 5. Les 16
+boutons assignables. 6. Photo, Rappel, Mod. boutons. 7. Fill, Break, Break 1 mes., Maj. 8. Octave et crossfader.
+9. Tempo.
+
+<figure><img src="img/v100/jeu-telephone.jpg" alt="L'écran Jeu sur téléphone"><figcaption>L'écran Jeu sur téléphone</figcaption></figure>
 
 ## Les bases de l'édition
 
@@ -437,7 +473,7 @@ courte, des variations et des petites relances sans écrire d'autres patterns.
 
 #### Fill et Break : relances et coupures en direct
 
-- **Fill** (bouton du transport, ou touche **N** tenue) : tant qu'on le tient, les pas **FILL** jouent et
+- **Fill** (écran Jeu, vue live, ou touche **N** tenue) : tant qu'on le tient, les pas **FILL** jouent et
   les pas **NON FILL** se taisent. On prépare ainsi dans le même pattern une relance de caisse claire, un
   roulement de toms (avec **Répétitions** ↗), un charley ouvert… qui n'apparaissent que quand on appuie :
   des mini-breaks à la demande.
@@ -476,7 +512,7 @@ Les gestes :
 
 ### 4. Lancer
 
-Écran LANCEMENT › Grille : chaque case lance un pattern (au début de la mesure suivante) ;
+Écran CLIPS › Grille : chaque case lance un pattern (au début de la mesure suivante) ;
 ▶ en tête de rangée lance la même lettre sur toutes les pistes ; ■ arrête une piste.
 
 **Les 16 rangées, en deux pages.** Chaque piste a 16 patterns : les rangées vont de **A à P**. La bande
@@ -487,7 +523,7 @@ Les gestes :
 - **−1 / +1** lancent la rangée précédente ou suivante et **changent de page tout seuls** (de H, +1 passe
   à I). Ils **sautent les rangées vides** : si I à P ne sont pas écrites, +1 depuis H revient à A.
 - La page suit la rangée lancée, aussi depuis le contrôleur MIDI ou le morceau, et c'est la même partout
-  (bande des rangées, grille de LANCEMENT).
+  (bande des rangées, grille de CLIPS).
 - Au contrôleur MIDI, chacune des 16 rangées s'apprend (clic droit sur son bouton), comme −1 / +1 et ■.
 
 ### 5. Régler le son
@@ -532,13 +568,12 @@ basculent au milieu). Seuls les réglages enregistrés dans A ou B bougent : le 
    façade, pédales) : chaque réglage touché s'ajoute à la scène avec sa valeur. « Terminer » pour sortir.
    Les valeurs se retouchent aussi dans la liste (glisser), × retire un réglage.
 2. **Scène B** : pareil, de l'autre côté.
-3. La **position du crossfader**.
+3. Le **crossfader** A ↔ B (toucher ou glisser ; aussi dans l'écran Jeu, la vue live et au contrôleur MIDI).
 4. La **grille des scènes** : toucher une scène la place **du côté qu'on entend** (là où est le
    crossfader) ; avec **Maj**, elle part **de l'autre côté**, prête à être amenée au crossfader. Clic
    droit : scène muette. Les valeurs « Scène A » / « Scène B » du bas choisissent aussi la scène de chaque côté.
 5. La **scène de Break** : appliquée tant que **Break** (ou la touche **B**) est tenu.
-6. Le **crossfader** du transport (aussi au contrôleur MIDI ; double-clic : retour au milieu).
-7. Les **rangées A à P** : lancer une rangée lance aussi sa **scène liée** (réglée dans LANCEMENT).
+6. Les **rangées A à P** : lancer une rangée lance aussi sa **scène liée** (réglée dans CLIPS).
 
 **Jouer avec plusieurs scènes, en chaîne** : crossfader à gauche sur la scène 1. **Maj** + scène 2 : elle
 se place en B. Poussez le crossfader vers la droite : le son glisse de la scène 1 à la scène 2. **Maj** +
@@ -570,7 +605,7 @@ point sur le pavé : au centre, les quatre à parts égales ; dans un coin, la s
 
 <figure class="wide"><img src="img/scenes-vecteur-pc.jpg" alt="Écran SCÈNES › Vecteur sur PC : le pavé, les quatre coins, le mouvement Infini affiché à 95 % de taille"><figcaption>SCÈNES › Vecteur (PC) : le mouvement « Infini » parcourt les quatre scènes</figcaption></figure>
 
-**⛶ Vue live** (bouton framboise à côté des onglets Crossfader / Vecteur) : tout le jeu sur un seul
+**Live** (bouton framboise du rail, ou ⛶ Vue live à côté des onglets Crossfader / Vecteur) : tout le jeu sur un seul
 écran, la vitrine du direct. En haut : Retour, ● ▶ ■, le mode **Crossfader** ou **Vecteur** (avec, en
 Vecteur, le mouvement, la durée d'un tour, Dessiner), la piste choisie et **Ouvrir l'instrument** ; puis
 les **16 boutons assignables avec le nom de leur fonction** ; les **rangées** (voir ci-dessous).
@@ -588,7 +623,7 @@ les **16 boutons assignables avec le nom de leur fonction** ; les **rangées** (
   utilisés prennent la place des pistes sans instrument. Toucher le nom ou le fader d'une piste la
   choisit (Ouvrir l'instrument, effets, boutons à assigner) ; ✕ dans l'instrument ou les effets
   ramène à la vue live.
-- En bas : la **position** (mesure, temps, boucle, rangée du morceau) et **Photo / Rappel / Mod. boutons**.
+- En bas : la **position** (mesure, temps, boucle, rangée du morceau), **Fill, Break, Break 1 mes., Maj** et **Photo / Rappel / Mod. boutons**.
 - Sur téléphone, la console devient la liste des pistes (nom : choisir, M / S).
 
 <figure class="wide"><img src="img/vue-live-crossfader.jpg" alt="Vue live en mode Crossfader : scène 1 et scène 9, grand crossfader, grille des scènes, console des 16 pistes avec faders, FX, M / S, 16 boutons nommés"><figcaption>Vue live · Crossfader</figcaption></figure>
@@ -599,16 +634,16 @@ les **16 boutons assignables avec le nom de leur fonction** ; les **rangées** (
 
 ### 8. Morceau
 
-Écran LANCEMENT › Morceau : des **rangées** jouées l'une après l'autre en mode morceau.
+Écran CLIPS › Morceau : des **rangées** jouées l'une après l'autre en mode morceau.
 « Enr. le jeu » transforme votre jeu en rangées ; **ENR.** (ou « Enr. les mouvements ») enregistre les
 mouvements : boutons, faders, égaliseurs, mutes, solos, groupes, crossfader. En mode morceau ils vont au
 morceau ; en boucle, les réglages d'une piste vont dans la boucle de son pattern.
 
-<figure><img src="img/morceau.jpg" alt="LANCEMENT › Morceau : les rangées (pattern de chaque piste) et, en bas, les courbes enregistrées"><figcaption>LANCEMENT › Morceau : les rangées (pattern de chaque piste) et, en bas, les courbes enregistrées</figcaption></figure>
+<figure><img src="img/morceau.jpg" alt="CLIPS › Morceau : les rangées (pattern de chaque piste) et, en bas, les courbes enregistrées"><figcaption>CLIPS › Morceau : les rangées (pattern de chaque piste) et, en bas, les courbes enregistrées</figcaption></figure>
 
 ### 9. Montage audio
 
-Écran LANCEMENT › Audio : placez la tête de lecture, « ● Enregistrer une prise », jouez (la prise
+Écran CLIPS › Audio : placez la tête de lecture, « ● Enregistrer une prise », jouez (la prise
 part au début de la mesure suivante et se pose à la tête de lecture) ; à la fin, chaque piste
 devient des clips audio, à couper, déplacer, dupliquer ; **Mode montage** pour les écouter ; Export WAV
 ou MP3 du morceau fini.
@@ -636,7 +671,7 @@ Les prises sont rangées dans **Bibliothèque › Mes enregistrements**.
 longueur, en WAV 24 bits ou en MP3 320 kbit/s. **Plusieurs clips d'un coup** : toucher le nom d'une voie choisit
 tous ses clips, **Ctrl+A** choisit tout, et tirer le bord d'un clip choisi règle tous les clips choisis.
 
-<figure><img src="img/montage.jpg" alt="LANCEMENT › Audio : les clips de chaque piste, la règle, la tête de lecture ; en bas, le clip choisi (volume, fondus, couper, copier, dupliquer)"><figcaption>LANCEMENT › Audio : les clips de chaque piste, la règle, la tête de lecture ; en bas, le clip choisi (volume, fondus, couper, copier, dupliquer)</figcaption></figure>
+<figure><img src="img/montage.jpg" alt="CLIPS › Audio : les clips de chaque piste, la règle, la tête de lecture ; en bas, le clip choisi (volume, fondus, couper, copier, dupliquer)"><figcaption>CLIPS › Audio : les clips de chaque piste, la règle, la tête de lecture ; en bas, le clip choisi (volume, fondus, couper, copier, dupliquer)</figcaption></figure>
 
 ### 10. Enregistrer
 
@@ -660,9 +695,28 @@ dossier « &lt;nom du projet&gt; - audio » à côté du fichier.
 
 ### 11. Échantillons et Bibliothèque
 
+**À faire en premier : dire à GOLEM où sont vos sons.** La Bibliothèque (pads, samplers, « Échantillon… »)
+s'ouvre dans le dossier des échantillons ; s'il est bien réglé, vous tombez directement sur vos sons.
+
+- **Sur ordinateur (Windows, Mac)** : écran **RÉGLAGES** (⚙ du rail) › bloc **Dossiers** › ligne
+  **Échantillons** › **Choisir…**, puis désignez le dossier où vous rangez vos sons (par exemple
+  `Documents\Mes samples`). C'est retenu pour tous les projets ; **Par défaut** revient à `Documents\Groovebox`,
+  **Ouvrir** l'affiche dans l'explorateur. Faites de même pour **Projets** (Ouvrir… et Enregistrer… partent de
+  là) et **Préréglages** (un sous-dossier par synthé ou par effet, puis vos banques).
+- **Sur téléphone et tablette** : le système ne laisse pas l'application lire un dossier librement ; on lui
+  **copie** les sons une fois. **RÉGLAGES › Dossiers › Échantillons › Dossier perso…** : choisissez votre dossier
+  de sons, tout y est copié (sous-dossiers compris) dans **Bibliothèque › Perso** ; refaire « Dossier perso… »
+  ajoute seulement les nouveaux. **Importer des fichiers…** copie quelques sons choisis dans **Bibliothèque ›
+  Importés**.
+
 - Formats acceptés partout (pads, samplers, import, Bibliothèque) : **WAV, AIFF, FLAC, OGG et MP3**.
-- **« Échantillon… »** sur une piste : le son choisi est chargé tout de suite **et** rangé dans
-  **Bibliothèque › Importés**, pour le retrouver plus tard.
+- **« Échantillon… »** (un son pris hors de la Bibliothèque) : le son est chargé tout de suite sur le pad ou le
+  sampler, et **enregistré dans le projet** (.gbx) à la prochaine sauvegarde — le projet reste complet même si le
+  fichier d'origine est déplacé.
+  - **Sur ordinateur**, le fichier d'origine reste où il est : rien n'est copié. Pour le retrouver dans la
+    Bibliothèque, rangez-le dans votre dossier d'échantillons (voir ci-dessus).
+  - **Sur téléphone et tablette**, il est en plus copié dans **Bibliothèque › Importés**, pour le reprendre plus
+    tard sans repasser par le sélecteur.
 - **Réglages › Dossier perso…** : copie tous les sons d'un dossier du téléphone ou de l'ordinateur
   (sous-dossiers compris) dans **Bibliothèque › Perso** ; le refaire ajoute seulement les nouveaux.
 - **Bibliothèque › Mes enregistrements** : vos prises audio (bouton « ● Audio »).
@@ -733,7 +787,9 @@ aussi dans un logiciel de musique (greffon VST3 / AU).
 
 <figure><img src="img/v100/fm-player-grand-telephone.jpg" alt="Mode Grand au téléphone, fond Nuit"><figcaption>Mode Grand au téléphone (fond Nuit) : écran, boutons, piano et T1 à T4</figcaption></figure>
 
-<figure><img src="img/v100/fm-player-sequence-t1-t4.jpg" alt="Écran Séquence : les 4 lignes T1 à T4"><figcaption>Écran Séquence : une ligne par piste T (un canal MIDI du firmware chacune)</figcaption></figure>
+<figure><img src="img/v100/fm-sequence-pads.jpg" alt="Écran Séquence du FM Player : les 4 lignes T1 à T4, pads dépliés"><figcaption>Écran Séquence : une ligne par piste T (un canal MIDI du firmware chacune), pads dépliés pour jouer</figcaption></figure>
+
+<figure><img src="img/v100/fm-sequence-telephone.jpg" alt="Écran Séquence du FM Player sur téléphone"><figcaption>La même séquence sur téléphone</figcaption></figure>
 
 <sub>M-VAVE et FM-1 sont des marques de leurs propriétaires respectifs. OFAD GOLEM n'est ni affilié, ni approuvé,
 ni sponsorisé par M-VAVE ; ces noms sont cités uniquement pour indiquer la compatibilité avec les firmwares écrits

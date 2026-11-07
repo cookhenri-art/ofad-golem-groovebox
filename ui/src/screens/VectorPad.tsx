@@ -20,7 +20,7 @@ import { paramAddress, useParam } from "../controls/bindings";
 import { ParamMenuZone } from "../controls/Encoder";
 import { useLearnPress } from "../controls/useLearnPress";
 import { useFaderTouch } from "../controls/useFaderTouch";
-import { Learn } from "../device/Device";
+import { Learn, PlayButtons } from "../device/Device";
 import { LearnChips, LiveToast } from "./ScreenFrame";
 import { MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_SOLO_BASE } from "../engine/protocol";
 import { StripSends } from "./MixerScreen"; // v0.46.2 : envois A–D
@@ -305,6 +305,8 @@ function LivePerf() {
         </div>
         <span className="liveperf-sub">{loopBars ? `boucle de ${loopBars} mesure${loopBars > 1 ? "s" : ""}` : "lancez la lecture"}</span>
       </div>
+      {/* 1.0 (7 nov.) : Fill, Break, Break 1 mes. et Maj aussi dans la vue live */}
+      <div className="liveperf-play"><PlayButtons /></div>
       <div className="liveperf-btns">
         <button type="button" onClick={() => void actions.takePhoto()} title="Photo de tous les réglages du projet (remplace la précédente)">Photo</button>
         <button type="button" className={hasPhoto ? "" : "is-off"} onClick={() => { if (hasPhoto) void actions.recallPhoto(); else showMessage("Aucune photo prise : touchez d'abord Photo"); }}
