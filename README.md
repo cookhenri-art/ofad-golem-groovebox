@@ -69,7 +69,7 @@
 house, acid, hardtek et tribe, hardcore, drum & bass, électro, ambient, beatmaking…
 
 Le flux de travail reprend celui des **stations de production autonomes à pads** que les beatmakers
-connaissent (du type MPC One, Force ou Maschine) : on choisit un instrument par piste, on joue sur les
+connaissent : on choisit un instrument par piste, on joue sur les
 16 pads, on écrit des patterns, on les lance comme des clips, on enchaîne les scènes au crossfader, on
 construit le morceau, puis on le retravaille en audio et on l'exporte.
 
@@ -592,9 +592,8 @@ GROOVEBOX/
 - **React** et **Vite** — interface.
 - **Inter** — police de l'interface.
 
-> Les noms de marques et de produits cités (MPC, Force, Maschine…) appartiennent à leurs propriétaires
-> respectifs. Ils servent seulement à décrire le style de jeu. OFAD GOLEM est un projet indépendant, sans
-> lien avec ces fabricants ; aucun de leurs noms, façades, sons ou logiciels n'est repris.
+> OFAD GOLEM est un projet indépendant : ses instruments reprennent des principes de synthèse connus, sans
+> utiliser les noms, logos, façades, sons ou logiciels d'aucun fabricant.
 
 ---
 

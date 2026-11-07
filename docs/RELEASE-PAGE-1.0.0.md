@@ -73,7 +73,7 @@ Le FM-1 de M-VAVE est un petit synthé FM dont la communauté a écrit des dizai
 - **Quatre fonds** façon pédales, au choix d'une pastille : **Ambre**, **Nuit**, **Émeraude**, **Sobre**.
 - **Les 8 commandes du boîtier au contrôleur** : Knob 1 à 4, Select, Presets, Algorithm et Master se pilotent comme tous les réglages de GOLEM : **appui long** (ou clic droit) pour les affecter au contrôleur MIDI, et elles tombent sous les **8 encodeurs** (section Boîtier). Les **14 touches** du boîtier (FX, SCL, ENV… PLAY, REC, OCT − / +) s'apprennent aussi : une touche du contrôleur appuie sur celle du boîtier.
 - **Des boutons qui vont de 0 à 100 %** : chaque bouton du boîtier a sa **course** (crans du firmware pour aller du minimum au maximum, réglable dans le panneau Firmware) ; à 0 % et à 100 %, GOLEM recale le firmware sur ses butées.
-- **N'importe quel contrôleur** : GOLEM envoie au firmware les notes sur le bon canal, son **horloge MIDI** (les séquenceurs des firmwares suivent le tempo) et les commandes non apprises du contrôleur (par exemple un Behringer X-Touch Mini ou un M-VAVE SMC-Mixer).
+- **N'importe quel contrôleur** : GOLEM envoie au firmware les notes sur le bon canal, son **horloge MIDI** (les séquenceurs des firmwares suivent le tempo) et les commandes non apprises du contrôleur.
 - **Partout** : Windows, Mac, Android (téléphone et tablette), et **en greffon VST3 / AU dans votre logiciel de musique**.
 - Économe : l'émulation se met **en pause** après 20 s sans rien jouer.
 
@@ -103,7 +103,7 @@ Le FM-1 de M-VAVE est un petit synthé FM dont la communauté a écrit des dizai
 - **Android** : si l'application se ferme au lancement, elle redémarre la fois suivante **sans rouvrir la séance** (gardée de côté, jamais effacée) et affiche ce qui s'est passé.
 - Toutes les nouveautés de la 0.47 (Good Doctor, Glutamake, plus de 2 400 sons d'usine, menus des pas, durée des notes visible, MP3, enregistrement et montage audio…) : voir la [page de la 0.47.0](https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v0.47.0).
 
-<sub>M-VAVE et FM-1 sont des marques de leurs propriétaires respectifs. OFAD GOLEM n'est ni affilié, ni approuvé, ni sponsorisé par M-VAVE ; ces noms sont cités uniquement pour indiquer la compatibilité avec les firmwares écrits pour le FM-1. Aucun logiciel d'origine de M-VAVE n'est fourni : les firmwares inclus sont des créations libres de la communauté, avec leurs auteurs et leurs sources. Behringer et X-Touch sont des marques de leur propriétaire, citées seulement comme exemple de contrôleur compatible.</sub>
+<sub>M-VAVE et FM-1 sont des marques de leurs propriétaires respectifs. OFAD GOLEM n'est ni affilié, ni approuvé, ni sponsorisé par M-VAVE ; ces noms sont cités uniquement pour indiquer la compatibilité avec les firmwares écrits pour le FM-1. Aucun logiciel d'origine de M-VAVE n'est fourni : les firmwares inclus sont des créations libres de la communauté, avec leurs auteurs et leurs sources.</sub>
 
 ### ⬇️ Télécharger (en bas de cette page, « Assets »)
 | Fichier | Pour quoi |
@@ -233,7 +233,7 @@ Le FM-1 de M-VAVE est un petit synthé FM dont la communauté a écrit des dizai
 ### 🤝 Un projet qui évolue avec vous
 Si on s'y met tous, on peut créer notre groovebox idéale. Une machine qui vous manque, un effet, une fonction de séquenceur ? Essayez-la et dites-moi ce qui marche, ce qui coince, quel contrôleur vous utilisez… et surtout votre **liste de courses** des fonctions que vous aimeriez, dans l'onglet **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)** : vos idées font les prochaines versions.
 
-<sub>Les noms de marques cités (MPC, Force, Maschine, M-VAVE, FM-1, Behringer…) appartiennent à leurs propriétaires et servent seulement à décrire le style de jeu. OFAD GOLEM est un projet indépendant, sans lien avec ces fabricants.</sub>
+<sub>OFAD GOLEM est un projet indépendant. Ses instruments reprennent des principes de synthèse connus, sans utiliser les noms, logos, façades ni sons d'usine d'aucun fabricant.</sub>
 
 ---
 
@@ -308,7 +308,7 @@ M-VAVE's FM-1 is a small FM synth for which the community has written dozens of 
 - **Four backgrounds** in the style of the pedals, one dot away: **Amber**, **Night**, **Emerald**, **Plain**.
 - **The box's 8 controls on your controller**: Knob 1 to 4, Select, Presets, Algorithm and Master work like every GOLEM setting: **long press** (or right-click) to assign them to a MIDI controller, and they sit under the **8 encoders** (Box section). The box's **14 keys** (FX, SCL, ENV… PLAY, REC, OCT − / +) can be learned too: a controller button presses the box key.
 - **Knobs from 0 to 100 %**: each box knob has its **travel** (firmware clicks from minimum to maximum, set in the Firmware panel); at 0 % and 100 %, GOLEM re-aligns the firmware on its end stops.
-- **Any controller**: GOLEM sends the firmware the notes on the right channel, its **MIDI clock** (the firmwares' sequencers follow the tempo) and the controller's unlearned controls (for example a Behringer X-Touch Mini or an M-VAVE SMC-Mixer).
+- **Any controller**: GOLEM sends the firmware the notes on the right channel, its **MIDI clock** (the firmwares' sequencers follow the tempo) and the controller's unlearned controls.
 - **Everywhere**: Windows, Mac, Android (phone and tablet), and **as a VST3 / AU plugin in your music software**.
 - Light on the battery: the emulation **pauses** after 20 s without playing.
 
@@ -334,7 +334,7 @@ M-VAVE's FM-1 is a small FM synth for which the community has written dozens of 
 - **Android**: if the app closes at launch, it restarts the next time **without reopening the session** (kept aside, never deleted) and shows what happened.
 - Everything new in 0.47 (Good Doctor, Glutamake, over 2,400 factory sounds, step menus, visible note lengths, MP3, audio recording and editing…): see the [0.47.0 page](https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v0.47.0).
 
-<sub>M-VAVE and FM-1 are trademarks of their respective owners. OFAD GOLEM is not affiliated with, endorsed or sponsored by M-VAVE; these names are used only to state compatibility with firmware written for the FM-1. No original M-VAVE software is included: the bundled firmwares are free community works, with their authors and sources credited. Behringer and X-Touch are trademarks of their owner, mentioned only as an example of a compatible controller.</sub>
+<sub>M-VAVE and FM-1 are trademarks of their respective owners. OFAD GOLEM is not affiliated with, endorsed or sponsored by M-VAVE; these names are used only to state compatibility with firmware written for the FM-1. No original M-VAVE software is included: the bundled firmwares are free community works, with their authors and sources credited.</sub>
 
 ### ⬇️ Download (at the bottom of this page, “Assets”)
 | File | What for |
@@ -439,7 +439,7 @@ M-VAVE's FM-1 is a small FM synth for which the community has written dozens of 
 ### 🤝 A project that grows with you
 If we all get involved, we can build our ideal groovebox. A machine you miss, an effect, a sequencer feature? Try it and tell me what works, what doesn't, which controller you use… and above all your **wish list** of features, in the **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)** tab (English or French): your ideas shape the next versions.
 
-<sub>The brand names mentioned (MPC, Force, Maschine, M-VAVE, FM-1, Behringer…) belong to their owners and are only used to describe the playing style. OFAD GOLEM is an independent project, not affiliated with these manufacturers.</sub>
+<sub>OFAD GOLEM is an independent project. Its instruments follow well-known synthesis principles, without using any manufacturer's names, logos, panels or factory sounds.</sub>
 
 
 <p align="center">Made with ❤️ by <b>One For All Distribution (OFAD)</b></p>
