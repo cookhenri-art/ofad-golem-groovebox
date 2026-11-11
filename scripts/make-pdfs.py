@@ -95,12 +95,12 @@ def build(md_name, pdf_name, title, sub, note, golem_h, keys_section=None, lang=
 
 
 if __name__ == "__main__":
-    build("NOTICE.md", "NOTICE.pdf", "OFAD GOLEM — Notice", "Notice de prise en main · raccourcis",
+    build("NOTICE.md", "NOTICE.pdf", "OFAD GOLEM — Notice", "Notice de prise en main · raccourcis · version 1.1",
           "Groovebox à 16 pistes, logiciel libre (AGPL) de One For All Distribution.", "150px",
           keys_section="Raccourcis")
     # v0.46 fix28 : notice en anglais (l'interface reste en français pour l'instant : table de correspondance en tête)
-    build("NOTICE.en.md", "NOTICE-EN.pdf", "OFAD GOLEM — Manual", "Getting started · shortcuts",
+    build("NOTICE.en.md", "NOTICE-EN.pdf", "OFAD GOLEM — Manual", "Getting started · shortcuts · version 1.1",
           "16-track groovebox, free software (AGPL) by One For All Distribution.", "150px",
           keys_section="Keyboard and mouse shortcuts", lang="en")
-    build("CATALOGUE.md", "CATALOGUE.pdf", "OFAD GOLEM — Catalogue", "Catalogue des instruments et des effets",
+    build("CATALOGUE.md", "CATALOGUE.pdf", "OFAD GOLEM — Catalogue", "Catalogue des instruments et des effets · version 1.1",
           "Les noms sont propres au Groovebox ; chaque module reprend le principe d'une famille de machines, jamais son nom, sa façade ni ses sons.", "110px")
