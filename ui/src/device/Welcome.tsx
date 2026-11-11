@@ -5,9 +5,9 @@
 // rouverte par l'application. Dans un logiciel hôte, pas d'accueil (le projet vient de la session).
 
 import { switchLang } from "../lang";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FolderBrowser } from "../controls/FolderBrowser";
-import { actions, hasNative, readPref, useStore, writePref } from "../engine/store";
+import { actions, hasNative, readPref, setUi, useStore, writePref } from "../engine/store";
 
 export function Welcome() {
   const ready = useStore((s) => s.ready);
@@ -34,17 +34,36 @@ export function Welcome() {
     return () => window.removeEventListener("keydown", key, true);
   }, [open]);
 
+  // 1.1 : tout l'accueil tient dans l'écran (téléphone, PC, petite fenêtre) : le panneau rétrécit au
+  // besoin (jamais en dessous de 45 %), le personnage suit la hauteur disponible
+  const root = useRef<HTMLDivElement>(null), panel = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState({ k: 1, need: 0 });
+  useLayoutEffect(() => {
+    const el = root.current, pn = panel.current;
+    if (!open || !el || !pn) return;
+    const measure = () => {
+      const cs = getComputedStyle(el);
+      const avail = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      const need = Math.max(pn.scrollHeight, pn.offsetHeight) * 1.06; // marge (ombres, arrondis)
+      setFit({ k: need > avail && avail > 0 ? Math.max(0.45, avail / need) : 1, need });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open, folders]);
+
   if (!open) return null;
   const files = hasNative("openProject");
   const run = (f: () => unknown) => { close(); void f(); };
 
   return (
-    <div className={`welcome${closing ? " is-closing" : ""}`} role="dialog" aria-modal="true" aria-label="Accueil : choisir un projet">
+    <div ref={root} className={`welcome${closing ? " is-closing" : ""}`} role="dialog" aria-modal="true" aria-label="Accueil : choisir un projet">
       <div className="welcome-hero" aria-hidden>
         <div className="welcome-halo" />
         <img className="welcome-golem" src="golem/golem-512.png" alt="" draggable={false} />
       </div>
-      <div className="welcome-panel">
+      <div ref={panel} className="welcome-panel" style={fit.k < 1 ? { scale: String(fit.k), marginBlock: `${(-fit.need * (1 - fit.k)) / 2}px` } : undefined}>
         <div className="welcome-brand">
           <span className="welcome-word">OFAD GOLEM</span>
           <span className="welcome-sub">Groovebox · 16 pistes</span>
@@ -55,9 +74,15 @@ export function Welcome() {
         </button>
         <div className="welcome-row">
           <button type="button" className="touch welcome-btn" onClick={() => run(() => actions.newProject(true))}>Nouveau projet vide</button>
-          <button type="button" className="touch welcome-btn" onClick={() => run(() => actions.newProject(false))}>Projet de démonstration</button>
+          {/* 1.1 : deux démos de démarrage (Techno = demo.gbx, Tribe = demo-tribe.gbx) */}
+          <button type="button" className="touch welcome-btn" onClick={() => run(() => actions.newProject(false))}>Démo Techno</button>
+          <button type="button" className="touch welcome-btn" onClick={() => run(() => actions.newProject(false, "tribe"))}>Démo Tribe</button>
           {files && <button type="button" className="touch welcome-btn" onClick={() => run(() => actions.openProject())}>Ouvrir un fichier…</button>}
         </div>
+        {/* 1.1 : le téléphone comme télécommande (GOLEM sur le PC, FM-1) */}
+        <button type="button" className="touch welcome-btn welcome-remote" onClick={() => run(() => setUi({ remote: true }))}>
+          Télécommande · piloter le PC ou un FM-1
+        </button>
         {folders && (
           <div className="welcome-list">
             <FolderBrowser kind="projects" title="Mes projets" compact onPick={(rel) => run(() => actions.openProjectFile(rel))} />

@@ -6,13 +6,16 @@
 import { Welcome } from "./Welcome";
 import { VectorPad } from "../screens/VectorPad";
 import { AudioRecorder } from "./AudioRecorder";
+import { SampleEditor } from "../screens/SampleEditor";
+import { AudioScreen } from "../screens/AudioScreen";
+import { liveLatencyMs } from "../screens/ChainEditor";
 import { useEffect, useRef, useState } from "react";
 import { HwButton } from "../controls/HwButton";
 import { TempoRow } from "../controls/TempoBox";
 import { AssignKnobs, KnobAssignCapture, openKnobMods } from "./AssignKnobs";
 import { ModSourcesDialog } from "../screens/ModSourcesDialog";
 import { IconNext, IconPlay, IconPrev, IconRec, IconStop } from "../controls/Icons";
-import { actions, hasNative, readPref, setPadOctave, setUi, showMessage, useStore, writePref, type PadMode, type ScreenMode } from "../engine/store";
+import { actions, getState, hasNative, readPref, setPadOctave, setUi, showMessage, useStore, writePref, type PadMode, type ScreenMode } from "../engine/store";
 import { useFaderTouch } from "../controls/useFaderTouch";
 import { MIDI_BREAK, MIDI_PHOTO, MIDI_RECALL, MIDI_FILL, MIDI_RECORD, MIDI_START, MIDI_STOP, MIDI_XFADE } from "../engine/protocol";
 import { MidiConflict } from "./MidiConflict";
@@ -268,12 +271,29 @@ function PhotoRow() {
   );
 }
 
+/** 1.1 (lot 6) : qui ajoute de la latence ? (outils branchés en direct, par piste, retour, groupe, principal) */
+async function explainLatency() {
+  const ms = await actions.latencyInfo().catch(() => [] as number[]);
+  const st = getState();
+  const fx = st.catalog?.effects ?? [];
+  const chName = (ch: number) => ch < 16 ? `piste ${ch + 1}${st.tracks.tracks[ch]?.name ? ` ${st.tracks.tracks[ch].name}` : ""}`
+    : ch < 20 ? `retour ${"ABCD"[ch - 16]}` : ch === 20 ? "bus principal" : `groupe ${ch - 20}`;
+  const parts: string[] = [];
+  ms.forEach((v, ch) => {
+    if (!(v >= 0.5)) return;
+    const names = (st.tracks.inserts[ch] ?? []).filter((t) => t && liveLatencyMs(fx.find((e) => e.type === t)) > 0)
+      .map((t) => fx.find((e) => e.type === t)?.name ?? t);
+    parts.push(`${names.length ? names.join(", ") : "effet"} (${chName(ch)}, ${Math.round(v)} ms)`);
+  });
+  showMessage(parts.length ? `Latence : ${parts.join(" · ")}` : "Plus aucun outil à latence n'est branché");
+}
+
 /** Témoin de charge (v0.23) : calcul audio (moyenne et pointe, en % du temps disponible ; au-delà
     de 100 % le son craque) et mémoire de l'application, dont les échantillons chargés. */
 export function PerfMeter({ compact = false }: { compact?: boolean }) {
   const perf = useStore((s) => s.tick.perf);
   if (!perf || perf.length < 4) return null;
-  const [avg, peak, mem, smp, rate = 0, block = 0, periodMs = 0, total = 0, android = -1] = perf;
+  const [avg, peak, mem, smp, rate = 0, block = 0, periodMs = 0, total = 0, android = -1, latMs = 0] = perf;
   // v0.46 fix17 : Android — indice de performance et grands cœurs du fil audio
   const androidText = android < 0 ? "" : `\nAndroid : indice de performance ${android >= 100 ? "actif" : "indisponible"}, ${android % 100 > 0 ? `son posé sur ${android % 100} grands cœurs` : "son non posé sur les grands cœurs"}.`;
   // v0.46 fix17 : mémoire en % de celle de l'appareil (en Mo si le système ne la donne pas)
@@ -295,6 +315,12 @@ export function PerfMeter({ compact = false }: { compact?: boolean }) {
       <span className="perf-val perf-val--cpu tabular">{Math.round(avg)} %</span>
       <span className="perf-sep" aria-hidden>·</span>
       <span className="perf-val perf-val--mem tabular">{memShown !== null ? <><small className="perf-label">MÉM</small> {memShown}</> : mo(mem)}</span>
+      {latMs >= 0.5 && (
+        <button type="button" className="perf-lat tabular" onClick={() => void explainLatency()}
+          title="Un outil à latence (Restauration en direct) est branché : le reste est retardé d'autant pour rester aligné. Touchez pour voir lesquels. Retirez-le ou contournez-le : la latence revient à zéro.">
+          Latence {Math.round(latMs)} ms
+        </button>
+      )}
     </div>
   );
 }
@@ -546,6 +572,8 @@ function PhoneDevice({ scale, ghost, ghostW, ghostH, area }: { scale: number; gh
       </div>
       <div className="device device--ghost device--ghost-phone" style={{ width: ghostW, height: ghostH, transform: `translate(-50%, -50%) scale(${ghost})` }}>
         <InstrumentFace />
+        <SampleEditor />
+        <AudioScreen />
         <ModSourcesDialog />
         <MidiConflict />
         <Pedalboard />
@@ -570,6 +598,8 @@ function TabletDevice({ scale, area }: { scale: number; area?: React.CSSProperti
       <MessageFloat />
       <div className={`device${zoom ? " device--zoom device--zoom-pc" : ""}${zoom && jeu ? " device--zoom-jeu" : ""}`} style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
         <InstrumentFace />
+        <SampleEditor />
+        <AudioScreen />
         <ModSourcesDialog />
         <MidiConflict />
         <Pedalboard />

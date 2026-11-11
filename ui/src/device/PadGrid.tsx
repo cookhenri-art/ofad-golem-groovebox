@@ -10,6 +10,7 @@ import { useEffect, useState, useRef } from "react";
 import { actions, getState, setUi, showMessage, useStore } from "../engine/store";
 import { beginStepPaint } from "../controls/stepPaint";
 import { noteName, trackColor } from "../engine/params";
+import { stepInBar, stepLabel } from "../engine/steps"; // 1.1 : pas 1 à 16 dans chaque mesure
 
 /** GOLEM 1.0 : couleur des pas posés (rôle PAS des pads) = celle de la ligne écrite, comme à l'écran Séquence. */
 const KIND_VAR: Record<string, string> = { kick: "--k-kick", snare: "--k-snare", clap: "--k-clap", rim: "--k-rim", hatClosed: "--k-hat", hatOpen: "--k-hat",
@@ -88,7 +89,7 @@ export function PadGrid({ tracksOnly = false }: { tracksOnly?: boolean } = {}) {
         // Les 16 pads = les 16 pas de la page affichée, sur la ligne choisie (comme le pas à pas d'une MPC)
         if (!s.pattern) return;
         const step = s.ui.page * 16 + pad;
-        if (step >= s.pattern.length) { showMessage(`Pas ${step + 1} au-delà de la longueur du pattern`); return; }
+        if (step >= s.pattern.length) { showMessage(`Pas ${stepLabel(step)} au-delà de la longueur du pattern`); return; }
         actions.toggleStep(s.ui.lane, step);
         break;
       }
@@ -134,6 +135,8 @@ export function PadGrid({ tracksOnly = false }: { tracksOnly?: boolean } = {}) {
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
   });
 
+  const anyTrackSolo = tracks.some((t) => t.solo);
+  const anyLaneSolo = laneFlags.some((f) => ((f ?? 0) & 2) !== 0);
   return (
     <div className="padgrid" role="grid" aria-label="Pads" data-paint-row>
       {ROWS.flat().map((pad) => {
@@ -144,12 +147,16 @@ export function PadGrid({ tracksOnly = false }: { tracksOnly?: boolean } = {}) {
         const isLit = padMute ? (litLanes[pad] ?? 0) > 0 : mode === "mute" || mode === "solo" ? (litTracks[pad] ?? 0) > 0 : mode === "play" ? (drumPads ? (litLanes[pad] ?? 0) > 0 : (litNotes[note] ?? 0) > 0) : false; // mélodique : la note exacte du pad, sinon rien
         if (isLit) classes.push("pad--lit");
         if (mode === "play" && drumPads && pad === lane) classes.push("pad--selected");
+        // 1.1 : un solo s'entend et se voit — les pads en solo restent allumés, les autres se grisent
+        // comme des pads coupés (en Mute comme en Solo)
         if (padMute) {
-          if ((laneFlags[pad] ?? 0) & 1) classes.push("pad--muted");
-          if ((laneFlags[pad] ?? 0) & 2) classes.push("pad--solo");
+          const fl = laneFlags[pad] ?? 0;
+          if ((fl & 1) || (anyLaneSolo && !(fl & 2))) classes.push("pad--muted");
+          if (fl & 2) classes.push("pad--solo");
         } else {
-          if (mode === "mute" && tracks[pad]?.mute) classes.push("pad--muted");
-          if (mode === "solo" && tracks[pad]?.solo) classes.push("pad--solo");
+          const tr = tracks[pad];
+          if ((mode === "mute" || mode === "solo") && tr?.instrument && (tr.mute || (anyTrackSolo && !tr.solo))) classes.push("pad--muted");
+          if ((mode === "mute" || mode === "solo") && tr?.solo) classes.push("pad--solo");
           if ((mode === "mute" || mode === "solo") && !tracks[pad]?.instrument) classes.push("pad--empty");
           // 1.0 (7 nov.) : en Mute et Solo, chaque pad garde la couleur de sa piste (on s'y retrouve mieux)
           else if (mode === "mute" || mode === "solo") classes.push("pad--trackcol");
@@ -167,7 +174,7 @@ export function PadGrid({ tracksOnly = false }: { tracksOnly?: boolean } = {}) {
           if (playStep === st) classes.push("pad--lit");
         }
         if (dropTarget === pad) classes.push("pad--drop");
-        const caption = mode === "steps" ? `Pas ${page * 16 + pad + 1}` : mode === "scenes" ? `Scène ${scene + 1}` : padMute ? `${module?.padNames[pad] ?? ""}${(laneFlags[pad] ?? 0) & 2 ? " · solo" : ""}` : mode === "mute" || mode === "solo" ? tracks[pad]?.name ?? "" : !module ? "" : levels ? `Vélocité ${Math.round(((pad + 1) / 16) * 127)}` : drumPads ? module.padNames[pad] ?? "" : noteName(note);
+        const caption = mode === "steps" ? `Pas ${stepInBar(page * 16 + pad)}` : mode === "scenes" ? `Scène ${scene + 1}` : padMute ? `${module?.padNames[pad] ?? ""}${(laneFlags[pad] ?? 0) & 2 ? " · solo" : ""}` : mode === "mute" || mode === "solo" ? tracks[pad]?.name ?? "" : !module ? "" : levels ? `Vélocité ${Math.round(((pad + 1) / 16) * 127)}` : drumPads ? module.padNames[pad] ?? "" : noteName(note);
 
         return (
           <button key={pad} type="button" className={classes.join(" ")} data-paint-step={mode === "steps" ? page * 16 + pad : undefined}
