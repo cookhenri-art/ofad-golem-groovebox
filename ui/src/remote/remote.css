@@ -1,0 +1,235 @@
+/* Groovebox — OFAD — AGPL-3.0-or-later
+   1.1 : TÉLÉCOMMANDE — reprise exacte des maquettes (cadre de 915 × 412, mis à l'échelle de l'appareil). */
+.rc-stage { position: fixed; left: 0; top: 0; z-index: 900; background: oklch(0.14 0.006 250); overflow: hidden; touch-action: none; }
+.rc-frame { position: absolute; left: 0; top: 0; transform-origin: 0 0; box-sizing: border-box; padding: 8px;
+  font-family: Inter, system-ui, sans-serif; color: oklch(0.95 0.008 245); -webkit-tap-highlight-color: transparent; }
+.rc-shell { width: 100%; height: 100%; box-sizing: border-box; border-radius: 14px; background: oklch(0.165 0.018 245);
+  box-shadow: inset 0 0 0 1px oklch(0.28 0.02 245); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.rc-shell button { font-family: inherit; cursor: pointer; }
+.rc-shell select { font-family: inherit; }
+
+/* en-tête */
+.rc-top { display: flex; align-items: center; gap: 8px; height: 50px; padding: 0 10px; box-sizing: border-box; border-bottom: 1px solid oklch(0.28 0.02 245); flex: none; }
+.rc-logo { font-size: 12px; font-weight: 800; letter-spacing: 0.17em; color: oklch(0.72 0.02 245); margin-right: 2px; white-space: nowrap;
+  border: 0; background: none; padding: 0 2px 0 0; height: 34px; display: inline-flex; align-items: center; }
+.rc-logo i { font-style: normal; letter-spacing: 0; font-size: 18px; margin-right: 6px; color: oklch(0.82 0.15 78); }
+.rc-logo b { color: oklch(0.82 0.15 78); font-weight: 800; }
+.rc-tab { height: 34px; padding: 0 12px; border-radius: 8px; border: 0; font-size: 13px; font-weight: 700; background: oklch(0.205 0.02 245); color: oklch(0.72 0.02 245); white-space: nowrap; }
+.rc-tab.on { background: oklch(0.82 0.15 78); color: oklch(0.165 0.018 245); }
+.rc-flex { flex: 1; }
+.rc-pill { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 15px; font-size: 12px; font-weight: 700;
+  background: oklch(0.8 0.18 150 / 0.14); color: oklch(0.8 0.18 150); white-space: nowrap; max-width: 230px; min-width: 0; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+.rc-pill i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.rc-pill.off { background: oklch(0.245 0.022 245); color: oklch(0.72 0.02 245); }
+.rc-tr { display: flex; gap: 6px; }
+.rc-tr button { width: 44px; height: 34px; border-radius: 8px; border: 0; background: oklch(0.245 0.022 245); display: grid; place-items: center; }
+.rc-tr .play { background: oklch(0.8 0.18 150); }
+.rc-tr .play.on { box-shadow: 0 0 0 2px oklch(0.95 0.008 245) inset; }
+.rc-tr .rec span { width: 12px; height: 12px; border-radius: 50%; background: oklch(0.66 0.22 27); }
+.rc-back { height: 34px; padding: 0 10px; border-radius: 8px; border: 0; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245); font-size: 12px; font-weight: 750; white-space: nowrap; }
+
+.rc-body { flex: 1; min-height: 0; display: flex; padding: 10px; box-sizing: border-box; gap: 10px; }
+.rc-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.rc-caption { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: oklch(0.62 0.02 245); }
+.rc-note { font-size: 10.5px; line-height: 1.35; color: oklch(0.62 0.02 245); }
+
+/* Connexion */
+.rc-title { display: flex; align-items: baseline; gap: 10px; }
+.rc-title > span:first-child { font-size: 20px; font-weight: 800; }
+.rc-title > span:nth-child(2) { font-size: 12.5px; color: oklch(0.72 0.02 245); }
+.rc-sound { margin-left: auto; height: 28px; padding: 0 10px; border-radius: 14px; border: 0; font-size: 11.5px; font-weight: 750; background: oklch(0.245 0.022 245); color: oklch(0.72 0.02 245); }
+.rc-sound.on { background: oklch(0.82 0.15 78 / 0.18); color: oklch(0.82 0.15 78); }
+.rc-cards { flex: 1; min-height: 0; display: flex; gap: 10px; }
+.rc-card { flex: 1; min-width: 0; border-radius: 12px; padding: 12px; box-sizing: border-box; background: oklch(0.205 0.02 245);
+  box-shadow: inset 0 0 0 1px oklch(0.28 0.02 245); display: flex; flex-direction: column; gap: 8px; }
+.rc-card.on { box-shadow: inset 0 0 0 2px oklch(0.8 0.18 150); }
+.rc-card-h { display: flex; align-items: center; gap: 8px; }
+.rc-card-h > span:first-child { font-size: 17px; font-weight: 800; }
+.rc-badge { margin-left: auto; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: oklch(0.245 0.022 245); color: oklch(0.72 0.02 245); white-space: nowrap; }
+.rc-card.on .rc-badge, .rc-badge.best { background: oklch(0.8 0.18 150); color: oklch(0.165 0.018 245); }
+.rc-card ol { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.45; color: oklch(0.72 0.02 245); }
+.rc-card li { margin: 0 0 4px; }
+.rc-card-btn { height: 40px; border-radius: 9px; border: 0; font-size: 13px; font-weight: 750; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px; }
+.rc-card.on .rc-card-btn { background: oklch(0.8 0.18 150); color: oklch(0.165 0.018 245); }
+
+/* fenêtre de choix (dans le cadre) */
+.rc-sheet-bg { position: absolute; inset: 0; z-index: 5; background: oklch(0.1 0.01 250 / 0.6); display: grid; place-items: center; }
+.rc-sheet { width: 440px; max-height: 330px; border-radius: 14px; background: oklch(0.205 0.02 245); box-shadow: inset 0 0 0 1px oklch(0.28 0.02 245), 0 10px 30px oklch(0 0 0 / 0.5);
+  padding: 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; }
+.rc-sheet-h { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; }
+.rc-sheet-h button { margin-left: auto; width: 34px; height: 34px; border-radius: 8px; border: 0; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245); font-weight: 800; }
+.rc-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; touch-action: pan-y; }
+.rc-item { min-height: 40px; border-radius: 9px; border: 0; text-align: left; padding: 0 12px; font-size: 13px; font-weight: 750; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245); }
+.rc-item.on { background: oklch(0.8 0.18 150); color: oklch(0.165 0.018 245); }
+.rc-row { display: flex; gap: 6px; align-items: center; }
+.rc-btn { height: 34px; padding: 0 12px; border-radius: 8px; border: 0; font-size: 12px; font-weight: 750; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245); white-space: nowrap; }
+.rc-btn.acc { background: oklch(0.82 0.15 78); color: oklch(0.165 0.018 245); font-weight: 800; }
+.rc-btn:disabled { opacity: 0.4; }
+.rc-input { flex: 1; min-width: 0; height: 34px; border-radius: 8px; border: 0; padding: 0 10px; background: oklch(0.165 0.018 245); color: oklch(0.95 0.008 245);
+  box-shadow: inset 0 0 0 1px oklch(0.28 0.02 245); font-size: 13px; }
+.rc-empty { font-size: 12px; color: oklch(0.72 0.02 245); line-height: 1.4; }
+
+/* Mixage */
+.rc-strips { flex: 1; min-width: 0; display: flex; gap: 6px; }
+.rc-strip { flex: 1; min-width: 0; border-radius: 10px; padding: 8px 6px; box-sizing: border-box; background: oklch(0.205 0.02 245);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; transition: opacity 0.15s; }
+.rc-strip.solo { box-shadow: inset 0 0 0 2px var(--k); }
+.rc-strip.dim { opacity: 0.45; }
+.rc-strip-bar { width: 100%; height: 4px; border-radius: 2px; background: var(--k); flex: none; }
+.rc-strip-name { font-size: 11.5px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.rc-strip-name span { color: oklch(0.62 0.02 245); }
+.rc-strip-preset { font-size: 9.5px; font-weight: 500; color: oklch(0.62 0.02 245); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: -2px; }
+.rc-fz { flex: 1; min-height: 0; width: 100%; display: flex; justify-content: center; gap: 6px; }
+.rc-fader { width: 26px; border-radius: 7px; background: oklch(0.165 0.018 245); position: relative; box-shadow: inset 0 0 0 1px oklch(0.28 0.02 245); touch-action: none; }
+.rc-fader.wide { width: 30px; }
+.rc-fader-fill { position: absolute; left: 4px; right: 4px; bottom: 4px; border-radius: 4px; background: oklch(0.62 0.02 245); }
+.rc-fader-cap { position: absolute; left: -6px; right: -6px; height: 12px; border-radius: 4px; background: oklch(0.95 0.008 245); }
+.rc-meter { width: 5px; border-radius: 3px; background: oklch(0.165 0.018 245); position: relative; overflow: hidden; }
+.rc-meter i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 3px; background: oklch(0.8 0.18 150); transition: height 0.08s linear; }
+.rc-db { font-size: 11px; font-variant-numeric: tabular-nums; color: oklch(0.72 0.02 245); white-space: nowrap; }
+.rc-ms { display: flex; gap: 4px; width: 100%; }
+.rc-ms button { flex: 1; height: 30px; border-radius: 6px; border: 0; font-size: 12px; font-weight: 800; background: oklch(0.245 0.022 245); color: oklch(0.72 0.02 245); }
+.rc-ms .m.on { background: oklch(0.66 0.22 27); color: oklch(0.165 0.018 245); }
+.rc-ms .s.on { background: oklch(0.8 0.18 150); color: oklch(0.165 0.018 245); }
+.rc-side { width: 112px; display: flex; flex-direction: column; gap: 6px; flex: none; }
+.rc-pages { display: flex; gap: 4px; }
+.rc-pages button { flex: 1; height: 34px; border-radius: 8px; border: 0; font-size: 12px; font-weight: 800; background: oklch(0.245 0.022 245); color: oklch(0.72 0.02 245); }
+.rc-pages button.on { background: oklch(0.82 0.15 78); color: oklch(0.165 0.018 245); }
+.rc-master { flex: 1; min-height: 0; border-radius: 10px; background: oklch(0.205 0.02 245); padding: 8px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.rc-master .rc-fz { flex: 1; width: auto; }
+
+/* Boutons */
+.rc-knobs { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.rc-kcell { border: 0; border-radius: 10px; padding: 6px 4px; background: oklch(0.205 0.02 245); color: oklch(0.95 0.008 245);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; touch-action: none; }
+.rc-kcell.free { opacity: 0.55; }
+.rc-kname { font-size: 11.5px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.rc-ksub { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; color: oklch(0.62 0.02 245); }
+.rc-bottom { display: flex; gap: 6px; flex: none; }
+.rc-bottom > button { flex: 1; height: 44px; border-radius: 9px; border: 0; font-size: 13px; font-weight: 800; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245); }
+.rc-bottom > button.on { background: oklch(0.82 0.15 78); color: oklch(0.165 0.018 245); }
+.rc-xf { flex: 2.6; display: flex; align-items: center; gap: 8px; height: 44px; border-radius: 9px; background: oklch(0.205 0.02 245); padding: 0 10px; box-sizing: border-box; }
+.rc-xf b { font-size: 12px; font-weight: 800; }
+.rc-xf-track { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg, oklch(0.74 0.14 240), oklch(0.72 0.2 330)); position: relative; touch-action: none; }
+.rc-xf-track::before { content: ""; position: absolute; inset: -18px 0; }
+.rc-xf-cap { position: absolute; top: -10px; width: 18px; height: 28px; margin-left: -9px; border-radius: 5px; background: oklch(0.95 0.008 245); pointer-events: none; }
+/* 1.1 : à gauche de la rangée, butées loin des bords de l'écran : un glissement ne déclenche pas la barre de navigation */
+.rc-xf--left { padding: 0 26px; gap: 12px; }
+
+/* Chaos */
+.rc-pad { flex: 1; min-width: 0; position: relative; border-radius: 12px; overflow: hidden; touch-action: none; box-shadow: inset 0 0 0 1px oklch(0.28 0.02 245);
+  background: radial-gradient(circle at 0% 0%, oklch(0.74 0.14 240 / 0.16), transparent 45%), radial-gradient(circle at 100% 0%, oklch(0.72 0.2 330 / 0.16), transparent 45%),
+    radial-gradient(circle at 0% 100%, oklch(0.8 0.18 150 / 0.14), transparent 45%), radial-gradient(circle at 100% 100%, oklch(0.82 0.15 78 / 0.14), transparent 45%), oklch(0.205 0.02 245); }
+.rc-grid-v, .rc-grid-h { position: absolute; background: oklch(0.28 0.02 245); pointer-events: none; }
+.rc-grid-v { top: 0; bottom: 0; width: 1px; } .rc-grid-h { left: 0; right: 0; height: 1px; }
+/* 1.1 : forme du mouvement (comme sur le PC) et orbe vert à la position jouée renvoyée par le PC */
+.rc-orbit { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.rc-orbit polygon { stroke: oklch(0.8 0.18 150 / 0.75); stroke-width: 1.5px; stroke-dasharray: 5 4; }
+.rc-play { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: oklch(0.8 0.18 150); box-shadow: 0 0 16px oklch(0.8 0.18 150 / 0.85); pointer-events: none; z-index: 2;
+  transition: left 45ms linear, top 45ms linear; }
+@media (prefers-reduced-motion: reduce) { .rc-play { transition: none; } }
+.rc-trail { position: absolute; border-radius: 50%; background: oklch(0.82 0.15 78); pointer-events: none; }
+.rc-orb { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: oklch(0.74 0.14 240); box-shadow: 0 0 22px oklch(0.74 0.14 240 / 0.8); pointer-events: none; }
+.rc-cross-h, .rc-cross-v { position: absolute; background: oklch(0.72 0.02 245); pointer-events: none; }
+.rc-cross-h { left: calc(50% - 9px); top: calc(50% - 1px); width: 18px; height: 2px; }
+.rc-cross-v { left: calc(50% - 1px); top: calc(50% - 9px); width: 2px; height: 18px; }
+.rc-corner { position: absolute; min-width: 120px; max-width: 170px; border: 0; border-radius: 9px; padding: 6px 9px; background: oklch(0.205 0.02 245 / 0.92);
+  box-shadow: inset 0 0 0 1.5px var(--c); color: oklch(0.95 0.008 245); display: flex; flex-direction: column; gap: 1px; z-index: 2; }
+.rc-corner.sel { box-shadow: inset 0 0 0 2.5px var(--c), 0 0 14px color-mix(in oklab, var(--c) 40%, transparent); }
+.rc-corner b { font-size: 13px; font-weight: 800; color: var(--c); }
+.rc-corner span { font-size: 10.5px; color: oklch(0.72 0.02 245); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-corner.a { left: 8px; top: 8px; text-align: left; } .rc-corner.b { right: 8px; top: 8px; text-align: right; }
+.rc-corner.c { left: 8px; bottom: 8px; text-align: left; } .rc-corner.d { right: 8px; bottom: 8px; text-align: right; }
+.rc-padhint { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); font-size: 11px; color: oklch(0.72 0.02 245); white-space: nowrap; pointer-events: none; }
+.rc-cside { width: 216px; display: flex; flex-direction: column; gap: 6px; flex: none; min-height: 0; }
+.rc-seg { display: flex; gap: 4px; background: oklch(0.205 0.02 245); padding: 3px; border-radius: 9px; }
+.rc-seg button { flex: 1; height: 34px; border-radius: 7px; border: 0; font-size: 12px; font-weight: 750; background: transparent; color: oklch(0.72 0.02 245); }
+.rc-seg button.on { background: oklch(0.82 0.15 78); color: oklch(0.165 0.018 245); font-weight: 800; }
+.rc-cbox { border-radius: 10px; background: oklch(0.205 0.02 245); padding: 8px; display: flex; flex-direction: column; gap: 5px; box-shadow: inset 0 0 0 1.5px var(--c); min-height: 0; overflow: hidden; }
+.rc-kinds { display: flex; gap: 4px; }
+.rc-kinds button { flex: 1; height: 28px; border-radius: 6px; border: 0; font-size: 11px; font-weight: 750; background: oklch(0.245 0.022 245); color: oklch(0.72 0.02 245); }
+.rc-kinds button.on { background: var(--c); color: oklch(0.165 0.018 245); font-weight: 800; }
+.rc-prow { display: flex; align-items: center; gap: 6px; font-size: 11.5px; min-height: 22px; }
+.rc-plabel { flex: 1; min-width: 0; position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-plabel select { position: absolute; inset: 0; opacity: 0; width: 100%; }
+.rc-pbar { width: 54px; height: 6px; border-radius: 3px; background: oklch(0.165 0.018 245); position: relative; touch-action: none; flex: none; }
+.rc-pbar::before { content: ""; position: absolute; inset: -9px -2px; }
+.rc-pbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--c); pointer-events: none; }
+.rc-prow b { width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.rc-take { height: 32px; border-radius: 7px; border: 0; font-size: 11.5px; font-weight: 750; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245); }
+.rc-scenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.rc-scenes button { height: 26px; border-radius: 6px; border: 0; font-size: 11px; font-weight: 750; background: oklch(0.245 0.022 245); color: oklch(0.72 0.02 245); }
+.rc-scenes button.on { background: var(--c); color: oklch(0.165 0.018 245); }
+.rc-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+.rc-2 button { height: 36px; border-radius: 8px; border: 0; font-size: 12px; font-weight: 800; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245); }
+.rc-2 button.on { background: oklch(0.8 0.18 150); color: oklch(0.165 0.018 245); }
+
+/* FM-1 */
+.rc-wheels { width: 70px; display: flex; gap: 6px; flex: none; }
+.rc-wheel { flex: 1; border-radius: 9px; background: oklch(0.205 0.02 245); position: relative; box-shadow: inset 0 0 0 1px oklch(0.28 0.02 245); touch-action: none; overflow: hidden; }
+.rc-wheel span { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 9px; color: oklch(0.62 0.02 245); pointer-events: none; z-index: 1; }
+.rc-wheel .cap { position: absolute; left: 4px; right: 4px; height: 16px; border-radius: 5px; background: oklch(0.95 0.008 245); pointer-events: none; }
+.rc-wheel .mod { position: absolute; left: 4px; right: 4px; bottom: 4px; border-radius: 5px; background: oklch(0.74 0.14 240); pointer-events: none; }
+.rc-wheel.modw span { color: oklch(0.165 0.018 245); }
+.rc-fmtop { display: flex; align-items: center; gap: 6px; }
+.rc-fmtop .arrow { width: 40px; height: 34px; border-radius: 8px; border: 0; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245); font-weight: 800; flex: none; }
+.rc-prog { min-width: 0; flex: 1; height: 34px; border-radius: 8px; background: oklch(0.205 0.02 245); display: flex; align-items: center; padding: 0 10px; font-size: 13px; font-weight: 750; white-space: nowrap; overflow: hidden; }
+.rc-prog span { color: oklch(0.62 0.02 245); font-weight: 500; margin-left: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.rc-selbtn { position: relative; height: 34px; padding: 0 12px; border-radius: 8px; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245);
+  font-size: 12px; font-weight: 750; display: inline-flex; align-items: center; white-space: nowrap; flex: none; }
+.rc-selbtn select { position: absolute; inset: 0; opacity: 0; width: 100%; }
+.rc-fmknobs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; border-radius: 10px; background: oklch(0.205 0.02 245); padding: 4px 6px; flex: none; }
+.rc-fmk { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; touch-action: none; }
+.rc-fmk .n { font-size: 10.5px; font-weight: 750; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.rc-fmk .c { font-size: 9.5px; color: oklch(0.62 0.02 245); white-space: nowrap; position: relative; }
+.rc-fmk .c select { position: absolute; inset: 0; opacity: 0; width: 100%; }
+.rc-kb { flex: 1; min-height: 0; display: flex; position: relative; border-radius: 8px; overflow: hidden; touch-action: none; }
+.rc-wk { flex: 1; border-radius: 0 0 6px 6px; background: oklch(0.93 0.01 245); box-shadow: inset -1px 0 0 oklch(0.7 0.01 245); border: 0; padding: 0; }
+.rc-wk.on { background: oklch(0.82 0.15 78); }
+.rc-bk { position: absolute; top: 0; width: 5.2%; height: 60%; border-radius: 0 0 4px 4px; background: oklch(0.2 0.01 245); border: 0; padding: 0; z-index: 1; }
+.rc-bk.on { background: oklch(0.82 0.15 78); }
+.rc-oct { position: absolute; right: 6px; bottom: 6px; z-index: 2; display: flex; gap: 4px; }
+.rc-oct button { width: 34px; height: 26px; border-radius: 6px; border: 0; background: oklch(0.2 0.01 245 / 0.85); color: oklch(0.95 0.008 245); font-size: 12px; font-weight: 800; }
+.rc-oct span { height: 26px; padding: 0 6px; border-radius: 6px; background: oklch(0.2 0.01 245 / 0.85); color: oklch(0.95 0.008 245); font-size: 11px; font-weight: 750; display: grid; place-items: center; }
+
+/* 1.1 : réglage des boutons, réglages et pads ; défilement du mixage ; pads de l'onglet FM-1 */
+.rc-edit { width: 470px; max-height: 360px; }
+.rc-field { display: flex; align-items: center; gap: 10px; min-height: 38px; }
+.rc-field > span:first-child { width: 150px; flex: none; font-size: 12px; font-weight: 700; color: oklch(0.72 0.02 245); }
+.rc-field .rc-seg { flex: 1; }
+.rc-field .rc-seg button { height: 30px; }
+.rc-field .rc-selbtn { flex: 1; justify-content: space-between; }
+.rc-knobs.editing .rc-kcell, .rc-fmknobs.editing .rc-fmk, .rc-pads.editing .rc-pad { outline: 1.5px dashed oklch(0.82 0.15 78 / 0.8); outline-offset: -3px; cursor: pointer; }
+.rc-scroll { overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; touch-action: pan-x; scrollbar-width: none; overscroll-behavior-x: contain; }
+.rc-scroll::-webkit-scrollbar { display: none; }
+.rc-scroll > .rc-strip { flex: 0 0 calc((100% - 42px) / 8); scroll-snap-align: start; }
+.rc-strip--bus .rc-strip-name { color: var(--k); }
+.rc-pages button { font-size: 11.5px; }
+.rc-pads { display: flex; gap: 5px; height: 46px; flex: none; }
+.rc-padedit { width: 62px; flex: none; border: 0; border-radius: 8px; font-size: 11.5px; font-weight: 800; background: oklch(0.245 0.022 245); color: oklch(0.95 0.008 245); }
+.rc-padedit.on { background: oklch(0.82 0.15 78); color: oklch(0.165 0.018 245); }
+.rc-pad { flex: 1; min-width: 0; border: 0; border-radius: 8px; background: oklch(0.205 0.02 245); box-shadow: inset 0 0 0 1px oklch(0.28 0.02 245);
+  color: oklch(0.95 0.008 245); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; touch-action: none; }
+.rc-pad b { font-size: 11.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.rc-pad span { font-size: 9px; color: oklch(0.62 0.02 245); }
+.rc-pad.on { background: oklch(0.82 0.15 78); color: oklch(0.165 0.018 245); box-shadow: 0 0 12px oklch(0.82 0.15 78 / 0.5); }
+.rc-pad.on span { color: oklch(0.3 0.03 70); }
+.rc-pad.toggle.on { background: oklch(0.8 0.18 150); box-shadow: 0 0 12px oklch(0.8 0.18 150 / 0.5); }
+.rc-pad.note.on { background: oklch(0.74 0.14 240); box-shadow: 0 0 12px oklch(0.74 0.14 240 / 0.5); }
+.rc-prog--sel { position: relative; }
+.rc-prog--sel select { position: absolute; inset: 0; opacity: 0; width: 100%; }
+
+/* 1.1 : « Apprendre » (télécommande) : petit bouton universel à côté d'un réglage de CC */
+.rc-learn { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px; cursor: pointer;
+  border: 1px solid oklch(0.4 0.03 245); background: oklch(0.2 0.02 245); color: oklch(0.92 0.01 245); font-weight: 600; font-size: 12px; line-height: 1; white-space: nowrap; }
+.rc-learn-dot { width: 8px; height: 8px; border-radius: 50%; background: oklch(0.55 0.15 25); }
+.rc-learn.on { border-color: oklch(0.72 0.19 28); background: oklch(0.3 0.08 28); }
+.rc-learn.on .rc-learn-dot { background: oklch(0.72 0.21 28); animation: rc-learn-pulse 0.9s ease-in-out infinite; }
+@keyframes rc-learn-pulse { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .rc-learn.on .rc-learn-dot { animation: none; } }
+.rc-learn-row { display: flex; align-items: center; gap: 10px; padding: 4px 2px 8px; }
+.rc-prow .rc-learn { height: 22px; padding: 0 8px; font-size: 11px; }
+/* après la 1.1 : profils de la télécommande */
+.rc-profile { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-selbtn.on { border-color: oklch(0.82 0.15 78); }
