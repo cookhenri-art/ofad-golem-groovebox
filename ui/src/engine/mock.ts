@@ -37,6 +37,8 @@ export function installMockBackend() {
   const listeners = new Map<string, Map<number, Listener>>();
   let nextId = 0;
   const emit = (id: string, payload: unknown) => listeners.get(id)?.forEach((l) => l(payload));
+  // 1.1 : essais de la télécommande : simuler un message du PC (window.__mockEmit("remoteIn", [[…]]))
+  (window as unknown as { __mockEmit?: typeof emit }).__mockEmit = emit;
 
   // --- État
   const CH = lastChannel(L) + 1;
@@ -176,6 +178,80 @@ export function installMockBackend() {
   scenes[L.numScenes].locks = [[0, 0]];
   samples[0][14] = null;
 
+  // 1.1 (maquette, vidéo) : ?demo=tribe charge un vrai projet .gbx de public/ (pistes, inserts, réglages,
+  // patterns, scènes, globaux, morceau) pour que l'aperçu montre exactement ce projet
+  let demoSong: [number, number, number[]][] | null = null;
+  let demoSongMode = false;
+  const demoName = new URLSearchParams(location.search).get("demo");
+  if (demoName && /^[a-z0-9]+$/.test(demoName)) {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", `demo-${demoName}.gbx`, false); xhr.send();
+      const doc = new DOMParser().parseFromString(xhr.responseText, "application/xml");
+      const prj = doc.querySelector("GROOVEBOX > PROJECT");
+      if (prj) {
+        const kids = (el: Element, tag: string) => Array.from(el.children).filter((c) => c.tagName === tag);
+        const num = (el: Element, a: string, d = 0) => { const v = el.getAttribute(a); return v == null ? d : Number(v); };
+        for (let t = 0; t < L.numTracks; ++t) { setInstrument(t, ""); tracks[t].name = `Piste ${t + 1}`; samples[t].fill(null); for (let q = 0; q < NP; ++q) pats[t][q] = mkPattern(); }
+        for (let ch = 0; ch < CH; ++ch) for (let s = 0; s < 4; ++s) setInsert(ch, s, "");
+        for (const tr of kids(prj, "TRACK")) {
+          const i = num(tr, "i", -1); if (i < 0 || i >= L.numTracks) continue;
+          setInstrument(i, tr.getAttribute("instrument") ?? "");
+          tracks[i].name = tr.getAttribute("name") ?? tracks[i].name; tracks[i].color = num(tr, "color", i % 8);
+          tracks[i].preset = tr.getAttribute("preset") ?? ""; tracks[i].out = num(tr, "out", 0);
+        }
+        for (const ins of kids(prj, "INSERT")) setInsert(num(ins, "c"), num(ins, "s"), ins.getAttribute("type") ?? "");
+        const globalOf = (c: number, a: string, id: string) => {
+          if (c < 0 || c >= CH) return -1;
+          if (a === "mix" || a === "inst") return find(c, a, id);
+          const fx = /^fx(\d)$/.exec(a);
+          if (fx) { const s = Number(fx[1]) - 1, d = fxDesc(c, s); const k = d ? d.params.findIndex((q) => q.id === id) : -1; return k < 0 ? -1 : c * S + L.insertBase + s * L.insertSlots + k; }
+          const md = /^mod(\d)$/.exec(a);
+          if (md) { const k = cat.modSource.params.findIndex((q) => q.id === id); return k < 0 ? -1 : c * S + L.modSourceBase + (Number(md[1]) - 1) * L.modSourceSlots + k; }
+          return -1;
+        };
+        const params = kids(prj, "PARAMS")[0];
+        if (params) for (const q of kids(params, "P")) {
+          const g = globalOf(num(q, "c", -1), q.getAttribute("a") ?? "", q.getAttribute("i") ?? "");
+          if (g >= 0) values[Math.floor(g / S)][g % S] = num(q, "v");
+        }
+        const hexBytes = (s: string | null) => { const out: number[] = []; if (s) for (let k = 0; k + 1 < s.length; k += 2) out.push(parseInt(s.slice(k, k + 2), 16)); return out; };
+        const seq = kids(prj, "SEQ")[0];
+        if (seq) for (const T of kids(seq, "T")) {
+          const ti = num(T, "i", -1); if (ti < 0 || ti >= L.numTracks) continue;
+          trackSeq[ti].mute = num(T, "mute") === 1; trackSeq[ti].solo = num(T, "solo") === 1;
+          trackSeq[ti].playing = num(T, "play", 0); trackSeq[ti].editing = num(T, "edit", 0);
+          for (const P of kids(T, "PAT")) {
+            const pi = num(P, "p", -1); if (pi < 0 || pi >= NP) continue;
+            const pt = pats[ti][pi]; pt.length = num(P, "length", 16); pt.speed = num(P, "speed", 4);
+            const ll = (P.getAttribute("laneLen") ?? "").split(",").map(Number);
+            for (const ln of kids(P, "LANE")) {
+              const li = num(ln, "l", -1); if (li < 0 || li >= L.numLanes) continue;
+              const lane = pt.lanes[li];
+              const put = (arr: number[], attr: string) => hexBytes(ln.getAttribute(attr)).forEach((v, k) => { if (k < arr.length) arr[k] = v; });
+              put(lane.vel, "vel"); put(lane.note, "note"); put(lane.len, "len"); put(lane.micro, "micro");
+              if (ll[li]) lane.length = ll[li];
+            }
+          }
+        }
+        scenes.forEach((sc) => { sc.locks = []; sc.muted = false; });
+        for (const sc of kids(prj, "SCENE")) {
+          const n = num(sc, "n", -1); if (n < 0 || n >= scenes.length) continue;
+          scenes[n].muted = num(sc, "muted") === 1;
+          for (const l of kids(sc, "L")) { const g = globalOf(num(l, "c", -1), l.getAttribute("a") ?? "", l.getAttribute("i") ?? ""); if (g >= 0) scenes[n].locks.push([g, num(l, "v")]); }
+          scenes[n].locks.sort((a, b) => a[0] - b[0]);
+        }
+        for (const q of Array.from(doc.querySelectorAll("GROOVEBOX > PARAM"))) { const id = q.getAttribute("id"); if (id) globals[id] = num(q, "value"); }
+        extras.clear();
+        const sg = kids(prj, "SONG")[0];
+        if (sg) {
+          demoSongMode = num(sg, "mode") === 1;
+          demoSong = kids(sg, "ROW").map((r) => [num(r, "bars", 4), num(r, "scene", -1), (r.getAttribute("pat") ?? "").split(",").map(Number)] as [number, number, number[]]);
+        }
+      }
+    } catch (e) { console.warn("démo de la maquette", e); }
+  }
+
   // --- Réponses (mêmes formes que Bridge.cpp)
   const hex = (a: number[]) => a.map((v) => (v & 0xff).toString(16).padStart(2, "0")).join("");
   const hex3 = (a: number[]) => a.map((v) => (v & 0xfff).toString(16).padStart(3, "0")).join("");
@@ -231,6 +307,11 @@ export function installMockBackend() {
     getCatalog: () => JSON.stringify(cat),
     getTracks: tracksJson,
     getChannel: (ch: number) => channelJson(ch),
+    // 1.1 : traitement hors temps réel (maquette : prêt tout de suite)
+    procStart: () => JSON.stringify(""),
+    procStatus: () => JSON.stringify({ busy: false, progress: 1, ready: true, preview: true, error: "", track: 0, index: 0, seconds: 2, latencyMs: 0, tailSeconds: 0, auditioning: false, undo: 1 }),
+    procCancel: () => "true", procAudition: () => "true",
+    effectPreset: () => "null", sampleUndoCount: () => "1",
     getPattern: (t: number) => patternJson(t),
     getExtras: (t: number) => extrasJson(t),
     getScenes: scenesJson,
@@ -249,6 +330,8 @@ export function installMockBackend() {
     },
     applyPreset: (ch: number, slot: number, name: string) => { if (slot < 0 && ch < L.numTracks) tracks[ch].preset = name; else if (slot >= 0) insertPresets[ch][slot] = name; return channelJson(ch); },
     setTrackName: (t: number, n: string) => { tracks[t].name = String(n).slice(0, 40); return tracksJson(); },
+    trackSoundNames: (t: number) => { const ty = (tracks[t] as { instrument?: string })?.instrument; const m = cat.instruments.find((i: ModuleDesc) => i.type === ty); return JSON.stringify(m ? m.presets : []); },
+    setTrackLabels: (t: number, n: string) => { const v = String(n).slice(0, 200); if (v) (tracks[t] as { labels?: string }).labels = v; else delete (tracks[t] as { labels?: string }).labels; return tracksJson(); },
     setTrackSpeech: (t: number, n: string) => { const v = String(n).slice(0, 160); if (v) (tracks[t] as { speech?: string }).speech = v; else delete (tracks[t] as { speech?: string }).speech; return tracksJson(); },
     busMute: (ch: number, on: boolean) => { if (buses[ch - 16]) buses[ch - 16].mute = !!on; return tracksJson(); },
     busSolo: (ch: number, on: boolean) => { if (buses[ch - 16] && ch >= 21) buses[ch - 16].solo = !!on; return tracksJson(); },
@@ -292,8 +375,9 @@ export function installMockBackend() {
       return channelJson(ch);
     },
     removeMod: (ch: number, target: number) => { mods[ch] = mods[ch].filter((m) => m.target !== target); return channelJson(ch); },
-    noteOn: (t: number, n: number) => { emit("tick", JSON.stringify({ ...baseTick(), hits: [[t, instDesc(t)?.drumKit ? n : n % 16]] })); return null; },
-    noteOff: () => null,
+    // 1.1 : notes tenues (kn) et jouées (kh), comme le moteur : le point qui court sur l'enveloppe
+    noteOn: (t: number, n: number) => { heldNotes.add(n); emit("tick", JSON.stringify({ ...baseTick(), hits: [[t, instDesc(t)?.drumKit ? n : n % 16]], kh: [n] })); return null; },
+    noteOff: (_t: number, n: number) => { heldNotes.delete(n); return null; },
     expression: () => null,
     seqSetStep: pattern((p, [l, s, v]) => { p.lanes[l].vel[s] = v; }),
     seqSetNote: pattern((p, [l, s, v]) => { p.lanes[l].note[s] = v; }),
@@ -520,6 +604,10 @@ export function installMockBackend() {
     fm1Touch: (_t: number, kind: number, a: number, b: number) => { if (kind === 1) fm1Mock.leds[Math.max(0, Math.min(40, a))] = b > 0.5 ? 1 : 0; if (kind === 2) fm1Mock.pos += b; return ""; },
     fm1Screen: () => JSON.stringify(fm1MockScreen()),
     audioRecStart: (mode: number, format: number, _follow?: number) => { audioRecMock.active = true; audioRecMock.mode = mode; audioRecMock.format = format ? "mp3" : "wav"; audioRecMock.t0 = Date.now(); audioRecMock.files = []; return JSON.stringify(recState()); },
+    audioMonitor: (_c: string) => 0,
+    latencyInfo: () => JSON.stringify(Array.from({ length: 28 }, () => 0)),
+    audioRecStartEx: (_o: string) => { audioRecMock.active = true; audioRecMock.mode = 0; audioRecMock.format = "wav"; audioRecMock.t0 = Date.now(); audioRecMock.files = []; return JSON.stringify(recState()); },
+    audioRecToPad: (_t: number, _i: number) => JSON.stringify("Aucune prise à charger"),
     audioRecStop: () => {
       audioRecMock.active = false; audioRecMock.secs = (Date.now() - audioRecMock.t0) / 1000;
       const ext = audioRecMock.format; audioRecMock.files = [...(audioRecMock.mode !== 1 ? [`Master.${ext}`] : []), ...(audioRecMock.mode !== 0 ? [`P01 Batterie.${ext}`, `P02 Basse acide.${ext}`] : [])];
@@ -539,6 +627,7 @@ export function installMockBackend() {
     rows: [[2, -1, [0, 0, 0, 0, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2]], [4, 3, [1, 0, 1, 0, -1, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2]], [2, -1, [0, 1, -1, 0, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2]]] as [number, number, number[]][],
     lanes: [[L.instrumentBase + 3 + L.slotsPerChannel, 1, 12, 30, Array.from({ length: 96 }, (_, k) => 0.5 + 0.4 * Math.sin(k / 9))]] as [number, number, number, number, number[]][],
   };
+  if (demoSong) { song.rows = demoSong; song.mode = demoSongMode; song.lanes = []; }
   const songJson = () => {
     const total = song.rows.reduce((a, r) => a + 4 * r[0], 0);
     return JSON.stringify({ ...song, span: Math.max(16, total, ...song.lanes.map((l) => l[3])) });
@@ -650,7 +739,9 @@ let glutaHold: [number, number] | null = null; // v0.47 : bille tenue au doigt (
     const st = Math.floor(t * 8);
     return [x, y, st % 16, st % 12, Math.floor(st / 2) % 7, st % 14, Math.floor(t * 3) % 1000, 1, Math.max(0, Math.sin(t * 4)), Math.sin(t), Math.cos(t * 0.7), 0.3, -0.2];
   };
+  const heldNotes = new Set<number>();
   const baseTick = () => ({
+    kn: [...heldNotes], kh: [] as number[],
     // v0.42 : Pieuvre 8 — piste jouée, puis 5 valeurs par piste interne
     inst: tracks[focus]?.instrument === "octa" ? [0, ...Array.from({ length: 8 }, (_, k) => [k === 0 ? recMock : 0, k === 0 && recMock ? 1.5 : 0, transport.playing ? (transport.ppq % 4) / 4 : 0, 0, Math.round(toPlainLocal(focus, `t${k + 1}_machine`))]).flat()]
       // vocodeurs : 16 bandes qui bougent comme une voix
@@ -670,7 +761,7 @@ let glutaHold: [number, number] | null = null; // v0.47 : bille tenue au doigt (
     spec: specOn ? [...Array.from({ length: 96 }, (_, b) => Math.round(10 * (-18 - b * 0.42 + 6 * Math.sin(b / 7 + transport.ppq) + (b < 12 ? 8 : 0) + Math.random() * 3 - (transport.playing ? 0 : 50)))),
       ...Array.from({ length: 96 }, (_, b) => Math.round(10 * (-40 - b * 0.3 + Math.random() * 4 - (transport.playing ? 0 : 50))))] : undefined,
     loud: transport.playing ? [-11 + Math.random(), -11.5, -12.1, -1.4 + Math.random() * 0.4, -0.9, -14 + Math.random()] : [-100, -100, -100, -100, -100, -100],
-    perf: [transport.playing ? 14 + Math.random() * 3 : 3, transport.playing ? 22 + Math.random() * 4 : 5, 286, 41, 48000, 192, 4, 8192],
+    perf: [(window as unknown as { __mockCpu?: number }).__mockCpu ?? (transport.playing ? 14 + Math.random() * 3 : 3) /* __mockCpu : essai de la coupure des animations */, transport.playing ? 22 + Math.random() * 4 : 5, 286, 41, 48000, 192, 4, 8192],
     project: false, seq: false, structure: false,
     song: [songRowAt(transport.ppq), transport.playing ? transport.ppq : -1, song.version, song.recPlay ? 1 : 0, song.recMoves ? 1 : 0],
   });

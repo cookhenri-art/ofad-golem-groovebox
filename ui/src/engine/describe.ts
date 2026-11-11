@@ -53,6 +53,21 @@ export function describeGlobal(global: number): string {
   const r = resolveGlobal(global);
   if (!r || !s.catalog) return `Réglage ${global}`;
   const where = channelName(s.catalog, r.channel, s.tracks.tracks.map((t) => t.name));
+  // après la 1.1 : interrupteur d'un insert (« Insert 3 ») : le nom de l'effet posé, pour s'y retrouver dans les scènes
+  const byp = r.area === "mix" ? /^bypass([1-4])$/.exec(r.desc.id) : null;
+  if (byp) {
+    const slot = Number(byp[1]) - 1;
+    const fx = s.catalog.effects.find((e) => e.type === s.tracks.inserts[r.channel]?.[slot]);
+    return `${where} · ${fx ? `${fx.name} (insert ${slot + 1})` : `Insert ${slot + 1} (libre)`}`;
+  }
+  // inserts des pads : « Pad 3 · Écho (1) » au lieu de « Contourné » ou du seul nom de l'effet
+  if (r.area === "padbyp" || r.area === "pfx") {
+    const pad = Math.floor(r.slot / 2), n = (r.slot % 2) + 1;
+    const inst = s.catalog.instruments.find((i) => i.type === s.tracks.tracks[r.channel]?.instrument);
+    const padName = inst?.padNames?.[pad] ? `${pad + 1} ${inst.padNames[pad]}` : `${pad + 1}`;
+    const fxName = r.area === "pfx" ? r.module?.name : s.catalog.effects.find((e) => e.type === s.channels[r.channel]?.padfx?.find((f) => f.pad * 2 + f.slot === r.slot)?.type)?.name;
+    return `${where} · Pad ${padName} · ${fxName ?? "Effet"} (${n})${r.area === "pfx" ? ` · ${r.desc.name}` : ""}`;
+  }
   // nom porté par plusieurs réglages (le même « Accord » sur chaque pad d'une batterie) : la section le précise
   const m = r.module;
   const twin = m && r.area === "inst" && m.params.some((p, i) => i !== r.index && p.name === r.desc.name);

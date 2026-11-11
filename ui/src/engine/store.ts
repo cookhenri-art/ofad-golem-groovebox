@@ -6,14 +6,20 @@ import { useSyncExternalStore } from "react";
 import { getNativeFunction } from "../juce/index.js";
 import type {
   AudioRecStatus,
+  AudioTakeOptions,
   Catalog, ChannelData, LaneData, LaunchData, SongData, PatternLanesData, MidiData, PatternData, PresetScope, SceneData, StepExtra, Tick, TracksData, UserPresetList, WaveData, MacroData, MontageData, MontageClip,
 } from "./protocol";
 import { PATTERN_NAMES, ROW_PAGE } from "./protocol";
-import { lastChannel, resolve, setBusNameSource, toNorm, type Resolved } from "./params";
+import { lastChannel, resolve, setBusNameSource, toNorm, toPlain, type Resolved } from "./params";
 import { getLockClip, setLockClip } from "./selection";
 
 export type ScreenMode = "tracks" | "launch" | "sequence" | "sound" | "effects" | "mixer" | "scenes" | "settings";
 export type PadMode = "play" | "mute" | "scenes" | "solo" | "steps"; // 1.0 : « Effacer » remplacé par « Solo »
+
+/** 1.1 : un emplacement d'une chaîne de traitement (éditeur d'échantillon, écran Audio) : valeurs réelles des réglages. */
+export interface ChainSlotUi { type: string; values: number[]; bypass: boolean }
+export interface ProcStatus { busy: boolean; progress: number; ready: boolean; preview: boolean; error: string; track: number; index: number;
+  seconds: number; latencyMs: number; tailSeconds: number; auditioning: boolean; undo: number }
 
 export interface UiState {
   screen: ScreenMode;
@@ -59,8 +65,13 @@ export interface UiState {
   rowPage: number;              // v0.46 fix29 : page de rangées montrée (0 : A–H, 1 : I–P), la même partout
   seqView: "notes" | "auto";    // écran Séquence : notes ou courbes du pattern
   launchAll: boolean;           // grille de lancement : les 16 pistes en défilement (sinon 8 par écran)
+  curveAnim: boolean;           // 1.1 : courbes de l'écran SON animées (son joué, point qui court) ; sinon fixes, pour garder du processeur
+  curveAutoOff: number | null;  // 1.1 : courbes coupées automatiquement (charge du processeur relevée, en %) ; on les remet à la main
+  remote: boolean;              // 1.1 : mode télécommande (le téléphone pilote GOLEM sur le PC ou un appareil MIDI)
   muteTarget: "pads" | "tracks"; // v0.31 : rôle Couper sur une batterie — ses pads (sons) ou les 16 pistes
   faceBig: boolean;            // façades jamais réduites sous leur taille normale (sinon défilement vertical)
+  sampleEdit?: { track: number; index: number } | null; // 1.1 : éditeur d'échantillon unique ouvert (plein écran)
+  audioScreen?: boolean;       // 1.1 : écran AUDIO (enregistrement et traitement) ouvert
   vecFull?: boolean;           // v0.46 fix22 : pavé vectoriel en grand (tout l'écran)
   phone?: boolean;             // v0.46 fix20 : disposition téléphone (façades et pédalier pensés pour le petit écran)
   trackClip: number | null;    // v0.41 : piste copiée (Copier / Coller la piste, principe de l'Octatrack)
@@ -103,6 +114,7 @@ export interface AppState {
   scenes: SceneData[];
   tick: Tick;
   eff: Record<number, number>;           // valeurs jouées du canal choisi (emplacement local → normalisé)
+  effG: Record<number, number>;          // après la 1.1 : autres canaux, réglages tenus par les scènes (adresse globale → normalisé)
   litLanes: number[];                    // allumage des pads de la piste choisie
   litTracks: number[];                   // allumage par piste
   litNotes: number[];                    // notes exactes de la piste choisie (0..127) : tenues ou jouées à l'instant
@@ -138,6 +150,7 @@ let state: AppState = {
   scenes: [],
   tick: emptyTick,
   eff: {},
+  effG: {},
   litLanes: new Array(16).fill(0),
   litTracks: new Array(16).fill(0),
   litNotes: new Array(128).fill(0),
@@ -150,7 +163,7 @@ let state: AppState = {
     screen: "sequence", page: 0, lane: 0, step: null, stepEdit: false, editSlot: null, editBreak: false,
     soundTab: "", soundSection: 0, fxSlot: 0, fxTab: "", fxSection: 0, modSlot: 0, mixerBank: 0, mixerFirst: 0,
     padMode: "play", octave: 0, scale: 0, root: 0, padLevels: false, rollBase: 36, rollOne: readPref("rollOne", false), shift: false, browserFamily: "Batteries", browserIndex: 0, sceneBank: 0, message: null, trackClip: null,
-    selection: [], selectMode: false, paint: false, copyDrag: false, modAssign: null, macroAssign: null, knobAssign: null, modPanel: null, knobLfoAssign: null, face: false, pedals: false, fullscreen: false, launchView: "grid", rowPage: 0, seqView: "notes", launchAll: readPref("launchAll", true), muteTarget: readPref("muteTracks", false) ? "tracks" : "pads", faceBig: readPref("faceBig", true),
+    selection: [], selectMode: false, paint: false, copyDrag: false, modAssign: null, macroAssign: null, knobAssign: null, modPanel: null, knobLfoAssign: null, face: false, pedals: false, fullscreen: false, launchView: "grid", rowPage: 0, seqView: "notes", launchAll: readPref("launchAll", true), curveAnim: readPref("curveAnim", true), curveAutoOff: null, remote: false, muteTarget: readPref("muteTracks", false) ? "tracks" : "pads", faceBig: readPref("faceBig", true),
   },
 };
 
@@ -329,10 +342,27 @@ function flushParams() {
 }
 
 let messageTimer = 0;
-export function showMessage(text: string) {
+export function showMessage(text: string, ms = 2200) {
   window.clearTimeout(messageTimer);
   setUi({ message: text });
-  messageTimer = window.setTimeout(() => setUi({ message: null }), 2200);
+  messageTimer = window.setTimeout(() => setUi({ message: null }), ms);
+}
+
+/** 1.1 : au-delà de 90 % de calcul audio pendant 1,5 s, l'animation des courbes se coupe pour laisser
+    le processeur au son, avec un message. Elle ne revient PAS d'elle-même (sinon elle se couperait et
+    se remettrait sans cesse autour du seuil) : on la remet dans Réglages › Affichage. */
+export const CURVE_CPU_LIMIT = 90;
+let cpuHotSince = 0;
+function curveCpuGuard(perf: number[] | undefined) {
+  const load = perf?.[0];
+  if (!state.ui.curveAnim || load === undefined || !Number.isFinite(load)) { cpuHotSince = 0; return; }
+  if (load < CURVE_CPU_LIMIT) { cpuHotSince = 0; return; }
+  const now = performance.now();
+  if (!cpuHotSince) { cpuHotSince = now; return; }
+  if (now - cpuHotSince < 1500) return;
+  cpuHotSince = 0;
+  setUi({ curveAnim: false, curveAutoOff: Math.round(load) });
+  showMessage(`Processeur à ${Math.round(load)} % : animation des courbes coupée pour garder le son. La remettre : Réglages › Affichage.`, 7000);
 }
 
 // ---------------------------------------------------------------------------
@@ -365,6 +395,10 @@ async function refreshMacros() { set({ macros: (await callJson<MacroData[]>("get
 async function refreshEverything() { await refreshTracks(); await refreshAllChannels(); await refreshPattern(); await refreshScenes(); await refreshLaunch(); await refreshMidi(); await refreshMacros(); }
 
 /** Vrai si le moteur propose cette fonction native (le faux moteur du navigateur en propose moins). */
+/** 1.1 : messages de la télécommande reçus du PC (src/remote). */
+const remoteInListeners = new Set<(bytes: number[]) => void>();
+export function onRemoteIn(f: (bytes: number[]) => void): () => void { remoteInListeners.add(f); return () => { remoteInListeners.delete(f); }; }
+
 export function hasNative(name: string): boolean {
   const list = (window.__JUCE__?.initialisationData as { __juce__functions?: string[] } | undefined)?.__juce__functions;
   return !!list && list.includes(name);
@@ -408,12 +442,15 @@ function onTick(payload: unknown) {
   const tick = (typeof payload === "string" ? JSON.parse(payload) : payload) as Tick;
   const eff: Record<number, number> = {};
   tick.eff.forEach(([local, v]) => { eff[local] = v; });
-  set({ tick, eff });
+  const effG: Record<number, number> = {};
+  tick.effg?.forEach(([g, v]) => { effG[g] = v; });
+  set({ tick, eff, effG });
   // v0.32.1 : boutons tournés par le contrôleur MIDI ou une macro : l'écran suit (sauf geste en cours)
   tick.pv?.forEach(([g, v]) => { if (!pendingParams.has(g) && Number.isFinite(v)) writeLocal(g, v); });
   const ft = focusTrack();
   tick.hits.forEach(([t, l]) => { flash("track", t); if (t === ft) flash("lane", l); });
   noteTick(tick.kn, tick.kh);
+  curveCpuGuard(tick.perf);
   if (tick.project || tick.structure) void refreshEverything();
   else if (tick.seq) {
     void refreshPattern();
@@ -483,6 +520,12 @@ export async function connect() {
   set({ ready: true, ui: { ...state.ui, browserFamily: inst?.family ?? "Batteries" } });
   window.__JUCE__.backend.addEventListener("tick", onTick);
   window.__JUCE__.backend.addEventListener("fileDone", onFileDone);
+  // 1.1 : télécommande Wi-Fi : écoute remise si elle était cochée (Réglages)
+  if (readPref("wifiRemote", false)) void actions.wifiListen(true);
+  // 1.1 : retour du PC vers la télécommande (liste de messages, octets sans F0 ni F7)
+  window.__JUCE__.backend.addEventListener("remoteIn", (list: unknown) => {
+    if (Array.isArray(list)) for (const m of list) if (Array.isArray(m)) remoteInListeners.forEach((f) => f(m as number[]));
+  });
   void actions.refreshFolders();
   void call("setFocus", 0);
   // les pads du contrôleur reprennent le rôle affiché (l'interface a pu être rouverte)
@@ -499,9 +542,59 @@ export function stepLanes(p: PatternData | null | undefined, step: number): numb
   return out;
 }
 
+/** Après la 1.1 : valeur d'un réglage tenue par les scènes A / B au crossfader (comme le moteur : mélange, ou
+    côté le plus proche pour un réglage à crans), sinon null. Sans le pavé vectoriel ni le Break. */
+function sceneHeldNorm(global: number, base: number, stepped: boolean): number | null {
+  const g = state.tick.g;
+  const lockOf = (sc: number) => { const d = state.scenes[Math.round(sc) - 1]; return d && !d.muted ? d.locks.find(([sl]) => sl === global)?.[1] : undefined; };
+  const la = lockOf(g.sceneA), lb = lockOf(g.sceneB);
+  if (la === undefined && lb === undefined) return null;
+  const na = la ?? base, nb = lb ?? base, x = Math.max(0, Math.min(1, g.xfade));
+  return stepped ? (x < 0.5 ? na : nb) : na + (nb - na) * x;
+}
+/** Réglages d'un module tenus par les scènes : { identifiant complet : valeur réelle } (préréglage enregistré). */
+function sceneHeldValues(scope: PresetScope, channel: number, slot: number): Record<string, number> {
+  const cat = state.catalog, c = state.channels[channel];
+  if (!cat || !c) return {};
+  const L = cat.layout;
+  const fx = scope === "fx";
+  const m = fx ? cat.effects.find((e) => e.type === state.tracks.inserts[channel]?.[slot]) : cat.instruments.find((i) => i.type === state.tracks.tracks[channel]?.instrument);
+  if (!m) return {};
+  const first = channel * L.slotsPerChannel + (fx ? L.insertBase + slot * L.insertSlots : L.instrumentBase);
+  const values = fx ? c.fx[slot]?.values : c.inst;
+  const out: Record<string, number> = {};
+  m.params.forEach((p, i) => {
+    const n = sceneHeldNorm(first + i, values?.[i] ?? 0, !!p.choices?.length || !!p.integer);
+    if (n !== null) out[p.id] = toPlain(p, n);
+  });
+  return out;
+}
+
 export const actions = {
   // v0.32 : enregistrement audio (master, pistes séparées ou les deux ; WAV ou MP3)
   audioRecStart(mode: number, format: number, follow = 0) { return callJson<AudioRecStatus>("audioRecStart", mode, format, follow); },
+  /** 1.1 (lot 3) : « Écouter le traitement » : la sortie principale passe dans la chaîne ; [] = arrêt. Renvoie la latence (ms). */
+  async audioMonitor(chain: { type: string; values: number[]; bypass: boolean }[]): Promise<number> {
+    if (!hasNative("audioMonitor")) return 0;
+    const r = Number(await call("audioMonitor", JSON.stringify(chain)));
+    return Number.isFinite(r) ? r : 0;
+  },
+  /** 1.1 : pendant l'écoute de l'écran AUDIO, on n'entend que les sources de la prise (pistes, retours,
+      entrée) ; on = false : tout le mixage. Sans pistes, retours ni entrée cochés : tout le mixage. */
+  async audioMonitorSources(s: { on: boolean; tracks: number[]; returns: number[]; input: boolean }): Promise<void> {
+    if (!hasNative("audioMonitorSources")) return;
+    await call("audioMonitorSources", JSON.stringify(s));
+  },
+  /** 1.1 (lot 6) : latence des inserts de chaque canal (ms), pour le voyant « Latence ». */
+  latencyInfo() { return callJson<number[]>("latencyInfo"); },
+  audioRecStartEx(o: AudioTakeOptions) { return callJson<AudioRecStatus>("audioRecStartEx", JSON.stringify(o)); },
+  /** 1.1 (lot 3) : la dernière prise va dans ce pad ; vide si c'est fait, sinon le message. */
+  async audioRecToPad(track: number, index: number): Promise<string> {
+    const r = await callJson<unknown>("audioRecToPad", track, index);
+    if (typeof r === "string") return r;
+    actions.sampleReplaced(track, index);
+    return "";
+  },
   audioRecStop() { return callJson<AudioRecStatus>("audioRecStop"); },
   audioRecStatus() { return callJson<AudioRecStatus>("audioRecStatus"); },
   async audioRecReveal() { return !!(await call("audioRecReveal")); },
@@ -572,7 +665,9 @@ export const actions = {
     return callJson<UserPresetList | null>("listPresets", scope, channel, slot, pad);
   },
   async savePreset(scope: PresetScope, channel: number, slot: number, pad: number, bank: string, name: string, overwrite: boolean): Promise<string> {
-    const r = await callJson<string>("savePreset", scope, channel, slot, pad, bank, name, overwrite);
+    // après la 1.1 : on enregistre le son qu'on voit et qu'on entend — un réglage tenu par une scène (crossfader)
+    // part avec la valeur de la scène, pas avec sa valeur de base cachée dessous
+    const r = await callJson<string>("savePreset", scope, channel, slot, pad, bank, name, overwrite, JSON.stringify(sceneHeldValues(scope, channel, slot)));
     if (r === "ok") { await refreshChannel(channel); await refreshTracks(); showMessage(`« ${name} » enregistré dans la banque « ${bank} »`); }
     else if (r === "invalid") showMessage("Nom de banque ou de préréglage invalide");
     else if (r === "error") showMessage("Impossible d'écrire le préréglage");
@@ -592,13 +687,65 @@ export const actions = {
   revealPresets() { if (hasNative("revealPresets")) void call("revealPresets"); },
   async renameTrack(track: number, name: string) { set({ tracks: await callJson<TracksData>("setTrackName", track, name) }); },
   /** v0.33 : phrase de la voix interne d'un vocodeur (vide = phrase de démonstration). */
+  /** Après la 1.1 : noms des sons d'une piste dans l'ordre des numéros (son du pas). */
+  async trackSoundNames(track: number): Promise<string[]> { return callJson<string[]>("trackSoundNames", track); },
+  async setTrackLabels(track: number, labels: string) { set({ tracks: await callJson<TracksData>("setTrackLabels", track, labels.slice(0, 200)) }); },
   async setSpeech(track: number, text: string) { set({ tracks: await callJson<TracksData>("setTrackSpeech", track, text.slice(0, 164)) }); },
   /** v0.39 : entrée audio coupée par l'application autonome : -1 lire, 0 ouvrir, 1 couper. Réponse : 1 coupée, 0 ouverte, -1 sans objet. */
   /** v0.46 fix22 : forme dessinée du pavé vectoriel (« x,y;x,y;… », 0..1). */
   async setVecPath(text: string): Promise<string> { return String(await call("setVecPath", text) ?? ""); },
   async getVecPath(): Promise<string> { return hasNative("getVecPath") ? String(await call("getVecPath") ?? "") : ""; },
   /** v0.46 fix22 : contrôleur MIDI Bluetooth — 0 : est-ce possible ? 1 : ouvrir l'appairage. */
-  async bluetoothMidi(open: boolean): Promise<boolean> { if (!hasNative("bluetoothMidi")) return false; return Number(await call("bluetoothMidi", open ? 1 : 0)) === 1; },
+  // 1.1 : télécommande — sorties MIDI (téléphone → PC en USB, téléphone → FM-1). Dans le navigateur :
+  // une sortie simulée (les messages partent dans la console).
+  async midiOuts(): Promise<{ id: string; name: string }[]> {
+    if (!hasNative("midiOuts")) return [{ id: "sim", name: "Sortie simulée (navigateur)" }];
+    const r = await call("midiOuts");
+    return Array.isArray(r) ? (r as { id: string; name: string }[]) : [];
+  },
+  async midiOpen(id: string): Promise<string> {
+    if (!hasNative("midiOpen")) return id ? "Sortie simulée (navigateur)" : "";
+    return String((await call("midiOpen", id)) ?? "");
+  },
+  midiClose() { if (hasNative("midiClose")) void call("midiClose"); },
+  /** 1.1 : télécommande Wi-Fi, côté PC : écouter ou non ; renvoie l'état et les adresses de l'appareil. */
+  async wifiListen(on?: boolean): Promise<{ on: boolean; port: number; addresses: string[] } | null> {
+    if (!hasNative("wifiListen")) return null;
+    const r = (await (on === undefined ? call("wifiListen") : call("wifiListen", on))) as { on?: boolean; port?: number; addresses?: string[] } | null;
+    return r ? { on: !!r.on, port: Number(r.port ?? 0), addresses: Array.isArray(r.addresses) ? r.addresses : [] } : null;
+  },
+  /** Côté téléphone : GOLEM trouvés sur le réseau (adresse facultative tapée à la main). */
+  async wifiScan(ip = ""): Promise<{ id: string; name: string }[]> {
+    if (!hasNative("wifiScan")) return [{ id: "wifi:192.168.1.20", name: "GOLEM · PC simulé (Wi-Fi)" }];
+    const r = await call("wifiScan", ip);
+    return Array.isArray(r) ? (r as { id: string; name: string }[]) : [];
+  },
+  async wifiOpen(ip: string): Promise<string> {
+    if (!hasNative("wifiOpen")) return ip ? `GOLEM · ${ip} (Wi-Fi)` : "";
+    return String((await call("wifiOpen", ip)) ?? "");
+  },
+  /** Son de l'appareil en pause (périphérique audio fermé, aucun calcul) ou repris. */
+  audioPause(pause: boolean) { if (hasNative("audioPause")) void call("audioPause", pause); },
+  /** Un message (liste d'octets) ou plusieurs (liste de listes). */
+  /** Après la 1.1 : pistes MIDI — sortie MIDI (application autonome) ; id : la choisir ("" : aucune). host : dans un logiciel hôte. */
+  async midiTrackOut(id?: string): Promise<{ outs: { id: string; name: string; kind?: string }[]; current: string; host?: boolean }> {
+    if (!hasNative("midiTrackOut")) return { outs: [{ id: "sim", name: "Sortie simulée (navigateur)" }], current: "" };
+    const r = (await (id === undefined ? call("midiTrackOut") : call("midiTrackOut", id))) as { outs?: { id: string; name: string; kind?: string }[]; current?: string; host?: boolean } | null;
+    return { outs: r?.outs ?? [], current: r?.current ?? "", host: !!r?.host };
+  },
+  /** Après la 1.1 : dernier CC reçu par GOLEM (seq change à chaque CC) : « Apprendre » le numéro de CC. */
+  async midiLastCc(): Promise<{ seq: number; ch: number; num: number }> {
+    if (!hasNative("midiLastCc")) return { seq: 0, ch: 0, num: -1 };
+    const r = (await call("midiLastCc")) as { seq?: number; ch?: number; num?: number } | null;
+    return { seq: Number(r?.seq ?? 0), ch: Number(r?.ch ?? 0), num: Number(r?.num ?? -1) };
+  },
+  /** 1.1 : télécommande — « Apprendre » armé : les CC et notes de l'appareil branché remontent. */
+  remoteLearn(on: boolean) { if (hasNative("remoteLearn")) void call("remoteLearn", on); },
+  midiSend(bytes: number[] | number[][]) {
+    if (hasNative("midiSend")) void call("midiSend", bytes);
+    else if ((window as unknown as { __midiLog?: boolean }).__midiLog) console.log("MIDI", JSON.stringify(bytes));
+  },
+  async bluetoothMidi(open: boolean): Promise<boolean> { if (!hasNative("bluetoothMidi")) return false; return Number(await call("bluetoothMidi", open ? 1 : 0)) > 0; }, // 1 : appairage (téléphone) ; 2 : paramètres Bluetooth (Windows)
   /** v0.46 fix21 : on se sert de l'appli (écran gardé allumé sur téléphone). */
   async userActive() { if (hasNative("userActive")) await call("userActive"); },
     async inputMute(op: number): Promise<number> { if (!hasNative("inputMute")) return -1; const r = Number(await call("inputMute", op)); return Number.isFinite(r) ? r : -1; },
@@ -803,8 +950,9 @@ export const actions = {
     set({ tick: { ...state.tick, g: { ...state.tick.g, [id]: value } } });
     void call("setGlobal", id, value);
   },
-  async newProject(empty: boolean) {
-    set({ tracks: await callJson<TracksData>("newProject", empty) });
+  /** style : une démo par style (1.1, « trance », « house »…), vide = la démonstration de départ. */
+  async newProject(empty: boolean, style = "") {
+    set({ tracks: await callJson<TracksData>("newProject", empty, style) });
     await refreshEverything();
   },
 
@@ -829,6 +977,30 @@ export const actions = {
     set({ channels: { ...state.channels, [track]: r }, waves: { ...state.waves, [`${track}:${index}`]: undefined as unknown as null } });
     showMessage(["Inversé", "Normalisé", "Fondu d'entrée appliqué", "Fondu de sortie appliqué", "Rogné", "Silence posé"][op] + " (Ctrl+Z pour revenir)");
     return true;
+  },
+  // 1.1 (lots 1 et 2) : traiter un échantillon par une chaîne de 4 effets, hors temps réel
+  async procStart(track: number, index: number, a: number, b: number, chain: ChainSlotUi[], keepTail: boolean, preview: boolean, keepOriginal: boolean) {
+    const err = await callJson<string>("procStart", track, index, a, b, JSON.stringify(chain.map((c) => ({ type: c.type, values: c.values, bypass: c.bypass }))),
+      keepTail ? 1 : 0, preview ? 1 : 0, keepOriginal ? 1 : 0);
+    if (err) showMessage(err);
+    return !err;
+  },
+  async procStatus() { return callJson<ProcStatus>("procStatus"); },
+  async procCancel() { await callJson("procCancel"); },
+  async procAudition(play: boolean) { await callJson("procAudition", play ? 1 : 0); },
+  async effectPreset(type: string, index: number) { return callJson<number[] | null>("effectPreset", type, index); },
+  async sampleUndoCount(track: number, index: number) { return (await callJson<number>("sampleUndoCount", track, index)) ?? 0; },
+  async sampleUndo(track: number, index: number) {
+    const r = await callJson<ChannelData | string>("sampleUndo", track, index);
+    if (typeof r === "string") { showMessage(r); return false; }
+    set({ channels: { ...state.channels, [track]: r }, waves: { ...state.waves, [`${track}:${index}`]: undefined as unknown as null } });
+    showMessage("Version précédente rendue");
+    return true;
+  },
+  /** après un remplacement (traitement appliqué) : la piste et la forme d'onde sont relues */
+  async sampleReplaced(track: number, index: number) {
+    await refreshChannel(track);
+    set({ waves: { ...state.waves, [`${track}:${index}`]: undefined as unknown as null } });
   },
   async copySample(fromTrack: number, fromIndex: number, toTrack: number, toIndex: number) {
     const r = await callJson<ChannelData | string>("copySample", fromTrack, fromIndex, toTrack, toIndex);

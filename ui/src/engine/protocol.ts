@@ -60,6 +60,8 @@ export interface Layout {
   modSourceSlots: number;
   numModSources: number;
   modAmountBase: number;
+  trackSoundSlot?: number;  // après la 1.1 : son du pas (numéro de préréglage verrouillé)
+  trackSoundMax?: number;
   padBypassBase?: number;   // interrupteurs des inserts de pad (pad × 2 + n)
   padInsertBase?: number;   // réglages des inserts de pad (64 par insert)
   padInserts?: number;
@@ -94,6 +96,7 @@ export interface TrackInfo {
   mute: boolean;
   solo: boolean;
   out?: number;   // v0.24 : 0 = bus principal, 1 à 7 = bus de groupe (v0.46)
+  labels?: string; // après la 1.1 : noms des sections de la piste MIDI, séparés par « | »
   speech?: string; // v0.33 : phrase tapée de la voix interne des vocodeurs (absente = démonstration)
 }
 
@@ -249,6 +252,7 @@ export interface Tick {
   pos: number[];
   tpos: number[];
   eff: [number, number][];
+  effg?: [number, number][];         // après la 1.1 : autres canaux, réglages tenus par les scènes A / B (adresse globale)
   fxm: number[][];
   mods?: [number, number][]; // sources de modulation du canal choisi : [valeur, pas en cours]
   mac?: number[];            // valeurs des 8 macros du logiciel hôte (0..1)
@@ -370,6 +374,20 @@ export interface AudioRecStatus {
   waiting?: boolean;      // v0.46.2 : armée, attend la lecture (ou le début du prochain tour)
   stopping?: boolean;     // v0.46.2 : s'arrêtera pile à la fin du tour de boucle
   startError?: string;
+  processing?: boolean;   // 1.1 : traitement de la prise par la chaîne (après l'arrêt)
+  treatedFolder?: string; // 1.1 : dossier des fichiers traités (« Son traité/… »)
+  treated?: string[];     // 1.1 : fichiers traités
+  hasResult?: boolean;    // 1.1 : un fichier peut aller dans un pad
+  dest?: number;          // 1.1 : 0 prise, 1 Son traité, 2 pad, 3 remplacer l'original
+}
+
+/** 1.1 (lot 3) : réglages d'une prise de l'écran AUDIO. */
+export interface AudioTakeOptions {
+  master: boolean; masterTreated: boolean;
+  tracks: number; sum: boolean; returns: number; input?: boolean;
+  chain: { type: string; values: number[]; bypass: boolean }[];
+  during: boolean; dest: number; format: number; follow: number; bars: number;
+  project?: string;
 }
 
 

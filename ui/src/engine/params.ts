@@ -65,7 +65,7 @@ export const noteName = (n: number) => `${NOTES[((n % 12) + 12) % 12]}${Math.flo
 export interface Resolved {
   desc: ParamDesc;
   module: ModuleDesc | null;   // instrument ou effet (null pour mixage / modulation)
-  area: "mix" | "inst" | "fx" | "mod" | "amount" | "pfx" | "padbyp";
+  area: "mix" | "inst" | "fx" | "mod" | "amount" | "pfx" | "padbyp" | "son";
   slot: number;                // insert (0..3) ou source (0..5)
   index: number;               // index dans le module
   channel: number;
@@ -102,6 +102,9 @@ export function resolve(cat: Catalog, instruments: string[], inserts: string[][]
   }
   // profondeur d'une modulation (-100 à +100 %), comme dans le moteur
   if (local >= L.modAmountBase && local < L.modAmountBase + 64) return { desc: AMOUNT_DESC, module: null, area: "amount", slot: 0, index: local - L.modAmountBase, channel, local };
+  // après la 1.1 : son du pas (numéro de préréglage verrouillé sur un pas)
+  if (L.trackSoundSlot !== undefined && local === L.trackSoundSlot && channel < L.numTracks)
+    return { desc: { ...SOUND_DESC, max: L.trackSoundMax ?? 1023 }, module: null, area: "son", slot: 0, index: 0, channel, local };
   // inserts des pads (batteries) : interrupteurs, puis 64 réglages par insert (pad × 2 + n)
   const pb = L.padBypassBase ?? -1, pi = L.padInsertBase ?? -1, n = (L.padInserts ?? 2) * 16;
   if (pb >= 0 && local >= pb && local < pb + n) return padType?.(channel, local - pb) ? { desc: BYPASS_DESC, module: null, area: "padbyp", slot: local - pb, index: 0, channel, local } : null;
@@ -113,6 +116,7 @@ export function resolve(cat: Catalog, instruments: string[], inserts: string[][]
   }
   return null;
 }
+const SOUND_DESC: ParamDesc = { id: "sound", name: "Son du pas", unit: "", min: 0, max: 1023, def: 0, skew: 1, integer: true };
 const BYPASS_DESC: ParamDesc = { id: "bypass", name: "Contourné", unit: "", min: 0, max: 1, def: 0, skew: 1, choices: ["Non", "Oui"] };
 const AMOUNT_DESC: ParamDesc = { id: "amount", name: "Profondeur", unit: "%", min: -100, max: 100, def: 0, skew: 1 };
 
