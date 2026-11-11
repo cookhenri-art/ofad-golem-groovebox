@@ -37,6 +37,22 @@ struct SampleBuffer
     std::shared_ptr<void> runtime;
 };
 
+/** Après la 1.1 : messages MIDI envoyés par les pistes MIDI pendant un appel de Engine::process
+    (fil audio, sans allocation). offset : échantillon dans cet appel ; « at » est posé par le moteur
+    avant chaque bloc de contrôle (les instruments ajoutent leur décalage dans le bloc). */
+struct MidiOutQueue
+{
+    struct Ev { int offset; std::uint8_t b0, b1, b2, len; };
+    static constexpr int capacity = 2048;
+    std::array<Ev, capacity> ev {};
+    int count = 0;
+    int at = 0;
+    void push (int local, std::uint8_t a, std::uint8_t b, std::uint8_t c, std::uint8_t len = 3) noexcept
+    {
+        if (count < capacity) ev[(size_t) count++] = { at + (local > 0 ? local : 0), a, b, c, len };
+    }
+};
+
 class Effect;
 class Instrument;
 struct SpeechScript; // Speech.h : phrase tapée de la voix interne (v0.33)
@@ -78,6 +94,11 @@ public:
     /** Commandes d'expression de la piste, appelées à chaque bloc : pitch bend -1..1, molette
         de modulation 0..1, pression (aftertouch de canal) 0..1. */
     virtual void setExpression (float /*bend*/, float /*wheel*/, float /*pressure*/) noexcept {}
+
+    /** Après la 1.1 : sortie MIDI du moteur (pistes MIDI) ; posée à la création de l'instrument. */
+    virtual void setMidiOut (MidiOutQueue* /*queue*/) noexcept {}
+    /** Après la 1.1 : la piste est coupée (ou un autre solo) ; appelé avant chaque render. */
+    virtual void setTrackSilent (bool /*silent*/) noexcept {}
 
     /** v0.49 : commande MIDI (CC) d'un contrôleur que GOLEM n'a pas apprise (n° 0..127, valeur 0..1). Fil audio. */
     virtual void controller (int /*cc*/, float /*value*/) noexcept {}
@@ -171,6 +192,10 @@ public:
 
     /** Latence ajoutée, en échantillons (0 pour presque tous les effets). */
     virtual int latency() const noexcept { return 0; }
+
+    /** 1.1 : rendu hors temps réel (traiter un échantillon, une prise) : un effet qui a une version
+        plus lourde et meilleure (restauration) la prend. Appelé avant prepare(). */
+    virtual void setOffline (bool /*offline*/) noexcept {}
 
     /** Traîne (v0.35) : vrai si, contourné, l'effet doit encore faire sonner sa queue. */
     virtual bool trails (const float* /*p*/) const noexcept { return false; }

@@ -7,7 +7,9 @@
 
 #include <complex>
 #include "Catalog.h"
+#include "PresetOrder.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -92,11 +94,18 @@ std::string moduleJson (const ModuleDesc& d)
         }
         o += "]}";
     }
+    // 1.1 : dans l'ordre des numéros (« Init » n° 1, puis banque par banque) : l'indice = numéro - 1
+    const auto order = presetProgramOrder (d);
+    const bool grouped = std::any_of (d.presets.begin(), d.presets.end(), [] (const Preset& p) { return ! p.category.empty(); });
     o += "],\"presets\":[";
-    for (size_t i = 0; i < d.presets.size(); ++i) o += (i ? "," : "") + quote (d.presets[i].name);
-    // banque de chaque préréglage d'usine (même ordre) ; vide = « Classiques »
+    for (size_t i = 0; i < order.size(); ++i) o += (i ? "," : "") + quote (d.presets[order[i]].name);
+    // banque de chaque préréglage d'usine (même ordre) ; vide = « Classiques » ; « Init » dans sa banque
     o += "],\"presetCats\":[";
-    for (size_t i = 0; i < d.presets.size(); ++i) o += (i ? "," : "") + quote (d.presets[i].category);
+    for (size_t i = 0; i < order.size(); ++i)
+    {
+        const auto& pr = d.presets[order[i]];
+        o += (i ? "," : "") + quote (grouped && pr.name == "Init" ? std::string ("Init") : pr.category);
+    }
     o += "],\"padNames\":[";
     for (size_t i = 0; i < d.padNames.size(); ++i) o += (i ? "," : "") + quote (d.padNames[i]);
     o += "],\"padKinds\":[";
@@ -188,7 +197,7 @@ std::string catalogJson()
        + ",\"instrumentSlots\":" + std::to_string (instrumentSlots) + ",\"insertBase\":" + std::to_string (insertBase) + ",\"insertSlots\":" + std::to_string (insertSlots)
        + ",\"numInserts\":" + std::to_string (numInserts) + ",\"modSourceBase\":" + std::to_string (modSourceBase)
        + ",\"modSourceSlots\":" + std::to_string (modSourceSlots) + ",\"numModSources\":" + std::to_string (numModSources)
-       + ",\"modAmountBase\":" + std::to_string (modAmountBase) + ",\"padBypassBase\":" + std::to_string (padBypassBase)
+       + ",\"modAmountBase\":" + std::to_string (modAmountBase) + ",\"padBypassBase\":" + std::to_string (padBypassBase) + ",\"trackSoundSlot\":" + std::to_string (trackSoundSlot) + ",\"trackSoundMax\":" + std::to_string (trackSoundMax)
        + ",\"padInsertBase\":" + std::to_string (padInsertBase) + ",\"padInserts\":" + std::to_string (padInserts) + ",\"numScenes\":" + std::to_string (numScenes)
        + ",\"maxSteps\":" + std::to_string (Sequencer::maxSteps) + ",\"numLanes\":" + std::to_string (Sequencer::numLanes)
        + ",\"numPatterns\":" + std::to_string (Sequencer::numPatterns) + "}";
@@ -214,6 +223,7 @@ std::string tracksJson (const Engine& e)
         o += (t ? "," : "") + std::string ("{\"name\":") + quote (i.name) + ",\"color\":" + std::to_string (i.color) + ",\"out\":" + std::to_string (i.output)
            + ",\"instrument\":" + quote (i.instrumentType) + ",\"preset\":" + quote (i.preset)
            + (i.speech.empty() ? std::string() : ",\"speech\":" + quote (i.speech))
+           + (i.labels.empty() ? std::string() : ",\"labels\":" + quote (i.labels))
            + ",\"mute\":" + (e.sequencer().getTrackMute (t) ? "true" : "false") + ",\"solo\":" + (e.sequencer().getTrackSolo (t) ? "true" : "false") + "}";
     }
     o += "],\"inserts\":[";

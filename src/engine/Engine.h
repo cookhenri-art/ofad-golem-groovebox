@@ -42,6 +42,15 @@ constexpr int breakScene = 32; // scène appliquée tant que Break est enfoncé
 constexpr int controlBlock = 32;
 
 const ModuleDesc& mixerDesc (int channel);
+/** Après la 1.1 : son du pas — description du réglage (numéro de préréglage, 0 = aucun). */
+const ParamDesc& trackSoundDesc();
+/** Après la 1.1 : sons du pas résolus par l'interface : pour chaque piste et chaque numéro verrouillé,
+    tous les réglages de l'instrument (indice local, valeur normalisée) du préréglage. Lu par le fil audio. */
+struct SoundPool
+{
+    struct Entry { int track = -1, number = 0; const ModuleDesc* desc = nullptr; std::vector<std::pair<int, float>> values; };
+    std::vector<Entry> entries;
+};
 
 struct ModAssign
 {
@@ -107,6 +116,7 @@ struct TrackInfo
     int color = 0;
     int output = 0;                      // v0.24 : 0 = bus principal, 1 à 4 = bus de groupe
     std::string speech;                  // v0.33 : phrase tapée de la voix interne (vocodeurs)
+    std::string labels;                  // après la 1.1 : noms des sections de la piste MIDI, séparés par « | »
 };
 
 /** v0.32 : prise de son du mixage (enregistrement audio). Appelée depuis le fil audio, à la fin
@@ -122,6 +132,8 @@ struct AudioTap
     /** v0.46.2 : le morceau finit à cette position (noires), dans le bloc qui suit. */
     virtual void tapStopAt (double /*ppq*/) noexcept {}
     /** tracksL/R : numTracks pointeurs (une piste non jouée dans ce bloc : mask à 0, données à ignorer). */
+    /** 1.1 (lot 3) : l'entrée audio (micro / ligne) de ce bloc, juste avant tapBlock (null : aucune). */
+    virtual void tapInput (const float* /*inL*/, const float* /*inR*/) noexcept {}
     virtual void tapBlock (const float* outL, const float* outR,
                            const float* const* tracksL, const float* const* tracksR, std::uint32_t trackMask,
                            const float* const* returnsL, const float* const* returnsR, int n) noexcept = 0;
@@ -180,6 +192,7 @@ public:
 
     void setTrackPresetName (int track, const std::string& name) { if (track >= 0 && track < numTracks) info[(size_t) track].preset = name; }
     void setTrackName (int track, const std::string& name) { if (track >= 0 && track < numTracks) info[(size_t) track].name = name; }
+    void setTrackLabels (int track, const std::string& l) { if (track >= 0 && track < numTracks) info[(size_t) track].labels = l; }
     /** v0.33 : phrase tapée de la voix interne (160 octets au plus) ; vide = phrase de démonstration. */
     void setTrackSpeech (int track, const std::string& text, double nowMs);
     void setTrackColor (int track, int color) { if (track >= 0 && track < numTracks) info[(size_t) track].color = color; }
@@ -194,6 +207,11 @@ public:
     int getTrackOutput (int track) const noexcept { return track >= 0 && track < numTracks ? trackOutput[(size_t) track].load (std::memory_order_relaxed) : 0; }
     /** v0.42 : piste interne (ligne) jouée au clavier et en MIDI sur un instrument à pistes internes. */
     /** v0.43 : écoute d'une partie d'un échantillon de la piste (fil de l'interface). */
+    /** 1.1 : pré-écoute d'un son traité (éditeur d'échantillon) : joué une fois par-dessus la sortie,
+        ni enregistré ni rééchantillonné. nullptr : arrêt. Le tampon doit rester vivant jusqu'à l'appel
+        suivant et un peu après (l'appelant le tient). */
+    void setAudition (const SampleBuffer* b) noexcept { auditionNext.store (b, std::memory_order_release); auditionSerial.fetch_add (1, std::memory_order_acq_rel); auditionOn.store (b != nullptr); }
+    bool auditionPlaying() const noexcept { return auditionOn.load (std::memory_order_relaxed); }
     void previewSample (int track, int index, float a, float b) noexcept
     { if (track >= 0 && track < numTracks && instruments[(size_t) track] != nullptr) instruments[(size_t) track]->preview (index, a, b); }
     void touchInstrument (int track, int kind, float a, float b) noexcept // v0.47
@@ -366,7 +384,20 @@ public:
     std::array<std::atomic<float>, numTracks> bendShown {}, wheelShown {};
     /** v0.32 : prise de son (enregistrement audio) ; nullptr = aucune. Posée et retirée par le fil
         de l'interface ; l'appelant attend la fin du bloc en cours avant de détruire la prise. */
+    /** Après la 1.1 : messages MIDI des pistes MIDI pendant le dernier appel de process() (vidée au
+        début de chaque appel ; le processeur la relit juste après). Fil audio. */
+    MidiOutQueue midiOut;
     std::atomic<AudioTap*> audioTap { nullptr };
+    /** 1.1 : écoute de l'écran AUDIO : la sortie entendue devient la somme des sources choisies pour la
+        prise (pistes après effets et volume, retours, entrée) ; la prise, elle, reçoit le vrai mixage.
+        Passage en fondu (10 ms). Fil de l'interface. */
+    void setMonitorSources (std::uint32_t tracks, std::uint32_t returns, bool input, bool on) noexcept
+    {
+        monTracks.store (tracks, std::memory_order_relaxed);
+        monReturns.store (returns, std::memory_order_relaxed);
+        monInput.store (input, std::memory_order_relaxed);
+        monOn.store (on, std::memory_order_release);
+    }
     /** v0.46 fix8 : lecteur du montage audio (nullptr = aucun). Posé une fois par le processeur. */
     std::atomic<MontageFeed*> montageFeed { nullptr };
     /** v0.32.1 : molettes de la piste (hauteur -1..1, modulation 0..1) telles que le moteur les
@@ -532,6 +563,11 @@ private:
     void publishGraph (double nowMs);
     void publishScenes (std::unique_ptr<SceneSet>, double nowMs);
     void publishExtras (std::unique_ptr<PatternExtras>, double nowMs);
+public:
+    /** Après la 1.1 : sons du pas publiés par l'interface (valeurs résolues des préréglages verrouillés). */
+    void publishSoundPool (std::unique_ptr<SoundPool> p, double nowMs) { soundPool.publish (std::move (p), bin, nowMs); }
+    const SoundPool& getSoundPool() const noexcept { return *soundPool.editable(); }
+private:
 
     // Fil audio
     struct ChannelState
@@ -563,6 +599,7 @@ private:
         // glissé des verrous (pas avec la fonction « glissé ») : valeur de départ, durée, avancement
         std::array<std::array<float, 32>, 16> plockFrom {};
         std::array<double, 16> slideLen {}, slidePos {};
+        std::array<double, 16> momentaryLeft {}; // après la 1.1 : durée restante des verrous de réglages maintenus (pads de la piste MIDI)
         // échantillons transmis à l'instrument (synchronisés avec le graphe à chaque bloc)
         const Instrument* sampleOwner = nullptr;
         std::array<const SampleBuffer*, maxSamples> appliedSamples {};
@@ -591,6 +628,56 @@ private:
     std::array<int, numTracks> compWrite {};
     int compDelay = 0;
     std::atomic<int> compReported { 0 };
+    // 1.1 (lot 6) : compensation des inserts à latence (outils de Restauration en direct). Le retard de
+    // chaque piste = instrument + inserts actifs ; un changement passe par un fondu de 10 ms
+    std::array<int, numTracks> trackLat {}, compPrev {}, compOld {}, compFadeLeft {};
+    std::atomic<int> insertLatReported { 0 };
+    // 1.1 (lot 6) : groupes et retours à latence : le son direct du bus principal, chaque groupe et
+    // chaque retour sont retardés pour arriver ensemble (le plus en retard fixe le retard des autres)
+    struct BusDelay
+    {
+        std::vector<float> l, r;
+        int w = 0, cur = 0, old = 0, fade = 0;
+        void prepare (int len) { l.assign ((size_t) len, 0.0f); r.assign ((size_t) len, 0.0f); w = cur = old = fade = 0; }
+        void process (float* L, float* R, int n, int dly, int fadeLen) noexcept
+        {
+            const auto len = (int) l.size();
+            if (len == 0) return;
+            if (dly != cur) { old = cur; cur = dly; fade = fadeLen; }
+            for (int i = 0; i < n; ++i)
+            {
+                l[(size_t) w] = L[i]; r[(size_t) w] = R[i];
+                auto rd = w - cur; if (rd < 0) rd += len;
+                if (fade > 0)
+                {
+                    auto ro = w - old; if (ro < 0) ro += len;
+                    const auto k = (float) fade / (float) fadeLen;
+                    L[i] = l[(size_t) ro] * k + l[(size_t) rd] * (1.0f - k);
+                    R[i] = r[(size_t) ro] * k + r[(size_t) rd] * (1.0f - k);
+                    --fade;
+                }
+                else { L[i] = l[(size_t) rd]; R[i] = r[(size_t) rd]; }
+                if (++w >= len) w = 0;
+            }
+        }
+    };
+    std::array<BusDelay, 1 + numGroups + numReturns> busDly;   // 0 : son direct ; 1.. groupes ; puis retours
+    std::array<int, numGroups> groupLat {};
+    std::array<int, numReturns> returnLat {};
+    int busComp = 0;
+    const float* curInL = nullptr; const float* curInR = nullptr;   // 1.1 : entrée audio du morceau en cours
+    std::atomic<float> inPeak { 0.0f };
+public:
+    /** 1.1 (lot 3) : crête de l'entrée audio (micro / ligne), pour le vu-mètre de l'écran AUDIO. */
+    float inputPeak() const noexcept { return inPeak.load (std::memory_order_relaxed); }
+private:
+    std::array<std::atomic<int>, numChannels> chanLat {};      // pour le voyant : latence des inserts de chaque canal
+public:
+    /** 1.1 (lot 6) : latence ajoutée par les inserts (pistes, groupes, retours, bus principal), échantillons. */
+    int insertLatencySamples() const noexcept { return insertLatReported.load (std::memory_order_relaxed); }
+    /** 1.1 (lot 6) : latence des inserts actifs d'un canal (piste, retour, principal, groupe), échantillons. */
+    int channelInsertLatency (int ch) const noexcept { return ch >= 0 && ch < numChannels ? chanLat[(size_t) ch].load (std::memory_order_relaxed) : 0; }
+private:
 public:
     /** Retard compensé par le moteur (échantillons), à annoncer au logiciel hôte (fil de l'interface). */
     int compensationSamples() const noexcept { return compReported.load (std::memory_order_relaxed); }
@@ -602,6 +689,16 @@ private:
     void expression (const Graph& g, int track, int kind, float value) noexcept;
 
     double sampleRate = 48000.0;
+    std::atomic<std::uint32_t> monTracks { 0 }, monReturns { 0 };  // 1.1 : écoute des sources de la prise
+    std::atomic<bool> monInput { false }, monOn { false };
+    float monMix = 0.0f;                                             // fondu 0 (mixage) → 1 (sources choisies)
+    // 1.1 : pré-écoute (setAudition)
+    std::atomic<const SampleBuffer*> auditionNext { nullptr };
+    std::atomic<int> auditionSerial { 0 };
+    std::atomic<bool> auditionOn { false };
+    int auditionSeen = 0;
+    const SampleBuffer* auditionCur = nullptr;
+    double auditionPos = 0.0;
     int maxBlockSize = 512;
 
     std::unique_ptr<Sequencer> seq;
@@ -614,6 +711,7 @@ private:
     Published<Graph> graph;
     Published<SceneSet> scenes;
     Published<PatternExtras> extras;
+    Published<SoundPool> soundPool; // après la 1.1 : sons du pas (préréglages verrouillés sur des pas)
 
     std::atomic<std::uint32_t> sceneVersion { 0 };
     int batchDepth = 0;

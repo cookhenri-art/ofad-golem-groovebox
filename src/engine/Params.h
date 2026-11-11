@@ -59,6 +59,11 @@ constexpr int padBypassBase = modAmountBase + numModAssigns;             // 3904
 constexpr int padInsertBase = 4096;                                      // 4096 : 16 × 2 × 128 (jusqu'à 8192)
 inline constexpr int padInsertSlot (int pad, int slot) noexcept { return padInsertBase + (pad * padInserts + slot) * insertSlots; }
 static_assert (padBypassBase + numPads * padInserts <= padInsertBase, "interrupteurs des inserts de pad");
+// après la 1.1 : « Son du pas » d'une piste — numéro de préréglage verrouillé sur un pas (0 : aucun) ;
+// le pas joue avec tous les réglages de ce préréglage, la piste revient à son son au pas suivant sans verrou
+constexpr int trackSoundSlot = padBypassBase + numPads * padInserts;    // 3936
+constexpr int trackSoundMax = 1023;
+static_assert (trackSoundSlot < padInsertBase, "son du pas");
 static_assert (padInsertBase + numPads * padInserts * insertSlots <= slotsPerChannel, "les zones d'un canal dépassent leurs emplacements");
 
 // Réglages de mixage du canal
@@ -83,6 +88,8 @@ struct ParamDesc
     std::vector<std::string> choices; // réglage à crans nommés (formes d'onde, modes…)
     bool integer = false; // réglage à crans numériques
     bool keepOnPreset = false; // v0.25 : réglage de branchement (source d'un vocodeur…) gardé quand on choisit un son
+    bool noMod = false;     // après la 1.1 : verrouillable (pas, scènes) mais jamais modulé (numéro de son, banque)
+    bool fixed = false;     // après la 1.1 : réglage posé une fois pour toutes (numéro de CC, canal) : ni scène, ni verrou, ni modulation, ni courbe
     bool momentary = false; // GOLEM 1.0 : bouton maintenu (touches du FM Player) : une note apprise l'appuie puis le relâche
 
     bool stepped() const noexcept { return ! choices.empty() || integer; }

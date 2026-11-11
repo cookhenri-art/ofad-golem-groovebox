@@ -61,6 +61,13 @@ static const ParamDesc& modAmountDesc()
     return d;
 }
 
+/** Après la 1.1 : son du pas (numéro de préréglage, 0 = aucun) : verrouillable, jamais modulé. */
+const ParamDesc& trackSoundDesc()
+{
+    static const ParamDesc d = [] { auto p = I ("sound", "Son du pas", "", 0, trackSoundMax, 0); p.noMod = true; return p; }();
+    return d;
+}
+
 /** Interrupteur d'un insert de pad (contourné ou non). */
 static const ParamDesc& padBypassDesc()
 {
@@ -90,6 +97,7 @@ Engine::Engine()
 
     scenes.publish (std::make_unique<SceneSet>(), bin, 0.0);
     extras.publish (std::make_unique<PatternExtras>(), bin, 0.0);
+    soundPool.publish (std::make_unique<SoundPool>(), bin, 0.0); // après la 1.1 : sons du pas
     song.publish (std::make_unique<Song>(), bin, 0.0);
     for (auto& h : heldGlobal) h.store (-1);
     for (auto& p : trackPhase) p.store (-1.0f);
@@ -102,15 +110,18 @@ void Engine::prepare (double sr, int maxBlock)
 {
     sampleRate = sr > 0.0 ? sr : 48000.0;
     maxBlockSize = std::max (32, maxBlock);
-    for (auto& i : instruments) if (i) { i->prepare (sampleRate, controlBlock); i->reset(); }
+    for (auto& i : instruments) if (i) { i->prepare (sampleRate, controlBlock); i->reset(); i->setMidiOut (&midiOut); }
     for (auto& ch : effects) for (auto& e : ch) if (e) { e->prepare (sampleRate, controlBlock); e->reset(); }
     for (auto& c : *state) { c.seenVersion = 0xFFFFFFFFu; for (auto& m : c.mods) m.reset(); }
     numPendingOffs = 0;
     loudness.prepare (sampleRate);
     const auto compLen = (size_t) std::min (maxCompensation * 4, (int) (sampleRate * 0.25) + controlBlock + 1);
     for (int t = 0; t < numTracks; ++t) { compL[(size_t) t].assign (compLen, 0.0f); compR[(size_t) t].assign (compLen, 0.0f); compWrite[(size_t) t] = 0; }
+    for (auto& b : busDly) b.prepare ((int) compLen); // 1.1 (lot 6)
+    groupLat.fill (0); returnLat.fill (0); busComp = 0;
     compDelay = 0;
     compReported.store (0);
+    trackLat.fill (0); compPrev.fill (0); compOld.fill (0); compFadeLeft.fill (0);
 }
 
 void Engine::applyDefaults (int channel, int baseSlot, const ModuleDesc& d) noexcept
@@ -165,6 +176,7 @@ bool Engine::setInstrument (int track, const std::string& type, double nowMs)
         if (next == nullptr) return false;
         next->prepare (sampleRate, controlBlock);
         next->reset();
+        next->setMidiOut (&midiOut); // après la 1.1 : pistes MIDI
     }
 
     if (type.empty()) setTrackOutput (track, 0); // piste libérée : elle revient sur le bus principal (v0.24)
@@ -616,6 +628,7 @@ void Engine::publishGraph (double nowMs)
                         c.ranges[(size_t) c.numRanges++] = { b, b + std::min ((int) d.params.size(), insertSlots) };
                     }
         for (int i = 0; i < numPads * padInserts; ++i) c.desc[(size_t) (padBypassBase + i)] = &padBypassDesc();
+        if (isTrack && c.instrument != nullptr) c.desc[(size_t) trackSoundSlot] = &trackSoundDesc(); // après la 1.1 : son du pas
         for (int s = 0; s < numModSources; ++s)
             for (int i = 0; i < modSourceSlots; ++i)
                 c.desc[(size_t) (modSourceBase + s * modSourceSlots + i)] = &modSourceDesc().params[(size_t) i];
@@ -663,6 +676,7 @@ const ParamDesc* Engine::describe (int global) const noexcept
     if (local < modSourceBase + numModSources * modSourceSlots) return at (&modSourceDesc(), (local - modSourceBase) % modSourceSlots);
     if (local >= modAmountBase && local < modAmountBase + numModAssigns) return &modAmountDesc();
     if (local >= padBypassBase && local < padBypassBase + numPads * padInserts) return &padBypassDesc();
+    if (local == trackSoundSlot) return ch < numTracks && instrumentDesc (ch) != nullptr ? &trackSoundDesc() : nullptr; // après la 1.1
     if (local >= padInsertBase && ch < numTracks)
     {
         const auto k = (local - padInsertBase) / insertSlots;
@@ -688,6 +702,8 @@ int Engine::findParam (int channel, const std::string& area, const std::string& 
         const auto s = area[3] - '1';
         if (s >= 0 && s < numModSources) { d = &modSourceDesc(); b = modSourceBase + s * modSourceSlots; }
     }
+    else if (area == "son") // après la 1.1 : son du pas
+        return channel < numTracks && id == "n" ? globalSlot (channel, trackSoundSlot) : -1;
     else if (area == "padbyp")
     {
         // interrupteurs des inserts de pad : « b<pad>_<n> » (1..16, 1..2)
@@ -1237,6 +1253,7 @@ void Engine::updateParams (const Graph& g, const SceneSet& s, const BlockInfo& b
     {
         const auto ch = channelOf (global), local = localOf (global);
         if (ch < 0 || ch >= numChannels || ! g.ch[(size_t) ch].used || g.ch[(size_t) ch].desc[(size_t) local] == nullptr) return;
+        if (g.ch[(size_t) ch].desc[(size_t) local]->fixed) return; // après la 1.1 : réglage figé (numéro de CC, canal)
         touch (st[(size_t) ch], local, norm);
     };
 
@@ -1347,12 +1364,46 @@ void Engine::updateParams (const Graph& g, const SceneSet& s, const BlockInfo& b
         for (const auto& l : s.scenes[breakScene]) apply (l.slot, l.norm);
 
     // 4. Verrous du pas en cours
+    const auto* pool = soundPool.get();
     for (int ch = 0; ch < numTracks; ++ch)
     {
         auto& c = st[(size_t) ch];
+        // après la 1.1 : son du pas (numéro de préréglage verrouillé sur le pas ou tenu par une scène) :
+        // tous les réglages du préréglage, sous les verrous du pas (posés ensuite, ils ont le dernier mot)
+        if (pool != nullptr && ! pool->entries.empty() && g.ch[(size_t) ch].instrument != nullptr)
+        {
+            const auto sg = globalSlot (ch, trackSoundSlot);
+            float sn = c.touched[(size_t) trackSoundSlot] ? c.overrideNorm[(size_t) trackSoundSlot] : -1.0f;
+            for (int lane = 0; lane < 16; ++lane)
+                for (int i = 0; i < c.numPlocks[(size_t) lane]; ++i)
+                    if (c.plocks[(size_t) lane][(size_t) i].slot == sg) sn = c.plocks[(size_t) lane][(size_t) i].norm;
+            const int num = sn > 0.0f ? (int) std::lround (sn * trackSoundMax) : 0;
+            if (num > 0)
+            {
+                const auto* d = &g.ch[(size_t) ch].instrument->desc();
+                for (const auto& e : pool->entries)
+                    if (e.track == ch && e.number == num && e.desc == d)
+                    {
+                        for (const auto& [local, norm] : e.values) apply (globalSlot (ch, instrumentBase + local), norm);
+                        break;
+                    }
+            }
+        }
         if (c.anyPlocks == 0) continue;
         for (int lane = 0; lane < 16; ++lane)
         {
+            // après la 1.1 : un réglage maintenu (pad) verrouillé n'est appuyé que le temps de la note du pas,
+            // puis relâché : chaque passage du pas donne un appui et un relâchement
+            const bool momLive = c.momentaryLeft[(size_t) lane] > 0.0;
+            if (momLive) c.momentaryLeft[(size_t) lane] -= n;
+            auto momentaryOff = [&] (int slot)
+            {
+                if (momLive) return false;
+                const auto pc = channelOf (slot);
+                if (pc < 0 || pc >= numChannels) return false;
+                const auto* d = g.ch[(size_t) pc].desc[(size_t) localOf (slot)];
+                return d != nullptr && d->momentary;
+            };
             const auto sl = c.slideLen[(size_t) lane];
             if (sl > 0.0 && c.slidePos[(size_t) lane] < sl)
             {
@@ -1364,14 +1415,15 @@ void Engine::updateParams (const Graph& g, const SceneSet& s, const BlockInfo& b
                     const auto from = c.plockFrom[(size_t) lane][(size_t) i];
                     const auto& pl = c.plocks[(size_t) lane][(size_t) i];
                     const auto pc = channelOf (pl.slot);
-                    if (pc < 0 || pc >= numChannels) continue;
+                    if (pc < 0 || pc >= numChannels || momentaryOff (pl.slot)) continue;
                     const auto* d = g.ch[(size_t) pc].desc[(size_t) localOf (pl.slot)];
                     apply (pl.slot, (d != nullptr && d->stepped()) ? (t < 1.0f ? from : pl.norm) : from + (pl.norm - from) * t);
                 }
                 continue;
             }
             for (int i = 0; i < c.numPlocks[(size_t) lane]; ++i)
-                apply (c.plocks[(size_t) lane][(size_t) i].slot, c.plocks[(size_t) lane][(size_t) i].norm);
+                if (! momentaryOff (c.plocks[(size_t) lane][(size_t) i].slot))
+                    apply (c.plocks[(size_t) lane][(size_t) i].slot, c.plocks[(size_t) lane][(size_t) i].norm);
         }
     }
 
@@ -1405,7 +1457,7 @@ void Engine::updateParams (const Graph& g, const SceneSet& s, const BlockInfo& b
 
         for (const auto& ma : cg.mods)
         {
-            if (ma.target < 0 || ma.target >= slotsPerChannel || cg.desc[(size_t) ma.target] == nullptr) continue;
+            if (ma.target < 0 || ma.target >= slotsPerChannel || cg.desc[(size_t) ma.target] == nullptr || cg.desc[(size_t) ma.target]->fixed || cg.desc[(size_t) ma.target]->noMod) continue;
             const auto amount = c.eff[(size_t) (modAmountBase + ma.amountIndex)] / 100.0f;
             if (amount == 0.0f) continue;
             const auto src = c.modValues[(size_t) std::clamp (ma.source, 0, numModSources)];
@@ -1633,12 +1685,48 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
     auto& st = *state;
     // v0.49 : plus grand retard d'instrument de ce morceau (FM Player)
     {
-        int d = 0;
+        // 1.1 (lot 6) : + latence des inserts actifs de chaque piste (outils spectraux en direct)
+        auto insertLat = [&] (int ch)
+        {
+            int l = 0;
+            const auto& cg = g.ch[(size_t) ch];
+            const auto* p = st[(size_t) ch].eff.data();
+            for (int i = 0; i < numInserts; ++i)
+                if (auto* fx = cg.inserts[(size_t) i]; fx != nullptr && p[mixBypass1 + i] < 0.5f) l += std::max (0, fx->latency());
+            return l;
+        };
+        int d = 0, ins = 0;
         for (int t = 0; t < numTracks; ++t)
-            if (const auto* ci = g.ch[(size_t) t].instrument; ci != nullptr && g.ch[(size_t) t].used) d = std::max (d, ci->latencySamples());
+        {
+            trackLat[(size_t) t] = 0;
+            if (const auto* ci = g.ch[(size_t) t].instrument; ci != nullptr && g.ch[(size_t) t].used)
+            {
+                const auto il = insertLat (t);
+                ins = std::max (ins, il);
+                trackLat[(size_t) t] = std::max (0, ci->latencySamples()) + il;
+                d = std::max (d, trackLat[(size_t) t]);
+            }
+        }
         const auto cap = compL[0].empty() ? 0 : (int) compL[0].size() - controlBlock - 1;
         compDelay = std::clamp (d, 0, std::max (0, cap));
-        compReported.store (compDelay, std::memory_order_relaxed);
+        const auto masterLat = insertLat (masterChannel);
+        // groupes et retours (montage : les retours sont déjà enregistrés, sans effet)
+        const auto* mfeed = montageFeed.load (std::memory_order_acquire);
+        const bool montageNow = mfeed != nullptr && mfeed->montageActive();
+        int bd = 0;
+        for (int k = 0; k < numGroups; ++k) { groupLat[(size_t) k] = insertLat (groupBase + k); bd = std::max (bd, groupLat[(size_t) k]); }
+        for (int r = 0; r < numReturns; ++r) { returnLat[(size_t) r] = montageNow ? 0 : insertLat (numTracks + r); bd = std::max (bd, returnLat[(size_t) r]); }
+        const auto bcap = busDly[0].l.empty() ? 0 : (int) busDly[0].l.size() - controlBlock - 1;
+        busComp = std::clamp (bd, 0, std::max (0, bcap));
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            const int v = ch < numTracks ? (g.ch[(size_t) ch].instrument != nullptr && g.ch[(size_t) ch].used ? insertLat (ch) : 0)
+                        : ch < masterChannel ? returnLat[(size_t) (ch - numTracks)]
+                        : ch == masterChannel ? masterLat : groupLat[(size_t) (ch - groupBase)];
+            chanLat[(size_t) ch].store (v, std::memory_order_relaxed);
+        }
+        compReported.store (compDelay + busComp + masterLat, std::memory_order_relaxed);
+        insertLatReported.store (ins + busComp + masterLat, std::memory_order_relaxed);
     }
     float masterL[controlBlock] {}, masterR[controlBlock] {};
     float retL[numReturns][controlBlock] {}, retR[numReturns][controlBlock] {};
@@ -1746,6 +1834,29 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
         const auto mute1 = c.muteGain;
         const auto* p = c.eff.data();
         bool scReady = false;
+        // Égaliseur de la tranche (après les inserts, avant la largeur et le fader ; 1.1 : sur le
+        // principal, AVANT les inserts, pour que le limiteur final reste le dernier étage et qu'aucune
+        // correction de la tranche ne refasse passer de crêtes au-dessus de son plafond) ; à plat, rien
+        // n'est calculé ; les coefficients ne changent que si les réglages bougent
+        auto stripEq = [&]
+        {
+            const auto gLo = (double) p[mixEqLow], gMid = (double) p[mixEqMid], gHi = (double) p[mixEqHigh];
+            const bool on = std::abs (gLo) > 0.05 || std::abs (gMid) > 0.05 || std::abs (gHi) > 0.05;
+            if (on && ! c.eqOn) { c.eqLow.reset(); c.eqMid.reset(); c.eqHigh.reset(); }
+            c.eqOn = on;
+            if (on)
+            {
+                c.eqLow.set (grv::dsp::SvfEq::lowShelf, 100.0, 0.7, gLo, sampleRate);
+                c.eqMid.set (grv::dsp::SvfEq::bell, std::clamp ((double) p[mixEqMidFreq], 200.0, 8000.0), 0.9, gMid, sampleRate);
+                c.eqHigh.set (grv::dsp::SvfEq::highShelf, 10000.0, 0.7, gHi, sampleRate);
+                for (int i = 0; i < n; ++i)
+                {
+                    L[i] = (float) c.eqHigh.l.process (c.eqMid.l.process (c.eqLow.l.process (L[i])));
+                    R[i] = (float) c.eqHigh.r.process (c.eqMid.r.process (c.eqLow.r.process (R[i])));
+                }
+            }
+        };
+        if (ch == masterChannel) stripEq();
         for (int i = 0; i < numInserts; ++i)
             if (auto* fx = cg.inserts[(size_t) i]; fx != nullptr)
             {
@@ -1811,25 +1922,7 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
                 }
             }
 
-        // Égaliseur de la tranche (après les inserts, avant la largeur et le fader) ; à plat, rien
-        // n'est calculé ; les coefficients ne changent que si les réglages bougent
-        {
-            const auto gLo = (double) p[mixEqLow], gMid = (double) p[mixEqMid], gHi = (double) p[mixEqHigh];
-            const bool on = std::abs (gLo) > 0.05 || std::abs (gMid) > 0.05 || std::abs (gHi) > 0.05;
-            if (on && ! c.eqOn) { c.eqLow.reset(); c.eqMid.reset(); c.eqHigh.reset(); }
-            c.eqOn = on;
-            if (on)
-            {
-                c.eqLow.set (grv::dsp::SvfEq::lowShelf, 100.0, 0.7, gLo, sampleRate);
-                c.eqMid.set (grv::dsp::SvfEq::bell, std::clamp ((double) p[mixEqMidFreq], 200.0, 8000.0), 0.9, gMid, sampleRate);
-                c.eqHigh.set (grv::dsp::SvfEq::highShelf, 10000.0, 0.7, gHi, sampleRate);
-                for (int i = 0; i < n; ++i)
-                {
-                    L[i] = (float) c.eqHigh.l.process (c.eqMid.l.process (c.eqLow.l.process (L[i])));
-                    R[i] = (float) c.eqHigh.r.process (c.eqMid.r.process (c.eqLow.r.process (R[i])));
-                }
-            }
-        }
+        if (ch != masterChannel) stripEq();
 
         // Largeur stéréo (mid/side)
         const auto width = p[mixWidth] / 100.0f;
@@ -1886,6 +1979,8 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
             wantsTracks = true;
     auto* tap = audioTap.load (std::memory_order_acquire);
     if (tap != nullptr && tap->wantsStems()) wantsTracks = true;
+    const bool monSel = monOn.load (std::memory_order_acquire);
+    if ((monSel || monMix > 0.0f) && monTracks.load (std::memory_order_relaxed) != 0) wantsTracks = true;
     float trackOutL[numTracks][controlBlock], trackOutR[numTracks][controlBlock];
     std::uint32_t trackOutMask = 0;
     // v0.46 fix8 : montage audio — les clips remplacent la sortie des pistes et des retours
@@ -1965,18 +2060,43 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
         sidechainFor (t);
         scPtrL[t] = scPtrR[t] = scSilence.data(); // jamais sa propre sortie : pas de boucle de réinjection
         cg.instrument->setSidechainSources (scPtrL, scPtrR);
+        {
+            // après la 1.1 : une piste MIDI coupée (ou hors solo) ne joue plus l'appareil
+            const auto og = trackOutput[(size_t) t].load (std::memory_order_relaxed);
+            const bool soloed = seq->getTrackSolo (t) || (og >= 1 && og <= numGroups && groupSolo[og - 1]);
+            cg.instrument->setTrackSilent (seq->getTrackMute (t) || (anySolo && ! soloed));
+        }
         cg.instrument->render (L, R, n, c.eff.data() + instrumentBase);
         // v0.49 : retard ajouté pour tomber avec l'instrument le plus en retard (FM Player)
-        if (const auto dly = compDelay - std::min (compDelay, std::max (0, cg.instrument->latencySamples())); dly > 0 || compDelay > 0)
+        // 1.1 (lot 6) : la ligne est toujours alimentée ; un changement de retard passe par un fondu
+        if (! compL[(size_t) t].empty())
         {
+            const auto dly = compDelay - std::min (compDelay, trackLat[(size_t) t]);
             auto& bl = compL[(size_t) t]; auto& br = compR[(size_t) t];
             const auto len = (int) bl.size();
             auto w = compWrite[(size_t) t];
+            if (dly != compPrev[(size_t) t])
+            {
+                compOld[(size_t) t] = compPrev[(size_t) t];
+                compPrev[(size_t) t] = dly;
+                compFadeLeft[(size_t) t] = std::max (1, (int) (sampleRate * 0.01));
+            }
+            const auto fadeLen = std::max (1, (int) (sampleRate * 0.01));
+            auto& fl = compFadeLeft[(size_t) t];
+            const auto od = compOld[(size_t) t];
             for (int i = 0; i < n; ++i)
             {
                 bl[(size_t) w] = L[i]; br[(size_t) w] = R[i];
                 auto r = w - dly; if (r < 0) r += len;
-                L[i] = bl[(size_t) r]; R[i] = br[(size_t) r];
+                if (fl > 0)
+                {
+                    auto ro = w - od; if (ro < 0) ro += len;
+                    const auto k = (float) fl / (float) fadeLen;   // 1 → 0 : de l'ancien retard au nouveau
+                    L[i] = bl[(size_t) ro] * k + bl[(size_t) r] * (1.0f - k);
+                    R[i] = br[(size_t) ro] * k + br[(size_t) r] * (1.0f - k);
+                    --fl;
+                }
+                else { L[i] = bl[(size_t) r]; R[i] = br[(size_t) r]; }
                 if (++w >= len) w = 0;
             }
             compWrite[(size_t) t] = w;
@@ -2005,6 +2125,10 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
         for (int i = 0; i < n; ++i) { dl[i] += L[i]; dr[i] += R[i]; }
     }
 
+    // 1.1 (lot 6) : le son direct des pistes attend les groupes et retours à latence
+    const auto busFade = std::max (1, (int) (sampleRate * 0.01));
+    busDly[0].process (masterL, masterR, n, busComp, busFade);
+
     // Bus de groupe (v0.24) : inserts, égaliseur, volume, envois vers les retours, puis le principal
     for (int k = 0; k < numGroups; ++k)
     {
@@ -2014,6 +2138,7 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
         float preL[controlBlock], preR[controlBlock];
         channelPass (ch, grpL[k], grpR[k], pre ? preL : nullptr, pre ? preR : nullptr);
         if (! montageOn) sends (c, pre ? preL : grpL[k], pre ? preR : grpR[k]); // montage : les retours enregistrés ont déjà ces envois
+        busDly[(size_t) (1 + k)].process (grpL[k], grpR[k], n, busComp - std::min (busComp, groupLat[(size_t) k]), busFade);
         for (int i = 0; i < n; ++i) { masterL[i] += grpL[k][i]; masterR[i] += grpR[k][i]; }
     }
 
@@ -2039,6 +2164,7 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
             c.level = peak;
         }
         else channelPass (ch, retL[r], retR[r]);
+        busDly[(size_t) (1 + numGroups + r)].process (retL[r], retR[r], n, busComp - std::min (busComp, returnLat[(size_t) r]), busFade);
         for (int i = 0; i < n; ++i) { masterL[i] += retL[r][i]; masterR[i] += retR[r][i]; }
     }
 
@@ -2068,6 +2194,7 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
         const float* rl[numReturns]; const float* rr[numReturns];
         for (int r = 0; r < numReturns; ++r) { rl[r] = retL[r]; rr[r] = retR[r]; }
         tap->tapPosition (ppq, ppq + (double) n * bpm / 60.0 / sampleRate, playing);
+        tap->tapInput (curInL, curInR);
         tap->tapBlock (outL, outR, tl, tr, wantsTracks ? trackOutMask : 0u, rl, rr, n);
     }
 
@@ -2085,6 +2212,57 @@ void Engine::renderChunk (const Graph& g, float* outL, float* outR, int n, doubl
                     for (int i = 0; i < n; ++i) { busL[i] += trackOutL[k][i]; busR[i] += trackOutR[k][i]; }
             inst->captureMain (busL, busR, n);
         }
+
+    // 1.1 : écoute de l'écran AUDIO : on n'entend que les sources choisies pour la prise (après
+    // l'enregistrement et le rééchantillonnage, qui gardent le vrai mixage), en fondu de 10 ms
+    if (monSel || monMix > 0.0f)
+    {
+        const auto tm = monTracks.load (std::memory_order_relaxed) & trackOutMask;
+        const auto rm = monReturns.load (std::memory_order_relaxed);
+        float selL[controlBlock] {}, selR[controlBlock] {};
+        for (int k = 0; k < numTracks; ++k)
+            if (tm & (1u << k))
+                for (int i = 0; i < n; ++i) { selL[i] += trackOutL[k][i]; selR[i] += trackOutR[k][i]; }
+        for (int r = 0; r < numReturns; ++r)
+            if (rm & (1u << r))
+                for (int i = 0; i < n; ++i) { selL[i] += retL[r][i]; selR[i] += retR[r][i]; }
+        if (monInput.load (std::memory_order_relaxed) && curInL != nullptr)
+            for (int i = 0; i < n; ++i) { selL[i] += curInL[i]; selR[i] += curInR != nullptr ? curInR[i] : curInL[i]; }
+        const float target = monSel ? 1.0f : 0.0f;
+        const float step = (float) (1.0 / (0.01 * sampleRate));
+        for (int i = 0; i < n; ++i)
+        {
+            monMix = target > monMix ? std::min (target, monMix + step) : std::max (target, monMix - step);
+            outL[i] += (selL[i] - outL[i]) * monMix;
+            outR[i] += (selR[i] - outR[i]) * monMix;
+        }
+    }
+
+    // 1.1 : pré-écoute d'un son traité, après l'enregistrement et le rééchantillonnage (ni l'un ni l'autre ne la prend)
+    if (const auto serial = auditionSerial.load (std::memory_order_acquire); serial != auditionSeen)
+    {
+        auditionSeen = serial;
+        auditionCur = auditionNext.load (std::memory_order_acquire);
+        auditionPos = 0.0;
+    }
+    if (auditionCur != nullptr)
+    {
+        const auto* b = auditionCur;
+        const auto len = (int) b->data.size();
+        const bool st = b->right.size() == b->data.size();
+        const double step = b->sampleRate / sampleRate;
+        for (int i = 0; i < n; ++i)
+        {
+            const auto k = (int) auditionPos;
+            if (k + 1 >= len) { auditionCur = nullptr; auditionOn.store (false, std::memory_order_relaxed); break; }
+            const auto f = (float) (auditionPos - k);
+            const auto l = b->data[(size_t) k] + (b->data[(size_t) k + 1] - b->data[(size_t) k]) * f;
+            const auto r = st ? b->right[(size_t) k] + (b->right[(size_t) k + 1] - b->right[(size_t) k]) * f : l;
+            outL[i] = std::clamp (outL[i] + l, -4.0f, 4.0f);
+            outR[i] = std::clamp (outR[i] + r, -4.0f, 4.0f);
+            auditionPos += step;
+        }
+    }
 }
 
 void Engine::process (const float* inL, const float* inR, float* outL, float* outR, int numSamples,
@@ -2093,6 +2271,7 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
     const auto* g = graph.get();
     const auto* sc = scenes.get();
     const auto* ex = extras.get();
+    midiOut.count = 0; midiOut.at = 0; // après la 1.1 : messages MIDI de cet appel
     adoptTrackOrder (*g); // pistes déplacées : leur état les suit (v0.26)
 
     // Échantillons : l'instrument reçoit ceux du graphe en cours (jamais un pointeur périmé)
@@ -2245,6 +2424,7 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
     int pos = 0, ei = 0;
     while (pos < numSamples)
     {
+        midiOut.at = pos; // après la 1.1 : position des messages MIDI de ce bloc
         // déclenche les événements arrivés
         while (ei < numEvs && evs[(size_t) ei].offset <= pos)
         {
@@ -2310,6 +2490,11 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
                 const bool slide = ((e.flags & stepSlide) != 0 || (seq != nullptr && seq->getLaneLockGlide (e.track, (int) lane))) && count > 0;
                 c.slideLen[lane] = slide ? std::max (1.0, e.stepLen) : 0.0;
                 c.slidePos[lane] = 0.0;
+                // après la 1.1 : pads verrouillés appuyés le temps de la note (au plus 90 % du pas, au moins 1 ms)
+                {
+                    const double step = e.stepLen > 0.0 ? e.stepLen : sampleRate * 0.125;
+                    c.momentaryLeft[lane] = std::clamp (e.len > 0.0 ? e.len : step * 0.5, sampleRate * 0.001, std::max (sampleRate * 0.001, step * 0.9));
+                }
             }
             if (trigless) continue;
             if (e.on)
@@ -2370,7 +2555,15 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
                 inst->setPosition (ppq, seq->isPlayingInBlock());
                 inst->setExpression (c.bend, c.wheel, c.pressure);
             }
+        curInL = inL != nullptr ? inL + pos : nullptr; curInR = inR != nullptr ? inR + pos : nullptr;
+        if (curInL != nullptr)
+        {
+            float pk = 0.0f;
+            for (int i = 0; i < n; ++i) pk = std::max (pk, std::max (std::abs (curInL[i]), curInR != nullptr ? std::abs (curInR[i]) : 0.0f));
+            inPeak.store (std::max (pk, inPeak.load (std::memory_order_relaxed) * 0.97f), std::memory_order_relaxed);
+        }
         renderChunk (*g, outL + pos, outR + pos, n, bi.bpm, ppq, seq->isPlayingInBlock());
+        midiOut.at = std::min (pos + n, numSamples - 1); // fins de notes : à la fin du bloc
 
         // fins de notes
         for (int i = 0; i < numPendingOffs;)
@@ -2385,6 +2578,21 @@ void Engine::process (const float* inL, const float* inR, float* outL, float* ou
             else ++i;
         }
         pos = end;
+    }
+
+    // après la 1.1 : au même échantillon, la banque et le changement de programme partent avant les notes
+    // (son verrouillé sur un pas : l'appareil change de son avant de jouer la note du pas). Tri stable.
+    {
+        auto first = [] (const MidiOutQueue::Ev& e) { const int st = e.b0 & 0xF0; return st == 0xC0 || (st == 0xB0 && (e.b1 == 0 || e.b1 == 32)); };
+        auto& q = midiOut;
+        for (int i = 1; i < q.count; ++i)
+        {
+            const auto x = q.ev[(size_t) i];
+            if (! first (x)) continue;
+            int j = i;
+            while (j > 0 && q.ev[(size_t) (j - 1)].offset == x.offset && ! first (q.ev[(size_t) (j - 1)])) { q.ev[(size_t) j] = q.ev[(size_t) (j - 1)]; --j; }
+            q.ev[(size_t) j] = x;
+        }
     }
 
     seq->endBlock();

@@ -29,6 +29,7 @@ enum ModSrcSlot
     msSeqLength,
     msDelay,          // 21 : retard du LFO à chaque note (v0.13.2)
     msFollowSrc,      // 22 : source du suiveur (v0.23) : cette piste, audio ou notes d'une autre piste
+    msPolarity,       // 23 : polarité du LFO (1.1) : ± autour du réglage, + vers le haut, − vers le bas
     msStep1 = 24 // 24..39 : 16 pas
 };
 
@@ -46,7 +47,10 @@ inline const ModuleDesc& modSourceDesc()
         m.params[msDivision] = C ("division", "Division", { "16 mes.", "8 mes.", "4 mes.", "2 mes.", "1 mes.", "1/2", "1/4", "1/8", "1/16", "1/32", "1/4T", "1/8T", "1/16T" }, 6);
         m.params[msShape] = C ("shape", "Forme", { "Sinus", "Triangle", "Dent de scie", "Carr\xC3\xA9", "Al\xC3\xA9" "atoire", "Al\xC3\xA9" "atoire liss\xC3\xA9" });
         m.params[msPhase] = P ("phase", "Phase", "\xC2\xB0", 0, 360, 0);
-        m.params[msRetrig] = C ("retrig", "Red\xC3\xA9" "clenchement", { "Libre", "Note", "Mesure" });
+        // 1.1 : « Un cycle », « Demi-cycle » (repartent à chaque note, font un tour ou un demi-tour puis
+        // restent sur leur dernière valeur) et « Maintien » (le LFO tourne librement, sa valeur est figée
+        // à chaque note) ajoutés à la fin — projets d'avant la version 20 convertis (3 choix avant)
+        m.params[msRetrig] = C ("retrig", "Red\xC3\xA9" "clenchement", { "Libre", "Note", "Mesure", "Un cycle", "Demi-cycle", "Maintien" });
         m.params[msSmooth] = P ("smooth", "Lissage", "%", 0, 100, 0);
         m.params[msT1] = P ("t1", "Temps 1", "ms", 1, 4000, 20, 0.3f);
         m.params[msT2] = P ("t2", "Temps 2", "ms", 1, 4000, 200, 0.3f);
@@ -63,12 +67,14 @@ inline const ModuleDesc& modSourceDesc()
         m.params[msSeqLength] = I ("length", "Longueur", "pas", 1, 16, 16);
         m.params[msDelay] = P ("delay", "Retard", "ms", 0, 10000, 0, 0.35f);
         m.params[msFollowSrc] = C ("fsrc", "Source", followSourceChoices());
-        for (int i = msFollowSrc + 1; i < msStep1; ++i) m.params[(size_t) i] = P ("reserved" + std::to_string (i), "", "", 0, 1, 0);
+        // 1.1 : polarité du LFO — ± : le LFO va de -1 à +1 autour de la valeur du réglage (comme avant) ;
+        // + : de 0 à +1 (il part du réglage et monte, sans jamais se bloquer en bas) ; − : de 0 à -1
+        m.params[msPolarity] = C ("polarity", "Polarit\xC3\xA9", { "\xC2\xB1", "+", "\xE2\x88\x92" });
         for (int i = 0; i < 16; ++i)
             m.params[(size_t) (msStep1 + i)] = P ("step" + std::to_string (i + 1), "Pas " + std::to_string (i + 1), "%", 0, 100, (i % 4 == 0) ? 100.0f : 40.0f);
 
         m.sections = {
-            { "lfo", "LFO", "lfo", { "type", "sync", "rate", "division", "shape", "phase", "retrig", "smooth", "delay" }, "lfo" },
+            { "lfo", "LFO", "lfo", { "type", "sync", "rate", "division", "shape", "phase", "retrig", "polarity", "smooth", "delay" }, "lfo" },
             { "func", "Fonction", "func", { "t1", "l1", "t2", "l2", "t3", "l3", "t4", "l4" }, "func" },
             { "follow", "Suiveur", "follow", { "type", "fsrc", "attack", "release", "gain", "smooth" }, "follow" },
             { "seq", "S\xC3\xA9quenceur", "seq", { "type", "division", "length", "smooth", "retrig" }, "seq" },
@@ -90,7 +96,7 @@ inline double divisionQuarters (int division) noexcept
 class ModSource
 {
 public:
-    void reset() noexcept { phase = 0.0; value = 0.0; smoothed = 0.0; stage = 0; stageTime = 0.0; env = 0.0; held = 0.0; seqIndex = 0; rng = 0x1234567u; started = false; sideHit = 0.0f; sideRising = false; sideTarget = 0.0; }
+    void reset() noexcept { oneShotDone = true; oneShotAcc = oneShotLast = heldOut = 0.0; holdValid = false; phase = 0.0; value = 0.0; smoothed = 0.0; stage = 0; stageTime = 0.0; env = 0.0; held = 0.0; seqIndex = 0; rng = 0x1234567u; started = false; sideHit = 0.0f; sideRising = false; sideTarget = 0.0; }
 
     void trigger() noexcept { triggerPending = true; delayRestart = true; }
     /** Side-chain par les notes (v0.23) : une note de la piste suivie relance l'enveloppe. */
@@ -103,7 +109,10 @@ public:
     {
         const auto type = (int) p[msType];
         const auto retrig = (int) p[msRetrig];
-        const bool trig = (triggerPending && retrig == 1) || (barPending && retrig == 2);
+        // 1.1 : « Un cycle » (3) et « Demi-cycle » (4) repartent à chaque note, comme « Note » (1)
+        const bool noteMode = retrig == 1 || retrig == 3 || retrig == 4;
+        const bool trig = (triggerPending && noteMode) || (barPending && retrig == 2);
+        const bool latch = triggerPending && retrig == 5; // « Maintien » : valeur figée à chaque note
         triggerPending = barPending = false;
 
         double out = 0.0;
@@ -112,6 +121,27 @@ public:
             case 0:
             {
                 out = lfo (p, dt, bpm, ppq, playing, trig);
+                // 1.1 : un cycle / demi-cycle depuis la dernière note, puis la dernière valeur reste ;
+                // maintien : la valeur du LFO libre est relevée à chaque note et tenue jusqu'à la suivante
+                if (retrig == 3 || retrig == 4)
+                {
+                    if (trig) { oneShotDone = false; oneShotAcc = 0.0; }
+                    if (oneShotDone) out = oneShotLast;
+                    else
+                    {
+                        oneShotAcc += lfoAdvance;
+                        if (oneShotAcc >= (retrig == 3 ? 1.0 : 0.5)) { oneShotDone = true; out = lfoAt (p, retrig == 3 ? 1.0 : 0.5); }
+                        oneShotLast = out;
+                    }
+                }
+                else if (retrig == 5)
+                {
+                    if (latch || ! holdValid) { heldOut = out; holdValid = true; }
+                    out = heldOut;
+                }
+                // polarité : ± (-1..+1), + (0..+1), − (0..-1)
+                if (const auto pol = (int) p[msPolarity]; pol == 1) out = 0.5 * (out + 1.0);
+                else if (pol == 2) out = -0.5 * (out + 1.0);
                 // retard : muet pendant le retard après chaque note, puis entrée en fondu (moitié du retard)
                 const auto d = (double) p[msDelay] * 0.001;
                 if (delayRestart) { delayRestart = false; delayClock = 0.0; }
@@ -123,7 +153,7 @@ public:
                 }
                 break;
             }
-            case 1: out = func (p, dt, trig || ! started, retrig == 0); break; // Libre : la fonction tourne en boucle
+            case 1: out = func (p, dt, trig || ! started, retrig == 0 || retrig == 5); break; // Libre : la fonction tourne en boucle
             case 2: out = follow (p, dt, level); break;
             default: out = seq (p, dt, bpm, ppq, playing, trig); break;
         }
@@ -146,15 +176,35 @@ public:
     float current() const noexcept { return value; }
     /** Pas en cours du séquenceur de modulation (affichage). */
     int step() const noexcept { return seqIndex; }
-    bool bipolar (const float* p) const noexcept { return (int) p[msType] == 0; }
+    bool bipolar (const float* p) const noexcept { return (int) p[msType] == 0 && (int) p[msPolarity] == 0; }
 
 private:
+    /** Valeur des formes déterministes à la position x (0..1) d'un cycle, phase comprise (fin d'un
+        cycle ou d'un demi-cycle). Les formes aléatoires gardent leur dernière valeur. */
+    double lfoAt (const float* p, double x) const noexcept
+    {
+        auto ph = x + (double) p[msPhase] / 360.0;
+        ph -= std::floor (ph);
+        switch ((int) p[msShape])
+        {
+            case 0: return std::sin (2.0 * 3.14159265358979 * ph);
+            case 1: return 1.0 - 4.0 * std::abs (ph - 0.5);
+            case 2: return x >= 1.0 && ph == 0.0 ? 1.0 : 2.0 * ph - 1.0; // la dent de scie finit en haut
+            case 3: return ph < 0.5 ? 1.0 : -1.0;
+            default: return oneShotLast;
+        }
+    }
+
     double lfo (const float* p, double dt, double bpm, double ppq, bool playing, bool trig) noexcept
     {
         const bool sync = (int) p[msSync] == 1;
         const auto shape = (int) p[msShape];
         const auto phaseOffset = (double) p[msPhase] / 360.0;
         const auto prev = phase;
+        {
+            const auto hz = sync ? (bpm / 60.0) / divisionQuarters ((int) p[msDivision]) : (double) p[msRate];
+            lfoAdvance = hz * dt; // part de cycle parcourue (un cycle / demi-cycle)
+        }
 
         if (sync && playing && (int) p[msRetrig] == 0)
             phase = std::fmod (ppq / divisionQuarters ((int) p[msDivision]), 1.0); // calé sur la mesure
@@ -234,7 +284,8 @@ private:
     {
         const auto length = std::clamp ((int) p[msSeqLength], 1, 16);
         const auto stepQ = divisionQuarters ((int) p[msDivision]);
-        if (playing && (int) p[msRetrig] != 1)
+        const auto rt = (int) p[msRetrig];
+        if (playing && rt != 1 && rt != 3 && rt != 4)
             seqIndex = (int) std::floor (ppq / stepQ) % length;
         else
         {
@@ -258,6 +309,9 @@ private:
     int stage = 4, seqIndex = 0;
     float value = 0.0f;
     bool triggerPending = false, barPending = false, started = false, delayRestart = false;
+    // 1.1 : un cycle / demi-cycle, maintien
+    double lfoAdvance = 0.0, oneShotAcc = 0.0, oneShotLast = 0.0, heldOut = 0.0;
+    bool oneShotDone = true, holdValid = false;
     double delayClock = 1.0e9; // sans note jouée : pas de retard
     std::uint32_t rng = 0x1234567u;
 };

@@ -33,6 +33,7 @@
 #include "../instruments/Dfam.h"
 #include "../instruments/Vocoders.h"
 #include "../instruments/FmPlayer.h"
+#include "../instruments/MidiTrack.h"
 #include "../effects/Distortion.h"
 #include "../effects/Delay.h"
 #include "../effects/Reverb.h"
@@ -51,6 +52,11 @@
 #include "../effects/Looper.h"
 #include "../effects/StudioFx.h"
 #include "../effects/SpaceFx.h"
+#include "../effects/Restoration.h"
+#include "../effects/Restoration2.h"
+#include "../effects/Titan2.h"
+#include "../effects/Titan3.h"
+#include "../effects/Titan4.h"
 
 #include <functional>
 
@@ -103,6 +109,7 @@ namespace
             { [] { return &gluta::desc(); },   [] { return std::make_unique<Glutamake>(); } }, // v0.47 : à la fin (ordre des instruments inchangé)
             { [] { return &gdoc::desc(); },    [] { return std::make_unique<GoodDoctor>(); } }, // v0.47 (maj. 5 nov.) : à la fin (ordre des instruments inchangé)
             { [] { return &fmplayer::desc(); }, [] { return std::make_unique<FmPlayer>(); } }, // v0.49 : lecteur de firmwares FM-1, à la fin
+            { [] { return &midit::desc(); },   [] { return std::make_unique<MidiTrack>(); } },  // après la 1.1 : piste MIDI (appareil externe), à la fin
         };
         return e;
     }
@@ -149,6 +156,24 @@ namespace
             { [] { return &stepfx::desc(); },   [] { return std::make_unique<StepFx>(); } },
             { [] { return &sculptor::desc(); }, [] { return std::make_unique<Sculptor>(); } },     // v0.37 : principe ShaperBox
             { [] { return &looper::desc(); },   [] { return std::make_unique<Looper>(); } },
+            // 1.1 (lot 4) : famille « Restauration »
+            { [] { return &rdenoise::desc(); },   [] { return std::make_unique<Denoise>(); } },
+            { [] { return &rdehum::desc(); },     [] { return std::make_unique<Dehum>(); } },
+            { [] { return &rdeclick::desc(); },   [] { return std::make_unique<Declick>(); } },
+            { [] { return &rdeess::desc(); },     [] { return std::make_unique<SpectralDeesser>(); } },
+            { [] { return &rdeplosive::desc(); }, [] { return std::make_unique<Deplosive>(); } },
+            { [] { return &rdeclip::desc(); },    [] { return std::make_unique<Declip>(); } },
+            { [] { return &rdereverb::desc(); },  [] { return std::make_unique<Dereverb>(); } },
+            // 1.1 : famille « Golem Titan FX » (effets haut de gamme)
+            { [] { return &tvint::desc(); },      [] { return std::make_unique<TitanVintage>(); } },
+            { [] { return &tspace::desc(); },     [] { return std::make_unique<TitanSpace>(); } },
+            { [] { return &tlim::desc(); },       [] { return std::make_unique<TitanLimiter>(); } },
+            { [] { return &techo::desc(); },      [] { return std::make_unique<TitanEcho>(); } },
+            { [] { return &tdecap::desc(); },     [] { return std::make_unique<TitanDecap>(); } },
+            { [] { return &tsat::desc(); },       [] { return std::make_unique<TitanSaturn>(); } },
+            { [] { return &tphase::desc(); },     [] { return std::make_unique<TitanPhaser>(); } },
+            { [] { return &tflg::desc(); },       [] { return std::make_unique<TitanFlanger>(); } },
+            { [] { return &tfilt::desc(); },      [] { return std::make_unique<TitanFilter>(); } },
         };
         return e;
     }
