@@ -2,7 +2,7 @@
 # Moteur C++ / JUCE 8 + interface React unique (WebView), VST3 + application autonome.
 
 cmake_minimum_required(VERSION 3.22)
-project(Groovebox VERSION 1.0.0 LANGUAGES C CXX)
+project(Groovebox VERSION 1.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -127,7 +127,7 @@ juce_add_plugin(Groovebox
     ICON_SMALL                  "${CMAKE_CURRENT_SOURCE_DIR}/resources/golem/golem-buste-256.png"   # (petites tailles : le buste, plus lisible)
     IS_SYNTH                    TRUE
     NEEDS_MIDI_INPUT            TRUE
-    NEEDS_MIDI_OUTPUT           FALSE
+    NEEDS_MIDI_OUTPUT           TRUE   # après la 1.1 : pistes MIDI (appareils externes)
     IS_MIDI_EFFECT              FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS TRUE
     VST3_CATEGORIES             Instrument Synth Sampler
@@ -141,6 +141,9 @@ juce_add_plugin(Groovebox
     BLUETOOTH_PERMISSION_ENABLED TRUE
     BLUETOOTH_PERMISSION_TEXT   "OFAD GOLEM connects to Bluetooth MIDI controllers."
     BACKGROUND_AUDIO_ENABLED    TRUE
+    # 1.1 : télécommande Wi-Fi (GOLEM ↔ GOLEM sur le réseau local) : autorisation « Réseau local »
+    # demandée par iOS 14+ et macOS 15+ (sans elle, le système bloque la recherche des GOLEM)
+    PLIST_TO_MERGE              "<plist><dict><key>NSLocalNetworkUsageDescription</key><string>OFAD GOLEM finds and controls another OFAD GOLEM on your local Wi-Fi network (remote control).</string></dict></plist>"
     FILE_SHARING_ENABLED        TRUE
     DOCUMENT_BROWSER_ENABLED    TRUE
     STATUS_BAR_HIDDEN           TRUE
@@ -170,6 +173,23 @@ if(NOT GROOVEBOX_IOS)
 endif()
 target_link_libraries(Groovebox_Standalone PRIVATE GrooveboxUiData)
 
+# après la 1.1 : Bluetooth MIDI sous Windows (MIDI moderne de Windows 10/11, dit « WinRT »). OPTION À ESSAYER,
+# coupée par défaut : JUCE la dit expérimentale et elle fait passer TOUT le MIDI (USB compris) par la nouvelle
+# interface de Microsoft (noms d'appareils parfois différents, à re-choisir). Pour l'essayer :
+#   cmake -B build-bt -DGROOVEBOX_WINRT_MIDI=ON …   (dossier de construction à part : l'actuel ne change pas)
+# Sans les en-têtes du kit Windows nécessaires, l'option se coupe d'elle-même (rien ne casse).
+option(GROOVEBOX_WINRT_MIDI "Bluetooth MIDI sous Windows (MIDI moderne, experimental)" OFF)
+if(WIN32 AND MSVC AND GROOVEBOX_WINRT_MIDI)
+    include(CheckIncludeFileCXX)
+    check_include_file_cxx("windows.devices.midi.h" GROOVEBOX_HAS_WINRT_MIDI_HEADERS)
+    if(GROOVEBOX_HAS_WINRT_MIDI_HEADERS)
+        target_compile_definitions(Groovebox PUBLIC JUCE_USE_WINRT_MIDI=1)
+        message(STATUS "GOLEM : Bluetooth MIDI Windows (WinRT) actif")
+    else()
+        message(WARNING "GOLEM : en-tetes WinRT MIDI introuvables (kit Windows 10) : Bluetooth MIDI coupe")
+    endif()
+endif()
+
 target_compile_definitions(Groovebox PUBLIC
     JUCE_USE_MP3AUDIOFORMAT=1
     JUCE_WEB_BROWSER=1
@@ -195,7 +215,7 @@ if(GROOVEBOX_IOS)
     return() # pas d'outil en ligne de commande sur iPhone / iPad
 endif()
 juce_add_console_app(groovebox_render PRODUCT_NAME "groovebox_render")
-target_sources(groovebox_render PRIVATE tools/RenderDemo.cpp src/PluginProcessor.cpp src/Recorder.cpp src/Montage.cpp)
+target_sources(groovebox_render PRIVATE tools/RenderDemo.cpp src/PluginProcessor.cpp src/Recorder.cpp src/Montage.cpp src/UserPresets.cpp src/Folders.cpp)
 target_compile_definitions(groovebox_render PRIVATE
     JucePlugin_Name="Groovebox"
     GROOVEBOX_NO_EDITOR=1
@@ -210,10 +230,27 @@ target_link_libraries(groovebox_render PRIVATE
     juce::juce_dsp
     juce::juce_recommended_config_flags)
 
+# --- 1.1 : fabrique des projets de démonstration (un par style) et mesure de leur son ----------------
+juce_add_console_app(groovebox_demos PRODUCT_NAME "groovebox_demos")
+target_sources(groovebox_demos PRIVATE tools/BuildDemos.cpp src/PluginProcessor.cpp src/Recorder.cpp src/Montage.cpp src/UserPresets.cpp src/Folders.cpp)
+target_compile_definitions(groovebox_demos PRIVATE
+    JucePlugin_Name="Groovebox"
+    GROOVEBOX_NO_EDITOR=1
+    JUCE_USE_MP3AUDIOFORMAT=1
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0)
+juce_generate_juce_header(groovebox_demos)
+target_link_libraries(groovebox_demos PRIVATE
+    groovebox_engine
+    groovebox_lame
+    juce::juce_audio_utils
+    juce::juce_dsp
+    juce::juce_recommended_config_flags)
+
 # --- v0.46.1 : tests de sécurité (audit du 4 novembre 2026) : projets piégés, montage, fichiers abîmés ----
 if(GROOVEBOX_BUILD_TESTS)
     juce_add_console_app(groovebox_SecurityTests PRODUCT_NAME "groovebox_SecurityTests")
-    target_sources(groovebox_SecurityTests PRIVATE tools/SecurityTests.cpp src/PluginProcessor.cpp src/Recorder.cpp src/Montage.cpp)
+    target_sources(groovebox_SecurityTests PRIVATE tools/SecurityTests.cpp src/PluginProcessor.cpp src/Recorder.cpp src/Montage.cpp src/UserPresets.cpp src/Folders.cpp)
     target_compile_definitions(groovebox_SecurityTests PRIVATE
         JucePlugin_Name="Groovebox"
         GROOVEBOX_NO_EDITOR=1

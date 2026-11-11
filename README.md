@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger_1.0.0-Windows_·_Mac_·_Android_·_iPhone-F5A623?style=for-the-badge" alt="Télécharger la 1.0.0 pour Windows, Mac, Android et iPhone"></a>
+  <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger_1.1.0-Windows_·_Mac_·_Android_·_iPhone-F5A623?style=for-the-badge" alt="Télécharger la 1.1.0 pour Windows, Mac, Android et iPhone"></a>
   <a href="docs/NOTICE.pdf"><img src="https://img.shields.io/badge/📘_Notice-PDF-2B2F3A?style=for-the-badge" alt="Notice de prise en main (PDF)"></a>
   <a href="docs/NOTICE-EN.pdf"><img src="https://img.shields.io/badge/📘_Manual_(English)-PDF-2B2F3A?style=for-the-badge" alt="Manual in English (PDF)"></a>
   <a href="docs/CATALOGUE.pdf"><img src="https://img.shields.io/badge/🎹_Catalogue-PDF-2B2F3A?style=for-the-badge" alt="Catalogue des sons et effets (PDF)"></a>
@@ -29,37 +29,39 @@
   <b><a href="../../releases/latest">Télécharger</a></b> ·
   <b><a href="docs/NOTICE.pdf">Notice de prise en main et raccourcis (PDF)</a></b> ·
   <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
-  <b><a href="docs/CATALOGUE.pdf">Catalogue des 37 instruments et 38 effets (PDF)</a></b>
+  <b><a href="docs/CATALOGUE.pdf">Catalogue des 38 instruments et 54 effets (PDF)</a></b>
 </p>
 
 <p align="center"><b>🇬🇧 English speakers: <a href="#-english-summary">English summary below ↓</a></b></p>
 
 ---
 
-## 🆕 Nouveautés de la 1.0.0 — le FM Player et un nouveau workflow
+## 🆕 Nouveautés de la 1.1.0 — piste MIDI, télécommande, écran AUDIO
 
-<p align="center"><b><a href="../../releases/tag/v1.0.0">Tout le détail et les téléchargements sur la page de la version 1.0.0</a></b></p>
+<p align="center"><b><a href="../../releases/tag/v1.1.0">Tout le détail et les téléchargements sur la page de la version 1.1.0</a></b></p>
 
-- **Nouveau workflow, une seule vue** (ordinateur, tablette, téléphone) : l'écran prend toute la place, un rail donne les 8 écrans, **Live**, **Jeu**, Lecture / Arrêt et Enr. ; **pads dépliables** sur tous les écrans ; **écran Jeu** (pads, Mute / Solo des 16 pistes aux couleurs des pistes, 16 boutons, Fill / Break, crossfader, tempo) ; patterns et rangées au contrôleur MIDI par appui long.
-- **FM Player**, nouvel instrument : il **émule le processeur du boîtier de synthèse M-VAVE FM-1** et fait tourner ses **firmwares** (fichiers `.fwsc`) dans GOLEM, avec **l'écran du boîtier en direct** et toutes ses commandes.
-- **15 firmwares libres fournis** (Felucca, sloopDX, SLOOP, Melodee, JIANT FM, X0X, FIZZ, MYCELIUM, GR!MM, FM-106, OberVave, FMini-1, Frodhes, B1, zp12), avec leurs auteurs, leurs licences et leurs sources ; **Firmware…** charge n'importe quel autre `.fwsc`.
-- **Quatre pistes T1 à T4** comme sur Pieuvre 8 : un canal MIDI par piste, écrites en **Acide**, **À verrous** ou dans l'écran **SÉQUENCE**.
-- **Les 8 commandes et les 14 touches du boîtier** au contrôleur MIDI par **appui long** (ou clic droit), et sous les 8 encodeurs ; boutons de **0 à 100 %**, course réglable bouton par bouton.
-- **Horloge MIDI** envoyée au firmware : ses séquenceurs suivent le tempo de GOLEM ; notes du piano, des pads et de n'importe quel contrôleur.
-- **Mode Grand** pour téléphone et tablette (écran, gros boutons, piano, T1 à T4 avec M / S et rangée de pas), boutons **à tourner** au doigt, **quatre fonds** (Ambre, Nuit, Émeraude, Sobre).
-- **Partout** : **verrous glissés** (les réglages voyagent d'un pas à l'autre) et **verrous coupés** (éteints et rallumés d'un geste, sans les effacer) ; **un canal MIDI par T** sur Pieuvre 8 et le FM Player, clavier sur toutes ses octaves.
-- **Android** : après une fermeture au lancement, redémarrage **sans rouvrir la séance** (gardée de côté) et explication affichée.
+- **Piste MIDI** : GOLEM **joue vos synthés et boîtes à rythmes externes** avec son séquenceur, ses verrous, ses scènes et ses effets MIDI (arpège, accord, gamme, écho de notes). Bandeau Appareil · Émission · Réception · Banque · Son, **32 boutons CC** en 4 sections renommables (avec **Apprendre**), **16 pads** (CC maintenu, marche / arrêt, par pas, note). USB partout, Bluetooth MIDI sur téléphone, tablette et Mac.
+- **Son du pas** : chaque pas peut jouer **un autre préréglage** de l'instrument (ou un autre son de l'appareil MIDI, banque comprise), puis la piste revient à son son.
+- **Télécommande** : le téléphone pilote GOLEM sur le PC (**câble USB ou Wi-Fi**, sans pilote) ou un appareil MIDI : mixage, 16 boutons, pavé Chaos, onglet FM-1, **Apprendre** et **profils**.
+- **Écran AUDIO** : enregistrer le master, des pistes, des retours ou l'entrée — **calé**, **boucle parfaite**, N mesures ou libre — avec une **chaîne de 4 effets** appliquée après ou pendant la prise, vers un pad, « Son traité » ou à la place de l'original.
+- **Éditeur d'échantillon** partout (appui long sur une piste) : sélection, fondus, rogner, et **Traiter…** hors temps réel.
+- **Restauration** (7 outils) : débruiteur, anti-ronflement, anti-clics, dé-esseur spectral, anti-plosives, anti-écrêtage, dé-réverb.
+- **Golem Titan FX** (9 effets haut de gamme) : réverbérations d'époque et de mixage, limiteur de mastering, écho créatif, saturations analogique et multibande, phaseur, flanger-doubleur, filtres.
+- **Courbes de l'écran SON** qui suivent le son et **se tirent au doigt** ; **compensation de latence** automatique avec son voyant.
+- **MIDI** : banque + changement de programme et CC 102 à 105 (effets des inserts) **par piste et par canal** ; voir l'[implémentation MIDI](docs/IMPLEMENTATION-MIDI.md).
+- **Nouvelle démo Tribe** au démarrage (180 BPM, scènes, vecteur en cercle, petit morceau prêt à jouer), à côté de la démo Techno.
+- **Fiabilité du son** : coups identiques d'une frappe à l'autre, oscillateurs et LFO qui repartent pareil (6 modes de déclenchement), boutons qui suivent les scènes.
 
 <table>
-<tr><td align="center" colspan="2"><a href="docs/img/v100/fm-player-ambre.jpg"><img src="docs/img/v100/fm-player-ambre.jpg" alt="FM Player"></a><br><b>FM Player</b> · l'écran du firmware, ses commandes, T1 à T4 sous le piano</td></tr>
-<tr><td align="center"><a href="docs/img/v100/fm-player-grand-telephone.jpg"><img src="docs/img/v100/fm-player-grand-telephone.jpg" alt="Mode Grand au téléphone"></a><br><b>Mode Grand · téléphone</b></td><td align="center"><a href="docs/img/v100/captures/pc-fm-sequence-pads.jpg"><img src="docs/img/v100/captures/pc-fm-sequence-pads.jpg" alt="Séquence T1 à T4 et pads dépliés"></a><br><b>Séquence · T1 à T4, pads dépliés</b></td></tr>
-<tr><td align="center"><a href="docs/img/v100/captures/pc-jeu-mute.jpg"><img src="docs/img/v100/captures/pc-jeu-mute.jpg" alt="Écran Jeu"></a><br><b>Écran Jeu</b> · Mute aux couleurs des pistes</td><td align="center"><a href="docs/img/v100/captures/tel-pads-mixeur.jpg"><img src="docs/img/v100/captures/tel-pads-mixeur.jpg" alt="Mixeur et pads dépliés, téléphone"></a><br><b>Mixeur + pads · téléphone</b></td></tr>
-<tr><td align="center" colspan="2"><a href="docs/img/v100/fm-player-fonds.jpg"><img src="docs/img/v100/fm-player-fonds.jpg" alt="Les quatre fonds"></a><br><b>Quatre fonds</b> · Ambre, Nuit, Émeraude, Sobre</td></tr>
+<tr><td align="center" colspan="2"><a href="docs/img/v110/pc-midi-piste.jpg"><img src="docs/img/v110/pc-midi-piste.jpg" alt="Piste MIDI"></a><br><b>Piste MIDI</b> · bandeau de l'appareil, 32 boutons CC en 4 sections, 16 pads</td></tr>
+<tr><td align="center"><a href="docs/img/v110/pc-audio.jpg"><img src="docs/img/v110/pc-audio.jpg" alt="Écran AUDIO"></a><br><b>Écran AUDIO</b> · sources, prise calée, chaîne d'effets</td><td align="center"><a href="docs/img/v110/pc-son-du-pas.jpg"><img src="docs/img/v110/pc-son-du-pas.jpg" alt="Son du pas"></a><br><b>Son du pas</b> · repère « S3 » sur le pas</td></tr>
+<tr><td align="center"><a href="docs/img/v110/pc-titan-pedalier.jpg"><img src="docs/img/v110/pc-titan-pedalier.jpg" alt="Golem Titan FX"></a><br><b>Golem Titan FX</b> · dans le pédalier</td><td align="center"><a href="docs/img/v110/pc-courbes.jpg"><img src="docs/img/v110/pc-courbes.jpg" alt="Courbes de l'écran SON"></a><br><b>Courbes</b> · points à tirer</td></tr>
+<tr><td align="center"><a href="docs/img/v110/tel-telecommande-mixage.jpg"><img src="docs/img/v110/tel-telecommande-mixage.jpg" alt="Télécommande : mixage"></a><br><b>Télécommande · Mixage</b></td><td align="center"><a href="docs/img/v110/tel-telecommande-chaos.jpg"><img src="docs/img/v110/tel-telecommande-chaos.jpg" alt="Télécommande : Chaos"></a><br><b>Télécommande · Chaos</b></td></tr>
 </table>
 
-<sub>M-VAVE et FM-1 sont des marques de leurs propriétaires respectifs. OFAD GOLEM n'est ni affilié, ni approuvé, ni sponsorisé par M-VAVE ; ces noms indiquent seulement la compatibilité avec les firmwares écrits pour le FM-1. Aucun logiciel d'origine de M-VAVE n'est fourni.</sub>
+**Version précédente** : [nouveautés de la 1.0.0](../../releases/tag/v1.0.0) (FM Player et firmwares libres pour le FM-1, nouveau workflow à une seule vue, écran Jeu, mode Grand…).
 
-**Version précédente** : [nouveautés de la 0.47.0](../../releases/tag/v0.47.0) (Good Doctor, Glutamake, plus de 2 400 sons d'usine, menus des pas, montage audio…).
+<sub>M-VAVE et FM-1 sont des marques de leurs propriétaires respectifs. OFAD GOLEM n'est ni affilié, ni approuvé, ni sponsorisé par M-VAVE ; ces noms indiquent seulement la compatibilité avec les firmwares écrits pour le FM-1. Aucun logiciel d'origine de M-VAVE n'est fourni.</sub>
 
 ---
 
@@ -84,7 +86,7 @@ vocodeurs, sampler de performance, échos à bande, réverbérations, compresseu
 
 - **Application Windows et Mac** (autonome), **plugins VST3 et AU** pour les logiciels de musique, **application Android** pour téléphone et tablette et version **iPhone / iPad** (essai), avec **contrôleur MIDI** USB ou Bluetooth prêt à jouer.
 - **Interface en français ou en anglais** (*English interface*) : la langue se choisit à l'installation sur Windows, au premier lancement sur Android, et se change dans Réglages.
-- **36 instruments**, **2432 sons d'usine**, **38 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
+- **38 instruments**, **2432 sons d'usine**, **54 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
 - **Vue live** pour le jeu en direct : crossfader ou **pavé vectoriel** à quatre scènes (formes en mouvement, taille, hauteur, rotation), console des 16 pistes avec faders, FX et M / S, et les **16 boutons assignables** avec leurs propres modulations.
 - Logiciel **libre** (AGPL-3.0) : les sources de chaque version sont fournies avec elle.
 
@@ -112,22 +114,24 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
 
 <p align="center"><i>Les repères numérotés sont expliqués dans la <a href="docs/NOTICE.md">notice</a>.</i></p>
 
-### 🎹 Les 37 instruments
+### 🎹 Les 38 instruments
 
 <p align="center">
   <img src="docs/img/galerie/instruments-1.jpg" alt="Instruments : batteries et basses">
   <img src="docs/img/galerie/instruments-2.jpg" alt="Instruments : polys, nappes, sampler">
   <img src="docs/img/galerie/instruments-3.jpg" alt="Instruments : synthés FM et drones">
   <img src="docs/img/galerie/instruments-4.jpg" alt="Instruments : vocodeurs, Pieuvre 8, entrée audio, Glutamake, Good Doctor">
+  <img src="docs/img/galerie/instruments-5.jpg" alt="Instruments : FM Player et Piste MIDI">
 </p>
 
-### 🎚️ Les 38 effets
+### 🎚️ Les 54 effets
 
 <p align="center">
   <img src="docs/img/galerie/effets-1.jpg" alt="Effets : égaliseurs et compresseurs">
   <img src="docs/img/galerie/effets-2.jpg" alt="Effets : saturations, échos, réverbérations">
   <img src="docs/img/galerie/effets-3.jpg" alt="Effets : modulations et filtres">
   <img src="docs/img/galerie/effets-4.jpg" alt="Effets : multi-effet et boucleur">
+  <img src="docs/img/galerie/effets-5.jpg" alt="Effets : Golem Titan FX et Restauration">
 </p>
 
 ---
@@ -143,6 +147,8 @@ contrôleur.
 - **Contrôleur MIDI prêt à jouer** : un clavier ou un contrôleur **USB** est reconnu tout seul, sans
   réglage (câble ou hub USB-C « OTG » ; on peut le brancher en cours de jeu). En **Bluetooth** :
   Réglages › « Appairer un contrôleur Bluetooth… ».
+- **Télécommande (1.1)** : le téléphone pilote GOLEM sur le PC, par câble USB ou en Wi-Fi, ou un appareil
+  MIDI branché : mixage, boutons, pavé Chaos, onglet FM-1.
 - **Tout s'apprend** : appui long sur un réglage, un bouton de synthé, une valeur, un M / S, le
   crossfader, une rangée › **Apprendre MIDI**, puis on touche la commande du contrôleur. Les 16 boutons
   assignables s'apprennent aussi : une rangée de boutons du contrôleur pilote tout ce qu'on leur confie.
@@ -237,10 +243,10 @@ contrôleur.
 ## 🎹 Instruments
 
 <details>
-<summary><b>Les 36 instruments</b> (cliquer pour déplier)</summary>
+<summary><b>Les 38 instruments</b> (cliquer pour déplier)</summary>
 
 <!-- CATALOGUE:INSTRUMENTS -->
-37 instruments, 2432 sons d'usine rangés par catégories. Le détail (vignettes, principe, sons par catégorie) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
+38 instruments, 2432 sons d'usine rangés par catégories. Le détail (vignettes, principe, sons par catégorie) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
 
 ### Batteries
 
@@ -324,6 +330,12 @@ contrôleur.
 |---|---|---|
 | **Entrée audio** | Entrée de la carte son ou de la piste du logiciel hôte, traitée par les effets de la piste | — |
 
+### MIDI externe
+
+| Instrument | Principe | Sons d'usine |
+|---|---|---|
+| **Piste MIDI** | Joue un appareil MIDI externe : notes, CC, programme, avec le séquenceur, les verrous et les effets MIDI | — |
+
 <!-- /CATALOGUE:INSTRUMENTS -->
 
 </details>
@@ -331,10 +343,10 @@ contrôleur.
 ## 🎚️ Effets
 
 <details>
-<summary><b>Les 38 effets</b> (cliquer pour déplier)</summary>
+<summary><b>Les 54 effets</b> (cliquer pour déplier)</summary>
 
 <!-- CATALOGUE:EFFETS -->
-38 effets. Le détail (vignettes, principe) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
+54 effets. Le détail (vignettes, principe) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
 
 ### Égaliseurs
 
@@ -414,6 +426,32 @@ contrôleur.
 | **Sculptor** | 9 effets pilotés chacun par sa courbe (14 formes, 1/16 à 4 mesures, au tempo ou à chaque attaque), sur tout le son ou une bande | 20 |
 | **Infinity** | Pédale de boucle : enregistrer, fermer, surcouches, arrêt, effacement ; longueur calée sur les mesures, vitesse, envers | 20 |
 
+### Restauration
+
+| Effet | Principe | Préréglages |
+|---|---|---|
+| **Débruiteur** | Spectral : bruit estimé (statistiques minimales), appris ou figé, gain sans bruit musical ; latence 43 ms en direct, compensée au traitement | 4 |
+| **Anti-ronflement** | Coupe-bandes très étroits sur le 50 ou 60 Hz du secteur et ses harmoniques, fondamentale détectée ; sans latence | 4 |
+| **Anti-clics** | Modèle autorégressif : clics détectés sur le résidu de prédiction, trous comblés par interpolation ; latence 21 ms en direct, compensée au traitement | 4 |
+| **Dé-esseur spectral** | Sifflantes atténuées dans leur bande seulement, quand elles dépassent : mode filtres sans latence, ou spectral (21 ms en direct) | 5 |
+| **Anti-plosives** | Bouffées graves détectées (consonnes explosives, souffle sur le micro), coupe-bas dynamique ; sans latence | 3 |
+| **Anti-écrêtage** | Redessine les crêtes coupées d'un son saturé ; qualité maximale au traitement (reconstruction cohérente), version légère en direct (11 ms) | 3 |
+| **Dé-réverb** | Réduit l'écho d'une pièce : prédiction linéaire pondérée au traitement, suppression de la queue en direct (43 ms) | 4 |
+
+### Golem Titan FX
+
+| Effet | Principe | Préréglages |
+|---|---|---|
+| **Titan Vintage** | 12 réverbérations numériques des années 70–80 et 3 couleurs d'époque (1970 à mi-fréquence, 1980 bruitée, Maintenant propre) ; sans latence | 10 |
+| **Titan Espace** | Un bouton Espace (pièce → grande salle), durée réglée par bande dans la boucle (grave, médium, aigu), égaliseur de sortie, ducking ; sans latence | 8 |
+| **Titan Limiteur** | 8 styles de limitation (transparent à agressif, bus, sûr), anticipation 0–5 ms compensée, crête vraie, lien des voies, suréchantillonnage, écoute à gain unité | 7 |
+| **Titan Écho** | Deux lignes à bande (libres ou au tempo), réinjection croisée, ping-pong, temps « bande » ou « étirement » ; dans la boucle : 2 filtres, saturation, basse-fidélité, diffusion, hauteur ; ducking, gel | 9 |
+| **Titan Décapiteur** | 5 circuits (magnétophone à lampes, console, germanium, triode, pentode) ; coupe-bas, bosse et tonalité avant, coupe-haut doux ou raide après ; punition, gain auto ; sans latence | 9 |
+| **Titan Saturne** | 1 à 4 bandes (Linkwitz-Riley recalées en phase), 16 styles par bande (lampes, bandes, transformateur, amplis, repli, bits, fuzz…), réinjection, dynamique, tonalité ; sans latence | 9 |
+| **Titan Phaseur** | 2 à 24 étages passe-tout, 8 styles de circuits, résonance, couleur, saturation ; LFO, rythme, pas, aléatoire, enveloppe, déclenchée ; sans latence | 9 |
+| **Titan Flanger-Doubleur** | Flanger à deux bandes (auto, manuel, VSO à servo, enveloppe), polarité, passage par zéro (5 ms de latence), régénération ; doubleur de voix et doublage auto à 3 ms sans peigne | 8 |
+| **Titan Filtre** | 2 filtres (série, parallèle, stéréo), 8 types, 6 à 48 dB/oct, auto-oscillation, 9 styles non linéaires ; LFO, rythme, suiveur, aléatoire, déclenchée ; saturation à 7 styles ; sans latence | 9 |
+
 <!-- /CATALOGUE:EFFETS -->
 
 </details>
@@ -445,28 +483,26 @@ In English: **[Manual (PDF)](docs/NOTICE-EN.pdf)** · [text version](docs/NOTICE
 **OFAD GOLEM** is a complete groovebox for your computer, phone or tablet, made for all electronic music
 (techno, house, acid, hardtek, drum & bass, electro, ambient, beatmaking…). It follows the workflow of
 standalone pad-based production stations: 16 tracks, 16 pads, patterns launched like clips, scenes on a
-crossfader, song mode and audio editing. Its **37 instruments** and **38 effects** follow the architecture of
+crossfader, song mode and audio editing. Its **38 instruments** and **54 effects** follow the architecture of
 the machines that made this music, rebuilt from scratch with their own names, panels and sounds. The whole
 interface is available **in English** (choose it when installing on Windows, at first launch on Android, or in
 Settings). Free software (AGPL-3.0).
 
-**What's new in 1.0.0 — the FM Player and a new workflow**:
-- **New workflow, a single view** (computer, tablet, phone): the screen takes all the space, a rail gives the 8 screens, **Live**, **Play view**, Play / Stop and Rec; **fold-out pads** on every screen; **Play view** (pads, Mute / Solo of the 16 tracks in track colours, 16 knobs, Fill / Break, crossfader, tempo); patterns and rows on the MIDI controller with a long press.
-- New **FM Player** instrument: it **emulates the processor of the M-VAVE FM-1 synth box** and runs its **firmwares** (`.fwsc` files) inside GOLEM, with **the box's live screen** and all its controls.
-- **15 free firmwares included** (Felucca, sloopDX, SLOOP, Melodee, JIANT FM, X0X, FIZZ, MYCELIUM, GR!MM, FM-106, OberVave, FMini-1, Frodhes, B1, zp12), with their authors, licences and sources; **Firmware…** loads any other `.fwsc`.
-- **Four tracks T1 to T4** as on Pieuvre 8: one MIDI channel per track, written in **Acid**, **Locks** or the **SEQUENCE** screen.
-- **The box's 8 controls and 14 keys** on your MIDI controller with a **long press** (or right-click), and under the 8 encoders; knobs from **0 to 100 %**, with a travel set knob by knob.
-- **MIDI clock** sent to the firmware, so its sequencers follow GOLEM's tempo; notes from the piano, pads and any controller.
-- **Big mode** for phones and tablets (screen, large knobs, piano, T1 to T4 with M / S and a step row), knobs you can **turn**, **four backgrounds** (Amber, Night, Emerald, Plain).
-- **Everywhere**: **gliding locks** (settings travel from one step to the next) and **muted locks** (switched off and on with one touch, without deleting them); **one MIDI channel per T** on Pieuvre 8 and the FM Player, keyboard across all its octaves.
-- **Android**: after a crash at launch, the app restarts **without reopening the session** (kept aside) and explains what happened.
+**What's new in 1.1.0 — MIDI track, remote, AUDIO screen**:
+- **MIDI track**: GOLEM **plays your external synths and drum machines** with its sequencer, locks, scenes and MIDI effects (arpeggiator, chord, scale, note echo). Device · Send · Receive · Bank · Sound bar, **32 CC knobs** in 4 renamable sections (with **Learn**), **16 pads** (CC held, on / off, steps, note). USB everywhere, Bluetooth MIDI on phones, tablets and Mac.
+- **Step sound**: each step can play **another preset** of the instrument (or another sound of the MIDI device, bank included), then the track goes back to its sound.
+- **Remote**: the phone controls GOLEM on the PC (**USB cable or Wi-Fi**, no driver) or a MIDI device: mix, 16 knobs, Chaos pad, FM-1 tab, **Learn** and **profiles**.
+- **AUDIO screen**: record the master, tracks, returns or the input — **synced**, **perfect loop**, N bars or free — with a **4-effect chain** applied after or during the take, into a pad, "Processed sound" or in place of the original.
+- **Sample editor** everywhere (long press on a track): selection, fades, trim, and offline **Process…**.
+- **Restoration** (7 tools): denoiser, de-hum, de-click, spectral de-esser, de-plosive, de-clip, de-reverb.
+- **Golem Titan FX** (9 high-end effects): vintage and mixing reverbs, mastering limiter, creative echo, analogue and multiband saturation, phaser, flanger-doubler, filters.
+- **SOUND screen curves** that follow the sound and **can be dragged**; automatic **latency compensation** with its indicator.
+- **MIDI**: bank + program change and CC 102 to 105 (insert effects) **per track and channel**; see the [MIDI implementation](docs/MIDI-IMPLEMENTATION.en.md).
 
-<sub>M-VAVE and FM-1 are trademarks of their respective owners. OFAD GOLEM is not affiliated with, endorsed or sponsored by M-VAVE; these names only state compatibility with firmware written for the FM-1. No original M-VAVE software is included.</sub>
-
-Previous release: [what's new in 0.47.0](../../releases/tag/v0.47.0) (Good Doctor, Glutamake, over 2,400 factory sounds, step menus, audio editing…).
+Previous release: [what's new in 1.0.0](../../releases/tag/v1.0.0) (FM Player and free FM-1 firmwares, single-view workflow, Play view, Big mode…).
 
 <p align="center">
-  <b><a href="../../releases/tag/v1.0.0">Download 1.0.0 (Windows · Mac · Android · iPhone)</a></b> ·
+  <b><a href="../../releases/tag/v1.1.0">Download 1.1.0 (Windows · Mac · Android · iPhone)</a></b> ·
   <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
   <b><a href="docs/CATALOGUE.pdf">Catalogue (PDF)</a></b>
 </p>
@@ -550,8 +586,8 @@ latence (AAudio) ; un appui long vaut un clic droit ; un contrôleur MIDI USB br
 GROOVEBOX/
 ├── src/
 │   ├── engine/        moteur : pistes, séquenceur, scènes, morceau, modulations
-│   ├── instruments/   les 37 instruments
-│   ├── effects/       les 38 effets
+│   ├── instruments/   les 38 instruments
+│   ├── effects/       les 54 effets
 │   ├── dsp/, synth/   briques de traitement et de synthèse
 │   ├── Montage.*      montage audio
 │   └── Plugin*.*      processeur et fenêtre JUCE
