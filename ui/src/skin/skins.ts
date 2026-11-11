@@ -133,6 +133,7 @@ const RACK_FAMILY: Record<string, RackSkin> = {
   "Saturation": { tex: "v3-metal-noir", knob: "chrome", ink: "light" },
   "Modulation": { tex: "alu-sombre", knob: "noir", ink: "light" },
   "Filtres et performance": { tex: "alu-sombre", knob: "noir", ink: "light" },
+  "Restauration": { tex: "alu-brosse", tint: "oklch(0.5 0.035 205)", knob: "noir", ink: "light" }, // 1.1 : outils de nettoyage, acier bleuté
 };
 export const RACK_SKINS: Record<string, RackSkin> = {
   opto:      { tex: "alu-brosse", knob: "noir", ink: "dark", vu: true },                                  // optique : alu brossé, 2 gros boutons, vumètre
@@ -220,6 +221,9 @@ export const MODULE_SKINS: Record<string, ModuleSkin> = {
   mband:  { tex: "v3-metal-noir", knob: "chrome", accent: "#f2a33a" },                                // Quartet : métal noir, ambre
   stepfx: { tex: "alu-sombre", tint: "oklch(0.5 0.01 140)", knob: "poly", accent: "#9be15d" },                                 // Hopscotch : aluminium anthracite
   atmos:  { tex: "alu-brosse", tint: "oklch(0.3 0.04 285)", knob: "chrome", accent: "#b39bff" },     // Atmosphere : alu violet profond
+  // 1.1 : famille « Golem Titan FX » : métal noir, boutons chromés, filet or (la gamme haut de gamme)
+  ...Object.fromEntries(["tvintage", "tspace", "tlimit", "techo", "tdecap", "tsaturn", "tphaser", "tflange", "tfilter"]
+    .map((t) => [t, { tex: "v3-metal-noir" as Texture, knob: "chrome" as KnobName, accent: "#d9b45a" }])),
 };
 export function moduleSkinStyle(type: string): { skin: ModuleSkin; style: CSSProperties } {
   const s = MODULE_SKINS[type] ?? { tex: "alu-sombre" as Texture, knob: "noir" as KnobName, accent: "#e9b949" };
@@ -240,16 +244,25 @@ export function fm1FondStyle(f: Fm1Fond): CSSProperties {
   const emb = (pale: boolean) => (d.emb ? `url("${abs(`skin/sk-fm1-embleme-${d.emb}${pale ? "-pale" : ""}.svg`)}")` : "none");
   return { "--fm1-c1": d.c1, "--fm1-c2": d.c2, "--fm1-emb": emb(false), "--fm1-emb-pale": emb(true), "--fm1-tex": img("t-alu-brosse") } as CSSProperties;
 }
-// choix gardé sur l'appareil (clé locale « grv.fm1Fond » ; ambre par défaut), partagé par la façade et le mode Grand
+// 1.1 : un fond PAR PISTE (plusieurs FM Player, chacun sa couleur), gardé sur l'appareil :
+// clé locale « grv.fm1Fond.t<piste> » ; une piste jamais réglée prend le dernier fond choisi
+// (« grv.fm1Fond », ambre au départ). Partagé par la façade et le mode Grand de la même piste.
 const FOND_KEY = "grv.fm1Fond";
-let fondNow: Fm1Fond = (() => { try { const v = localStorage.getItem(FOND_KEY); if (v && v in FM1_FONDS) return v as Fm1Fond; } catch { /* stockage absent */ } return "ambre"; })();
+const readFond = (k: string): Fm1Fond | null => { try { const v = localStorage.getItem(k); if (v && v in FM1_FONDS) return v as Fm1Fond; } catch { /* stockage absent */ } return null; };
+let fondLast: Fm1Fond = readFond(FOND_KEY) ?? "ambre";
+const fondByTrack = new Map<number, Fm1Fond>();
 const fondListeners = new Set<() => void>();
-export function fm1Fond(): Fm1Fond { return fondNow; }
-export function setFm1Fond(f: Fm1Fond) {
-  fondNow = f;
-  try { localStorage.setItem(FOND_KEY, f); } catch { /* stockage absent */ }
+export function fm1Fond(track: number): Fm1Fond {
+  let f = fondByTrack.get(track);
+  if (!f) { f = readFond(`${FOND_KEY}.t${track}`) ?? fondLast; fondByTrack.set(track, f); }
+  return f;
+}
+export function setFm1Fond(f: Fm1Fond, track: number) {
+  fondByTrack.set(track, f);
+  fondLast = f;
+  try { localStorage.setItem(`${FOND_KEY}.t${track}`, f); localStorage.setItem(FOND_KEY, f); } catch { /* stockage absent */ }
   fondListeners.forEach((l) => l());
 }
-export function useFm1Fond(): Fm1Fond {
-  return useSyncExternalStore((l) => { fondListeners.add(l); return () => { fondListeners.delete(l); }; }, () => fondNow);
+export function useFm1Fond(track: number): Fm1Fond {
+  return useSyncExternalStore((l) => { fondListeners.add(l); return () => { fondListeners.delete(l); }; }, () => fm1Fond(track));
 }
