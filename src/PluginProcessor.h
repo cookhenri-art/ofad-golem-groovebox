@@ -15,12 +15,18 @@
 
 #pragma once
 
+#include "engine/OfflineChain.h"
+#include <deque>
+#include <map>
+#include <thread>
+
 #include <JuceHeader.h>
 
 #include "engine/Engine.h"
 #include "Recorder.h"
 #include "Montage.h"
 #include "AndroidPerfHint.h"
+#include "WifiRemote.h"
 
 #include <algorithm>
 #include <vector>
@@ -76,7 +82,7 @@ public:
 
     const juce::String getName() const override { return JucePlugin_Name; }
     bool acceptsMidi() const override { return true; }
-    bool producesMidi() const override { return false; }
+    bool producesMidi() const override { return true; } // après la 1.1 : pistes MIDI (appareils externes)
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 8.0; }
 
@@ -100,6 +106,8 @@ public:
 
     /** Charge un fichier audio (octets bruts) dans une piste. Renvoie un message d'erreur ou vide. */
     juce::String loadSample (int track, int index, const juce::String& fileName, juce::MemoryBlock fileBytes);
+    /** 1.1 : échantillon déposé par l'utilisateur sur un pad de synthèse : déclin au maximum (lecture entière). */
+    void openSampleDecay (int track, int index);
     /** Projet complet en XML (réglages globaux, structure, séquences, échantillons). */
     /** asTemplate (v0.46) : modèle — réglages, sons et effets gardés, patterns, verrous et morceau retirés. */
     bool writeProjectFile (juce::OutputStream& out, bool asTemplate = false);
@@ -131,6 +139,26 @@ public:
     /** v0.41 : copie d'une partie d'un échantillon (fractions a..b) vers un autre emplacement, de
         n'importe quelle piste (réserve commune de Pieuvre 8). */
     juce::String copySampleRegion (int fromTrack, int fromIndex, double a, double b, int toTrack, int toIndex);
+
+    // 1.1 (lots 1 et 2) : TRAITER un échantillon par une chaîne de 4 effets, hors temps réel
+    /** Lance le traitement de l'emplacement (track, index) sur la sélection [a, b] (fractions ; 0..1 :
+        tout le son). chain : tableau d'objets { type, values (réglages réels), bypass }. preview :
+        le résultat n'est que pré-écouté ; sinon il remplace l'échantillon (version précédente gardée
+        pour Annuler). keepOriginal : copie de l'original dans « Son traité/Originaux ». */
+    juce::String procStart (int track, int index, double a, double b, const juce::var& chain, bool keepTail, bool preview, bool keepOriginal);
+    /** État du traitement en cours ou du dernier ; applique le résultat quand il est prêt (fil de l'interface). */
+    juce::var procStatus();
+    void procCancel();
+    /** Pré-écoute : rejoue le dernier résultat (play) ou l'arrête. */
+    void procAudition (bool play);
+    /** Annuler le dernier remplacement de cet emplacement (8 versions gardées). */
+    juce::String sampleUndo (int track, int index);
+    int sampleUndoCount (int track, int index) const;
+    /** « Son traité » : dossier des sons traités (ordinateur : Documents/Groovebox/Son traité ;
+        Android : Musique/Groovebox/Son traité). */
+    static juce::File processedFolder();
+    /** Lit une chaîne d'effets venue de l'interface (bornée : 4 emplacements, 256 réglages). */
+    static std::vector<engine::ChainSlot> parseChain (const juce::var& chain);
     /** v0.33 : prises de son des vocodeurs terminées → échantillon 1 de la piste (fil de l'interface). */
     void keepVoiceCaptures();
 
@@ -140,6 +168,15 @@ public:
     juce::String audioRecStart (int mode, int format, int follow);   // follow : 0 libre, 1 calée, 2 boucle parfaite ; vide si la prise a démarré, sinon le message
     void audioRecStop();
     /** v0.46.2 : fil de l'interface (minuteur) : range la prise calée finie d'elle-même. */
+    /** 1.1 (lot 3) : prise de l'écran AUDIO (sources cochées, chaîne de 4 effets, destination). */
+    juce::String audioRecStartEx (const juce::var& options);
+    /** 1.1 (lot 3) : le fichier de la dernière prise (traité si possible) va dans ce pad (annulable). */
+    juce::String audioRecToPad (int track, int index);
+    /** 1.1 (lot 3) : « Écouter le traitement » : la sortie principale passe dans cette chaîne (latence
+        comprise) ; chaîne vide : arrêt. La prise, elle, reste le son d'origine. Renvoie la latence (ms). */
+    double setMonitorChain (const juce::var& chain);
+    /** 1.1 : écoute de l'écran AUDIO limitée à ce qu'on enregistre (pistes, retours, entrée) ; off : tout. */
+    void setMonitorSources (const juce::var& sources);
     void audioRecTick();
     juce::String audioRecStatus() const { return recorder.statusJson(); }
     bool audioRecReveal();                               // ouvre le dossier de la dernière prise (ordinateur)
@@ -246,6 +283,70 @@ public:
                       midiUiBase = -700 };    // v0.46 fix24 : -700 - n : valeur d'un écran pilotée par l'interface (64 au plus)
     static constexpr int numBusTargets = engine::numChannels - engine::numTracks;
     static constexpr int numKnobs = 16, numUiCtl = 64;
+    /** 1.1 : une télécommande (téléphone) a parlé depuis l'ouverture. */
+    std::atomic<bool> remoteSeen { false };
+    // 1.1 : retour vers la télécommande (application autonome) : sortie MIDI du même nom que l'entrée
+    // qui a dit « bonjour », valeurs déjà envoyées (pour n'envoyer que les changements), noms des pistes
+    void remoteFeedbackTick();
+    // 1.1 : changement de programme sur le canal d'une piste → préréglage d'usine n° N de son instrument
+    // (sélection de banque CC 0 : 0 = instrument, 1 à 4 = effet de l'insert 1 à 4) ; appliqué par le fil des messages
+    std::array<std::atomic<int>, engine::numTracks> pendingPreset {};
+    std::array<int, 16> bankMsb {}, bankLsb {};   // 1.1 : banque (CC 0 / CC 32) par canal — fil audio seulement
+    void presetRequestsTick();
+    void soundPoolTick(); // après la 1.1 : sons du pas (préréglages verrouillés sur des pas) résolus pour le fil audio
+    double lastSoundPoolMs = 0.0;
+    std::string lastSoundSig;
+public:
+    std::atomic<int> userPresetGen { 0 }; // après la 1.1 : préréglages de l'utilisateur changés (sons du pas à relire)
+    /** Après la 1.1 : valeurs (identifiant, valeur réelle) et nom du son n° prog + 1 d'un module ; faux s'il n'existe pas. */
+    static bool presetByNumber (const engine::ModuleDesc& d, int prog, std::vector<std::pair<std::string, float>>& values, juce::String& name);
+private:
+    void remoteSendAll (const std::vector<uint8_t>& m); // vers la télécommande (câble et Wi-Fi)
+    std::unique_ptr<grv::WifiServer> wifi;               // 1.1 : télécommande par le Wi-Fi (PC)
+    int wifiHelloSeen = 0;
+public:
+    /** 1.1 : télécommande Wi-Fi : écouter ou non (application autonome) ; adresses de l'appareil. */
+    bool setWifiRemote (bool on);
+    bool wifiRemoteOn() const { return wifi != nullptr && wifi->running(); }
+    uint32_t remoteInstanceId() const noexcept { return remoteId; }
+private:
+    const uint32_t remoteId = (uint32_t) juce::Random::getSystemRandom().nextInt (0x0FFFFFFF) + 1u;
+public:
+    std::unique_ptr<juce::MidiOutput> remoteBack;
+    juce::String remoteBackName;
+    int remoteHelloSeen = 0, remoteTicks = 0;
+    bool remoteListening = false;
+    std::vector<int> remoteSent;
+    // 1.1 : traitement hors temps réel d'un échantillon (fil à part) et historique des remplacements
+    struct ProcJob
+    {
+        std::atomic<bool> busy { false }, cancel { false }, ready { false };
+        std::atomic<float> progress { 0.0f };
+        int track = -1, index = -1; bool preview = false, keepOriginal = false, applied = false;
+        juce::String error, name;
+        double rate = 48000.0; int latency = 0, tail = 0;
+        std::vector<float> l, r;  // résultat complet (son entier, sélection traitée)
+    };
+    std::unique_ptr<ProcJob> proc = std::make_unique<ProcJob>();
+    std::atomic<engine::OfflineChain*> monitorChain { nullptr };   // 1.1 (lot 3) : écoute du traitement
+    std::atomic<int> monitorBusy { 0 };
+    double monitorMs = 0.0;                                         // 1.1 : latence de la chaîne d'écoute (fil de l'interface)
+    juce::MidiBuffer midiOutBuf;
+    std::array<std::uint32_t, 128> sentKey {};                      // après la 1.1 : derniers messages envoyés (anti-boucle)
+    std::array<double, 128> sentAt {};
+    int sentHead = 0;                                    // après la 1.1 : sortie MIDI du bloc (pistes MIDI)
+    std::atomic<int> lastCcIn { -1 }, lastCcSeq { 0 };               // après la 1.1 : dernier CC reçu ((canal << 8) | numéro)
+    std::thread procThread;
+    std::shared_ptr<engine::SampleBuffer> auditionHold, auditionPrev;
+    struct SampleVersion { juce::String name; std::shared_ptr<const std::vector<std::uint8_t>> bytes; };
+    std::map<int, std::deque<SampleVersion>> sampleHistory; // clé : track * maxSamples + index
+    void pushSampleVersion (int track, int index);
+    std::array<int, 2> remoteVecShown { -1, -1 };                   // 1.1 : dernière position jouée du pavé envoyée
+    std::array<std::string, engine::numChannels> remoteNames {};   // pistes puis groupes (noms)
+    std::array<std::string, numKnobs> remoteKnobLabels {};
+    std::array<std::string, engine::numTracks> remotePresets {};    // 1.1 : préréglages de chaque piste (instrument et inserts)
+    std::array<uint8_t, engine::numChannels> remoteLevels {};        // pistes, principal, retours, groupes
+    juce::String remoteTargetLabel (int target, juce::String& sub, int& color) const; // 1.1 : libellé d'un bouton assignable
     /** v0.46 fix24 : réglages globaux pilotables (MIDI, boutons assignables), dans cet ordre (ne pas réordonner :
         les numéros sont gardés dans les projets et les affectations MIDI). */
     static juce::String hostCtlId (int h)

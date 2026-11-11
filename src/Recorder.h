@@ -21,6 +21,7 @@
 #pragma once
 
 #include "engine/Engine.h"
+#include "engine/OfflineChain.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 
@@ -42,6 +43,37 @@ public:
     ~Recorder() override;
 
     struct TrackInfo { int index = 0; juce::String name; };
+
+    /** 1.1 (lot 3) : écran AUDIO. Réglages de la prise suivante (fil de l'interface, AVANT start ;
+        effacés à l'arrêt). Sans eux, start() garde le fonctionnement d'avant (Master / pistes / les deux).
+          - sources : le master, le master traité (passé dans la chaîne), les pistes cochées (un fichier
+            chacune, ou une seule somme), les retours cochés ;
+          - chaîne de 4 effets, appliquée après la prise (qualité maximale, la prise brute reste) ou
+            pendant (au fil de l'écriture, recalée : le fichier traité est prêt à l'arrêt) ;
+          - destination : 0 le dossier de la prise, 1 « Son traité », 2 un pad, 3 remplacer l'original
+            (2 et 3 : le fichier résultat est chargé par le processeur, voir resultFile). */
+    struct TakeOptions
+    {
+        bool custom = false;
+        bool master = true, masterTreated = false;
+        std::uint32_t trackMask = 0;
+        bool sumTracks = false;
+        std::uint32_t returnMask = 0;
+        bool input = false;              // l'entrée audio (micro / ligne)
+        std::vector<engine::ChainSlot> chain;
+        bool during = false;
+        int dest = 0;
+        bool float32 = false;
+        double barsQuarters = 0.0;       // > 0 : la prise calée s'arrête seule après ce nombre de noires
+        juce::File treatedRoot;          // dossier « Son traité »
+        juce::String project;            // nom du projet (noms des fichiers traités)
+        double bpm = 120.0;
+    };
+    void setTakeOptions (TakeOptions o) { if (! active.load()) opt = std::move (o); }
+    /** Fichier à charger dans un pad après la prise (traité si possible) ; vide s'il n'y en a pas. */
+    juce::File resultFile() const;
+    bool isProcessing() const noexcept { return processing.load(); }
+    int lastDest() const noexcept { return doneDest.load(); }
 
     /** Fil de l'interface. Ouvre les fichiers puis arme la prise. Faux (et message) si impossible. */
     bool start (Mode mode, Format format, double sampleRate, const std::vector<TrackInfo>& tracks,
@@ -114,6 +146,7 @@ public:
     }
     /** v0.46.2 : fin du morceau à cette position (fil audio, avant tapPosition/tapBlock du bloc). */
     void tapStopAt (double ppq) noexcept override;
+    void tapInput (const float* inL, const float* inR) noexcept override { inPtrL = inL; inPtrR = inR != nullptr ? inR : inL; }
     void tapBlock (const float* outL, const float* outR,
                    const float* const* tracksL, const float* const* tracksR, std::uint32_t trackMask,
                    const float* const* returnsL, const float* const* returnsR, int n) noexcept override;
@@ -123,10 +156,18 @@ private:
     {
         std::unique_ptr<juce::AudioFormatWriter::ThreadedWriter> writer;
         juce::File file;
+        juce::String label;      // 1.1 : « Master », « P03 Basse », « Pistes », « Retour A »
+        int kind = 0;            // 1.1 : 0 master, 1 master traité, 2 piste, 3 somme, 4 retour, 5 entrée
+        bool treated = false;    // 1.1 : écrit traité (chaîne « pendant la prise »)
     };
+    struct Taken { juce::File file; juce::String label; int kind = 0; bool treated = false; };
+    std::vector<Taken> taken;                          // 1.1 : fichiers de la prise qu'on range (sous le verrou)
+    bool takenLoop = false, takenKeepLength = false;
 
     void closeAll();
     void encodeAll();
+    void postAll();                                    // 1.1 : traitement après la prise, rangement, MP3
+    bool processFile (const juce::File& raw, const juce::File& out, bool loop, bool keepLength, float base, float span, juce::String& err);
 
     juce::TimeSliceThread writerThread { "Groovebox · enregistrement audio" };
     std::vector<Stream> streams;                       // fixé avant d'armer, inchangé pendant la prise
@@ -154,6 +195,19 @@ private:
     std::atomic<double> stopAtPpq { -1.0 };            // v0.46.2 : arrêt demandé (noires) ; < 0 : aucun
     std::atomic<double> nowPpq { 0.0 };                // v0.46.2 : position lue par le fil de l'interface
     std::atomic<bool> nowPlaying { false };
+
+    // 1.1 (lot 3)
+    TakeOptions opt, post;                             // opt : prochaine prise ; post : celle qu'on range
+    int masterTreatedStream = -1, sumStream = -1, inputStream = -1;
+    const float* inPtrL = nullptr; const float* inPtrR = nullptr;   // fil audio : entrée du bloc
+    std::vector<int> treatedStreams;                   // flux écrits traités « pendant la prise »
+    std::array<float, engine::controlBlock> sumL {}, sumR {};
+    std::atomic<double> barsLimit { 0.0 };
+    std::atomic<bool> processing { false };
+    std::atomic<int> doneDest { 0 };
+    juce::File treatedDir, result;                     // sous le verrou
+    juce::StringArray treatedFiles;
+    juce::String treatedShown;
 
     std::atomic<bool> active { false };
     std::atomic<int> busy { 0 };                       // blocs du fil audio en cours d'écriture

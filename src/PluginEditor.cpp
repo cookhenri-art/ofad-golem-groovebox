@@ -4,8 +4,10 @@
 
 #include "PluginEditor.h"
 #include "StandaloneInput.h"
+#include "engine/RemoteProtocol.h"
 #include "engine/Bridge.h"
 #include "UserPresets.h"
+#include "engine/PresetOrder.h" // après la 1.1 : noms des sons d'une piste (son du pas)
 #include "Folders.h"
 #include "PerfStats.h"
 #include "instruments/FmPlayer.h"
@@ -170,6 +172,105 @@ struct SampleImport
 //==============================================================================
 /** v0.46 fix30 : langue choisie par l'utilisateur (données de l'application : %APPDATA% sous Windows,
     dossier privé de l'application sous Android). */
+/** 1.1 : sortie MIDI de la télécommande / de l'appareil branché (fil des messages seulement). */
+static std::unique_ptr<juce::MidiOutput>& remoteMidiOut()
+{
+    static std::unique_ptr<juce::MidiOutput> out;
+    return out;
+}
+/** 1.1 : entrée MIDI du même nom (retour du PC vers le téléphone : état, noms des pistes). */
+struct RemoteInCallback final : juce::MidiInputCallback
+{
+    void handleIncomingMidiMessage (juce::MidiInput*, const juce::MidiMessage& m) override
+    {
+        grv::pushLearn (m.getRawData(), m.getRawDataSize()); // 1.1 : « Apprendre » (armé seulement)
+        if (! m.isSysEx()) return;
+        const auto* d = m.getSysExData();
+        const auto n = (size_t) m.getSysExDataSize();
+        if (remote::isFeedback (d, n)) grv::remoteIn().push (d, n);
+    }
+};
+static std::unique_ptr<juce::MidiInput>& remoteMidiIn()
+{
+    static std::unique_ptr<juce::MidiInput> in;
+    return in;
+}
+static RemoteInCallback& remoteInCallback() { static RemoteInCallback cb; return cb; }
+
+/** 1.1 : télécommande Wi-Fi, côté téléphone : recherche des GOLEM du réseau, envoi, réception de l'état. */
+class WifiClient final : private juce::Thread
+{
+public:
+    WifiClient() : juce::Thread ("GOLEM Wi-Fi client") {}
+    ~WifiClient() override { close(); }
+    struct Found { juce::String ip, name; uint32_t id = 0; };
+
+    bool ensure()
+    {
+        if (isThreadRunning()) return true;
+        sock = std::make_unique<juce::DatagramSocket> (true);
+        if (! sock->bindToPort (0)) { sock.reset(); return false; }
+        startThread();
+        return true;
+    }
+    void close()
+    {
+        signalThreadShouldExit();
+        if (sock != nullptr) sock->shutdown();
+        stopThread (2000);
+        sock.reset();
+        const juce::SpinLock::ScopedLockType l (lock);
+        target.clear(); found.clear();
+    }
+    /** « Bonjour » diffusé sur le réseau (et à une adresse donnée à la main). */
+    void scan (uint32_t ownId, const juce::String& manualIp)
+    {
+        if (! ensure()) return;
+        { const juce::SpinLock::ScopedLockType l (lock); found.clear(); }
+        std::vector<uint8_t> h { remote::manufacturer, remote::id0, remote::id1, remote::version, remote::cmdHello, 0 };
+        grv::putId (h, ownId);
+        sock->write ("255.255.255.255", grv::wifiRemotePort, h.data(), (int) h.size());
+        if (manualIp.isNotEmpty()) sock->write (manualIp, grv::wifiRemotePort, h.data(), (int) h.size());
+    }
+    std::vector<Found> list() { const juce::SpinLock::ScopedLockType l (lock); return found; }
+    void setTarget (const juce::String& ip) { const juce::SpinLock::ScopedLockType l (lock); target = ip; }
+    juce::String getTarget() { const juce::SpinLock::ScopedLockType l (lock); return target; }
+    juce::String nameOf (const juce::String& ip) { const juce::SpinLock::ScopedLockType l (lock); for (auto& f : found) if (f.ip == ip) return f.name; return {}; }
+    void send (const uint8_t* d, size_t n)
+    {
+        const auto t = getTarget();
+        if (t.isNotEmpty() && sock != nullptr && n > 0 && n <= 1400) sock->write (t, grv::wifiRemotePort, d, (int) n);
+    }
+
+private:
+    void run() override
+    {
+        std::array<uint8_t, 1500> buf {};
+        while (! threadShouldExit() && sock != nullptr)
+        {
+            if (sock->waitUntilReady (true, 250) != 1) continue;
+            juce::String ip; int port = 0;
+            const auto n = (size_t) juce::jmax (0, sock->read (buf.data(), (int) buf.size(), false, ip, port));
+            const auto* d = buf.data();
+            if (n < 5 || ! grv::isLocalNetworkAddress (ip) || ! remote::isRemote (d, n)) continue;
+            if (d[4] == grv::cmdAnnounce && n >= 9)
+            {
+                const juce::SpinLock::ScopedLockType l (lock);
+                bool known = false;
+                for (auto& f : found) if (f.ip == ip) known = true;
+                if (! known) found.push_back ({ ip, grv::getText (d + 9, n - 9), grv::getId (d + 5) });
+            }
+            else if (remote::isFeedback (d, n) && ip == getTarget())
+                grv::remoteIn().push (d, n);
+        }
+    }
+    std::unique_ptr<juce::DatagramSocket> sock;
+    juce::SpinLock lock;
+    juce::String target;
+    std::vector<Found> found;
+};
+static WifiClient& wifiClient() { static WifiClient c; return c; }
+
 static juce::File userLangFile()
 {
     return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile ("OFAD GOLEM").getChildFile ("language.txt");
@@ -436,13 +537,35 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         juce::ignoreUnused (eng);
         done (json (o));
     });
-    fn ("savePreset", [&eng, presetTarget] (const Args& a, Completion done)
+    // après la 1.1 : noms des sons d'une piste dans l'ordre des numéros (son du pas, changement de programme)
+    fn ("trackSoundNames", [&eng, T] (const Args& a, Completion done)
+    {
+        const auto t = intArg (a, 0, 0, T, -1);
+        const auto* d = t >= 0 ? eng.instrumentDesc (t) : nullptr;
+        std::string o = "[";
+        if (d != nullptr)
+        {
+            bool first = true;
+            for (const auto i : engine::presetProgramOrder (*d)) { o += (first ? "" : ",") + bridge::quote (d->presets[i].name); first = false; }
+            for (const auto& e : UserPresets::list (juce::String (d->type))) { o += (first ? "" : ",") + bridge::quote (e.name.toStdString()); first = false; }
+        }
+        done (json (o + "]"));
+    });
+    fn ("savePreset", [&eng, &proc, presetTarget] (const Args& a, Completion done)
     {
         const auto t = presetTarget (a);
         if (! t.ok) { done (json ("\"invalid\"")); return; }
         const auto bank = UserPresets::cleanName (strArg (a, 4, 120)), name = UserPresets::cleanName (strArg (a, 5, 120));
         if (bank.isEmpty() || name.isEmpty()) { done (json ("\"invalid\"")); return; }
-        const auto r = UserPresets::save (t.folder, bank, name, t.kind, eng.moduleValues (t.channel, t.slot, t.prefix), boolArg (a, 6));
+        // après la 1.1 : le son tel qu'on le voit : un réglage tenu par une scène (crossfader) part avec la valeur
+        // de la scène (arg 7 : { identifiant complet : valeur réelle }, calculé par l'interface), pas avec sa base
+        auto values = eng.moduleValues (t.channel, t.slot, t.prefix);
+        if (const auto held = juce::JSON::parse (strArg (a, 7, 400000)); held.isObject())
+            for (auto& [id, v] : values)
+                if (const auto* o = held.getDynamicObject(); o != nullptr && o->hasProperty (juce::Identifier (juce::String (t.prefix + id))))
+                    if (const auto x = (double) o->getProperty (juce::Identifier (juce::String (t.prefix + id))); std::isfinite (x)) v = (float) x;
+        const auto r = UserPresets::save (t.folder, bank, name, t.kind, values, boolArg (a, 6));
+        proc.userPresetGen.fetch_add (1); // après la 1.1 : sons du pas relus
         if (r == UserPresets::SaveResult::ok && t.prefix.empty()) eng.applyValues (t.channel, t.slot, eng.moduleValues (t.channel, t.slot), {}, name.toStdString());
         done (json (r == UserPresets::SaveResult::ok ? "\"ok\"" : r == UserPresets::SaveResult::exists ? "\"exists\"" : r == UserPresets::SaveResult::invalidName ? "\"invalid\"" : "\"error\""));
     });
@@ -469,9 +592,10 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         }
         done (json (ok ? bridge::channelJson (eng, t.channel) : "null"));
     });
-    fn ("deletePreset", [presetTarget] (const Args& a, Completion done)
+    fn ("deletePreset", [&proc, presetTarget] (const Args& a, Completion done)
     {
         const auto t = presetTarget (a);
+        proc.userPresetGen.fetch_add (1); // après la 1.1 : sons du pas relus
         done (juce::var (t.ok && UserPresets::remove (t.folder, strArg (a, 4, 120), strArg (a, 5, 120))));
     });
    #if ! JUCE_ANDROID && ! JUCE_IOS
@@ -494,6 +618,13 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
     {
         const auto t = intArg (a, 0, 0, T, -1);
         if (t >= 0) eng.setTrackName (t, strArg (a, 1, 40).removeCharacters ("\r\n\t").toStdString());
+        done (json (bridge::tracksJson (eng)));
+    });
+    // après la 1.1 : noms des sections de la piste MIDI (« Filtre|Enveloppe|… »)
+    fn ("setTrackLabels", [&eng, T] (const Args& a, Completion done)
+    {
+        const auto t = intArg (a, 0, 0, T, -1);
+        if (t >= 0) eng.setTrackLabels (t, strArg (a, 1, 200).removeCharacters ("\r\n\t").toStdString());
         done (json (bridge::tracksJson (eng)));
     });
     // v0.33 : phrase tapée de la voix interne (vocodeurs) ; vide = phrase de démonstration
@@ -599,6 +730,46 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         const auto err = t >= 0 ? proc.editSample (t, intArg (a, 1, 0, maxSamples - 1, 0), intArg (a, 2, 0, 5, -1), unitArg (a, 3, 0.0f), unitArg (a, 4, 1.0f)) : juce::String ("Piste inconnue");
         done (err.isEmpty() ? json (bridge::channelJson (eng, t)) : json (bridge::quote (err.toStdString())));
     });
+    // 1.1 (lots 1 et 2) : traiter un échantillon par une chaîne de 4 effets, hors temps réel
+    // procStart (piste, emplacement, a, b, chaîne JSON, garder la queue, pré-écoute seule, garder l'original)
+    fn ("procStart", [&proc, T] (const Args& a, Completion done)
+    {
+        const auto t = intArg (a, 0, 0, T, -1);
+        const auto chain = juce::JSON::parse (strArg (a, 4, 60000));
+        const auto err = t >= 0 ? proc.procStart (t, intArg (a, 1, 0, maxSamples - 1, 0), unitArg (a, 2, 0.0f), unitArg (a, 3, 1.0f), chain,
+                                                  intArg (a, 5, 0, 1, 0) == 1, intArg (a, 6, 0, 1, 0) == 1, intArg (a, 7, 0, 1, 0) == 1)
+                                : juce::String ("Piste inconnue");
+        done (json (bridge::quote (err.toStdString())));
+    });
+    // valeurs réelles d'un préréglage d'usine d'un effet (chaîne de traitement de l'éditeur et de l'écran Audio)
+    fn ("effectPreset", [] (const Args& a, Completion done)
+    {
+        const auto* d = engine::findEffect (strArg (a, 0, 64).toStdString());
+        const auto k = intArg (a, 1, 0, 100000, -1);
+        if (d == nullptr || k < 0 || k >= (int) d->presets.size()) { done (json ("null")); return; }
+        std::vector<float> v;
+        for (const auto& p : d->params) v.push_back (p.def);
+        for (const auto& kv : d->presets[(size_t) k].values)
+            for (size_t i = 0; i < d->params.size(); ++i)
+                if (d->params[i].id == kv.first) v[i] = kv.second;
+        std::string o = "[";
+        for (size_t i = 0; i < v.size(); ++i) o += (i ? "," : "") + std::to_string (std::isfinite (v[i]) ? v[i] : 0.0f);
+        done (json (o + "]"));
+    });
+    fn ("procStatus", [&proc] (const Args&, Completion done) { done (juce::JSON::toString (proc.procStatus(), true)); });
+    fn ("procCancel", [&proc] (const Args&, Completion done) { proc.procCancel(); done (json ("true")); });
+    fn ("procAudition", [&proc] (const Args& a, Completion done) { proc.procAudition (intArg (a, 0, 0, 1, 0) == 1); done (json ("true")); });
+    fn ("sampleUndo", [&proc, &eng, T] (const Args& a, Completion done)
+    {
+        const auto t = intArg (a, 0, 0, T, -1);
+        const auto err = t >= 0 ? proc.sampleUndo (t, intArg (a, 1, 0, maxSamples - 1, 0)) : juce::String ("Piste inconnue");
+        done (err.isEmpty() ? json (bridge::channelJson (eng, t)) : json (bridge::quote (err.toStdString())));
+    });
+    fn ("sampleUndoCount", [&proc, T] (const Args& a, Completion done)
+    {
+        const auto t = intArg (a, 0, 0, T, -1);
+        done (json (std::to_string (t >= 0 ? proc.sampleUndoCount (t, intArg (a, 1, 0, maxSamples - 1, 0)) : 0)));
+    });
     // v0.41 : partie d'un échantillon (de, emplacement, a, b) copiée vers (piste, emplacement)
     fn ("copySampleRegion", [&proc, &eng, T] (const Args& a, Completion done)
     {
@@ -622,6 +793,25 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         return json (st.toStdString());
     };
     fn ("audioRecStart", [&proc, recState] (const Args& a, Completion done) { done (recState (proc.audioRecStart (intArg (a, 0, 0, 2, 0), intArg (a, 1, 0, 1, 0), intArg (a, 2, 0, 2, 0)))); });
+    // 1.1 (lot 3) : écran AUDIO
+    fn ("audioRecStartEx", [&proc, recState] (const Args& a, Completion done) { done (recState (proc.audioRecStartEx (juce::JSON::parse (strArg (a, 0, 60000))))); });
+    // 1.1 (lot 3) : « Écouter le traitement » (chaîne vide : arrêt) ; renvoie la latence en ms
+    fn ("audioMonitor", [&proc] (const Args& a, Completion done) { done (juce::var (proc.setMonitorChain (juce::JSON::parse (strArg (a, 0, 60000))))); });
+    fn ("audioMonitorSources", [&proc] (const Args& a, Completion done) { proc.setMonitorSources (juce::JSON::parse (strArg (a, 0, 4000))); done (juce::var()); }); // 1.1
+    // 1.1 (lot 6) : voyant « Latence » : latence des inserts de chaque canal, en ms
+    fn ("latencyInfo", [&proc, &eng] (const Args&, Completion done)
+    {
+        const auto sr = proc.getSampleRate() > 0.0 ? proc.getSampleRate() : 48000.0;
+        juce::String out = "[";
+        for (int ch = 0; ch < numChannels; ++ch) out << (ch ? "," : "") << juce::String (1000.0 * eng.channelInsertLatency (ch) / sr, 1);
+        done (json ((out + "]").toStdString()));
+    });
+    fn ("audioRecToPad", [&proc, &eng] (const Args& a, Completion done)
+    {
+        const auto t = intArg (a, 0, 0, numTracks - 1, -1), i = intArg (a, 1, 0, maxSamples - 1, -1);
+        const auto err = t >= 0 && i >= 0 ? proc.audioRecToPad (t, i) : juce::String ("Pad inconnu");
+        done (err.isEmpty() ? json (bridge::channelJson (eng, t)) : json (bridge::quote (err.toStdString())));
+    });
     fn ("audioRecStop", [&proc, recState] (const Args&, Completion done) { proc.audioRecStop(); done (recState ({})); });
     fn ("audioRecStatus", [recState] (const Args&, Completion done) { done (recState ({})); });
     fn ("audioRecReveal", [&proc] (const Args&, Completion done) { done (juce::var (proc.audioRecReveal())); });
@@ -670,7 +860,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
     fn ("bluetoothMidi", [] (const Args& a, Completion done)
     {
         const bool open = a.size() > 0 && (int) a[0] == 1;
-       #if JUCE_ANDROID || JUCE_IOS
+       #if JUCE_ANDROID || JUCE_IOS || JUCE_MAC // 1.1 : Mac aussi (fenêtre d'appairage Bluetooth MIDI du système)
         if (! juce::BluetoothMidiDevicePairingDialogue::isAvailable()) { done (juce::var (0)); return; }
         if (open)
             juce::RuntimePermissions::request (juce::RuntimePermissions::bluetoothMidi, [] (bool granted)
@@ -678,10 +868,163 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
                 if (granted) juce::BluetoothMidiDevicePairingDialogue::open();
             });
         done (juce::var (1));
+       #elif JUCE_WINDOWS && JUCE_USE_WINRT_MIDI
+        // après la 1.1 : Windows (MIDI moderne compilé) : l'appairage se fait dans les paramètres Bluetooth
+        if (open) juce::URL ("ms-settings:bluetooth").launchInDefaultBrowser();
+        done (juce::var (2));
        #else
         juce::ignoreUnused (open);
         done (juce::var (0));
        #endif
+    });
+
+    // 1.1 : télécommande et appareils MIDI branchés (téléphone → PC en USB, téléphone → FM-1) :
+    // liste des sorties MIDI, ouverture d'une sortie, envoi d'octets (SysEx, notes, CC, programme).
+    fn ("midiOuts", [] (const Args&, Completion done)
+    {
+        juce::Array<juce::var> list;
+        for (const auto& d : juce::MidiOutput::getAvailableDevices())
+        {
+            auto* o = new juce::DynamicObject();
+            o->setProperty ("id", d.identifier);
+            o->setProperty ("name", d.name);
+            list.add (juce::var (o));
+        }
+        done (juce::var (list));
+    });
+    fn ("midiOpen", [] (const Args& a, Completion done)
+    {
+        auto& out = remoteMidiOut();
+        out.reset();
+        wifiClient().setTarget ({}); // 1.1 : une seule liaison à la fois (câble, Bluetooth ou Wi-Fi)
+        const auto id = a.size() > 0 ? a[0].toString() : juce::String();
+        if (id.isNotEmpty())
+            for (const auto& d : juce::MidiOutput::getAvailableDevices())
+                if (d.identifier == id) { out = juce::MidiOutput::openDevice (d.identifier); break; }
+        // 1.1 : l'entrée du même nom, pour le retour du PC (si l'application ne l'écoute pas déjà, on l'ouvre)
+        auto& in = remoteMidiIn();
+        if (in != nullptr) { in->stop(); in.reset(); }
+        if (out != nullptr)
+            for (const auto& d : juce::MidiInput::getAvailableDevices())
+                if (d.name == out->getName())
+                {
+                    in = juce::MidiInput::openDevice (d.identifier, &remoteInCallback());
+                    if (in != nullptr) in->start();
+                    break;
+                }
+        done (juce::var (out != nullptr ? out->getName() : juce::String()));
+    });
+    // après la 1.1 : pistes MIDI — sortie MIDI (application autonome) ; dans un logiciel hôte : { host: true }
+    fn ("midiTrackOut", [] (const Args& a, Completion done)
+    {
+        if (auto& hook = grv::standaloneMidiOutHook(); hook) { done (hook (a.size() > 0 && a[0].isString() ? a[0] : juce::var())); return; }
+        auto* o = new juce::DynamicObject();
+        o->setProperty ("host", true);
+        done (juce::var (o));
+    });
+    // après la 1.1 : dernier CC reçu par GOLEM (« Apprendre » le numéro de CC d'un bouton de piste MIDI)
+    fn ("midiLastCc", [&proc] (const Args&, Completion done)
+    {
+        const auto v = proc.lastCcIn.load (std::memory_order_relaxed);
+        auto* o = new juce::DynamicObject();
+        o->setProperty ("seq", proc.lastCcSeq.load (std::memory_order_acquire));
+        o->setProperty ("ch", v < 0 ? 0 : v >> 8);
+        o->setProperty ("num", v < 0 ? -1 : (v & 0x7F));
+        done (juce::var (o));
+    });
+    // 1.1 : télécommande — « Apprendre » : armer / désarmer la remontée des CC et notes de l'appareil
+    fn ("remoteLearn", [] (const Args& a, Completion done) { grv::remoteLearn().store (a.size() > 0 && (bool) a[0]); done (juce::var()); });
+    fn ("midiClose", [] (const Args&, Completion done)
+    {
+        grv::remoteLearn().store (false);
+        remoteMidiOut().reset();
+        if (auto& in = remoteMidiIn(); in != nullptr) { in->stop(); in.reset(); }
+        wifiClient().setTarget ({});
+        done (juce::var (1));
+    });
+    // 1.1 : télécommande Wi-Fi — côté PC : écouter (case des Réglages), adresses de l'appareil
+    fn ("wifiListen", [this] (const Args& a, Completion done)
+    {
+        if (a.size() > 0) processor.setWifiRemote ((bool) a[0]);
+        auto* o = new juce::DynamicObject();
+        o->setProperty ("on", processor.wifiRemoteOn());
+        o->setProperty ("port", grv::wifiRemotePort);
+        juce::Array<juce::var> ips;
+        for (const auto& ip : juce::IPAddress::getAllAddresses (false))
+            if (grv::isLocalNetworkAddress (ip.toString()) && ! ip.toString().startsWith ("127.")) ips.add (ip.toString());
+        o->setProperty ("addresses", ips);
+        done (juce::var (o));
+    });
+    // côté téléphone : chercher les GOLEM du réseau (0,9 s) ; arg facultatif : adresse tapée à la main
+    fn ("wifiScan", [this] (const Args& a, Completion done)
+    {
+        const auto manual = a.size() > 0 ? a[0].toString().trim() : juce::String();
+        wifiClient().scan (processor.remoteInstanceId(), manual);
+        juce::Timer::callAfterDelay (900, [done]
+        {
+            juce::Array<juce::var> list;
+            for (const auto& f : wifiClient().list())
+            {
+                auto* o = new juce::DynamicObject();
+                o->setProperty ("id", "wifi:" + f.ip);
+                o->setProperty ("name", juce::String::fromUTF8 ("GOLEM \xc2\xb7 ") + (f.name.isNotEmpty() ? f.name : f.ip) + " (Wi-Fi)");
+                list.add (juce::var (o));
+            }
+            done (juce::var (list));
+        });
+    });
+    fn ("wifiOpen", [] (const Args& a, Completion done)
+    {
+        remoteMidiOut().reset();
+        if (auto& in = remoteMidiIn(); in != nullptr) { in->stop(); in.reset(); }
+        const auto ip = a.size() > 0 ? a[0].toString().trim() : juce::String();
+        if (ip.isEmpty() || ! grv::isLocalNetworkAddress (ip) || ! wifiClient().ensure()) { wifiClient().setTarget ({}); done (juce::var (juce::String())); return; }
+        wifiClient().setTarget (ip);
+        const auto n = wifiClient().nameOf (ip);
+        done (juce::var (juce::String::fromUTF8 ("GOLEM \xc2\xb7 ") + (n.isNotEmpty() ? n : ip) + " (Wi-Fi)"));
+    });
+    // arg 0 : liste d'octets d'UN message (F0 … F7 pour un SysEx), ou liste de listes (plusieurs messages)
+    fn ("midiSend", [] (const Args& a, Completion done)
+    {
+        auto& out = remoteMidiOut();
+        const bool wifiOn = wifiClient().getTarget().isNotEmpty();
+        if ((out == nullptr && ! wifiOn) || a.size() == 0) { done (juce::var (0)); return; }
+        auto sendOne = [&out, wifiOn] (const juce::var& bytes)
+        {
+            const auto* arr = bytes.getArray();
+            if (arr == nullptr || arr->isEmpty() || arr->size() > 65536) return; // .syx du FM-1 : 64 Ko par message au plus
+            juce::HeapBlock<uint8_t> b ((size_t) arr->size());
+            for (int i = 0; i < arr->size(); ++i) b[i] = (uint8_t) juce::jlimit (0, 255, (int) (*arr)[i]);
+            const int n = arr->size();
+            // 1.1 : par le Wi-Fi, seulement les messages de GOLEM (sans F0 ni F7)
+            if (wifiOn)
+            {
+                if (b[0] == 0xF0) { if (n >= 2 && b[n - 1] == 0xF7) wifiClient().send (b.get() + 1, (size_t) (n - 2)); }
+                else if ((b[0] & 0x80) != 0 && b[0] < 0xF0 && n <= 3)
+                {
+                    // 1.1 : notes, CC, molettes, programme par le Wi-Fi : dans un message de GOLEM (moitiés de 4 bits)
+                    uint8_t w[11] { remote::manufacturer, remote::id0, remote::id1, remote::version, remote::cmdMidi };
+                    for (int i = 0; i < n; ++i) { w[5 + 2 * i] = (uint8_t) (b[i] >> 4); w[6 + 2 * i] = (uint8_t) (b[i] & 15); }
+                    wifiClient().send (w, (size_t) (5 + 2 * n));
+                }
+                return;
+            }
+            if (b[0] == 0xF0) { if (n >= 2 && b[n - 1] == 0xF7) out->sendMessageNow (juce::MidiMessage::createSysExMessage (b.get() + 1, n - 2)); }
+            else if ((b[0] & 0x80) != 0 && n <= 3) out->sendMessageNow (juce::MidiMessage (b.get(), n));
+        };
+        const auto* first = a[0].getArray();
+        if (first != nullptr && ! first->isEmpty() && (*first)[0].isArray()) for (const auto& m : *first) sendOne (m);
+        else sendOne (a[0]);
+        done (juce::var (1));
+    });
+
+    // 1.1 : mode télécommande — le son du téléphone en pause (périphérique audio fermé : aucun
+    // calcul) ou rouvert. 1 = pause, 0 = reprise. Renvoie -1 hors application autonome.
+    fn ("audioPause", [] (const Args& a, Completion done)
+    {
+        const auto& hook = grv::standaloneInputHook();
+        const bool pause = a.size() > 0 && (bool) a[0];
+        done (juce::var (hook ? hook (pause ? 10 : 11) : -1));
     });
 
     fn ("inputMute", [] (const Args& a, Completion done)
@@ -1277,6 +1620,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
                 }
             }
             const auto error = proc.loadSample (t, i, name, std::move (bytes));
+            if (error.isEmpty()) proc.openSampleDecay (t, i); // 1.1 : pad de synthèse → lecture entière au départ
             if (error.isNotEmpty() && copy != juce::File()) copy.deleteFile();   // fichier refusé : pas gardé
             ed->finishFile ("sample", error);
             });
@@ -1391,7 +1735,9 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         if (f.getSize() > (juce::int64) 64 * 1024 * 1024) { finishFile ("sample", "Fichier trop lourd (64 Mo au plus)"); return; }
         juce::MemoryBlock bytes;
         if (! f.loadFileAsData (bytes)) { finishFile ("sample", "Fichier illisible"); return; }
-        finishFile ("sample", proc.loadSample (t, i, f.getFileName(), std::move (bytes)));
+        const auto err = proc.loadSample (t, i, f.getFileName(), std::move (bytes));
+        if (err.isEmpty()) proc.openSampleDecay (t, i); // 1.1 : pad de synthèse → lecture entière au départ
+        finishFile ("sample", err);
     });
     // Enregistrer directement dans le dossier des projets, sous un nom (sans passer par le sélecteur)
     fn ("saveProjectNamed", [&proc] (const Args& a, Completion done)
@@ -1711,11 +2057,14 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         else
         {
             // v0.46 : projet de démonstration = le projet embarqué dans l'interface (demo.gbx, un
-            // vrai projet enregistré, échantillons compris) ; à défaut, la démonstration calculée
+            // vrai projet enregistré, échantillons compris) ; à défaut, la démonstration calculée.
+            // 1.1 : une démo par style (« trance », « house »…) : demo-<style>.gbx
+            const auto style = strArg (a, 1, 24).retainCharacters ("abcdefghijklmnopqrstuvwxyz0123456789");
+            const auto wanted = style.isEmpty() ? juce::String ("demo.gbx") : "demo-" + style + ".gbx";
             bool loaded = false;
             for (int i = 0; i < UiData::namedResourceListSize && ! loaded; ++i)
             {
-                if (juce::String (UiData::getNamedResourceOriginalFilename (UiData::namedResourceList[i])) != "demo.gbx") continue;
+                if (juce::String (UiData::getNamedResourceOriginalFilename (UiData::namedResourceList[i])) != wanted) continue;
                 int size = 0;
                 if (const auto* data = UiData::getNamedResource (UiData::namedResourceList[i], size); data != nullptr && size > 0)
                 {
@@ -1741,6 +2090,7 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
             juce::MemoryBlock bytes;
             if (! bytes.fromBase64Encoding (a[3].toString())) error = "Fichier illisible";
             else error = proc.loadSample (t, i, name, std::move (bytes));
+            if (error.isEmpty()) proc.openSampleDecay (t, i); // 1.1 : pad de synthèse → lecture entière au départ
         }
         done (error.isEmpty() ? json (bridge::channelJson (eng, t)) : json (bridge::quote (error.toStdString())));
     });
@@ -1806,6 +2156,8 @@ GrooveboxEditor::GrooveboxEditor (GrooveboxProcessor& p)
     lastProject = processor.getProjectVersion();
     lastSeq = processor.getEngine().sequencer().getVersion();
     lastStructure = processor.getEngine().getStructureVersion();
+    // après la 1.1 : sortie MIDI des pistes MIDI prête dès l'ouverture (fil d'envoi calé, anti-boucle)
+    if (auto& h = grv::standaloneMidiOutHook(); h) h (juce::var());
    #if JUCE_ANDROID
     startTimerHz (20); // v0.46 fix20 : téléphone et tablette — écran rafraîchi un peu moins souvent (moins de chauffe)
    #else
@@ -1813,7 +2165,12 @@ GrooveboxEditor::GrooveboxEditor (GrooveboxProcessor& p)
    #endif
 }
 
-GrooveboxEditor::~GrooveboxEditor() { stopTimer(); }
+GrooveboxEditor::~GrooveboxEditor()
+{
+    stopTimer(); remoteMidiOut().reset();
+    if (auto& in = remoteMidiIn(); in != nullptr) { in->stop(); in.reset(); }
+    wifiClient().close();
+}
 
 juce::String GrooveboxEditor::devServerUrl()
 {
@@ -1879,6 +2236,19 @@ void GrooveboxEditor::parentHierarchyChanged()
 
 void GrooveboxEditor::timerCallback()
 {
+    // 1.1 : retour du PC vers la télécommande (état, noms des pistes) : passés à l'interface
+    if (auto items = grv::remoteIn().take(); ! items.empty())
+    {
+        juce::Array<juce::var> list;
+        for (const auto& m : items)
+        {
+            juce::Array<juce::var> bytes;
+            for (const auto b : m) bytes.add ((int) b);
+            list.add (juce::var (bytes));
+        }
+        browser.emitEventIfBrowserIsVisible ("remoteIn", juce::var (list));
+    }
+
     auto& eng = processor.getEngine();
     const auto& seq = eng.sequencer();
     auto num = [] (double v) { char b[24]; std::snprintf (b, sizeof b, "%.4g", std::isfinite (v) ? v : 0.0); return std::string (b); };
@@ -1968,6 +2338,29 @@ void GrooveboxEditor::timerCallback()
             first = false;
         }
     }
+    // après la 1.1 : valeurs jouées des réglages tenus par les scènes A / B sur les AUTRES canaux (mixeur,
+    // pédalier, pads…) : les boutons y montrent aussi ce qu'on entend (adresse globale → valeur)
+    o += "],\"effg\":[";
+    {
+        bool firstG = true;
+        const auto& scs = eng.getScenes();
+        const int sa = (int) std::lround (processor.getGlobal (ParamID::sceneA)) - 1, sb = (int) std::lround (processor.getGlobal (ParamID::sceneB)) - 1;
+        for (const int sc : { sa, sb })
+        {
+            if (sc < 0 || sc >= numScenes) continue;
+            for (const auto& l : scs.scenes[(size_t) sc])
+            {
+                if (l.slot / slotsPerChannel == focusChannel) continue; // le canal choisi : déjà dans « eff »
+                const auto e = eng.getEffective (l.slot);
+                if (std::abs (e - eng.getParam (l.slot)) > 1.0e-4f)
+                {
+                    o += (firstG ? "" : ",") + std::string ("[") + std::to_string (l.slot) + "," + num (e) + "]";
+                    firstG = false;
+                }
+            }
+            if (sa == sb) break;
+        }
+    }
     o += "],\"mac\":[";
     for (int m = 0; m < GrooveboxProcessor::numMacros; ++m) o += (m ? "," : "") + num (processor.getMacroValue (m));
     o += "],\"mods\":[";
@@ -2013,7 +2406,11 @@ void GrooveboxEditor::timerCallback()
     o += "],\"perf\":[" + num (processor.getCpuAverage() * 100.0f) + "," + num (processor.getCpuPeak() * 100.0f) + "," + num ((float) memMb) + "," + num ((float) sampleMb)
        + "," + num ((float) processor.getSampleRate()) + "," + num ((float) processor.getAudioBlockSize()) + "," + num (processor.getAudioPeriodMs())
        + "," + num ((float) totalMemMb) // v0.46 fix17 : mémoire de l'appareil (Mo), pour l'afficher en %
-       + "," + num ((float) processor.getAndroidAudioStatus());
+       + "," + num ((float) processor.getAndroidAudioStatus())
+       // 1.1 (lot 6) : latence ajoutée par les inserts (ms) : voyant « Latence » de la barre du haut
+       + "," + num (processor.getSampleRate() > 0.0 ? (float) (1000.0 * processor.getEngine().insertLatencySamples() / processor.getSampleRate()) : 0.0f)
+       // 1.1 (lot 3) : crête de l'entrée audio (vu-mètre « Entrée » de l'écran AUDIO)
+       + "," + num (processor.getEngine().inputPeak());
     o += "],\"learn\":" + std::to_string (processor.getMidiLearn());
     // v0.46 fix24 : positions des 16 boutons assignables, valeurs d'écran pilotées (MIDI, boutons)
     o += ",\"kv\":[";

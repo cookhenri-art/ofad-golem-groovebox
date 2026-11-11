@@ -15,6 +15,7 @@
 #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 
 #include "StandaloneInput.h"
+#include "engine/RemoteProtocol.h"
 #include "CrashGuard.h"
 
 #include <vector>
@@ -174,6 +175,33 @@ const bool registered = []
     {
         auto* holder = juce::StandalonePluginHolder::getInstance();
         if (holder == nullptr) return -1;
+        // 1.1 : télécommande : écoute des « bonjour » avec l'entrée MIDI d'où ils viennent (20)
+        if (op == 20)
+        {
+            struct HelloListener final : juce::MidiInputCallback
+            {
+                void handleIncomingMidiMessage (juce::MidiInput* source, const juce::MidiMessage& m) override
+                {
+                    if (source == nullptr) return;
+                    grv::noteFromDevice (source->getName(), m.getRawData(), m.getRawDataSize()); // après la 1.1 : anti-boucle des pistes MIDI
+                    grv::pushLearn (m.getRawData(), m.getRawDataSize()); // 1.1 : « Apprendre » de la télécommande (armé seulement)
+                    if (! m.isSysEx()) return;
+                    bool full = false;
+                    const auto* d = m.getSysExData();
+                    const auto n = (size_t) m.getSysExDataSize();
+                    if (remote::isHello (d, n, full)) grv::remoteHello().post (source->getName(), full);
+                    // côté téléphone : état et noms renvoyés par le PC
+                    else if (remote::isFeedback (d, n)) grv::remoteIn().push (d, n);
+                }
+            };
+            static HelloListener listener;
+            static bool added = false;
+            if (! added) { holder->deviceManager.addMidiInputDeviceCallback ({}, &listener); added = true; }
+            return 20;
+        }
+        // 1.1 : mode télécommande : son de l'appareil en pause (10) ou repris (11)
+        if (op == 10) { holder->deviceManager.closeAudioDevice(); return 10; }
+        if (op == 11) { if (holder->deviceManager.getCurrentAudioDevice() == nullptr) holder->deviceManager.restartLastAudioDevice(); return 11; }
        #if JUCE_ANDROID
         // v0.46 fix16 : sur Android, le micro n'est pas « coupé » mais FERMÉ : pas de flux d'entrée
         // tant qu'on ne l'ouvre pas. Un flux d'entrée ouvert en même temps que la sortie (micro du
@@ -203,6 +231,56 @@ const bool registered = []
         if (op == 0 || op == 1) holder->getMuteInputValue().setValue (op == 1);
         return (bool) holder->getMuteInputValue().getValue() ? 1 : 0;
        #endif
+    };
+    // après la 1.1 : sortie MIDI des pistes MIDI (sortie MIDI par défaut, envoyée par le lecteur de JUCE)
+    // type de liaison d'un appareil, d'après son nom et son identifiant (vide si on ne peut pas le dire) :
+    // « usb », « bt » (Bluetooth), « net » (réseau : rtpMIDI…), « virt » (port virtuel : loopMIDI…)
+    static const auto linkKind = [] (const juce::MidiDeviceInfo& d) -> juce::String
+    {
+        const auto s = (d.name + " " + d.identifier).toLowerCase();
+        if (s.contains ("rtpmidi") || s.contains ("network")) return "net";
+        if (s.contains ("loopmidi") || s.contains ("virtual") || s.contains ("loopbe")) return "virt";
+        if (s.contains ("bluetooth") || s.contains ("bthle") || s.contains ("ble-midi") || s.contains ("ble midi") || s.contains (" ble")) return "bt";
+        if (s.contains ("usb")) return "usb";
+        return {};
+    };
+    grv::standaloneMidiOutHook() = [] (const juce::var& arg) -> juce::var
+    {
+        auto* holder = juce::StandalonePluginHolder::getInstance();
+        if (holder == nullptr) return {};
+        auto& dm = holder->deviceManager;
+        if (arg.isString())
+        {
+            const auto id = arg.toString();
+            bool known = id.isEmpty();
+            for (const auto& d : juce::MidiOutput::getAvailableDevices()) known = known || d.identifier == id;
+            if (known)
+            {
+                dm.setDefaultMidiOutputDevice (id);
+                holder->player.setMidiOutput (dm.getDefaultMidiOutput());
+            }
+        }
+        // fil d'envoi : les messages partent à leur place dans le bloc (pas tous au début)
+        if (auto* o = dm.getDefaultMidiOutput(); o != nullptr && ! o->isBackgroundThreadRunning()) o->startBackgroundThread();
+        // anti-boucle : le nom de l'appareil joué par les pistes MIDI (ce qu'il envoie ne les rejoue pas)
+        {
+            juce::String name;
+            for (const auto& d : juce::MidiOutput::getAvailableDevices()) if (d.identifier == dm.getDefaultMidiOutputIdentifier()) name = d.name;
+            grv::setMidiOutName (name);
+        }
+        auto* res = new juce::DynamicObject();
+        juce::Array<juce::var> list;
+        for (const auto& d : juce::MidiOutput::getAvailableDevices())
+        {
+            auto* o = new juce::DynamicObject();
+            o->setProperty ("id", d.identifier);
+            o->setProperty ("name", d.name);
+            o->setProperty ("kind", linkKind (d));
+            list.add (juce::var (o));
+        }
+        res->setProperty ("outs", list);
+        res->setProperty ("current", dm.getDefaultMidiOutputIdentifier());
+        return juce::var (res);
     };
     return true;
 }();

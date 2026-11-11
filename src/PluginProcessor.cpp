@@ -3,6 +3,7 @@
 */
 
 #include "PluginProcessor.h"
+#include "engine/RemoteProtocol.h"
 #include "StandaloneInput.h" // v0.46 fix11 : journal du démarrage
 #include "CrashGuard.h"      // v0.49 (essai 3) : journal de plantage (Android)
 #include "ParseGuard.h"       // v0.46.1 (audit F3)
@@ -10,6 +11,8 @@
 #include <set>
 #include <map>
 #include "engine/Catalog.h"
+#include "engine/PresetOrder.h"
+#include "UserPresets.h"
 #include "instruments/Sampler.h"
 #include "instruments/Octa.h"
 #include "instruments/Vocoders.h"
@@ -173,12 +176,418 @@ GrooveboxProcessor::GrooveboxProcessor()
         grv::startupMark ("derniere seance (enregistrement auto) : relue");
     }
    #endif
+    wifi = std::make_unique<grv::WifiServer> (remoteId); // 1.1 : télécommande Wi-Fi (écoute coupée tant qu'on ne la demande pas)
     startTimer (40);
+}
+
+// 1.1 : TÉLÉCOMMANDE — retour du PC vers le téléphone (application autonome seulement). Le téléphone dit
+// « bonjour » ; l'application note l'entrée MIDI d'où il vient (StandaloneHook.cpp) ; on ouvre la sortie
+// MIDI du même nom et on renvoie, toutes les 80 ms, ce qui a changé : volumes, coupures, solos, boutons
+// assignables, crossfader, pavé vectoriel, lecture ; les noms des pistes toutes les 0,8 s.
+void GrooveboxProcessor::remoteFeedbackTick()
+{
+    if (wrapperType != wrapperType_Standalone) return;
+    const auto& hook = grv::standaloneInputHook();
+    if (! hook) return;
+    if (! remoteListening) { remoteListening = true; hook (20); }
+    auto& box = grv::remoteHello();
+    const auto seq = box.seq.load();
+    const auto full = box.full.exchange (false);
+    if (seq != remoteHelloSeen)
+    {
+        remoteHelloSeen = seq;
+        const auto name = box.read();
+        if (remoteBack == nullptr || name != remoteBackName)
+        {
+            remoteBack.reset();
+            remoteBackName = name;
+            const auto outs = juce::MidiOutput::getAvailableDevices();
+            juce::String id;
+            for (const auto& d : outs) if (d.name == name) { id = d.identifier; break; }
+            if (id.isEmpty()) for (const auto& d : outs) if (name.isNotEmpty() && (d.name.containsIgnoreCase (name) || name.containsIgnoreCase (d.name))) { id = d.identifier; break; }
+            if (id.isNotEmpty()) remoteBack = juce::MidiOutput::openDevice (id);
+            remoteSent.clear();
+            for (auto& n : remoteNames) n.clear();
+            for (auto& n : remoteKnobLabels) n.clear(); for (auto& n : remotePresets) n.clear();
+            remoteLevels.fill (255);
+        }
+    }
+    if (full) { remoteSent.clear(); for (auto& n : remoteNames) n.clear(); for (auto& n : remoteKnobLabels) n.clear(); for (auto& n : remotePresets) n.clear(); remoteLevels.fill (255); }
+    // Wi-Fi : nouvelle télécommande ou demande de tout l'état
+    const bool wifiClient = wifi != nullptr && wifi->hasClient();
+    if (wifi != nullptr)
+    {
+        const auto ws = wifi->helloSeq.load();
+        if (wifi->fullRequest.exchange (false) || (ws != wifiHelloSeen && remoteSent.empty())) { remoteSent.clear(); for (auto& n : remoteNames) n.clear(); for (auto& n : remoteKnobLabels) n.clear(); for (auto& n : remotePresets) n.clear(); remoteLevels.fill (255); }
+        wifiHelloSeen = ws;
+    }
+    if (remoteBack == nullptr && ! wifiClient) return;
+    // 1.1 : position jouée du pavé (avec le mouvement) à chaque passage (40 ms) : l'orbe de la télécommande
+    // suit la forme comme sur le PC
+    {
+        if (remoteSent.empty()) remoteVecShown = { -1, -1 }; // tout l'état est redemandé
+        const int sx = (int) std::lround (juce::jlimit (0.0f, 1.0f, getVecShownX()) * 16383.0f);
+        const int sy = (int) std::lround (juce::jlimit (0.0f, 1.0f, getVecShownY()) * 16383.0f);
+        if (sx != remoteVecShown[0] || sy != remoteVecShown[1])
+        {
+            remoteVecShown = { sx, sy };
+            std::vector<uint8_t> m { remote::manufacturer, remote::id0, remote::id1, remote::version, remote::cmdState };
+            uint8_t g[10];
+            remote::putTarget (g, remote::vecShownX, getVecShownX());
+            remote::putTarget (g + 5, remote::vecShownY, getVecShownY());
+            m.insert (m.end(), g, g + 10);
+            remoteSendAll (m);
+        }
+    }
+    if ((++remoteTicks & 1) != 0) return;
+
+    // cibles suivies (mêmes numéros que l'apprentissage MIDI) et leur valeur actuelle
+    std::vector<std::pair<int, float>> now;
+    now.reserve (96);
+    auto& seq_ = engine.sequencer();
+    for (int t = 0; t < engine::numTracks; ++t)
+    {
+        now.emplace_back (engine::globalSlot (t, engine::mixerBase), engine.getParam (engine::globalSlot (t, engine::mixerBase)));
+        now.emplace_back (midiMuteBase - t, seq_.getTrackMute (t) ? 1.0f : 0.0f);
+        now.emplace_back (midiSoloBase - t, seq_.getTrackSolo (t) ? 1.0f : 0.0f);
+    }
+    now.emplace_back (engine::globalSlot (engine::masterChannel, engine::mixerBase), engine.getParam (engine::globalSlot (engine::masterChannel, engine::mixerBase)));
+    // retours A-D et groupes : volume, coupure (et solo des groupes)
+    for (int ch = engine::numTracks; ch < engine::numChannels; ++ch)
+    {
+        if (ch == engine::masterChannel) continue;
+        now.emplace_back (engine::globalSlot (ch, engine::mixerBase), engine.getParam (engine::globalSlot (ch, engine::mixerBase)));
+        now.emplace_back (midiBusMuteBase - (ch - engine::numTracks), engine.getBusMute (ch) ? 1.0f : 0.0f);
+        if (engine::isGroupChannel (ch)) now.emplace_back (midiBusSoloBase - (ch - engine::numTracks), engine.getBusSolo (ch) ? 1.0f : 0.0f);
+    }
+    for (int k = 0; k < numKnobs; ++k) now.emplace_back (midiKnobBase - k, knobVal[(size_t) k].load());
+    for (const int h : { 4, 5, 6, 7, 8, 9, 10, 19, 20, 21, 22, 27, 28 }) // 1.1 : + durée, taille, rotation, hauteur du mouvement
+        if (auto* p = hostParams[(size_t) h]) now.emplace_back (midiHostBase - h, p->getValue());
+    if (auto* x = state.getParameter (ParamID::xfade)) now.emplace_back ((int) midiXfade, x->getValue());
+    now.emplace_back ((int) midiPlay, seq_.isRunning() ? 1.0f : 0.0f);
+
+    if (remoteSent.size() != now.size()) remoteSent.assign (now.size(), -1);
+    std::vector<uint8_t> msg { remote::manufacturer, remote::id0, remote::id1, remote::version, remote::cmdState };
+    auto flush = [&]
+    {
+        if (msg.size() > 5) remoteSendAll (msg);
+        msg.resize (5);
+    };
+    for (size_t i = 0; i < now.size(); ++i)
+    {
+        const auto v14 = (int) std::lround (juce::jlimit (0.0f, 1.0f, now[i].second) * 16383.0f);
+        if (v14 == remoteSent[i]) continue;
+        remoteSent[i] = v14;
+        uint8_t g[5];
+        remote::putTarget (g, now[i].first, now[i].second);
+        msg.insert (msg.end(), g, g + 5);
+        if (msg.size() >= 5 + 48 * 5) flush();
+    }
+    flush();
+
+    // niveaux (crêtes) des 16 pistes et du principal, 0..127 (racine : lecture plus parlante)
+    {
+        std::vector<uint8_t> lv { remote::manufacturer, remote::id0, remote::id1, remote::version, remote::cmdLevels };
+        bool changed = false;
+        // ordre : 16 pistes, principal, puis retours A-D et groupes 1-7 (canaux 16-19 et 21-27)
+        for (int i = 0; i < engine::numChannels; ++i)
+        {
+            const auto ch = i < engine::numTracks ? i : i == engine::numTracks ? engine::masterChannel : (i <= engine::masterChannel ? i - 1 : i);
+            const auto v = (uint8_t) juce::jlimit (0, 127, (int) std::lround (std::sqrt (juce::jlimit (0.0f, 1.0f, engine.getPeak (ch))) * 127.0f));
+            if (v != remoteLevels[(size_t) i]) { remoteLevels[(size_t) i] = v; changed = true; }
+            lv.push_back (v);
+        }
+        if (changed) remoteSendAll (lv);
+    }
+    auto nibbles = [] (std::vector<uint8_t>& m, const std::string& txt)
+    {
+        for (size_t i = 0; i < txt.size() && i < 40; ++i) { const auto c = (uint8_t) txt[i]; m.push_back ((uint8_t) (c >> 4)); m.push_back ((uint8_t) (c & 15)); }
+    };
+    if (remoteTicks % 10 == 0 || remoteNames[0].empty())
+    {
+        // noms et couleurs des pistes
+        for (int t = 0; t < engine::numTracks; ++t)
+        {
+            const auto& info = engine.getTrackInfo (t);
+            const auto key = (info.name.empty() ? std::string (" ") : info.name) + "#" + std::to_string (info.color) + "#" + info.instrumentType;
+            if (key == remoteNames[(size_t) t]) continue;
+            remoteNames[(size_t) t] = key;
+            std::vector<uint8_t> m { remote::manufacturer, remote::id0, remote::id1, remote::version, remote::cmdName, (uint8_t) t,
+                                     (uint8_t) (info.instrumentType.empty() ? 127 : juce::jlimit (0, 126, info.color)) };
+            nibbles (m, info.name);
+            remoteSendAll (m);
+        }
+        // noms des groupes (canal 21 à 27 ; vide = « Groupe n » sur le téléphone)
+        for (int g = 0; g < engine::numGroups; ++g)
+        {
+            const auto ch = engine::groupBase + g;
+            const auto& n = engine.getGroupName (g);
+            const auto key = "G" + n;
+            if (key == remoteNames[(size_t) ch]) continue;
+            remoteNames[(size_t) ch] = key;
+            std::vector<uint8_t> m { remote::manufacturer, remote::id0, remote::id1, remote::version, remote::cmdName, (uint8_t) ch, 127 };
+            nibbles (m, n);
+            remoteSendAll (m);
+        }
+        // 1.1 : préréglage de chaque piste (instrument puis 4 inserts) avec son numéro d'usine, pour que la
+        // télécommande affiche « Son 12 · nom » et suive les changements faits sur le PC.
+        // [cmdPreset, piste, canal MIDI de la piste (0 = aucun), 1 si piste choisie, canal des notes (0 = tous),
+        //  commandes MIDI actives (0/1), canal des commandes (0 = tous) — un changement de programme y lance une scène,
+        //  puis 5 fois : numéro sur 14 bits (2 octets, sons d'usine puis ceux de l'utilisateur, 16383 = aucun),
+        //  nombre de sons sur 14 bits, nom en demi-octets, 0x7F, type du module, 0x7F]
+        {
+            const auto focusT = juce::jlimit (0, engine::numTracks - 1, engine.focusTrack.load (std::memory_order_relaxed));
+            const auto noteChan = juce::jlimit (0, 16, midiNoteChan.load (std::memory_order_relaxed));
+            const auto ctrlChan = juce::jlimit (0, 16, midiCtrlChan.load (std::memory_order_relaxed));
+            const auto ctrlActive = midiCtrlOn.load (std::memory_order_relaxed);
+            for (int t = 0; t < engine::numTracks; ++t)
+            {
+                const auto& info = engine.getTrackInfo (t);
+                const auto ch = juce::jlimit (0, 16, trackMidiChan[(size_t) t].load (std::memory_order_relaxed));
+                std::vector<uint8_t> m { remote::manufacturer, remote::id0, remote::id1, remote::version, remote::cmdPreset, (uint8_t) t,
+                                         (uint8_t) ch, (uint8_t) (t == focusT ? 1 : 0), (uint8_t) noteChan,
+                                         (uint8_t) (ctrlActive ? 1 : 0), (uint8_t) ctrlChan };
+                // clé bon marché d'abord : on ne cherche les numéros (et la liste des sons de l'utilisateur,
+                // sur le disque) que si quelque chose a changé
+                std::string key (m.begin() + 5, m.end());
+                for (int s = -1; s < engine::numInserts; ++s)
+                    key += "|" + (s < 0 ? info.instrumentType + "#" + info.preset : info.insertTypes[(size_t) s] + "#" + engine.getInsertPresets (t)[(size_t) s]);
+                if (key == remotePresets[(size_t) t]) continue;
+                remotePresets[(size_t) t] = key;
+                for (int s = -1; s < engine::numInserts; ++s)
+                {
+                    const auto* d = s < 0 ? engine.instrumentDesc (t) : engine.effectDesc (t, s);
+                    const std::string name = s < 0 ? info.preset : engine.getInsertPresets (t)[(size_t) s];
+                    int prog = d != nullptr ? engine::presetProgramOf (*d, name) : -1;
+                    int total = 0;
+                    if (d != nullptr)
+                    {
+                        const auto users = UserPresets::list (juce::String (d->type));
+                        total = (int) (d->presets.size() + users.size());
+                        if (prog < 0 && ! name.empty())
+                            for (size_t i = 0; i < users.size(); ++i)
+                                if (users[i].name.toStdString() == name) { prog = (int) (d->presets.size() + i); break; }
+                    }
+                    if (prog < 0 || prog >= 16383) prog = 16383; // aucun
+                    total = juce::jlimit (0, 16383, total);
+                    m.push_back ((uint8_t) (prog >> 7)); m.push_back ((uint8_t) (prog & 127));
+                    m.push_back ((uint8_t) (total >> 7)); m.push_back ((uint8_t) (total & 127));
+                    nibbles (m, name);
+                    m.push_back (0x7F);
+                    nibbles (m, s < 0 ? info.instrumentType : info.insertTypes[(size_t) s]); // type du module : liste des sons sur le téléphone
+                    m.push_back (0x7F);
+                }
+                remoteSendAll (m);
+            }
+        }
+        // libellés des 16 boutons assignables (ce qu'ils pilotent sur le PC)
+        for (int k = 0; k < numKnobs; ++k)
+        {
+            juce::String sub; int color = 127;
+            const auto label = remoteTargetLabel (getKnobTarget (k), sub, color);
+            const auto key = (label + "|" + sub + "|" + juce::String (color)).toStdString();
+            if (key == remoteKnobLabels[(size_t) k]) continue;
+            remoteKnobLabels[(size_t) k] = key;
+            std::vector<uint8_t> m { remote::manufacturer, remote::id0, remote::id1, remote::version, remote::cmdKnob, (uint8_t) k, (uint8_t) color };
+            nibbles (m, label.toStdString());
+            m.push_back (0x7F);
+            nibbles (m, sub.toStdString());
+            remoteSendAll (m);
+        }
+    }
+}
+
+juce::String GrooveboxProcessor::remoteTargetLabel (int t, juce::String& sub, int& color) const
+{
+    color = 127;
+    sub = "Global";
+    if (t == midiNone) { sub = juce::String::fromUTF8 ("\xC3\xA0 affecter"); return juce::String::fromUTF8 ("\xE2\x80\x94"); }
+    if (t >= 0 && t < engine::numSlots)
+    {
+        const auto ch = engine::channelOf (t), local = engine::localOf (t);
+        if (ch < engine::numTracks)
+        {
+            const auto& info = engine.getTrackInfo (ch);
+            sub = "P" + juce::String (ch + 1) + " " + juce::String::fromUTF8 (info.name.c_str());
+            color = juce::jlimit (0, 126, info.color);
+        }
+        else if (ch < engine::masterChannel) sub = "Retour " + juce::String::charToString ((juce::juce_wchar) ('A' + ch - engine::numTracks));
+        else if (ch == engine::masterChannel) sub = "Principal";
+        else sub = "Groupe " + juce::String (ch - engine::groupBase + 1);
+        if (local < engine::instrumentBase)
+        {
+            static const char* const mix[] { "Volume", "Panoramique", "Envoi A", "Envoi B", "Envoi C", "Envoi D" };
+            return local < 6 ? juce::String (mix[local]) : juce::String ("Mixage");
+        }
+        if (local < engine::insertBase)
+        {
+            if (ch < engine::numTracks)
+                if (const auto* d = engine::findInstrument (engine.getTrackInfo (ch).instrumentType))
+                    if (local - engine::instrumentBase < (int) d->params.size()) return juce::String::fromUTF8 (d->params[(size_t) (local - engine::instrumentBase)].name.c_str());
+            return "Instrument";
+        }
+        if (local < engine::modSourceBase)
+        {
+            const auto k = (local - engine::insertBase) / engine::insertSlots, i = (local - engine::insertBase) % engine::insertSlots;
+            if (const auto* d = engine::findEffect (engine.getInsertTypes (ch)[(size_t) k]))
+                if (i < (int) d->params.size()) return juce::String::fromUTF8 (d->params[(size_t) i].name.c_str());
+            return "Effet " + juce::String (k + 1);
+        }
+        return "Modulation";
+    }
+    if (isHostTarget (t))
+    {
+        static const char* const host[] { "Tempo", "Swing", "Sc\xC3\xA8ne A", "Sc\xC3\xA8ne B", "Pav\xC3\xA9", "Pav\xC3\xA9 : mode", "Pav\xC3\xA9 X", "Pav\xC3\xA9 Y",
+                                          "Orbite", "Orbite : vitesse", "Orbite : taille", "Macro 1", "Macro 2", "Macro 3", "Macro 4", "Macro 5", "Macro 6",
+                                          "Macro 7", "Macro 8", "Coin A", "Coin B", "Coin C", "Coin D", "Effet A", "Effet B", "Effet C", "Effet D", "Rotation", "Hauteur" };
+        const auto h = midiHostBase - t;
+        return h >= 0 && h < (int) std::size (host) ? juce::String::fromUTF8 (host[h]) : juce::String ("Global");
+    }
+    if (t <= midiMuteBase && t > midiMuteBase - engine::numTracks) { sub = "P" + juce::String (midiMuteBase - t + 1); return "Coupure"; }
+    if (t <= midiSoloBase && t > midiSoloBase - engine::numTracks) { sub = "P" + juce::String (midiSoloBase - t + 1); return "Solo"; }
+    if (t == midiXfade) return "Crossfader";
+    if (t == midiFill) return "Fill";
+    if (t == midiBreak) return "Break";
+    if (t == midiPlay) return "Lecture";
+    return juce::String::fromUTF8 ("R\xC3\xA9glage");
+}
+
+void GrooveboxProcessor::presetRequestsTick()
+{
+    for (int t = 0; t < engine::numTracks; ++t)
+    {
+        const auto v = pendingPreset[(size_t) t].exchange (0, std::memory_order_relaxed) - 1;
+        if (v < 0) continue;
+        // [cible + 1] << 16 | numéro (0 = n° 1) ; cible : -1 instrument, 0..3 inserts
+        const auto slot = (v >> 16) - 1, prog = v & 0xFFFF;
+        if (slot < -1 || slot >= engine::numInserts) continue;
+        const auto* d = slot < 0 ? engine.instrumentDesc (t) : engine.effectDesc (t, slot);
+        if (d == nullptr) continue;
+        // numéros : « Init » = 1, sons d'usine banque par banque, puis les sons de l'utilisateur
+        const auto order = engine::presetProgramOrder (*d);
+        if (prog < (int) order.size()) { engine.applyPreset (t, slot, d->presets[order[(size_t) prog]].name); continue; }
+        const auto users = UserPresets::list (juce::String (d->type));
+        const auto k = (size_t) (prog - (int) order.size());
+        if (k >= users.size()) continue;
+        UserPresets::Values values;
+        juce::String kind;
+        int fileVersion = 1;
+        if (! UserPresets::load (juce::String (d->type), users[k].bank, users[k].name, values, kind, &fileVersion)) continue;
+        if (fileVersion < 3) // préréglages d'avant la version 3 : divisions au tempo décalées de deux choix
+            for (auto& [id, val] : values)
+                for (const auto& pd : d->params)
+                    if (pd.id == id && engine::hasLongDivisions (pd)) { val = (float) engine::widenDivisionIndex (pd, (int) std::lround (val)); break; }
+        engine.applyValues (t, slot, values, {}, users[k].name.toStdString());
+    }
+}
+
+bool GrooveboxProcessor::presetByNumber (const ModuleDesc& d, int prog, std::vector<std::pair<std::string, float>>& values, juce::String& name)
+{
+    values.clear();
+    if (prog < 0) return false;
+    const auto order = engine::presetProgramOrder (d);
+    if (prog < (int) order.size())
+    {
+        const auto& pr = d.presets[order[(size_t) prog]];
+        for (const auto& [id, v] : pr.values) values.emplace_back (id, v);
+        name = juce::String::fromUTF8 (pr.name.c_str());
+        return true;
+    }
+    const auto users = UserPresets::list (juce::String (d.type));
+    const auto k = (size_t) (prog - (int) order.size());
+    if (k >= users.size()) return false;
+    UserPresets::Values uv;
+    juce::String kind;
+    int fileVersion = 1;
+    if (! UserPresets::load (juce::String (d.type), users[k].bank, users[k].name, uv, kind, &fileVersion)) return false;
+    if (fileVersion < 3)
+        for (auto& [id, val] : uv)
+            for (const auto& pd : d.params)
+                if (pd.id == id && engine::hasLongDivisions (pd)) { val = (float) engine::widenDivisionIndex (pd, (int) std::lround (val)); break; }
+    for (const auto& [id, v] : uv) values.emplace_back (id, v);
+    name = users[k].name;
+    return true;
+}
+
+void GrooveboxProcessor::soundPoolTick()
+{
+    // après la 1.1 : numéros de son verrouillés (pas, scènes) → réglages complets publiés pour le fil audio
+    const auto now = nowMs();
+    if (now - lastSoundPoolMs < 250.0) return;
+    lastSoundPoolMs = now;
+    std::array<std::vector<int>, numTracks> want;
+    auto note = [&want] (int g, float v)
+    {
+        const auto ch = channelOf (g);
+        if (ch < 0 || ch >= numTracks || localOf (g) != trackSoundSlot) return;
+        if (const int n = (int) std::lround (v * trackSoundMax); n > 0) want[(size_t) ch].push_back (n);
+    };
+    for (const auto& [key, x] : engine.getExtras().steps) for (const auto& [g, v] : x.locks) note (g, v);
+    for (const auto& sc : engine.getScenes().scenes) for (const auto& l : sc) note (l.slot, l.norm);
+    std::string sig = std::to_string (userPresetGen.load());
+    for (int t = 0; t < numTracks; ++t)
+    {
+        auto& w = want[(size_t) t];
+        std::sort (w.begin(), w.end());
+        w.erase (std::unique (w.begin(), w.end()), w.end());
+        const auto* d = engine.instrumentDesc (t);
+        if (d == nullptr || w.empty()) continue;
+        sig += "|" + std::to_string (t) + ":" + d->type;
+        for (const auto n : w) sig += "," + std::to_string (n);
+    }
+    if (sig == lastSoundSig) return;
+    lastSoundSig = sig;
+    auto pool = std::make_unique<SoundPool>();
+    for (int t = 0; t < numTracks; ++t)
+    {
+        const auto* d = engine.instrumentDesc (t);
+        if (d == nullptr || d->type == "octa" || d->type == "midiext") continue; // Pieuvre : emplacements ; piste MIDI : programme
+        for (const auto n : want[(size_t) t])
+        {
+            std::vector<std::pair<std::string, float>> vals;
+            juce::String name;
+            if (! presetByNumber (*d, n - 1, vals, name)) continue;
+            SoundPool::Entry e;
+            e.track = t; e.number = n; e.desc = d;
+            // un préréglage part des réglages d'origine ; les réglages de branchement restent ceux de la piste
+            for (size_t i = 0; i < d->params.size() && (int) i < instrumentSlots; ++i)
+            {
+                const auto& p = d->params[i];
+                if (p.keepOnPreset || p.fixed) continue;
+                auto v = p.def;
+                for (const auto& [id, value] : vals)
+                    if (id == p.id && std::isfinite (value)) { v = std::clamp (value, std::min (p.min, p.max), std::max (p.min, p.max)); break; }
+                e.values.emplace_back ((int) i, p.toNorm (v));
+            }
+            pool->entries.push_back (std::move (e));
+        }
+    }
+    engine.publishSoundPool (std::move (pool), now);
+}
+
+void GrooveboxProcessor::remoteSendAll (const std::vector<uint8_t>& m)
+{
+    if (remoteBack != nullptr) remoteBack->sendMessageNow (juce::MidiMessage::createSysExMessage (m.data(), (int) m.size()));
+    if (wifi != nullptr) wifi->send (m);
+}
+
+bool GrooveboxProcessor::setWifiRemote (bool on)
+{
+    // l'objet vit autant que le processeur (le fil audio le lit) : on n'arrête que l'écoute
+    if (wrapperType != wrapperType_Standalone || wifi == nullptr) return false;
+    if (! on) { wifi->stop(); return false; }
+    return wifi->start();
 }
 
 GrooveboxProcessor::~GrooveboxProcessor()
 {
     stopTimer();
+    proc->cancel.store (true);                       // 1.1 : traitement hors temps réel en cours
+    delete monitorChain.exchange (nullptr);          // 1.1 : écoute du traitement (le fil audio est arrêté)
+    if (procThread.joinable()) procThread.join();
+    engine.setAudition (nullptr);
+    remoteBack.reset();
+    wifi.reset();
     recorder.stop();
     engine.audioTap.store (nullptr);
     engine.montageFeed.store (nullptr);
@@ -284,7 +693,7 @@ std::uint64_t GrooveboxProcessor::changeStamp() const
     for (int t = 0; t < numTracks; ++t)
     {
         const auto& info = engine.getTrackInfo (t);
-        mixText (info.name); mixText (info.preset); mixText (info.speech); mix ((std::uint64_t) info.color); mix ((std::uint64_t) engine.getTrackOutput (t) + 977u);
+        mixText (info.name); mixText (info.preset); mixText (info.speech); mixText (info.labels); mix ((std::uint64_t) info.color); mix ((std::uint64_t) engine.getTrackOutput (t) + 977u);
     }
     for (int ch = 0; ch < numChannels; ++ch)
         for (const auto& name : engine.getInsertPresets (ch)) mixText (name);
@@ -311,6 +720,9 @@ void GrooveboxProcessor::timerCallback()
     montageTick();       // v0.46 fix8 : prise du montage rangée, export terminé
     audioRecTick();      // v0.46.2 : prise calée finie d'elle-même
     historyTick();
+    remoteFeedbackTick(); // 1.1 : retour vers la télécommande
+    presetRequestsTick(); // 1.1 : préréglages appelés par changement de programme
+    soundPoolTick();      // après la 1.1 : sons du pas
    #if JUCE_ANDROID
     perfHint.service();
     {
@@ -594,6 +1006,7 @@ namespace
                     c.setProperty ("instrument", "", nullptr);
                     c.setProperty ("name", "Piste " + juce::String (i + 1), nullptr);
                     c.removeProperty ("speech", nullptr);
+                    c.removeProperty ("labels", nullptr);
                     c.removeProperty ("out", nullptr);
                 }
             }
@@ -1323,6 +1736,7 @@ bool GrooveboxProcessor::isBusesLayoutSupported (const BusesLayout& layouts) con
 void GrooveboxProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     engine.prepare (sampleRate, samplesPerBlock);
+    midiOutBuf.ensureSize (3 * 4 * engine::MidiOutQueue::capacity); // après la 1.1 : pas d'allocation dans le fil audio
     montagePlayer.setDoc (montageDoc, sampleRate); // v0.46 fix8 : positions des clips à la fréquence de la carte
     const auto size = (size_t) std::max (samplesPerBlock, 4096);
     silentIn.assign (size * 2, 0.0f);
@@ -1628,10 +2042,55 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
         }
     }
 
+    // 1.1 : télécommande : réglages en valeur absolue (câble : SysEx de n'importe quel canal ; Wi-Fi : file)
+    const auto applyRemote = [&] (int target, float v)
+    {
+        if (target < midiLowestTarget) return;
+        if (isKnobTarget (target)) { const auto k = midiKnobBase - target; knobVal[(size_t) k].store (v, std::memory_order_relaxed); driveKnob (k, v); }
+        else if (target != midiNone) applyTarget (target, juce::jlimit (0.0f, 1.0f, v));
+    };
+    if (wifi != nullptr)
+        wifi->drain ([&] (const uint8_t* d, size_t len)
+        {
+            remoteSeen.store (true, std::memory_order_relaxed);
+            uint8_t raw[3];
+            // notes, CC et molettes du clavier du téléphone : comme s'ils venaient d'un appareil MIDI
+            if (const int m = remote::decodeMidi (d, len, raw); m > 0) midi.addEvent (raw, m, 0);
+            else remote::forEachSet (d, len, applyRemote);
+        });
+
     int numEvents = 0;
+    const double nowMs = juce::Time::getMillisecondCounterHiRes(); // après la 1.1 : anti-boucle des pistes MIDI
     for (const auto meta : midi)
     {
         const auto msg = meta.getMessage();
+        // après la 1.1 : message venu de l'appareil joué par les pistes MIDI (ou écho exact de ce qu'on vient
+        // de lui envoyer) : il ne rejoue pas les pistes (pas de boucle) ; Apprendre et les commandes apprises restent
+        bool fromDev = false;
+        if (! msg.isSysEx())
+        {
+            fromDev = grv::takeFromDevice (msg.getRawData(), msg.getRawDataSize(), nowMs);
+            if (const auto k = grv::midiKey (msg.getRawData(), msg.getRawDataSize()); ! fromDev && k != 0)
+                for (int i = 0; i < (int) sentKey.size(); ++i)
+                    if (sentKey[(size_t) i] == k && nowMs - sentAt[(size_t) i] < 400.0) { sentKey[(size_t) i] = 0; fromDev = true; break; }
+        }
+        if (msg.isSysEx())
+        {
+            const auto* d = msg.getSysExData();
+            const auto len = (size_t) msg.getSysExDataSize();
+            if (remote::isRemote (d, len))
+            {
+                remoteSeen.store (true, std::memory_order_relaxed);
+                remote::forEachSet (d, len, applyRemote);
+            }
+            continue;
+        }
+        // après la 1.1 : dernier CC reçu (« Apprendre » le numéro de CC d'un bouton de piste MIDI)
+        if (msg.isController())
+        {
+            lastCcIn.store ((msg.getChannel() << 8) | msg.getControllerNumber(), std::memory_order_relaxed);
+            lastCcSeq.fetch_add (1, std::memory_order_release);
+        }
         const auto offset = juce::jlimit (0, n - 1, meta.samplePosition);
         const auto chan = juce::jlimit (0, 15, msg.getChannel() - 1);
         // v0.46 : canaux MIDI (comme Ableton ou Fruity) — commandes apprises seulement sur le canal
@@ -1690,12 +2149,27 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
                 midiEvents[(size_t) numEvents++] = e;
             }
         };
+        if (fromDev && (msg.isPitchWheel() || msg.isChannelPressure() || msg.isAftertouch())) continue;
         if (msg.isPitchWheel()) { expression (InputEvent::pitchBend, juce::jlimit (-1.0f, 1.0f, (float) (msg.getPitchWheelValue() - 8192) / 8191.0f)); continue; }
         if (msg.isChannelPressure()) { expression (InputEvent::pressure, (float) msg.getChannelPressureValue() / 127.0f); continue; }
 
         if (msg.isController())
         {
+            // 1.1 : choix de banque standard (CC 0 et CC 32) pour le changement de programme qui suit
+            if (msg.getControllerNumber() == 0) bankMsb[(size_t) chan] = msg.getControllerValue();
+            if (msg.getControllerNumber() == 32) bankLsb[(size_t) chan] = msg.getControllerValue();
             const auto target = ctrlMsg ? ccMap[(size_t) (chan * 128 + msg.getControllerNumber())].load (std::memory_order_relaxed) : (int) midiNone;
+            if (fromDev && target == midiNone) continue; // après la 1.1 : pas de boucle avec l'appareil des pistes MIDI
+            // 1.1 : CC 102 à 105 (non définis par la norme) = préréglage de l'effet des inserts 1 à 4
+            // (valeur 0 = n° 1) pour les pistes réglées sur ce canal, sauf si la commande est apprise
+            if (target == midiNone && msg.getControllerNumber() >= 102 && msg.getControllerNumber() <= 105)
+            {
+                const int slot = msg.getControllerNumber() - 102, n = msg.getControllerValue();
+                bool any = false;
+                for (int t = 0; t < numTracks; ++t)
+                    if (trackCh[(size_t) t] == chan + 1) { pendingPreset[(size_t) t].store ((((slot + 1) << 16) | n) + 1, std::memory_order_relaxed); any = true; }
+                if (any) continue; // sans piste sur ce canal : commande libre, comme les autres
+            }
             const auto v = (float) msg.getControllerValue() / 127.0f;
             if (target == midiNone && msg.getControllerNumber() == 1) expression (InputEvent::modWheel, v);
             else if (target == midiNone && msg.getControllerNumber() == 64) expression (InputEvent::sustain, v >= 0.5f ? 1.0f : 0.0f);
@@ -1743,6 +2217,7 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
                 continue;
             }
 
+        if (fromDev && msg.isNoteOnOrOff()) continue; // après la 1.1 : pas de boucle avec l'appareil des pistes MIDI
         // Pads du contrôleur en mode Scènes ou Couper (notes 36 à 51), comme les pads de l'interface
         // (seulement pour les notes qui iraient à la piste choisie)
         if (msg.isNoteOnOrOff() && toFocus)
@@ -1810,10 +2285,23 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
                 midiEvents[(size_t) numEvents++] = e;
             }
         }
-        else if (msg.isProgramChange() && ctrlMsg)
+        else if (msg.isProgramChange())
         {
-            const auto scene = msg.getProgramChangeNumber();
-            if (scene < numScenes) pendingSceneLaunch.store (scene); // lancée par le fil de l'interface (pas d'allocation ici)
+            // 1.1 : pistes réglées sur ce canal → son n° (banque × 128 + programme + 1) de l'instrument ;
+            // sinon, sur le canal des commandes : lancement d'une scène (comme avant)
+            const auto prog = msg.getProgramChangeNumber();
+            const int msb = bankMsb[(size_t) chan], lsb = bankLsb[(size_t) chan];
+            // banque sur 14 bits ; un appareil qui n'envoie que le CC 0 (ou que le CC 32) donne la page directement
+            const int page = msb > 0 && lsb > 0 ? msb * 128 + lsb : juce::jmax (msb, lsb);
+            const int number = juce::jmin (0xFFFF, page * 128 + prog);
+            bool toTrack = false;
+            for (int t = 0; t < numTracks; ++t)
+                if (trackCh[(size_t) t] == chan + 1)
+                {
+                    pendingPreset[(size_t) t].store (number + 1, std::memory_order_relaxed); // instrument : cible 0 dans les bits hauts
+                    toTrack = true;
+                }
+            if (! toTrack && ctrlMsg && prog < numScenes) pendingSceneLaunch.store (prog); // lancée par le fil de l'interface (pas d'allocation ici)
         }
     }
 
@@ -1847,13 +2335,77 @@ void GrooveboxProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
         for (int i = first; i < first + count; ++i) midiEvents[(size_t) i].offset -= pos;
 
         float* dstR = outR != nullptr ? outR + pos : monoOut.data();
+        const double nowMsOut = juce::Time::getMillisecondCounterHiRes();
         engine.process (inL, inR, outL + pos, dstR, len, bi, count > 0 ? midiEvents.data() + first : nullptr, count);
+        // après la 1.1 : messages des pistes MIDI de ce morceau, placés à leur échantillon dans le bloc
+        {
+            const auto& q = engine.midiOut;
+            for (int k = 0; k < q.count; ++k)
+            {
+                const auto& e = q.ev[(size_t) k];
+                const juce::uint8 raw[3] { e.b0, e.b1, e.b2 };
+                midiOutBuf.addEvent (raw, juce::jlimit (1, 3, (int) e.len), juce::jlimit (0, n - 1, pos + e.offset));
+                // écho exact de ce message renvoyé par l'appareil : reconnu à l'entrée (anti-boucle)
+                if (const auto k = grv::midiKey (raw, juce::jlimit (1, 3, (int) e.len)); k != 0)
+                {
+                    sentKey[(size_t) sentHead] = k; sentAt[(size_t) sentHead] = nowMsOut;
+                    sentHead = (sentHead + 1) % (int) sentKey.size();
+                }
+            }
+        }
         if (outR == nullptr)
             for (int i = 0; i < len; ++i) outL[pos + i] = 0.5f * (outL[pos + i] + monoOut[(size_t) i]);
         // après le premier morceau, la position du logiciel hôte avance avec le séquenceur
         if (bi.host.playing) bi.host.ppq += (double) len * bi.bpm / 60.0 / getSampleRate();
     }
+    // 1.1 (lot 3) : écoute du traitement de l'écran AUDIO (après la prise : celle-ci garde le son d'origine)
+    monitorBusy.fetch_add (1);
+    if (auto* mc = monitorChain.load(); mc != nullptr && outR != nullptr) mc->monitorProcess (outL, outR, n);
+    monitorBusy.fetch_sub (1);
+    // après la 1.1 : la sortie MIDI du bloc = les messages des pistes MIDI (jamais l'entrée renvoyée telle quelle)
+    midi.clear();
+    if (! midiOutBuf.isEmpty()) { midi.addEvents (midiOutBuf, 0, n, 0); midiOutBuf.clear(); }
     for (int c = 2; c < buffer.getNumChannels(); ++c) buffer.clear (c, 0, n);
+}
+
+double GrooveboxProcessor::setMonitorChain (const juce::var& chainVar)
+{
+    const auto chain = parseChain (chainVar);
+    std::unique_ptr<engine::OfflineChain> next;
+    double ms = 0.0;
+    bool any = false;
+    for (const auto& c : chain) any = any || (! c.type.empty() && ! c.bypass);
+    // 1.1 : un bouton tourné (mêmes effets, dans le même ordre) : seuls les réglages changent, la chaîne
+    // garde son état (queues, filtres) ; la reconstruire à chaque mouvement faisait craquer le son
+    if (auto* cur = monitorChain.load(); any && cur != nullptr && cur->sameShape (chain))
+    {
+        cur->stageParams (chain);
+        return monitorMs;
+    }
+    if (any)
+    {
+        next = std::make_unique<engine::OfflineChain>();
+        const auto sr = getSampleRate() > 0.0 ? getSampleRate() : 48000.0;
+        if (! next->prepare (chain, sr, currentBpm.load(), false).empty()) next.reset();
+        else ms = 1000.0 * next->latency() / sr;
+    }
+    auto* old = monitorChain.exchange (next.release());
+    while (monitorBusy.load() > 0) juce::Thread::yield(); // le fil audio a lâché l'ancienne
+    delete old;
+    monitorMs = ms;
+    return ms;
+}
+
+void GrooveboxProcessor::setMonitorSources (const juce::var& v)
+{
+    std::uint32_t tracks = 0, returns = 0;
+    if (const auto* a = v.getProperty ("tracks", juce::var()).getArray())
+        for (const auto& t : *a) if ((int) t >= 0 && (int) t < engine::numTracks) tracks |= 1u << (int) t;
+    if (const auto* a = v.getProperty ("returns", juce::var()).getArray())
+        for (const auto& r : *a) if ((int) r >= 0 && (int) r < engine::numReturns) returns |= 1u << (int) r;
+    const bool input = (bool) v.getProperty ("input", false);
+    const bool on = (bool) v.getProperty ("on", false) && (tracks != 0 || returns != 0 || input);
+    engine.setMonitorSources (tracks, returns, input, on);
 }
 
 //==============================================================================
@@ -2003,6 +2555,12 @@ GrooveboxProcessor::Address GrooveboxProcessor::addressOf (int global) const
         a.area = "padbyp"; a.id = "b" + juce::String (k / padInserts + 1) + "_" + juce::String (k % padInserts + 1);
         return a;
     }
+    else if (local == trackSoundSlot) // après la 1.1 : son du pas
+    {
+        if (a.channel >= numTracks || engine.instrumentDesc (a.channel) == nullptr) { a.channel = -1; return a; }
+        a.area = "son"; a.id = "n";
+        return a;
+    }
     else if (local >= padInsertBase && a.channel < numTracks)
     {
         const auto k = (local - padInsertBase) / insertSlots;
@@ -2140,6 +2698,23 @@ void GrooveboxProcessor::loadDefaultProject()
 
 //==============================================================================
 // Échantillons
+
+void GrooveboxProcessor::openSampleDecay (int track, int index)
+{
+    // Échantillon posé sur un pad de SYNTHÈSE d'une batterie sans machines : son déclin part au maximum,
+    // l'échantillon se lit en entier, on le raccourcit ensuite au bouton Déclin (1.1). Les pads
+    // « Échantillon » et les batteries à machines (réglages d'échantillon propres) ne changent pas.
+    const auto* d = engine.instrumentDesc (track);
+    if (d == nullptr || ! d->drumKit || index < 0 || index >= (int) d->padKinds.size() || d->padKinds[(size_t) index] == "sample") return;
+    const auto prefix = "p" + std::string (index < 9 ? "0" : "") + std::to_string (index + 1) + "_";
+    int decay = -1;
+    for (size_t k = 0; k < d->params.size(); ++k)
+    {
+        if (d->params[k].id == prefix + "mach") return;
+        if (d->params[k].id == prefix + "decay") decay = (int) k;
+    }
+    if (decay >= 0 && decay < instrumentSlots) engine.setParam (globalSlot (track, instrumentBase + decay), 1.0f);
+}
 
 juce::String GrooveboxProcessor::loadSample (int track, int index, const juce::String& fileName, juce::MemoryBlock fileBytes)
 {
@@ -2337,7 +2912,204 @@ juce::String GrooveboxProcessor::editSample (int track, int index, int op, doubl
     // WAV 24 bits : l'échantillon modifié est gardé avec le projet comme un fichier chargé
     juce::MemoryBlock wav;
     if (! encodeWav24 (l, r, stereo, src->sampleRate, wav)) return juce::String::fromUTF8 ("Écriture impossible");
-    return loadSample (track, index, juce::String::fromUTF8 (src->name.c_str()), std::move (wav));
+    const auto name = juce::String::fromUTF8 (src->name.c_str());
+    pushSampleVersion (track, index); // 1.1 : Annuler (8 versions)
+    return loadSample (track, index, name, std::move (wav));
+}
+
+//==============================================================================
+// 1.1 (lots 1 et 2) : TRAITER un échantillon par une chaîne d'effets, hors temps réel
+juce::File GrooveboxProcessor::processedFolder()
+{
+   #if JUCE_ANDROID
+    auto dir = Recorder::rootFolder().getChildFile (juce::String::fromUTF8 ("Son traité"));
+   #else
+    auto dir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("Groovebox").getChildFile (juce::String::fromUTF8 ("Son traité"));
+   #endif
+    dir.createDirectory();
+    return dir;
+}
+
+std::vector<engine::ChainSlot> GrooveboxProcessor::parseChain (const juce::var& chain)
+{
+    std::vector<engine::ChainSlot> out;
+    if (const auto* arr = chain.getArray())
+        for (const auto& v : *arr)
+        {
+            if ((int) out.size() >= 4) break;
+            engine::ChainSlot s;
+            s.type = v.getProperty ("type", "").toString().substring (0, 40).toStdString();
+            s.bypass = (bool) v.getProperty ("bypass", false);
+            if (const auto* vals = v.getProperty ("values", juce::var()).getArray())
+                for (const auto& x : *vals)
+                {
+                    if (s.plain.size() >= 256) break;
+                    const auto f = (float) (double) x;
+                    s.plain.push_back (std::isfinite (f) ? f : 0.0f);
+                }
+            if (! s.type.empty() && engine::findEffect (s.type) == nullptr) continue; // type inconnu : ignoré
+            out.push_back (std::move (s));
+        }
+    return out;
+}
+
+void GrooveboxProcessor::pushSampleVersion (int track, int index)
+{
+    const auto* src = engine.getSample (track, index);
+    if (src == nullptr || src->original == nullptr) return;
+    auto& h = sampleHistory[track * maxSamples + index];
+    h.push_back ({ juce::String::fromUTF8 (src->name.c_str()), src->original });
+    while (h.size() > 8) h.pop_front();
+}
+
+int GrooveboxProcessor::sampleUndoCount (int track, int index) const
+{
+    const auto it = sampleHistory.find (track * maxSamples + index);
+    return it == sampleHistory.end() ? 0 : (int) it->second.size();
+}
+
+juce::String GrooveboxProcessor::sampleUndo (int track, int index)
+{
+    const auto it = sampleHistory.find (track * maxSamples + index);
+    if (it == sampleHistory.end() || it->second.empty()) return juce::String::fromUTF8 ("Rien à annuler");
+    auto v = it->second.back();
+    it->second.pop_back();
+    return loadSampleBytes (track, index, v.name, v.bytes);
+}
+
+juce::String GrooveboxProcessor::procStart (int track, int index, double a, double b, const juce::var& chainVar, bool keepTail, bool preview, bool keepOriginal)
+{
+    if (proc->busy.load()) return juce::String::fromUTF8 ("Un traitement est déjà en cours");
+    if (track < 0 || track >= numTracks || index < 0 || index >= maxSamples) return juce::String::fromUTF8 ("Emplacement inconnu");
+    const auto* src = engine.getSample (track, index);
+    if (src == nullptr || src->data.size() < 16) return juce::String::fromUTF8 ("Emplacement vide");
+    auto chain = parseChain (chainVar);
+    bool any = false;
+    for (const auto& c : chain) any = any || (! c.type.empty() && ! c.bypass);
+    if (! any) return juce::String::fromUTF8 ("Choisissez au moins un effet");
+    if (procThread.joinable()) procThread.join();
+
+    const auto n = (int) src->data.size();
+    const bool stereo = src->right.size() == src->data.size();
+    a = juce::jlimit (0.0, 1.0, a); b = juce::jlimit (0.0, 1.0, b);
+    if (b < a) std::swap (a, b);
+    if (b - a < 1.0e-4) { a = 0.0; b = 1.0; }
+    const auto i0 = juce::jlimit (0, n - 1, (int) std::floor (a * n)), i1 = juce::jlimit (i0 + 1, n, (int) std::ceil (b * n));
+    if (i1 - i0 < 16) return juce::String::fromUTF8 ("Sélection trop courte");
+
+    proc = std::make_unique<ProcJob>();
+    auto* job = proc.get();
+    job->track = track; job->index = index; job->preview = preview; job->keepOriginal = keepOriginal;
+    job->name = juce::String::fromUTF8 (src->name.c_str());
+    job->rate = src->sampleRate;
+    job->busy.store (true);
+    std::vector<float> L = src->data, R = stereo ? src->right : std::vector<float> {};
+    const double bpm = currentBpm.load();
+    procThread = std::thread ([job, chain = std::move (chain), L = std::move (L), R = std::move (R), stereo, n, i0, i1, keepTail, bpm]() mutable
+    {
+        engine::OfflineChain oc;
+        auto err = oc.prepare (chain, job->rate, bpm);
+        if (err.empty())
+        {
+            const int m = i1 - i0;
+            auto res = oc.render (L.data() + i0, stereo ? R.data() + i0 : nullptr, m, keepTail, 20.0, &job->progress, &job->cancel);
+            if (! res.error.empty()) err = res.error;
+            else
+            {
+                const bool outStereo = stereo || ! res.right.empty();
+                const auto& pl = res.left; const auto& pr = res.right.empty() ? res.left : res.right;
+                const int len = (int) pl.size();
+                // son entier : début intact, sélection traitée (bords fondus sur 5 ms), queue mêlée à la suite
+                const int total = std::max (n, i0 + len);
+                std::vector<float> ol ((size_t) total, 0.0f), orr (outStereo ? (size_t) total : 0, 0.0f);
+                for (int i = 0; i < n; ++i) { ol[(size_t) i] = L[(size_t) i]; if (outStereo) orr[(size_t) i] = stereo ? R[(size_t) i] : L[(size_t) i]; }
+                const bool whole = i0 == 0 && i1 == n;
+                const int fade = whole ? 0 : std::min (m / 4, (int) (0.005 * job->rate));
+                for (int i = 0; i < len; ++i)
+                {
+                    const int s = i0 + i;
+                    float w = 1.0f; // poids du traité dans la sélection
+                    if (fade > 0 && i < fade) w = (float) i / (float) fade;
+                    if (fade > 0 && i >= m - fade && i < m) w = (float) (m - i) / (float) fade;
+                    if (i < m)
+                    {
+                        ol[(size_t) s] = ol[(size_t) s] * (1.0f - w) + pl[(size_t) i] * w;
+                        if (outStereo) orr[(size_t) s] = orr[(size_t) s] * (1.0f - w) + pr[(size_t) i] * w;
+                    }
+                    else
+                    {   // queue : s'ajoute à ce qui suit la sélection
+                        ol[(size_t) s] += pl[(size_t) i];
+                        if (outStereo) orr[(size_t) s] += pr[(size_t) i];
+                    }
+                }
+                job->l = std::move (ol); job->r = std::move (orr);
+                job->latency = res.latency; job->tail = res.tail;
+            }
+        }
+        job->error = juce::String::fromUTF8 (err.c_str());
+        job->ready.store (err.empty());
+        job->busy.store (false);
+    });
+    return {};
+}
+
+void GrooveboxProcessor::procCancel()
+{
+    proc->cancel.store (true);
+}
+
+void GrooveboxProcessor::procAudition (bool play)
+{
+    if (! play || ! proc->ready.load() || proc->busy.load() || proc->l.empty()) { engine.setAudition (nullptr); return; }
+    auto b = std::make_shared<engine::SampleBuffer>();
+    b->data = proc->l; b->right = proc->r; b->sampleRate = proc->rate; b->name = proc->name.toStdString();
+    engine.setAudition (b.get());
+    auditionPrev = std::move (auditionHold); // l'ancien reste vivant le temps que le moteur le lâche
+    auditionHold = std::move (b);
+}
+
+juce::var GrooveboxProcessor::procStatus()
+{
+    auto* o = new juce::DynamicObject();
+    auto* job = proc.get();
+    const bool busy = job->busy.load();
+    if (! busy && procThread.joinable()) procThread.join();
+    // résultat prêt : pré-écoute, ou remplacement de l'échantillon (une seule fois)
+    if (! busy && job->ready.load() && ! job->applied)
+    {
+        job->applied = true;
+        if (job->preview) procAudition (true);
+        else
+        {
+            const auto* src = engine.getSample (job->track, job->index);
+            if (job->keepOriginal && src != nullptr && src->original != nullptr)
+            {
+                auto dir = processedFolder().getChildFile ("Originaux");
+                dir.createDirectory();
+                auto name = juce::File::createLegalFileName (job->name.isEmpty() ? juce::String ("son") : job->name);
+                auto f = dir.getNonexistentChildFile (juce::File (name).getFileNameWithoutExtension() + juce::Time::getCurrentTime().formatted (" %Y-%m-%d %Hh%M"),
+                                                      juce::File (name).getFileExtension().isEmpty() ? ".wav" : juce::File (name).getFileExtension(), false);
+                f.replaceWithData (src->original->data(), src->original->size());
+            }
+            pushSampleVersion (job->track, job->index);
+            juce::MemoryBlock wav;
+            if (! encodeWav24 (job->l, job->r, job->r.size() == job->l.size() && ! job->r.empty(), job->rate, wav)) job->error = juce::String::fromUTF8 ("Écriture impossible");
+            else if (auto e = loadSample (job->track, job->index, job->name, std::move (wav)); e.isNotEmpty()) job->error = e;
+        }
+    }
+    o->setProperty ("busy", busy);
+    o->setProperty ("progress", (double) job->progress.load());
+    o->setProperty ("ready", job->ready.load());
+    o->setProperty ("preview", job->preview);
+    o->setProperty ("error", job->error);
+    o->setProperty ("track", job->track);
+    o->setProperty ("index", job->index);
+    o->setProperty ("seconds", job->l.empty() ? 0.0 : (double) job->l.size() / job->rate);
+    o->setProperty ("latencyMs", job->rate > 0 ? 1000.0 * job->latency / job->rate : 0.0);
+    o->setProperty ("tailSeconds", job->rate > 0 ? (double) job->tail / job->rate : 0.0);
+    o->setProperty ("auditioning", engine.auditionPlaying());
+    o->setProperty ("undo", job->track >= 0 ? sampleUndoCount (job->track, job->index) : 0);
+    return juce::var (o);
 }
 
 juce::String GrooveboxProcessor::copySample (int fromTrack, int fromIndex, int toTrack, int toIndex)
@@ -2401,7 +3173,7 @@ juce::ValueTree GrooveboxProcessor::projectToTree (bool withSamples) const
     // version 4 : 20 modes d'arpège (8 avant) ; version 5 : réserve de 6 dB (poly à chorus, wave morph) ;
     // version 6 : division par pattern ; version 7 : divisions au tempo jusqu'à 16 mesures ;
     // version 8 : 64 ondes pour l'oscillateur 3 du wave morph
-    project.setProperty ("version", 19, nullptr); // 19 : 3 modes de LFO ajoutés (une fois, tenu, demi-cycle) ; 18 : Pieuvre 8 à 8 pistes internes (anciennes pistes Pieuvre regroupées) ; 17 : réserve commune de Pieuvre 8 (153 choix d'emplacement) ; 16 : Hopscotch à 64 pas (51 choix par pas) ; 15 : 12 algorithmes dans l'Atmosphère (5 avant) ; 12 : position W (onde choisie) dans les générateurs de l'orbiteur ; 13 : bus de groupe (canaux 21 à 24) ; 14 : « Prise de son » ajoutée aux sources des vocodeurs
+    project.setProperty ("version", 20, nullptr); // 20 : déclin des pads de synthèse appliqué à leur échantillon ; 19 : 3 modes de LFO ajoutés (une fois, tenu, demi-cycle) ; 18 : Pieuvre 8 à 8 pistes internes (anciennes pistes Pieuvre regroupées) ; 17 : réserve commune de Pieuvre 8 (153 choix d'emplacement) ; 16 : Hopscotch à 64 pas (51 choix par pas) ; 15 : 12 algorithmes dans l'Atmosphère (5 avant) ; 12 : position W (onde choisie) dans les générateurs de l'orbiteur ; 13 : bus de groupe (canaux 21 à 24) ; 14 : « Prise de son » ajoutée aux sources des vocodeurs
 
     for (int t = 0; t < numTracks; ++t)
     {
@@ -2412,6 +3184,7 @@ juce::ValueTree GrooveboxProcessor::projectToTree (bool withSamples) const
         tr.setProperty ("color", info.color, nullptr);
         if (const auto out = engine.getTrackOutput (t); out != 0) tr.setProperty ("out", out, nullptr); // v0.24 : bus de groupe
         if (! info.speech.empty()) tr.setProperty ("speech", juce::String::fromUTF8 (info.speech.c_str()), nullptr); // v0.33 : phrase tapée
+        if (! info.labels.empty()) tr.setProperty ("labels", juce::String::fromUTF8 (info.labels.c_str()), nullptr); // après la 1.1 : sections de la piste MIDI
         tr.setProperty ("instrument", juce::String (info.instrumentType), nullptr);
         tr.setProperty ("preset", juce::String::fromUTF8 (info.preset.c_str()), nullptr);
        #if GROOVEBOX_FM1
@@ -2776,6 +3549,7 @@ void GrooveboxProcessor::projectFromTree (const juce::ValueTree& projectIn)
             engine.setTrackColor (i, clampInt (c.getProperty ("color"), 0, 15, 0));
             engine.setTrackOutput (i, clampInt (c.getProperty ("out"), 0, numGroups, 0));
             engine.setTrackSpeech (i, c.getProperty ("speech").toString().toStdString(), t); // v0.33
+            engine.setTrackLabels (i, c.getProperty ("labels").toString().substring (0, 200).toStdString());
             // v0.49 : FM Player — mémoire flash du firmware, reprise au chargement du firmware (SAMPLE qui suit)
             pendingFlash[(size_t) i].reset();
             if (c.hasProperty ("fm1flash"))
@@ -2817,9 +3591,15 @@ void GrooveboxProcessor::projectFromTree (const juce::ValueTree& projectIn)
 float GrooveboxProcessor::migrateValue (int version, int g, float v) const
 {
     // Réglages rangés par une version plus ancienne du format de projet (projet, photo ou scène).
-    if (version >= 19 || g < 0) return v;
+    if (version >= 20 || g < 0) return v;
     const auto* d = engine.describe (g);
     if (d == nullptr) return v;
+    // version 20 : modes « Un cycle », « Demi-cycle », « Maintien » ajoutés à la fin du redéclenchement
+    // des sources de modulation de piste (3 choix avant : libre, note, mesure)
+    if (const auto local = localOf (g); local >= modSourceBase && local < modSourceBase + numModSources * modSourceSlots
+        && (local - modSourceBase) % modSourceSlots == msRetrig)
+        return d->toNorm ((float) juce::jlimit (0, 2, (int) std::floor (v * 3.0f)));
+    if (version >= 19) return v;
     // version 19 : modes des LFO de la modulation commune — « Une fois », « Tenu », « Demi-cycle » ajoutés
     // à la fin (3 choix avant : par voix, global, par voix libre), dans tous les instruments
     if (localOf (g) >= instrumentBase && localOf (g) < insertBase && d->choices.size() == 6 && d->id.size() >= 8
@@ -2947,6 +3727,7 @@ void GrooveboxProcessor::applyProjectContent (const juce::ValueTree& project, bo
     // Projets de version 1 et 2 : la distorsion avait 11 algorithmes (14 aujourd'hui).
     const auto version = (int) project.getProperty ("version", 1);
     auto fix = [this, version] (int g, float v) { return migrateValue (version, g, v); };
+    std::vector<std::pair<int, int>> wholeSamplePads;
 
     // Les commandes MIDI apprises restent d'un projet à l'autre, sauf si le projet chargé a les siennes
     if (withSamplesAndMidi && project.getChildWithName ("MIDI").isValid())
@@ -3094,9 +3875,10 @@ void GrooveboxProcessor::applyProjectContent (const juce::ValueTree& project, bo
         else if (c.hasType ("SAMPLE") && withSamplesAndMidi)
         {
             juce::MemoryBlock bytes;
+            const auto st = clampInt (c.getProperty ("t"), 0, numTracks - 1, 0), si = clampInt (c.getProperty ("i"), 0, maxSamples - 1, 0);
             if (bytes.fromBase64Encoding (c.getProperty ("data").toString()))
-                loadSample (clampInt (c.getProperty ("t"), 0, numTracks - 1, 0), clampInt (c.getProperty ("i"), 0, maxSamples - 1, 0),
-                            c.getProperty ("name").toString(), std::move (bytes));
+                if (loadSample (st, si, c.getProperty ("name").toString(), std::move (bytes)).isEmpty() && version < 20)
+                    wholeSamplePads.push_back ({ st, si }); // projet d'avant la version 20 : lecture entière gardée
         }
         else if (c.hasType ("MACROMODE"))
         {
@@ -3149,6 +3931,9 @@ void GrooveboxProcessor::applyProjectContent (const juce::ValueTree& project, bo
                 setMidiMapping (clampInt (c.getProperty ("kind"), 0, 1, 0), clampInt (c.getProperty ("ch"), 0, 15, 0), clampInt (c.getProperty ("num"), 0, 127, 0), target);
         }
     }
+    // version 20 : le déclin d'un pad de synthèse agit aussi sur l'échantillon qu'on y dépose ; un projet
+    // plus ancien lisait ces échantillons en entier : leur déclin est mis au maximum (son inchangé)
+    for (const auto& [st, si] : wholeSamplePads) openSampleDecay (st, si);
     // les préréglages affichés reviennent après les réglages
     for (const auto& c : project)
         if (c.hasType ("INSERT") && validChannel (c))
@@ -3270,6 +4055,7 @@ void GrooveboxProcessor::restoreSnapshot (const juce::ValueTree& snap)
         engine.setTrackColor (tr, clampInt (c.getProperty ("color"), 0, 15, 0));
         engine.setTrackOutput (tr, clampInt (c.getProperty ("out"), 0, numGroups, 0));
         engine.setTrackSpeech (tr, c.getProperty ("speech").toString().toStdString(), t); // v0.33
+        engine.setTrackLabels (tr, c.getProperty ("labels").toString().substring (0, 200).toStdString());
     }
     busesFromTree (engine, snap); // v0.31
     for (int ch = 0; ch < numChannels; ++ch)
@@ -4014,6 +4800,45 @@ juce::String GrooveboxProcessor::audioRecStart (int mode, int format, int follow
                           sr, tracks, returnsUsed, error))
         recorder.setFollowPlayback (false);
     return error;
+}
+
+juce::String GrooveboxProcessor::audioRecStartEx (const juce::var& o)
+{
+    Recorder::TakeOptions t;
+    t.custom = true;
+    t.master = (bool) o.getProperty ("master", true);
+    t.masterTreated = (bool) o.getProperty ("masterTreated", false);
+    t.trackMask = (std::uint32_t) ((juce::int64) o.getProperty ("tracks", 0) & 0xFFFF);
+    t.sumTracks = (bool) o.getProperty ("sum", false);
+    t.returnMask = (std::uint32_t) ((int) o.getProperty ("returns", 0) & 0xF);
+    t.input = (bool) o.getProperty ("input", false);
+    t.chain = parseChain (o.getProperty ("chain", juce::var()));
+    t.during = (bool) o.getProperty ("during", false);
+    t.dest = juce::jlimit (0, 3, (int) o.getProperty ("dest", 0));
+    const int format = juce::jlimit (0, 2, (int) o.getProperty ("format", 0));
+    t.float32 = format == 1;
+    int follow = juce::jlimit (0, 3, (int) o.getProperty ("follow", 1));
+    if (follow == 3) t.barsQuarters = 4.0 * juce::jlimit (1, 64, (int) o.getProperty ("bars", 4));
+    t.treatedRoot = processedFolder();
+    t.project = o.getProperty ("project", "").toString().substring (0, 60);
+    t.bpm = currentBpm.load();
+    if (! t.master && ! t.masterTreated && t.trackMask == 0 && t.returnMask == 0 && ! t.input) return juce::String::fromUTF8 ("Cochez au moins une source");
+    recorder.setTakeOptions (std::move (t));
+    const auto e = audioRecStart (0, format == 2 ? 1 : 0, follow == 3 ? 1 : follow);
+    if (e.isNotEmpty()) recorder.setTakeOptions ({});
+    return e;
+}
+
+juce::String GrooveboxProcessor::audioRecToPad (int track, int index)
+{
+    if (recorder.isRecording() || recorder.isProcessing()) return juce::String::fromUTF8 ("La prise n'est pas encore prête");
+    const auto f = recorder.resultFile();
+    if (! f.existsAsFile()) return juce::String::fromUTF8 ("Aucune prise à charger");
+    if (f.getSize() > 512ll * 1024 * 1024) return juce::String::fromUTF8 ("Prise trop lourde pour un pad");
+    juce::MemoryBlock mb;
+    if (! f.loadFileAsData (mb)) return juce::String::fromUTF8 ("Prise illisible");
+    pushSampleVersion (track, index); // annulable, comme l'éditeur d'échantillon
+    return loadSample (track, index, f.getFileName(), std::move (mb));
 }
 
 void GrooveboxProcessor::audioRecTick()

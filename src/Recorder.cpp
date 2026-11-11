@@ -21,6 +21,64 @@ namespace
     const float silence[maxBlock] {};
 
     juce::String jsonEscape (const juce::String& s) { return juce::JSON::toString (juce::var (s)); }
+
+    /** 1.1 (lot 3) : écrivain « traité pendant la prise ». Le fil d'écriture lui passe le son brut ;
+        il le fait passer dans la chaîne (versions directes des outils), retire la latence au début et
+        la rend à la fin (silence poussé à la fermeture) : le fichier a pile la longueur de la prise,
+        calé au premier échantillon. Jamais dans le fil audio. */
+    class ProcessingWriter final : public juce::AudioFormatWriter
+    {
+    public:
+        ProcessingWriter (std::unique_ptr<juce::AudioFormatWriter> w, const std::vector<engine::ChainSlot>& chain, double sr, double bpm)
+            : juce::AudioFormatWriter (nullptr, "GOLEM", sr, 2, 32), inner (std::move (w))
+        {
+            usesFloatingPointData = true;
+            ready = inner != nullptr && oc.prepare (chain, sr, bpm, false).empty();
+            if (ready) pending = oc.streamStart();
+        }
+        ~ProcessingWriter() override
+        {
+            // fin de la prise : la latence encore dans la chaîne ressort (silence en entrée)
+            while (ready && pending > 0)
+            {
+                const int m = std::min (chunk, pending);
+                std::fill (l, l + m, 0.0f); std::fill (r, r + m, 0.0f);
+                const int k = oc.streamProcess (l, r, m);
+                emit (k); pending -= m;
+            }
+            inner.reset();
+        }
+        bool write (const int** data, int numSamples) override
+        {
+            if (inner == nullptr) return false;
+            const auto** f = reinterpret_cast<const float**> (data);
+            const float* sl = f[0];
+            const float* sr2 = f[1] != nullptr ? f[1] : f[0];
+            for (int i = 0; i < numSamples; i += chunk)
+            {
+                const int m = std::min (chunk, numSamples - i);
+                std::copy (sl + i, sl + i + m, l); std::copy (sr2 + i, sr2 + i + m, r);
+                const int k = ready ? oc.streamProcess (l, r, m) : m;
+                if (! emit (k)) return false;
+            }
+            return true;
+        }
+        bool flush() override { return inner != nullptr && inner->flush(); }
+    private:
+        bool emit (int k) { if (k <= 0) return true; const float* ch[2] { l, r }; return inner->writeFromFloatArrays (ch, 2, k); }
+        static constexpr int chunk = 1024;
+        std::unique_ptr<juce::AudioFormatWriter> inner;
+        engine::OfflineChain oc;
+        bool ready = false;
+        int pending = 0;
+        float l[chunk] {}, r[chunk] {};
+    };
+
+    bool chainActive (const std::vector<engine::ChainSlot>& c)
+    {
+        for (const auto& x : c) if (! x.type.empty() && ! x.bypass) return true;
+        return false;
+    }
 }
 
 Recorder::Recorder()
@@ -63,13 +121,17 @@ bool Recorder::start (Mode m, Format f, double sampleRate, const std::vector<Tra
 {
     if (active.load()) { error = juce::String::fromUTF8 ("Un enregistrement est déjà en cours"); return false; }
     if (encoding.load()) { error = juce::String::fromUTF8 ("La conversion en MP3 de la prise précédente n'est pas finie"); return false; }
+    if (processing.load()) { error = juce::String::fromUTF8 ("Le traitement de la prise précédente n'est pas fini"); return false; }
     if (encoder != nullptr) { encoder->stopThread (1000); encoder.reset(); }
     closeAll();
 
     mode = m; format = f;
     rate = sampleRate > 8000.0 && sampleRate <= 384000.0 ? sampleRate : 48000.0;
-    stems = m != Mode::master;
+    const bool custom = opt.custom && fixedFolder == juce::File();
+    const bool withChain = custom && chainActive (opt.chain);
+    stems = custom ? (opt.trackMask != 0 || opt.returnMask != 0) : m != Mode::master;
     trackStream.fill (-1); returnStream.fill (-1); masterStream = -1;
+    masterTreatedStream = -1; sumStream = -1; inputStream = -1;
 
     // dossier de la prise : date et heure, jamais un dossier existant (montage : dossier donné)
     juce::File dir;
@@ -92,27 +154,57 @@ bool Recorder::start (Mode m, Format f, double sampleRate, const std::vector<Tra
     const auto fifo = juce::jlimit (8192, 1 << 20, (int) (rate * fifoSeconds));
     juce::WavAudioFormat wav;
     juce::FlacAudioFormat flac;
-    auto open = [&] (const juce::String& baseName) -> int
+    const int bits = custom && opt.float32 && format == Format::wav ? 32 : 24;
+    auto open = [&] (const juce::String& baseName, int kind = 0, bool treated = false) -> int
     {
         auto file = dir.getChildFile (juce::File::createLegalFileName (baseName) + (format == Format::flac ? ".flac" : ".wav"));
         if (file.exists()) file = file.getNonexistentSibling (false);
         std::unique_ptr<juce::OutputStream> os = file.createOutputStream();
         if (os == nullptr) return -1;
-        auto options = juce::AudioFormatWriterOptions{}.withSampleRate (rate).withNumChannels (2).withBitsPerSample (24);
+        auto options = juce::AudioFormatWriterOptions{}.withSampleRate (rate).withNumChannels (2).withBitsPerSample (bits);
         std::unique_ptr<juce::AudioFormatWriter> w;
         if (format == Format::flac) w = flac.createWriterFor (os, options.withQualityOptionIndex (5));
         else w = wav.createWriterFor (os, options.withMetadata (juce::WavAudioFormat::bwavOriginator, "OFAD GOLEM"));
         if (w == nullptr) return -1;
+        if (treated) w = std::make_unique<ProcessingWriter> (std::move (w), opt.chain, rate, opt.bpm); // 1.1 : traité au fil de l'écriture
         Stream s;
         s.writer = std::make_unique<juce::AudioFormatWriter::ThreadedWriter> (w.release(), writerThread, fifo);
         s.file = file;
+        s.label = baseName; s.kind = kind; s.treated = treated;
         streams.push_back (std::move (s));
         return (int) streams.size() - 1;
     };
+    const auto writeError = juce::String::fromUTF8 ("Écriture impossible dans le dossier des enregistrements");
 
-    streams.reserve (1 + tracks.size() + engine::numReturns);
+    streams.reserve (2 + tracks.size() + engine::numReturns);
+    if (custom)
+    {
+        // 1.1 (lot 3) : les sources cochées. Traité « pendant » : le fichier est écrit traité ; « après » :
+        // on écrit le brut (gardé), traité à l'arrêt
+        const bool during = withChain && opt.during;
+        const bool wantMaster = opt.master || (opt.masterTreated && ! withChain) || (opt.masterTreated && ! during);
+        if (wantMaster && (masterStream = open ("Master", 0)) < 0) { error = writeError; closeAll(); dir.deleteRecursively(); return false; }
+        if (opt.masterTreated && during && (masterTreatedStream = open (juce::String::fromUTF8 ("Master traité"), 1, true)) < 0) { error = writeError; closeAll(); dir.deleteRecursively(); return false; }
+        bool anyTrack = false;
+        for (const auto& t : tracks)
+            if (t.index >= 0 && t.index < engine::numTracks && (opt.trackMask & (1u << t.index)) != 0)
+            {
+                anyTrack = true;
+                if (opt.sumTracks) continue;
+                trackStream[(size_t) t.index] = open ("P" + juce::String (t.index + 1).paddedLeft ('0', 2) + (t.name.isNotEmpty() ? " " + t.name : juce::String()), 2, during);
+            }
+        if (anyTrack && opt.sumTracks) sumStream = open ("Pistes", 3, during);
+        for (int r = 0; r < engine::numReturns; ++r)
+            if ((opt.returnMask & (1u << r)) != 0 && returnsUsed[(size_t) r])
+                returnStream[(size_t) r] = open ("Retour " + juce::String::charToString ((juce::juce_wchar) ('A' + r)), 4, during);
+        if (opt.input) inputStream = open (juce::String::fromUTF8 ("Entrée"), 5, during);
+        stems = anyTrack;
+        for (auto x : returnStream) if (x >= 0) stems = true;
+    }
+    else
+    {
     if (m != Mode::stems)
-        if ((masterStream = open ("Master")) < 0) { error = juce::String::fromUTF8 ("Écriture impossible dans le dossier des enregistrements"); closeAll(); dir.deleteRecursively(); return false; }
+        if ((masterStream = open ("Master")) < 0) { error = writeError; closeAll(); dir.deleteRecursively(); return false; }
     if (stems)
     {
         for (const auto& t : tracks)
@@ -122,7 +214,8 @@ bool Recorder::start (Mode m, Format f, double sampleRate, const std::vector<Tra
                 trackStream[(size_t) t.index] = open (name);
             }
         for (int r = 0; r < engine::numReturns; ++r)
-            if (returnsUsed[(size_t) r]) returnStream[(size_t) r] = open (montageNames ? "R" + juce::String (r + 1) : "Retour " + juce::String::charToString ((juce::juce_wchar) ('A' + r)));
+            if (returnsUsed[(size_t) r]) returnStream[(size_t) r] = open (montageNames ? "R" + juce::String (r + 1) : "Retour " + juce::String::charToString ((juce::juce_wchar) ('A' + r)), 4);
+    }
     }
     if (streams.empty()) { error = juce::String::fromUTF8 ("Aucune piste à enregistrer"); dir.deleteRecursively(); return false; }
 
@@ -132,6 +225,12 @@ bool Recorder::start (Mode m, Format f, double sampleRate, const std::vector<Tra
         files.clear();
         lastError.clear();
     }
+    {
+        const juce::ScopedLock sl (lock);
+        treatedFiles.clear(); treatedShown.clear(); treatedDir = juce::File(); result = juce::File(); taken.clear();
+    }
+    barsLimit.store (custom && onlyWhilePlaying ? opt.barsQuarters : 0.0);
+    if (! custom) opt = TakeOptions {};
     samples.store (0); dropped.store (0); encodeProgress.store (0.0f);
     firstPpq.store (-1.0);
     full.store (false);
@@ -191,6 +290,9 @@ void Recorder::tapBlock (const float* outL, const float* outR,
             else if (span > 0.0 && bar < blockPpqEnd) from = std::clamp ((int) std::lround ((bar - blockPpq) / span * n), 0, n - 1);
             else { busy.fetch_sub (1); return; } // on attend la mesure suivante
             firstPpq.store (std::max (0.0, blockPpq < 1.0e-7 && at < 0.0 ? 0.0 : bar), std::memory_order_relaxed);
+            // 1.1 (lot 3) : prise de N mesures : la fin est posée dès le premier échantillon
+            if (const auto q = barsLimit.load (std::memory_order_relaxed); q > 1.0e-6 && ! loopMode.load (std::memory_order_relaxed))
+                stopAtPpq.store (firstPpq.load (std::memory_order_relaxed) + q, std::memory_order_relaxed);
             // boucle parfaite : exactement un tour, plus 10 ms (la suite réelle, pour fondre la jonction)
             if (loopMode.load (std::memory_order_relaxed))
                 if (const auto len = loopLen.load (std::memory_order_relaxed); len > 1.0e-6 && span > 0.0)
@@ -229,6 +331,17 @@ void Recorder::tapBlock (const float* outL, const float* outR,
         if (! streams[(size_t) s].writer->write (ch, count)) lost += count;
     };
     put (masterStream, outL, outR);
+    put (masterTreatedStream, outL, outR);
+    if (inputStream >= 0) { if (inPtrL != nullptr) put (inputStream, inPtrL, inPtrR); else put (inputStream, silence, silence); }
+    if (sumStream >= 0 && stems)
+    {
+        // 1.1 (lot 3) : une seule piste, somme des pistes cochées
+        std::fill (sumL.begin(), sumL.begin() + n, 0.0f); std::fill (sumR.begin(), sumR.begin() + n, 0.0f);
+        for (int t = 0; t < engine::numTracks; ++t)
+            if ((opt.trackMask & (1u << t)) != 0 && (trackMask & (1u << t)) != 0)
+                for (int i = 0; i < n; ++i) { sumL[(size_t) i] += tracksL[t][i]; sumR[(size_t) i] += tracksR[t][i]; }
+        put (sumStream, sumL.data(), sumR.data());
+    }
     if (stems)
     {
         for (int t = 0; t < engine::numTracks; ++t)
@@ -315,11 +428,15 @@ void Recorder::stop()
 
     juce::StringArray names;
     juce::Array<juce::File> written;
-    for (const auto& s : streams) { names.add (s.file.getFileName()); written.add (s.file); }
+    std::vector<Taken> took;
+    for (const auto& s : streams) { names.add (s.file.getFileName()); written.add (s.file); took.push_back ({ s.file, s.label, s.kind, s.treated }); }
+    const bool wasLoop = loopMode.load() && loopFrames.load() > 0;
+    const bool wasFollow = followMode.load();
     closeAll(); // vide les files et ferme les fichiers (en-têtes WAV complets)
     // v0.46.2 : boucle parfaite : jonction fondue, longueur ramenée à un tour exact
     if (loopMode.load() && loopFrames.load() > 0 && format != Format::flac)
         for (const auto& f : written) seamLoop (f, loopFrames.load(), loopExtra.load());
+    barsLimit.store (0.0);
     loopFrames.store (-1);
     onlyWhilePlaying = false;
     takeLimit = -1;
@@ -330,6 +447,27 @@ void Recorder::stop()
     {
         const juce::ScopedLock sl (lock);
         files = names;
+        taken = std::move (took);
+        takenLoop = wasLoop; takenKeepLength = wasFollow;
+    }
+    // 1.1 (lot 3) : prise de l'écran AUDIO : traitement, rangement, MP3 dans un fil à part
+    post = std::move (opt); opt = TakeOptions {};
+    doneDest.store (post.custom ? post.dest : 0);
+    if (post.custom)
+    {
+        if (post.dest >= 2 && format == Format::mp3) format = Format::wav; // un pad se charge en WAV
+        struct PostThread final : juce::Thread
+        {
+            explicit PostThread (Recorder& r) : juce::Thread ("Groovebox · traitement de la prise"), owner (r) {}
+            void run() override { owner.postAll(); }
+            Recorder& owner;
+        };
+        encodeAbort.store (false);
+        encodeProgress.store (0.0f);
+        processing.store (true);
+        encoder = std::make_unique<PostThread> (*this);
+        encoder->startThread (juce::Thread::Priority::low);
+        return;
     }
     if (format != Format::mp3) return;
 
@@ -388,6 +526,154 @@ void Recorder::encodeAll()
     }
     encodeProgress.store (1.0f);
     encoding.store (false);
+}
+
+//==============================================================================
+// 1.1 (lot 3) : la prise de l'écran AUDIO, après l'arrêt (fil à part)
+bool Recorder::processFile (const juce::File& raw, const juce::File& out, bool loop, bool keepLength, float base, float span, juce::String& err)
+{
+    juce::WavAudioFormat wav;
+    std::unique_ptr<juce::AudioFormatReader> reader (wav.createReaderFor (raw.createInputStream().release(), true));
+    if (reader == nullptr) { err = juce::String::fromUTF8 ("Prise illisible : ") + raw.getFileName(); return false; }
+    const auto total = reader->lengthInSamples;
+    const auto sr = reader->sampleRate;
+    if (total <= 0) return false;
+    if (total > (juce::int64) (sr * 600.0)) { err = juce::String::fromUTF8 ("Prise trop longue pour le traitement (10 minutes au plus)"); return false; }
+    const int n = (int) total;
+    const auto bits = (int) reader->bitsPerSample;
+    juce::AudioBuffer<float> buf (2, n);
+    reader->read (&buf, 0, n, 0, true, true);
+    reader.reset();
+    engine::OfflineChain oc;
+    if (const auto e = oc.prepare (post.chain, sr, post.bpm, true); ! e.empty()) { err = juce::String::fromUTF8 (e.c_str()); return false; }
+    std::atomic<float> prog { 0.0f };
+    std::atomic<bool> done { false };
+    std::thread watch ([&] { while (! done.load()) { encodeProgress.store (base + span * prog.load()); std::this_thread::sleep_for (std::chrono::milliseconds (100)); } });
+    auto res = oc.render (buf.getReadPointer (0), buf.getReadPointer (1), n, loop || ! keepLength, 20.0, &prog, &encodeAbort);
+    done.store (true); watch.join();
+    if (! res.error.empty()) { err = juce::String::fromUTF8 (res.error.c_str()); return false; }
+    if (res.right.empty()) res.right = res.left;
+    // boucle : la queue (échos, réverbération) revient au début : la boucle traitée se recolle sans trou
+    if (loop && (int) res.left.size() > n)
+        for (int i = n; i < (int) res.left.size(); ++i) { res.left[(size_t) (i % n)] += res.left[(size_t) i]; res.right[(size_t) (i % n)] += res.right[(size_t) i]; }
+    if (loop || keepLength) { res.left.resize ((size_t) n); res.right.resize ((size_t) n); }
+    const auto m = (int) res.left.size();
+    std::unique_ptr<juce::OutputStream> os = out.createOutputStream();
+    if (os == nullptr) { err = juce::String::fromUTF8 ("Écriture impossible : ") + out.getFileName(); return false; }
+    auto options = juce::AudioFormatWriterOptions{}.withSampleRate (sr).withNumChannels (2).withBitsPerSample (bits == 32 ? 32 : 24)
+                                                   .withMetadata (juce::WavAudioFormat::bwavOriginator, "OFAD GOLEM");
+    auto w = wav.createWriterFor (os, options);
+    if (w == nullptr) { err = juce::String::fromUTF8 ("Écriture impossible : ") + out.getFileName(); return false; }
+    const float* ch[2] { res.left.data(), res.right.data() };
+    return w->writeFromFloatArrays (ch, 2, m);
+}
+
+void Recorder::postAll()
+{
+    std::vector<Taken> list; juce::File dir; bool loop = false, keepLength = false;
+    {
+        const juce::ScopedLock sl (lock);
+        list = taken; dir = folder; loop = takenLoop; keepLength = takenKeepLength;
+    }
+    const bool withChain = chainActive (post.chain);
+    // dossier des fichiers traités : la prise elle-même, ou « Son traité/<date> »
+    juce::File outDir = dir;
+    if (post.dest != 0 && post.treatedRoot != juce::File())
+    {
+        outDir = post.treatedRoot.getChildFile (dir.getFileName());
+        if (outDir.exists()) outDir = outDir.getNonexistentSibling (false);
+        if (! outDir.createDirectory()) outDir = dir;
+    }
+    const auto secs = list.empty() ? 0.0 : (double) samples.load() / rate;
+    const auto bars = secs * post.bpm / 240.0;
+    const auto barsRound = std::round (bars);
+    auto niceName = [&] (const juce::String& label, bool treated)
+    {
+        juce::StringArray parts;
+        if (post.project.isNotEmpty()) parts.add (post.project);
+        parts.add (label == juce::String::fromUTF8 ("Master traité") ? juce::String ("Master") : label);
+        parts.add (juce::String (juce::roundToInt (post.bpm)) + " BPM");
+        if (barsRound >= 1.0 && std::abs (bars - barsRound) < 0.02 * barsRound) parts.add (juce::String ((int) barsRound) + (barsRound > 1.0 ? " mesures" : " mesure"));
+        if (treated) parts.add (juce::String::fromUTF8 ("traité"));
+        auto f = outDir.getChildFile (juce::File::createLegalFileName (parts.joinIntoString (juce::String::fromUTF8 (" â "))) + ".wav");
+        return f.exists() ? f.getNonexistentSibling (false) : f;
+    };
+    juce::StringArray outNames; juce::Array<juce::File> outFiles;
+    juce::File best; int bestRank = -1;
+    auto offer = [&] (const juce::File& f, int kind) // le fichier du pad : somme > piste > master traité > master
+    {
+        const int rank = kind == 3 ? 4 : kind == 2 || kind == 5 ? 3 : kind == 1 ? 2 : kind == 4 ? 1 : 0;
+        if (rank > bestRank) { bestRank = rank; best = f; }
+    };
+    juce::String err;
+    // ce qu'il faut traiter après la prise : tout sauf le master brut (seulement si « Master traité » est coché)
+    std::vector<const Taken*> todo;
+    for (const auto& t : list)
+        if (withChain && ! t.treated && (t.kind != 0 || post.masterTreated) && ! (t.kind == 0 && post.during)) todo.push_back (&t);
+    int k = 0;
+    const auto count = (float) std::max<size_t> (1, todo.size());
+    for (const auto& t : list)
+    {
+        if (encodeAbort.load()) break;
+        const bool doIt = std::find (todo.begin(), todo.end(), &t) != todo.end();
+        if (t.treated)
+        {
+            // déjà traité au fil de l'eau : il prend son nom et sa place
+            const auto f = niceName (t.label, true);
+            if (t.file.moveFileTo (f)) { outNames.add (f.getFileName()); outFiles.add (f); offer (f, t.kind); }
+            else { outNames.add (t.file.getFileName()); outFiles.add (t.file); offer (t.file, t.kind); }
+            continue;
+        }
+        if (doIt)
+        {
+            const auto f = niceName (t.label, true);
+            juce::String e;
+            if (processFile (t.file, f, loop, keepLength, (float) k / count, 1.0f / count, e)) { outNames.add (f.getFileName()); outFiles.add (f); offer (f, t.kind == 0 ? 1 : t.kind); }
+            else { f.deleteFile(); if (err.isEmpty()) err = e; }
+            ++k;
+            continue;
+        }
+        // brut : sans chaîne et vers « Son traité », une copie bien nommée ; sinon il reste dans la prise
+        if (! withChain && post.dest == 1 && outDir != dir)
+        {
+            const auto f = niceName (t.label, false);
+            if (t.file.copyFileTo (f)) { outNames.add (f.getFileName()); outFiles.add (f); }
+        }
+        offer (t.file, t.kind);
+    }
+    {
+        const juce::ScopedLock sl (lock);
+        treatedDir = outDir; treatedFiles = outNames; treatedShown = describeFolder (outDir);
+        result = best;
+        if (err.isNotEmpty()) lastError = err;
+    }
+    processing.store (false);
+    if (format != Format::mp3 || encodeAbort.load()) { encodeProgress.store (1.0f); return; }
+    // MP3 : la prise brute (comme avant), puis les fichiers traités
+    encoding.store (true);
+    encodeAll();
+    encoding.store (true);
+    juce::StringArray done;
+    for (int i = 0; i < outFiles.size() && ! encodeAbort.load(); ++i)
+    {
+        const auto mp3File = outFiles[i].withFileExtension ("mp3");
+        juce::String e;
+        if (encodeMp3 (outFiles[i], mp3File, encodeAbort, [&] (float p) { encodeProgress.store (((float) i + p) / (float) outFiles.size()); }, e))
+        { outFiles[i].deleteFile(); done.add (mp3File.getFileName()); }
+        else done.add (outFiles[i].getFileName());
+    }
+    {
+        const juce::ScopedLock sl (lock);
+        treatedFiles = done;
+    }
+    encodeProgress.store (1.0f);
+    encoding.store (false);
+}
+
+juce::File Recorder::resultFile() const
+{
+    const juce::ScopedLock sl (lock);
+    return processing.load() ? juce::File() : result;
 }
 
 bool Recorder::encodeMp3 (const juce::File& wavFile, const juce::File& mp3File, const std::atomic<bool>& abort,
@@ -495,11 +781,13 @@ juce::String Recorder::lastFolderShown() const
 
 juce::String Recorder::statusJson() const
 {
-    juce::File dir; juce::StringArray names; juce::String err;
+    juce::File dir; juce::StringArray names, tnames; juce::String err, tShown; bool hasRes = false;
     {
         const juce::ScopedLock sl (lock);
-        dir = folder; names = files; err = lastError;
+        dir = folder; names = files; err = lastError; tnames = treatedFiles; tShown = treatedShown; hasRes = result != juce::File() && result.existsAsFile();
     }
+    juce::String tl;
+    for (const auto& n : tnames) tl << (tl.isEmpty() ? "" : ",") << jsonEscape (n);
     const auto secs = (double) samples.load() / rate;
     const auto shown = describeFolder (dir);
     juce::String fl;
@@ -516,6 +804,11 @@ juce::String Recorder::statusJson() const
          + ",\"stopping\":" + juce::String (active.load() && stopAtPpq.load() >= 0.0 ? "true" : "false")
          + ",\"folder\":" + jsonEscape (shown)
          + ",\"files\":[" + fl + "]"
+         + ",\"processing\":" + juce::String (processing.load() ? "true" : "false")
+         + ",\"treatedFolder\":" + jsonEscape (tShown)
+         + ",\"treated\":[" + tl + "]"
+         + ",\"hasResult\":" + juce::String (hasRes ? "true" : "false")
+         + ",\"dest\":" + juce::String (doneDest.load())
          + ",\"error\":" + jsonEscape (err)
          + ",\"canReveal\":" + juce::String (
            #if JUCE_ANDROID || JUCE_IOS
