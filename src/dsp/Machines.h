@@ -42,7 +42,7 @@ public:
     KickMachine (int character, double baseHz, double sweepRangeSemis, double sweepTimeMs, std::uint32_t seed)
         : kind (character), base (baseHz), range (sweepRangeSemis), sweepTime (sweepTimeMs), drift (seed), noise (seed ^ 0x51DEu), dust (seed * 7u + 3u), noiseSeed (seed ^ 0x51DEu) {}
     void prepare (double s) override { sr = s; dc.prepare (sr); reset(); }
-    void reset() override { stage = 0; amp = 0.0; pitchEnv = 0.0; clickEnv = 0.0; clickLp = 0.0; dustEnv = 0.0; shaper.reset(); dc.reset(); }
+    void reset() override { stage = 0; amp = 0.0; pitchEnv = 0.0; clickEnv = 0.0; clickLp = 0.0; dustEnv = 0.0; tail = lastBody = 0.0; shaper.reset(); dc.reset(); }
     void setParams (const VoiceParams& v) override { p = v; drive.set (p.driveDb); }
     void trigger (double v) override
     {
@@ -50,9 +50,11 @@ public:
         gain = velocityToGain (v) * drift.level;
         // accent : départ du balayage un peu plus haut et attaque plus marquée (impulsion plus forte)
         pitchEnv = 1.0 + 0.2 * acc; clickEnv = 1.0 + 0.8 * acc; dustEnv = 1.0;
-        // v0.30 : même point de départ à chaque coup quand le précédent s'est éteint (attaque
-        // régulière), sinon la phase continue ; transitoire identique d'un coup à l'autre
-        if (stage == 0 || amp < 0.03) { phase = 0.0; clickLp = 0.0; }
+        // 1.1 : même point de départ à CHAQUE coup (attaque et claquant identiques ; avant, une
+        // voix qui sonnait encore gardait sa phase : un coup sur deux ou trois sonnait autrement) ;
+        // la queue du coup précédent est fondue en ~2 ms, sans clic ; transitoire identique
+        tail = stage == 0 ? 0.0 : lastBody;
+        phase = 0.0; clickLp = 0.0;
         noise = WhiteNoise (noiseSeed);
         holdLeft = kind == 0 ? (long) (p.extra3 * p.extra3 * 0.3 * sr) : 0;
         stage = 1;
@@ -74,6 +76,7 @@ public:
         const auto fold = kind == 1 ? p.extra3 : 0.0;
         const auto dustAmt = kind == 2 ? p.extra2 : 0.0;
         const auto dustCoef = decay60Coef (std::max (60.0, p.decayMs * 0.5), sr);
+        const auto tailCoef = timeConstantCoef (0.5, sr);
         for (int i = 0; i < n; ++i)
         {
             switch (stage)
@@ -89,6 +92,9 @@ public:
             auto body = fastSin2Pi (phase);
             if (fold > 0.001) body = fastSin2Pi (0.25 * body * (1.0 + 3.0 * fold)); // pli : la sinusoïde se replie
             body = colour (body, shapeAmt) * amp;
+            lastBody = body;
+            body += tail; // fondu de la queue du coup précédent (2 ms)
+            tail *= tailCoef;
             clickLp = noise.next() * (1.0 - clickLpCoef) + clickLp * clickLpCoef;
             const auto click = clickLp * clickEnv * p.snap * (kind == 3 ? 3.0 : 2.0);
             clickEnv *= clickCoef;
@@ -110,7 +116,7 @@ private:
     int kind;
     double base, range, sweepTime;
     VoiceParams p;
-    double sr = 48000.0, gain = 1.0, phase = 0.0, amp = 0.0, pitchEnv = 0.0, clickEnv = 0.0, clickLp = 0.0, dustEnv = 0.0;
+    double sr = 48000.0, gain = 1.0, phase = 0.0, amp = 0.0, pitchEnv = 0.0, clickEnv = 0.0, clickLp = 0.0, dustEnv = 0.0, tail = 0.0, lastBody = 0.0;
     long holdLeft = 0;
     int stage = 0;
     AnalogDrift drift;
@@ -131,15 +137,16 @@ class FmDrum final : public Voice
 public:
     FmDrum (double baseHz, bool snareVariant, std::uint32_t seed) : base (baseHz), snare (snareVariant), drift (seed), noise (seed ^ 0xF00Du), noiseSeed (seed ^ 0xF00Du) {}
     void prepare (double s) override { sr = s; dc.prepare (sr); reset(); }
-    void reset() override { env.reset(); modEnv.reset(); noiseEnv.reset(); pitch = 0.0; hp.reset(); dc.reset(); }
+    void reset() override { env.reset(); modEnv.reset(); noiseEnv.reset(); pitch = 0.0; tail = lastC = 0.0; hp.reset(); dc.reset(); }
     void setParams (const VoiceParams& v) override { p = v; drive.set (p.driveDb); }
     void trigger (double v) override
     {
         drift.hit();
         gain = velocityToGain (v) * drift.level;
-        // v0.30 : coup identique au précédent quand celui-ci s'est éteint (phases repartent de zéro,
-        // même rafale de bruit) ; un coup sur un son encore fort garde ses phases (pas de clic)
-        if (env.level() < 0.03) { cPhase = 0.0; mPhase = 0.0; noise = WhiteNoise (noiseSeed); }
+        // 1.1 : coup identique à CHAQUE fois (phases à zéro, même rafale de bruit) ; avant, un coup sur
+        // un son encore fort gardait ses phases et sonnait autrement ; la queue est fondue en ~2 ms
+        tail = env.isActive() ? lastC : 0.0;
+        cPhase = 0.0; mPhase = 0.0; noise = WhiteNoise (noiseSeed);
         env.trigger(); modEnv.trigger(); noiseEnv.trigger(); pitch = 1.0;
     }
     bool isActive() const override { return env.isActive() || noiseEnv.isActive(); }
@@ -156,6 +163,7 @@ public:
         const auto pitchCoef = timeConstantCoef (snare ? 6.0 : 14.0, sr);
         const auto modSweep = (p.extra3 - (snare ? 0.0 : 0.5)) * (snare ? 0.0 : 24.0); // demi-tons
         hp.set (snare ? 1800.0 : 3000.0, 0.7, sr);
+        const auto tailCoef = timeConstantCoef (0.5, sr);
         for (int i = 0; i < n; ++i)
         {
             const auto bend = fastExp2 ((snare ? 4.0 : 12.0) * pitch / 12.0);
@@ -166,7 +174,9 @@ public:
             const auto m = fastSin2Pi (mPhase) * index * me;
             cPhase += std::min (0.45, f * bend / sr);
             cPhase -= std::floor (cPhase);
-            const auto c = fastSin2Pi (cPhase + m * 0.159) * env.next();
+            auto c = fastSin2Pi (cPhase + m * 0.159) * env.next();
+            lastC = c;
+            c += tail; tail *= tailCoef; // fondu de la queue du coup précédent
             const auto nz = hp.process (noise.next()).high * noiseEnv.next() * p.snap * (snare ? 1.4 : 0.8);
             out[i] += (float) dc.process (drive.process ((c + nz) * gain * 0.9));
         }
@@ -176,7 +186,7 @@ private:
     double base;
     bool snare;
     VoiceParams p;
-    double sr = 48000.0, gain = 1.0, pitch = 0.0, cPhase = 0.0, mPhase = 0.0;
+    double sr = 48000.0, gain = 1.0, pitch = 0.0, cPhase = 0.0, mPhase = 0.0, tail = 0.0, lastC = 0.0;
     DecayEnv env, modEnv, noiseEnv;
     AnalogDrift drift;
     WhiteNoise noise;

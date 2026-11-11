@@ -49,13 +49,23 @@ public:
 
     double process (double v0) noexcept
     {
+        double v1, v2;
+        core (v0, v1, v2);
+        return mix (v0, v1, v2);
+    }
+
+    /** 1.1 : l'étage seul (il fait avancer l'état), puis le mélange des sorties. Deux filtres de mêmes
+        fréquence et Q nourris par le même signal (passe-bas et passe-haut d'une séparation) ont le même
+        état : un seul étage suffit, chacun garde son mélange — résultat identique, moitié du calcul. */
+    void core (double v0, double& v1, double& v2) noexcept
+    {
         const auto v3 = v0 - ic2;
-        const auto v1 = a1 * ic1 + a2 * v3;
-        const auto v2 = ic2 + a2 * ic1 + a3 * v3;
+        v1 = a1 * ic1 + a2 * v3;
+        v2 = ic2 + a2 * ic1 + a3 * v3;
         ic1 = 2.0 * v1 - ic1;
         ic2 = 2.0 * v2 - ic2;
-        return m0 * v0 + m1 * v1 + m2 * v2;
     }
+    double mix (double v0, double v1, double v2) const noexcept { return m0 * v0 + m1 * v1 + m2 * v2; }
 
 private:
     double a1 = 0, a2 = 0, a3 = 0, m0 = 1, m1 = 0, m2 = 0, ic1 = 0, ic2 = 0;

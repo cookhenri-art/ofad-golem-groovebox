@@ -223,7 +223,7 @@ public:
     BridgedTDrum (double baseHz = 110.0, double sweepRangeSemis = 12.0, double noiseAmount = 0.6, std::uint32_t seed = 0x7A5Au)
         : base (baseHz), sweepRange (sweepRangeSemis), noiseAmt (noiseAmount), drift (seed), noise (seed * 2654435761u + 1u) {}
     void prepare (double s) override { sr = s; dc.prepare (sr); reset(); }
-    void reset() override { res.reset(); pitch = 0.0; click = 0.0; noiseEnv.reset(); clickHp.reset(); noiseLp.reset(); drive.reset(); dc.reset(); }
+    void reset() override { res.reset(); tailRes.reset(); pitch = 0.0; click = 0.0; noiseEnv.reset(); clickHp.reset(); noiseLp.reset(); drive.reset(); dc.reset(); }
     void setParams (const VoiceParams& v) override { p = v; drive.set (p.driveDb); }
     void trigger (double v) override
     {
@@ -232,16 +232,22 @@ public:
         // accent : l'impulsion plus forte pousse le T ponté dans sa zone non linéaire (léger
         // fléchissement de hauteur et tassement au départ) ; front et souffle suivent l'impulsion
         const auto push = 1.0 + 0.6 * acc;
+        // 1.1 : chaque coup excite un résonateur au repos (attaque identique d'un coup à l'autre) ;
+        // la résonance encore en cours part sur un second résonateur qui s'éteint en ~8 ms (sans
+        // clic). Avant, le nouveau coup s'ajoutait à la résonance : selon sa phase, l'attaque
+        // changeait un coup sur deux ou trois.
+        tailRes = res; res.reset();
         res.excite (g * push);
         pitch = 1.0; click = g * push; noiseEnv.trigger (g * push);
     }
-    bool isActive() const override { return res.amplitude() > 2.0e-5 || click > 1.0e-4 || noiseEnv.isActive(); }
+    bool isActive() const override { return res.amplitude() > 2.0e-5 || tailRes.amplitude() > 2.0e-5 || click > 1.0e-4 || noiseEnv.isActive(); }
 
     void renderAdding (float* out, int n) override
     {
         if (! isActive()) return;
         const auto f = base * semis (p.tuneSemis) * drift.pitch;
         const auto dcoef = decay60Coef (p.decayMs * drift.decay, sr);
+        const auto tailCoef = decay60Coef (8.0, sr);
         const auto pcoef = timeConstantCoef (2.0 + 78.0 * p.extra1 * p.extra1, sr);
         const auto ccoef = timeConstantCoef (0.35, sr);
         const auto sweep = p.tone * sweepRange;
@@ -250,7 +256,8 @@ public:
         noiseLp.set (2600.0 + 2500.0 * p.tone, 0.7, sr);
         for (int i = 0; i < n; ++i)
         {
-            const auto y = res.tick (f * fastExp2 (sweep * pitch / 12.0), dcoef, sr);
+            const auto fNow = f * fastExp2 (sweep * pitch / 12.0);
+            const auto y = res.tick (fNow, dcoef, sr) + tailRes.tick (fNow, tailCoef, sr);
             pitch *= pcoef;
             const auto c = clickHp.process (click).high * p.snap * 0.9; // front de l'impulsion de déclenchement
             click *= ccoef;
@@ -263,7 +270,7 @@ private:
     double base, sweepRange, noiseAmt;
     VoiceParams p;
     double sr = 48000.0, pitch = 0.0, click = 0.0;
-    Resonator res;
+    Resonator res, tailRes;
     AnalogDrift drift;
     DecayEnv noiseEnv;
     Svf clickHp, noiseLp;

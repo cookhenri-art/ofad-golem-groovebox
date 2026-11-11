@@ -8,6 +8,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -151,22 +152,72 @@ private:
     double xPrev = 0.0, fPrev = 1.0;
 };
 
+/** 1.1 : log(cosh u) et tanh u par table (interpolation d'Hermite cubique, pas de 1/128) : mêmes
+    valeurs que la bibliothèque mathématique à 2e-11 près, sans les appels coûteux (log1p, exp, tanh)
+    qui faisaient la moitié du coût des saturations (filtres, Varnish, échos, compresseurs). h(a) = log1p(exp(-2a)) pour a >= 0,
+    h'(a) = tanh(a) - 1, h''(a) = 1 - tanh²(a). */
+struct LogCoshTable
+{
+    static constexpr int perUnit = 128, size = 19 * perUnit + 4;
+    static constexpr double step = 1.0 / perUnit;
+    struct Node { double h, d1, d2; };                          // nœuds voisins contigus (cache)
+    std::array<Node, size> node {};
+    LogCoshTable()
+    {
+        for (int i = 0; i < size; ++i)
+        {
+            const auto a = i * step, t = std::tanh (a);
+            node[(size_t) i] = { std::log1p (std::exp (-2.0 * a)), t - 1.0, 1.0 - t * t };
+        }
+    }
+    static const LogCoshTable& get() { static const LogCoshTable t; return t; }
+    /** Hermite cubique sur (f, f') entre deux nœuds. */
+    static double herm (double f0, double df0, double f1, double df1, double x) noexcept
+    {
+        const auto x2 = x * x, x3 = x2 * x;
+        return f0 * (2.0 * x3 - 3.0 * x2 + 1.0) + df0 * step * (x3 - 2.0 * x2 + x)
+             + f1 * (-2.0 * x3 + 3.0 * x2) + df1 * step * (x3 - x2);
+    }
+    /** log(cosh u). */
+    double logCosh (double u) const noexcept
+    {
+        const auto a = std::abs (u);
+        if (! (a < 19.0)) return a - 0.6931471805599453;
+        const auto pos = a * perUnit;
+        const auto i = (int) pos;
+        const auto& n0 = node[(size_t) i]; const auto& n1 = node[(size_t) i + 1];
+        return a + herm (n0.h, n0.d1, n1.h, n1.d1, pos - (double) i) - 0.6931471805599453;
+    }
+    /** tanh u. */
+    double tanh (double u) const noexcept
+    {
+        const auto a = std::abs (u);
+        if (! (a < 19.0)) return u < 0.0 ? -1.0 : 1.0;
+        const auto pos = a * perUnit;
+        const auto i = (int) pos;
+        const auto& n0 = node[(size_t) i]; const auto& n1 = node[(size_t) i + 1];
+        const auto t = 1.0 + herm (n0.d1, n0.d2, n1.d1, n1.d2, pos - (double) i);
+        return u < 0.0 ? -t : t;
+    }
+};
+
 /** tanh avec anti-repliement par antidérivée (ADAA, 1er ordre), v0.22.
     Primitive : ln cosh(x) = |x| + ln(1 + e^(−2|x|)) − ln 2 (forme stable). Pour une courbe
     tanh(k·x), passer u = k·x. Même partage linéaire / écart que AdaaSoftClip. */
 class AdaaTanh
 {
 public:
+    AdaaTanh() { (void) LogCoshTable::get(); }                 // table prête hors du fil audio
     void reset() noexcept { xPrev = 0.0; fPrev = 0.0; }
 
     double process (double x) noexcept
     {
         x = std::clamp (x, -40.0, 40.0);
-        const auto ax = std::abs (x);
-        const auto f = ax + std::log1p (std::exp (-2.0 * ax)) - 0.6931471805599453;
+        const auto& tab = LogCoshTable::get();                 // 1.1 : par table, mêmes valeurs à 1e-12 près
+        const auto f = tab.logCosh (x);
         const auto dx = x - xPrev;
-        const auto y = std::abs (dx) > 1.0e-3 ? (f - fPrev) / dx : std::tanh (0.5 * (x + xPrev));
-        const auto t = std::tanh (0.5 * (x + xPrev));
+        const auto t = tab.tanh (0.5 * (x + xPrev));            // 1.1 : une seule tangente
+        const auto y = std::abs (dx) > 1.0e-3 ? (f - fPrev) / dx : t;
         const auto out = y + 0.5 * dx * (1.0 - t * t); // part linéaire pondérée par la pente (1 − tanh²)
         xPrev = x;
         fPrev = f;

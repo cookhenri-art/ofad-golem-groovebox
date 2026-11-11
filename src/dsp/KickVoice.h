@@ -70,6 +70,7 @@ public:
         pitchEnv = 0.0;
         clickEnv = 0.0;
         clickLp = 0.0;
+        tail = lastBody = 0.0;
         dcX = dcY = 0.0;
         holdSamplesLeft = 0;
         stage = Stage::idle;
@@ -87,10 +88,13 @@ public:
         velocityGain = 0.25 + 0.75 * std::clamp (velocity, 0.0, 1.0);
         transpose = std::pow (2.0, transposeSemis / 12.0);
 
-        // v0.30 : chaque coup part du même point (attaque identique d'un coup à l'autre, comme
-        // l'oscillateur déclenché d'une boîte analogique) dès que le coup précédent s'est éteint ;
-        // une voix qui sonne encore fort garde sa phase (pas de discontinuité, circuit réexcité).
-        if (stage == Stage::idle || amp < 0.03) { phase = 0.0; clickLp = 0.0; }
+        // 1.1 : CHAQUE coup part du même point (attaque et claquant identiques d'un coup à l'autre,
+        // comme l'oscillateur déclenché d'une boîte analogique). Avant, une voix qui sonnait encore
+        // (amplitude > 0,03) gardait sa phase : aux tempos où la queue tombe autour de ce seuil,
+        // un coup sur deux ou trois avait une autre attaque. La queue du coup précédent est fondue
+        // en ~2 ms (le corps repart de sa dernière valeur et la rejoint), sans clic.
+        tail = stage == Stage::idle ? 0.0 : lastBody;
+        phase = 0.0; clickLp = 0.0;
         noise = WhiteNoise(); // transitoire : la même rafale à chaque coup
         pitchEnv = 1.0 + 0.25 * (accentAttack - 1.0); // accent : départ du balayage un peu plus haut
         clickEnv = accentAttack;                       // et transitoire plus fort (attaque plus marquée)
@@ -110,6 +114,7 @@ public:
         const auto decayCoef  = decay60Coef (params.decayMs, sampleRate);
         const auto pitchCoef  = timeConstantCoef (params.sweepMs, sampleRate);
         const auto clickCoef  = timeConstantCoef (1.5, sampleRate);
+        const auto tailCoef   = timeConstantCoef (0.5, sampleRate);
         const auto drive      = dbToGain (params.driveDb);
         const auto driveNorm  = 1.0 / std::max (1.0e-3, softClip (drive));
         const auto level      = dbToGain (params.levelDb);
@@ -154,6 +159,9 @@ public:
                 body += (softClip (body * k) / softClip (k) - body) * params.shape;
             }
             body *= amp;
+            lastBody = body;
+            body += tail; // fondu de la queue du coup précédent (2 ms)
+            tail *= tailCoef;
 
             // Transitoire : bruit filtré, enveloppe très courte
             clickLp = noise.next() * (1.0 - clickLpCoef) + clickLp * clickLpCoef;
@@ -178,7 +186,7 @@ private:
 
     Params params;
     double sampleRate = 48000.0;
-    double phase = 0.0, amp = 0.0, pitchEnv = 0.0, clickEnv = 0.0, clickLp = 0.0;
+    double phase = 0.0, amp = 0.0, pitchEnv = 0.0, clickEnv = 0.0, clickLp = 0.0, tail = 0.0, lastBody = 0.0;
     double velocityGain = 1.0, transpose = 1.0;
     double dcX = 0.0, dcY = 0.0, dcCoef = 0.999, clickLpCoef = 0.5;
     int holdSamplesLeft = 0;
