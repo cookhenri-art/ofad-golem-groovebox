@@ -9,9 +9,11 @@ import { globalOf, layout, setUi, useStore, actions } from "../engine/store";
 import { paramAddress, useParam, useWriteTarget, writeParam } from "../controls/bindings";
 import { MOD_SCOPE_SOURCES, MOD_SCOPE_TITLE, type ModScope } from "../engine/modScopes";
 import type { EncoderBinding } from "../controls/Encoder";
-import { AdsrView, MasterMeters, CompCurve, DeessView, DistCurve, EqCurve, FilterView, GateCurve, ModSourceView, ResponseView, svfDb, SampleView, ShapeView, type EqBand } from "./Visuals";
+import { MasterMeters, CompCurve, DeessView, DistCurve, EqCurve, GateCurve, ModSourceView, ResponseView, svfDb, SampleView, type EqBand } from "./Visuals";
 import { useEffect, useState } from "react";
 import { useValueDrag } from "../controls/useValueDrag";
+import { EnvEditor, FilterEditor, OscEditor, RateLevelEditor, hasMix, modRangesOf } from "./CurveEditors";
+import { envGroups, filterGroups, oscGroups, rateLevelEnv } from "./curveRoles";
 import { DragParam } from "../controls/DragParam";
 
 export const TAB_LABELS: Record<string, string> = {
@@ -60,9 +62,9 @@ export function sectionsFor(m: ModuleDesc, tab: string, lane: number): SectionDe
 /** Valeur jouée (normalisée) d'un réglage d'un module du canal. */
 /** Valeurs affichées par les visuels : les mêmes que les encodeurs (valeur jouée en mode normal,
     verrou du pas ou de la scène en édition de verrous, sinon la valeur de base). */
-function useValues(channel: number, area: Area, slot: number, m: ModuleDesc | null): number[] {
+function useValues(channel: number, area: Area, slot: number, m: ModuleDesc | null, played = true): number[] {
   const c = useStore((s) => s.channels[channel]);
-  const eff = useStore((s) => (s.focus === channel ? s.eff : null));
+  const eff = useStore((s) => (played && s.focus === channel ? s.eff : null));
   const target = useWriteTarget(channel);
   const extras = useStore((s) => s.extras);
   const scenes = useStore((s) => s.scenes);
@@ -78,7 +80,7 @@ function useValues(channel: number, area: Area, slot: number, m: ModuleDesc | nu
     const lockMap = new Map((locks ?? []).map(([g, v]) => [g, v]));
     return m.params.map((_, i) => lockMap.get(globalOf(channel, base + i)) ?? raw[i] ?? 0);
   }
-  return m.params.map((_, i) => eff?.[base + i] ?? raw[i] ?? 0);
+  return m.params.map((_, i) => (played ? eff?.[base + i] : undefined) ?? raw[i] ?? 0);
 }
 
 /** Encodeurs d'une section : 8 liaisons (nombre d'appels de hooks constant). */
@@ -105,7 +107,14 @@ export function useModSourceEncoders(channel: number, scope: ModScope): (Encoder
   const type = modTypeOf(values);
   const ms = cat?.modSource;
   const sec = ms?.sections[type] ?? null;
-  const list = sec ? sec.params.filter((k) => ms?.params[k]?.id !== "type") : [];
+  // 1.1 : 8 encodeurs ; avec la polarité, le LFO a 9 réglages : la vitesse (libre) et la division
+  // (au tempo) se partagent un encodeur selon la synchro
+  const syncIdx = ms ? ms.params.findIndex((p) => p.id === "sync") : -1;
+  const tempo = syncIdx >= 0 && (values?.[syncIdx] ?? 1) >= 0.5;
+  const list = sec ? sec.params.filter((k) => {
+    const id = ms?.params[k]?.id;
+    return id !== "type" && !(sec.params.length > 9 && id === (tempo ? "rate" : "division"));
+  }) : [];
   const ids = Array.from({ length: 8 }, (_, i) => (list[i] !== undefined ? paramAddress(channel, "mod", modSlot, list[i]) : null));
   // eslint-disable-next-line react-hooks/rules-of-hooks
   return ids.map((g) => useParam(g));
@@ -114,12 +123,6 @@ export function useModSourceEncoders(channel: number, scope: ModScope): (Encoder
 function paramPlain(m: ModuleDesc, values: number[], id: string): number | undefined {
   const i = m.params.findIndex((p) => p.id === id);
   return i < 0 ? undefined : toPlain(m.params[i], values[i] ?? 0);
-}
-
-function findPlain(m: ModuleDesc, values: number[], section: SectionDesc, pattern: RegExp): number | undefined {
-  for (const i of section.params) if (pattern.test(m.params[i].id)) return toPlain(m.params[i], values[i] ?? 0);
-  for (let i = 0; i < m.params.length; ++i) if (pattern.test(m.params[i].id)) return toPlain(m.params[i], values[i] ?? 0);
-  return undefined;
 }
 
 /** Visuel d'une section, d'après sa nature et les valeurs réelles. */
@@ -203,8 +206,21 @@ function EqWithAnalyser({ channel, slot, bands, selected, analyse }: { channel: 
   return <EqCurve bands={bands} selected={selected} spectrum={spectrum} />;
 }
 
-export function SectionVisual({ channel, area, slot, module: m, section, lane }: { channel: number; area: Area; slot: number; module: ModuleDesc; section: SectionDesc; lane: number }) {
-  const values = useValues(channel, area, slot, m);
+export function SectionVisual({ channel, area, slot, module: m, section, lane, readOnly }: { channel: number; area: Area; slot: number; module: ModuleDesc; section: SectionDesc; lane: number; readOnly?: boolean }) {
+  /** 1.1 : courbes animées (réglage) : la courbe montre le son joué (modulation comprise), les points
+      le réglage écrit. Courbes fixes : seulement le réglage écrit (moins de dessins, moins de processeur). */
+  const anim = useStore((s) => s.ui.curveAnim);
+  const values = useValues(channel, area, slot, m, anim);
+  const setValues = useValues(channel, area, slot, m, false);
+  const writeTarget = useWriteTarget(channel);
+  const chMods = useStore((s) => s.channels[channel]?.mods);
+  const chModValues = useStore((s) => s.channels[channel]?.mod);
+  /** 1.1 : amplitude des modulations (LFO…) des réglages : un trait sur la courbe */
+  const modBase = area === "inst" ? layout().instrumentBase : layout().insertBase + slot * layout().insertSlots;
+  const mods = modRangesOf(m, setValues, modBase, chMods, chModValues);
+  const played = anim ? values : undefined;
+  /** 1.1 : un point tiré sur une courbe écrit son réglage là où écrivent les encodeurs. */
+  const onSet = (k: number, plain: number) => writeParam(writeTarget, paramAddress(channel, area, slot, k), toNorm(m.params[k], plain));
   const meters = useStore((s) => (s.focus === channel ? s.tick.fxm[slot] : null));
   const wave = useStore((s) => s.waves[`${channel}:${section.visual === "zone" ? 0 : lane}`]);
   const samples = useStore((s) => s.channels[channel]?.samples);
@@ -215,39 +231,27 @@ export function SectionVisual({ channel, area, slot, module: m, section, lane }:
   }, [section.visual, hasSample, wave, channel, lane]);
 
   const plain = (k: number) => toPlain(m.params[k], values[k] ?? 0);
-  const sp = section.params;
   const v = section.visual;
 
+  // 1.1 : enveloppes, filtres et oscillateurs d'après le nom et l'unité des réglages (toutes les
+  // machines), avec les valeurs réelles ; les points se tirent. Sans réglage reconnu : la liste.
   if (v === "env" || v === "amp") {
-    const a = findPlain(m, values, section, /(^|_)(a|aa|fa|ea|m1a|m2a|e[123]a|attack)$/) ?? 2;
-    const d = findPlain(m, values, section, /(^|_)(d|ad|fd|ed|m1d|m2d|e[123]d|decay)$/) ?? 300;
-    const s = (findPlain(m, values, section, /(^|_)(s|as|fs|es|m1s|m2s|e[123]s|sustain)$/) ?? 70) / 100;
-    const r = findPlain(m, values, section, /(^|_)(r|ar|fr|er|m1r|m2r|e[123]r|release|ampdecay)$/) ?? 300;
-    return <AdsrView a={a} d={d} s={s} r={r} />;
+    const rl = rateLevelEnv(m, section);
+    if (rl) return <RateLevelEditor m={m} values={setValues} played={played} mods={mods} env={rl} onSet={onSet} readOnly={readOnly} />;
+    const groups = envGroups(m, section);
+    if (groups.length) return <EnvEditor m={m} values={setValues} played={played} mods={mods} groups={groups} onSet={onSet} readOnly={readOnly} live={anim && area === "inst" && !readOnly} />;
+    return <FlowView module={m} section={section} values={values} channel={channel} area={area} slot={slot} />;
   }
   if (v === "filter") {
-    const hz = findPlain(m, values, section, /cutoff|facutoff|f1cutoff/) ?? 2000;
-    const reso = (findPlain(m, values, section, /reso|fareso|f1reso/) ?? 0) / 100;
-    const typeIdx = sp.find((k) => /type|mode|slope|ftype|f1mode|fmode/.test(m.params[k].id));
-    const choice = typeIdx !== undefined ? (m.params[typeIdx].choices?.[plain(typeIdx)] ?? "") : "";
-    const mode = /haut/i.test(choice) ? "hp" : /bande/i.test(choice) ? "bp" : "lp";
-    const poles = /12/.test(choice) ? 2 : /18/.test(choice) ? 3 : /6 dB/.test(choice) ? 1 : 4;
-    return <FilterView hz={hz} reso={reso} mode={mode} poles={m.type === "acid" ? 4 : poles} />;
+    const groups = filterGroups(m, section);
+    if (groups.length) return <FilterEditor m={m} values={setValues} played={played} mods={mods} groups={groups} onSet={onSet} readOnly={readOnly} />;
+    return <FlowView module={m} section={section} values={values} channel={channel} area={area} slot={slot} />;
   }
   if (v === "osc" || v === "wave") {
-    const shapeIdx = sp.find((k) => /shape|pos/.test(m.params[k].id) && !m.params[k].choices);
-    const waveIdx = sp.find((k) => /wave/.test(m.params[k].id) && m.params[k].choices);
-    if (shapeIdx !== undefined) {
-      const p = m.params[shapeIdx];
-      const val = plain(shapeIdx);
-      return <ShapeView shape={p.max > 4 ? Math.min(4, (val / p.max) * 4) : val} label={formatPlain(p, val)} />;
-    }
-    if (waveIdx !== undefined) {
-      const name = m.params[waveIdx].choices?.[plain(waveIdx)] ?? "";
-      const map: Record<string, number> = { Sinus: 0, Triangle: 1, Scie: 2, "Carré": 3, Impulsion: 4 };
-      return <ShapeView shape={map[name.split(" ")[0]] ?? 2} label={name} />;
-    }
-    return <ShapeView shape={2} />;
+    const groups = oscGroups(m, section);
+    if (groups.length) return <OscEditor m={m} values={setValues} played={played} mods={mods} groups={groups} onSet={onSet} readOnly={readOnly} />;
+    if (hasMix(m, section.params)) return <OscEditor m={m} values={setValues} played={played} mods={mods} groups={[]} mixParams={section.params} onSet={onSet} readOnly={readOnly} />;
+    return <FlowView module={m} section={section} values={values} channel={channel} area={area} slot={slot} />;
   }
   if (v === "dist") return <DistEngines channel={channel} slot={slot} module={m} values={values} />;
   if (v === "master") return <MasterMeters meters={meters ?? []} />;
@@ -333,31 +337,24 @@ export function SectionVisual({ channel, area, slot, module: m, section, lane }:
     );
   }
   if (v === "padfilter") {
-    const type = paramPlainIn(m, values, section, /_ftype$/) ?? 0;
-    const names = m.params[section.params[0]]?.choices ?? [];
-    const hz = paramPlainIn(m, values, section, /_fcut$/) ?? 4000;
-    const reso = (paramPlainIn(m, values, section, /_freso$/) ?? 0) / 100;
     const env = paramPlainIn(m, values, section, /_fenv$/) ?? 0;
-    const name = names[type] ?? "";
-    if (type === 0) return <div className="padfx"><p className="sound-hint">Filtre désactivé : choisissez un type (encodeur 1) — échelle 24 dB, 12 dB, passe-bande, passe-haut, réjection.</p></div>;
-    const mode = /haut/i.test(name) ? "hp" : /bande/i.test(name) ? "bp" : /jection/i.test(name) ? "notch" : "lp";
+    const groups = filterGroups(m, section);
+    const type = paramPlainIn(m, values, section, /_ftype$/) ?? 0;
+    if (type === 0 || !groups.length) return <div className="padfx"><p className="sound-hint">Filtre désactivé : choisissez un type (encodeur 1) — échelle 24 dB, 12 dB, passe-bande, passe-haut, réjection.</p></div>;
+    const name = m.params[section.params[0]]?.choices?.[type] ?? "";
     return (
       <div className="padfilter-view">
-        <FilterView hz={hz} reso={reso} mode={mode} poles={/24/.test(name) ? 4 : 2} />
+        <FilterEditor m={m} values={setValues} played={played} mods={mods} groups={groups} onSet={onSet} readOnly={readOnly} />
         <p className="sound-hint">{name}{env !== 0 ? ` · enveloppe ${env > 0 ? "+" : "−"}${Math.round(Math.abs(env) * 0.07 * 10) / 10} oct.` : ""}</p>
       </div>
     );
   }
-  if (v === "padamp") {
-    const a = paramPlainIn(m, values, section, /_aatk$/) ?? 0;
-    const h = paramPlainIn(m, values, section, /_ahold$/) ?? 0;
-    const d = paramPlainIn(m, values, section, /_adec$/) ?? 8000;
-    const voice = findPlain(m, values, section, new RegExp(`^${section.params.length ? m.params[section.params[0]].id.slice(0, 4) : "p01_"}decay$`)) ?? 300;
-    return <AdsrView a={Math.max(1, a)} d={h} s={1} r={d >= 7999 ? voice : Math.min(d, voice)} />;
-  }
-  if (v.startsWith("drumpad")) {
-    const decay = findPlain(m, values, section, /_decay$/) ?? 300;
-    return <AdsrView a={1} d={decay * 0.6} s={0} r={decay * 0.4} />;
+  if (v === "padamp" || v.startsWith("drumpad")) {
+    // VCA du pad (attaque, maintien, déclin) ; voix du pad : son déclin
+    const groups = envGroups(m, section).map((g) => (v === "padamp" ? g : { ...g, roles: g.roles.decay !== undefined ? { decay: g.roles.decay } : {} }))
+      .filter((g) => Object.keys(g.roles).length);
+    if (groups.length) return <EnvEditor m={m} values={setValues} played={played} mods={mods} groups={groups} onSet={onSet} readOnly={readOnly} live={anim && !readOnly} />;
+    return <FlowView module={m} section={section} values={values} channel={channel} area={area} slot={slot} />;
   }
   if (v === "global" && area === "inst") {
     // Vue d'ensemble : l'architecture de l'instrument en blocs (oscillateur → filtre → enveloppe)
@@ -372,7 +369,7 @@ export function SectionVisual({ channel, area, slot, module: m, section, lane }:
                 {i > 0 && <span className="flow-arrow" aria-hidden />}
                 <button type="button" className="block" onClick={() => setUi({ soundTab: b.tab, soundSection: 0 })}>
                   <span className="block-title">{b.name}</span>
-                  <SectionVisual channel={channel} area={area} slot={slot} module={m} section={b} lane={lane} />
+                  <SectionVisual channel={channel} area={area} slot={slot} module={m} section={b} lane={lane} readOnly />
                 </button>
               </div>
             ))}
@@ -423,7 +420,7 @@ export function ModSources({ channel, scope, knobs }: { channel: number; scope: 
   const assign = useStore((s) => s.ui.modAssign);
   const cat = useStore((s) => s.catalog);
   const tracks = useStore((s) => s.tracks);
-  const live = useStore((s) => (knobs ? s.tick.kmods : s.focus === channel ? s.tick.mods : undefined));
+  const live = useStore((s) => (!s.ui.curveAnim ? undefined : knobs ? s.tick.kmods : s.focus === channel ? s.tick.mods : undefined));
   if (!c || !cat) return null;
   const ms = cat.modSource;
   const sources = MOD_SCOPE_SOURCES[scope];
@@ -436,7 +433,10 @@ export function ModSources({ channel, scope, knobs }: { channel: number; scope: 
   const typeIdx = ms.params.findIndex((p) => p.id === "type");
   const retrigIdx = ms.params.findIndex((p) => p.id === "retrig");
   const loopIdx = ms.params.findIndex((p) => p.id === "loop");
-  const retrig = Math.min(2, Math.max(0, Math.floor((selVals?.[retrigIdx] ?? 0) * 3)));
+  // 1.1 : 6 choix (libre, note, mesure, un cycle, demi-cycle, maintien) ; la fonction n'en montre que 3
+  const retrigCount = ms.params[retrigIdx]?.choices?.length ?? 3;
+  const retrigAt = (k: number) => (k + 0.5) / retrigCount;
+  const retrig = Math.min(retrigCount - 1, Math.max(0, Math.floor((selVals?.[retrigIdx] ?? 0) * retrigCount)));
   const loop = (selVals?.[loopIdx] ?? 0) >= 0.5;
   const here = live?.[modSlot]?.[1] ?? -1;
   return (
@@ -474,7 +474,7 @@ export function ModSources({ channel, scope, knobs }: { channel: number; scope: 
                 onClick={() => {
                   actions.setParam(paramAddress(channel, "mod", modSlot, typeIdx), (k + 0.5) / MOD_TYPES.length);
                   // fonction : repart à chaque note (enveloppe de modulation), le cas le plus courant
-                  if (k === 1 && k !== selType) actions.setParam(paramAddress(channel, "mod", modSlot, retrigIdx), 1.5 / 3);
+                  if (k === 1 && k !== selType) actions.setParam(paramAddress(channel, "mod", modSlot, retrigIdx), retrigAt(1));
                 }}>{t}</button>
             ))}
           </span>
@@ -492,7 +492,7 @@ export function ModSources({ channel, scope, knobs }: { channel: number; scope: 
             <span className="mod-types" role="radiogroup" aria-label="Départ de la fonction">
               {[["Libre (en boucle)", "La fonction tourne seule, en boucle, sans attendre de note"], ["À chaque note", "La fonction repart à chaque note jouée (pads, clavier, séquenceur)"], ["À chaque mesure", "La fonction repart au début de chaque mesure"]].map(([t, hint], k) => (
                 <button key={t} type="button" role="radio" aria-checked={k === retrig} className={k === retrig ? "on" : ""} title={hint}
-                  onClick={() => actions.setParam(paramAddress(channel, "mod", modSlot, retrigIdx), (k + 0.5) / 3)}>{t}</button>
+                  onClick={() => actions.setParam(paramAddress(channel, "mod", modSlot, retrigIdx), retrigAt(k))}>{t}</button>
               ))}
             </span>
             {retrig !== 0 && <>

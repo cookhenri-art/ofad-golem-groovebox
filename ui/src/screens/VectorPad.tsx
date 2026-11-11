@@ -24,6 +24,7 @@ import { Learn, PlayButtons } from "../device/Device";
 import { LearnChips, LiveToast } from "./ScreenFrame";
 import { MIDI_BUS_MUTE_BASE, MIDI_BUS_SOLO_BASE, MIDI_MUTE_BASE, MIDI_SOLO_BASE } from "../engine/protocol";
 import { StripSends } from "./MixerScreen"; // v0.46.2 : envois A–D
+import { orbitShape } from "../engine/vecShapes"; // 1.1 : partagé avec la télécommande
 
 export const VEC_ORBITS = ["Arrêt", "Cercle", "Infini", "Losange", "Carré", "Triangle", "Ricochet", "Hasard", "Dessinée"] as const;
 const DRAWN = 8;
@@ -32,20 +33,6 @@ const CORNERS = ["A", "B", "C", "D"] as const;
 
 const RANDOM = 7;
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-/** v0.46 fix24 : sommets (-1..1) des mouvements, mêmes formes que le moteur (PluginProcessor, pavé vectoriel). */
-function orbitShape(orbit: number): [number, number][] {
-  const curve = (f: (t: number) => [number, number]) => Array.from({ length: 64 }, (_, i) => f((i / 64) * 2 * Math.PI));
-  switch (orbit) {
-    case 1: return curve((t) => [Math.cos(t), Math.sin(t)]);                 // cercle
-    case 2: return curve((t) => [Math.sin(t), Math.sin(2 * t) * 0.5]);       // infini
-    case 3: return [[0, -1], [1, 0], [0, 1], [-1, 0]];                        // losange
-    case 4: return [[-1, -1], [1, -1], [1, 1], [-1, 1]];                      // carré
-    case 5: return [[0, -1], [0.87, 0.5], [-0.87, 0.5]];                      // triangle
-    case 6: return [[-1, -1], [-0.5, 1], [0, -1], [0.5, 1], [1, -1], [0.5, 1], [0, -1], [-0.5, 1]]; // ricochet
-    default: return [];
-  }
-}
-
 export function VectorPad({ full = false }: { full?: boolean }) {
   const g = useStore((s) => s.tick.g);
   const scenes = useStore((s) => s.scenes);

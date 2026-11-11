@@ -50,7 +50,11 @@ export function SoundScreen() {
 
   if (!isTrack || !module) {
     return (
-      <ScreenFrame title="Son" encoders={[]}>
+      <ScreenFrame title="Son" encoders={[]} status={<><span className="screen-spacer" />
+        <select className="chip chip--select" value={isTrack ? focus : -1} aria-label="Piste" title="Changer de piste" onChange={(e) => void actions.focus(Number(e.target.value))}>
+          {tracks.map((tr, i) => <option key={i} value={i}>P{i + 1} · {tr.instrument ? tr.name : "Libre"}</option>)}
+          {!isTrack && <option value={-1}>—</option>}
+        </select></>}>
         <div className="empty-screen">
           <h2>{isTrack ? `Piste ${focus + 1} libre` : "Retour, groupe ou bus principal choisi"}</h2>
           <p>{isTrack ? "Choisissez un instrument pour cette piste dans l'écran PISTES." : "Les retours, les groupes et le bus principal n'ont que des effets : écran EFFETS."}</p>
@@ -63,7 +67,11 @@ export function SoundScreen() {
   return (
     <ScreenFrame title="Son" encoders={encoders} tabs={tabs} tab={tab}
       onTab={(id) => setUi({ soundTab: id, soundSection: 0 })}
-      status={<><span className="screen-spacer" /><span className="chip">P{focus + 1} · {track?.name}</span></>}>
+      status={<><span className="screen-spacer" />
+        {/* 1.1 : la piste se change ici, même quand les pads sont repliés (comme l'écran Effets) */}
+        <select className="chip chip--select" value={focus} aria-label="Piste" title="Changer de piste" onChange={(e) => void actions.focus(Number(e.target.value))}>
+          {tracks.map((tr, i) => <option key={i} value={i}>P{i + 1} · {tr.instrument ? tr.name : "Libre"}</option>)}
+        </select></>}>
       <div className="synth" style={{ "--k": trackColor(track?.color ?? 0) } as React.CSSProperties}>
         <header className="synth-head">
           <span className="sound-swatch" aria-hidden />
@@ -145,7 +153,7 @@ export function SoundScreen() {
               )}
               <ul className="preset-list preset-list--row">
                 {module.presets.map((p, i) => (catOf(i) !== cat ? null : (
-                  <li key={p}><button type="button" className={track?.preset === p ? "on" : ""} onClick={() => void actions.applyPreset(focus, -1, p)}>{p}</button></li>
+                  <li key={p}><button type="button" className={track?.preset === p ? "on" : ""} onClick={() => void actions.applyPreset(focus, -1, p)} title={i < 128 ? `Changement de programme ${i + 1} sur le canal MIDI de la piste` : `Son ${i + 1} : banque ${Math.floor(i / 128)}, changement de programme ${(i % 128) + 1} sur le canal MIDI de la piste`}><span className="preset-n">{i + 1}</span>{p}</button></li>
                 )))}
               </ul>
             </div>
@@ -163,7 +171,7 @@ export function SoundScreen() {
             onPickFactory={(n) => void actions.applyPreset(focus, -1, n)}
             onClose={() => setPresets(null)} />
         )}
-        <p className="sound-hint">Clic droit (ou appui long) sur un encodeur : valeur exacte, modulation, MIDI. Onglet Modulation : « Affecter à un réglage… » puis touchez les encodeurs. Double-clic : valeur d'origine.</p>
+        <p className="sound-hint">Tirez les points des courbes (enveloppes, filtres, largeur d'impulsion) ou tournez les encodeurs. Clic droit (ou appui long) sur un encodeur : valeur exacte, modulation, MIDI. Onglet Modulation : « Affecter à un réglage… » puis touchez les encodeurs. Double-clic : valeur d'origine.</p>
       </div>
     </ScreenFrame>
   );

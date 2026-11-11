@@ -7,70 +7,7 @@ import { shapeOf } from "./distShape";
 
 const W = 330, H = 150;
 
-export function AdsrView({ a, d, s, r, color }: { a: number; d: number; s: number; r: number; color?: string }) {
-  // durées en ms → échelle logarithmique douce pour que tout tienne
-  const t = (ms: number) => Math.log10(1 + Math.max(0, ms) / 5);
-  const total = t(a) + t(d) + t(r) + 1.2;
-  const x1 = (t(a) / total) * W, x2 = x1 + (t(d) / total) * W, x3 = x2 + (1.2 / total) * W, x4 = W;
-  const sy = H - 8 - Math.min(1, Math.max(0, s)) * (H - 20);
-  const path = `M0 ${H - 8} C ${x1 * 0.4} ${H * 0.3}, ${x1 * 0.8} 12, ${x1} 12 C ${x1 + (x2 - x1) * 0.3} ${sy}, ${x2 - (x2 - x1) * 0.2} ${sy}, ${x2} ${sy} L ${x3} ${sy} C ${x3 + (x4 - x3) * 0.25} ${H - 8}, ${x4 - 10} ${H - 8}, ${x4} ${H - 8}`;
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="filter-curve" preserveAspectRatio="none" aria-hidden style={color ? { ["--k" as string]: color } : undefined}>
-      <path d={`${path} L ${W} ${H} L 0 ${H} Z`} className="fill" />
-      <path d={path} className="stroke" />
-      {[x1, x2, x3].map((x, i) => <line key={i} x1={x} x2={x} y1={0} y2={H} className="grid" />)}
-    </svg>
-  );
-}
-
-/** Réponse indicative d'un filtre (passe-bas, passe-bande, passe-haut ; pente en pôles). */
-export function FilterView({ hz, reso, mode = "lp", poles = 4 }: { hz: number; reso: number; mode?: "lp" | "bp" | "hp" | "notch"; poles?: number }) {
-  const pts: string[] = [];
-  for (let i = 0; i <= 120; ++i) {
-    const f = 20 * Math.pow(1000, i / 120);
-    const r = f / Math.max(20, hz);
-    const peak = 1 + reso * 4 * Math.exp(-Math.pow(Math.log2(r) * 2.4, 2));
-    const band = 1 / Math.sqrt(1 + Math.pow((r - 1 / r) * 1.5, 2));
-    let mag = mode === "lp" ? 1 / Math.sqrt(1 + Math.pow(r, 2 * poles)) : mode === "hp" ? 1 / Math.sqrt(1 + Math.pow(1 / r, 2 * poles))
-      : mode === "notch" ? Math.max(0.001, 1 - band) : band;
-    if (mode !== "notch") mag *= peak;
-    const db = Math.max(-36, 20 * Math.log10(mag));
-    pts.push(`${(i / 120) * W},${H - ((db + 36) / 54) * H}`);
-  }
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="filter-curve" preserveAspectRatio="none" aria-hidden>
-      {[100, 1000, 10000].map((f) => { const x = (Math.log10(f / 20) / 3) * W; return <line key={f} x1={x} x2={x} y1={0} y2={H} className="grid" />; })}
-      <polyline points={`0,${H} ${pts.join(" ")} ${W},${H}`} className="fill" />
-      <polyline points={pts.join(" ")} className="stroke" />
-    </svg>
-  );
-}
-
-/** Forme d'onde continue (0 sinus → 1 triangle → 2 scie → 3 carré → 4 impulsion), ou forme nommée. */
-export function ShapeView({ shape, label }: { shape: number; label?: string }) {
-  const wave = (k: number, ph: number) => {
-    switch (k) {
-      case 0: return Math.sin(2 * Math.PI * ph);
-      case 1: return ph < 0.5 ? 4 * ph - 1 : 3 - 4 * ph;
-      case 2: return 2 * ph - 1;
-      case 3: return ph < 0.5 ? 1 : -1;
-      default: return ph < 0.12 ? 1 : -1;
-    }
-  };
-  const i = Math.min(3, Math.floor(shape)), f = shape - i;
-  const pts: string[] = [];
-  for (let n = 0; n <= 200; ++n) {
-    const ph = ((n / 200) * 2) % 1;
-    const y = wave(i, ph) * (1 - f) + wave(i + 1, ph) * f;
-    pts.push(`${(n / 200) * W},${H / 2 - y * (H / 2 - 14)}`);
-  }
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="filter-curve" preserveAspectRatio="none" aria-label={label}>
-      <line x1={0} x2={W} y1={H / 2} y2={H / 2} className="grid" />
-      <polyline points={pts.join(" ")} className="stroke" />
-    </svg>
-  );
-}
+// 1.1 : enveloppes, filtres et formes d'onde de l'écran SON : voir CurveEditors.tsx (réglables).
 
 /** Courbe de transfert d'un algorithme de distorsion. */
 export function DistCurve({ type, drive, bias = 0 }: { type: number; drive: number; bias?: number }) {

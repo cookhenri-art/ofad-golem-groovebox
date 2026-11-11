@@ -35,6 +35,7 @@ import { ScreenFrame } from "./ScreenFrame";
 import { registerCtl, uiCode } from "../engine/ctl";
 import { CurveEditor } from "../controls/CurveEditor";
 import { describeGlobal } from "../engine/describe";
+import { stepLabel } from "../engine/steps"; // 1.1 : pas 1 à 16 dans chaque mesure
 
 const PAGE = 16;
 const LANE_LENGTHS = [0, ...Array.from({ length: 32 }, (_, i) => i + 1), 48, 64, 96, 128, 192, 256, 384, 512];
@@ -951,7 +952,7 @@ function FlagRows({ drum, roll = false, first, length, flags, stepsPerBeat, play
               return (
                 <FlagCell key={i} disabled={out} on={on} amount={on ? amt : 0}
                   className={`fcell${on ? " fcell--on" : ""}${s % stepsPerBeat === 0 ? " fcell--beat" : ""}${out ? " fcell--out" : ""}${playStep === s ? " fcell--play" : ""}`}
-                  label={`${r.name}, pas ${s + 1}${kind ? " (appui long : valeur)" : ""}`}
+                  label={`${r.name}, pas ${stepLabel(s)}${kind ? " (appui long : valeur)" : ""}`}
                   onToggle={() => toggle(r.bit, s)} onEdit={kind ? () => setEdit({ step: s, kind }) : undefined} />
               );
             })}

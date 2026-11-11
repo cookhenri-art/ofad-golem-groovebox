@@ -133,7 +133,10 @@ function Strip({ channel }: { channel: number }) {
   const [renaming, setRenaming] = useState(false);
   const learn = useLearnPress(); // v0.46 : clic droit / appui long sur M ou S : affecter au contrôleur MIDI
   const name = isTrack ? info?.name ?? `Piste ${channel + 1}` : busName(L, channel);
-  const muted = isTrack ? !!info?.mute : !!bus?.mute;
+  // 1.1 : une piste réduite au silence par le solo d'une autre se grise comme une piste coupée
+  const anySolo = useStore((s) => s.tracks.tracks.some((t) => t.solo));
+  const soloed = isTrack && !!info?.solo;
+  const muted = isTrack ? !!info?.mute || (anySolo && !soloed) : !!bus?.mute;
   const db = peak > 0 ? 20 * Math.log10(peak) : -90;
   const meter = Math.max(0, Math.min(1, (db + 60) / 66));
   // v0.46.2 : pas d'égaliseur sur les pistes (les envois A–D prennent sa place) ; gardé sur les
@@ -142,7 +145,7 @@ function Strip({ channel }: { channel: number }) {
   const eqShown = !!mix && mix.length > 15 && (!isTrack || !eqFlat(mix));
   const sendsShown = hasSends && !!mix;
   return (
-    <div className={`strip${focus ? " strip--selected" : ""}${eqShown && sendsShown ? " strip--eq-sends" : ""}${muted ? " strip--muted" : ""}${channel === L.masterChannel ? " strip--master" : ""}${group ? " strip--group" : ""}`}
+    <div className={`strip${focus ? " strip--selected" : ""}${eqShown && sendsShown ? " strip--eq-sends" : ""}${muted ? " strip--muted" : ""}${soloed ? " strip--solo" : ""}${channel === L.masterChannel ? " strip--master" : ""}${group ? " strip--group" : ""}`}
       style={{ "--k": isTrack ? trackColor(info?.color ?? 0) : "var(--accent)" } as React.CSSProperties}>
       {renaming ? (
         <input className="strip-rename" autoFocus defaultValue={bus?.name || name} maxLength={40} aria-label={`Nom du ${busTag(L, channel)}`}
@@ -154,6 +157,7 @@ function Strip({ channel }: { channel: number }) {
         <span className={`strip-led${lit ? " on" : ""}`} aria-hidden />
         <span className="strip-num">{busTag(L, channel)}</span>
         <span className="strip-label">{name}</span>
+        {isTrack && <span className="strip-preset" title={info?.preset ? `Préréglage : ${info.preset}` : undefined}>{info?.preset || "\u00a0"}</span>}
       </button>
       )}
       <DragParam global={paramAddress(channel, "mix", 0, 1)} label={`Panoramique ${name}`} className="strip-pan">

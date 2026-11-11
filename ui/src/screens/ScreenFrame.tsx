@@ -2,10 +2,11 @@
 // Cadre commun des écrans : barre d'état (titre, onglets, transport, position, tempo), contenu,
 // et en bas les libellés des 8 encodeurs placés juste sous l'écran (comme sur une machine à écran).
 
-import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import { ParamMenuZone, type EncoderBinding } from "../controls/Encoder";
 import { bindingCode, registerCtl } from "../engine/ctl";
-import { actions, getState, setUi, useStore } from "../engine/store";
+import { actions, getState, globalOf, setUi, useStore } from "../engine/store";
+import type { ModAssign } from "../engine/protocol";
 import { IconPlay, IconRec, IconStop } from "../controls/Icons";
 import { MOD_SOURCE_COLORS, modSourceShort } from "../engine/params";
 import { useValueDrag } from "../controls/useValueDrag";
@@ -28,6 +29,38 @@ interface ScreenFrameProps {
   children: ReactNode;
 }
 
+/** 1.1 : profondeur de la modulation (« M1 +30 % ») sous la valeur : elle se règle en la tirant vers le
+    haut ou le bas (−100 → +100 % en 260 px, Maj : fin), comme la petite molette des façades ; double-clic :
+    0 %. La courbe de l'écran SON montre l'amplitude. Le glissé part de la profondeur affichée. */
+function ModDepth({ channel, mod }: { channel: number; mod: ModAssign }) {
+  const drag = useRef<{ y: number; a: number; id: number; moved: boolean } | null>(null);
+  const set = (a: number) => actions.setParam(globalOf(channel, mod.amountSlot), (Math.max(-1, Math.min(1, a)) + 1) / 2);
+  return (
+    <span className="enc-mod enc-mod--drag tabular" style={{ color: MOD_SOURCE_COLORS[mod.source] }} role="slider"
+      aria-label={`Profondeur de ${modSourceShort(mod.source)}`} aria-valuetext={`${Math.round(mod.amount * 100)} %`}
+      title="Profondeur de la modulation : glisser vers le haut ou le bas (double-clic : 0 %)"
+      onPointerDown={(e) => { if (e.button !== 0) return; e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); drag.current = { y: e.clientY, a: mod.amount, id: e.pointerId, moved: false }; }}
+      onPointerMove={(e) => {
+        e.stopPropagation();
+        const d = drag.current;
+        if (!d || d.id !== e.pointerId) return;
+        const dy = d.y - e.clientY;
+        if (!d.moved && Math.abs(dy) < 3) return;
+        d.moved = true;
+        set(d.a + (dy / 130) * (e.shiftKey ? 0.25 : 1));
+      }}
+      onPointerUp={(e) => { e.stopPropagation(); drag.current = null; }}
+      onPointerCancel={() => { drag.current = null; }}
+      onWheel={(e) => { e.stopPropagation(); set(mod.amount + (e.deltaY < 0 ? 0.02 : -0.02)); }}
+      onDoubleClick={(e) => { e.stopPropagation(); set(0); }}
+      // clic droit / appui long : le menu du réglage (celui de l'encodeur), jamais le menu du navigateur ;
+      // pendant un glissé de la profondeur (appui long au doigt), ni l'un ni l'autre
+      onContextMenu={(e) => { e.preventDefault(); if (drag.current?.moved) e.stopPropagation(); }}>
+      {modSourceShort(mod.source)} {mod.amount >= 0 ? "+" : "−"}{Math.round(Math.abs(mod.amount) * 100)} %
+    </span>
+  );
+}
+
 /** Libellé et valeur d'un réglage, en bas de l'écran. On tire la valeur vers le haut ou le bas
     (souris ou doigt). v0.46 fix24 : appui long (clic droit) : le menu du réglage — valeur exacte,
     modulation et macros s'il y a lieu, MIDI, bouton assignable. */
@@ -44,11 +77,7 @@ function EncoderLabel({ b, screen }: { b: EncoderBinding | null; screen: string 
         title={bb ? `${bb.label} : glisser vers le haut ou le bas (Maj = fin, double-clic = valeur d'origine) — appui long ou clic droit : menu (valeur exacte, MIDI, bouton assignable)` : undefined} {...handlers}>
         <span className="enc-name">{bb?.label ?? "—"}</span>
         <span className="enc-value tabular">{bb?.text ?? ""}</span>
-        {mod && (
-          <span className="enc-mod tabular" style={{ color: MOD_SOURCE_COLORS[mod.source] }}>
-            {modSourceShort(mod.source)} {mod.amount >= 0 ? "+" : "−"}{Math.round(Math.abs(mod.amount) * 100)} %
-          </span>
-        )}
+        {mod && target && <ModDepth channel={target.channel} mod={mod} />}
       </div>
     </ParamMenuZone>
   );

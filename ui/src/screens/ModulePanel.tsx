@@ -191,6 +191,103 @@ const LAYOUTS: Record<string, Layout> = {
   },
 };
 
+// 1.1 : famille « Golem Titan FX » (effets haut de gamme) : interfaces dédiées, sans écran graphique
+Object.assign(LAYOUTS, {
+  tvintage: {
+    lcd: { id: "mode", label: "Mode" }, leds: [{ id: "freeze", label: "Gel" }],
+    side: [{ title: "Époque", ctl: [{ id: "color", as: "seg", short: ["1970", "1980", "Maint."] }, { id: "mix", size: "lg" }, { id: "decay", size: "lg" }] }], sideW: 300,
+    rows: [[
+      { title: "Espace", ctl: ["predelay", "size", "attack", "width"], cols: 2, w: 300 },
+      { title: "Diffusion et modulation", ctl: [{ id: "earlyDiff", label: "Diff. initiale" }, { id: "lateDiff", label: "Diff. tardive" }, { id: "modRate", label: "Vitesse" }, { id: "modDepth", label: "Profondeur" }], cols: 2, w: 300 },
+      { title: "Couleur", ctl: ["highCut", "damping", { id: "bassMult", label: "Graves ×" }, { id: "bassXover", label: "Fréq. graves" }], cols: 2, grow: true },
+    ]],
+  },
+  tspace: {
+    lcd: { id: "style", label: "Style" }, leds: [{ id: "freeze", label: "Gel" }],
+    side: [{ title: "Espace", ctl: [{ id: "space", size: "lg" }, { id: "decayPct", size: "lg", label: "Durée" }, { id: "mix", size: "lg" }, "distance", "brightness", "character"] }], sideW: 340,
+    rows: [[
+      { title: "Durée par bande", ctl: [{ id: "dLowFreq", label: "Grave Hz" }, { id: "dLowMult", label: "Grave ×" }, { id: "dMidFreq", label: "Médium Hz" }, { id: "dMidMult", label: "Médium ×" }, { id: "dHighFreq", label: "Aigu Hz" }, { id: "dHighMult", label: "Aigu ×" }], cols: 2, w: 280 },
+      { title: "Temps", ctl: ["predelay", { id: "sync", as: "lcd", label: "Au tempo" }, "ducking", "width"], cols: 2, w: 260 },
+      { title: "Égaliseur de sortie", ctl: ["lowCut", "highCut", "lowShelf", "highShelf"], cols: 2, grow: true },
+    ]],
+  },
+  tlimit: {
+    lcd: { id: "style", label: "Style" }, leds: [{ id: "truePeak", label: "Crête vraie" }, { id: "unity", label: "Gain unité" }],
+    lcdText: (v: Vals) => `Réduction ${(v.meters[0] ?? 0).toFixed(1).replace(".", ",")} dB`,
+    side: [{ title: "Niveau", ctl: [{ id: "gain", size: "lg" }, { id: "ceiling", size: "lg" }] }], sideW: 260,
+    rows: [[
+      { title: "Temps", ctl: ["lookahead", "attack", "release"], cols: 3, w: 330 },
+      { title: "Voies et qualité", ctl: [{ id: "linkTrans", label: "Lien attaque" }, { id: "linkRel", label: "Lien relâch." }, { id: "oversampling", as: "seg", short: ["Aucun", "×2", "×4"] }], cols: 3, grow: true },
+    ]],
+  },
+  techo: {
+    lcd: { id: "pingpong", label: "Ping-pong" }, leds: [{ id: "sync", label: "Tempo" }, { id: "freeze", label: "Gel" }],
+    side: [{ title: "Écho", ctl: [{ id: "feedback", size: "lg" }, { id: "mix", size: "lg" }, "cross", "width"] }], sideW: 300,
+    rows: [[
+      { title: "Temps", ctl: ["timeL", "timeR", { id: "divL", as: "lcd" }, { id: "divR", as: "lcd" }], cols: 2, w: 300 },
+      { title: "Bande", ctl: [{ id: "timeMode", as: "seg", short: ["Bande", "Étirement"] }, "wow", "flutter"], cols: 2, w: 260 },
+      { title: "Effets dans la boucle", ctl: ["drive", "lofi", "diffuse", "dynamics", "pitch"], cols: 3, grow: true },
+    ], [
+      { title: "Filtre 1", ctl: [{ id: "f1Type", as: "lcd", label: "Type" }, { id: "f1Freq", label: "Fréquence" }, { id: "f1Reso", label: "Résonance" }], cols: 3, grow: true },
+      { title: "Filtre 2", ctl: [{ id: "f2Type", as: "lcd", label: "Type" }, { id: "f2Freq", label: "Fréquence" }, { id: "f2Reso", label: "Résonance" }], cols: 3, grow: true },
+    ]],
+  },
+  tdecap: {
+    lcd: { id: "style", label: "Circuit" }, leds: [{ id: "punish", label: "Punition" }, { id: "autoGain", label: "Gain auto" }],
+    side: [{ title: "Saturation", ctl: [{ id: "drive", size: "lg" }, { id: "output", size: "lg" }, "mix"] }], sideW: 300,
+    rows: [[
+      { title: "Avant la saturation", ctl: ["lowCut", { id: "thump", as: "led" }, "tone"], cols: 3, w: 340 },
+      { title: "Après la saturation", ctl: ["highCut", { id: "steep", as: "led" }], cols: 2, grow: true },
+    ]],
+  },
+  tsaturn: {
+    lcd: { id: "bands", label: "Bandes" },
+    side: [{ title: "Séparations et sortie", ctl: ["x1", "x2", "x3", "mix", "output"], cols: 2 }], sideW: 260,
+    rows: [[1, 2, 3, 4].map((b) => ({
+      title: ["Grave", "Bas-médium", "Haut-médium", "Aigu"][b - 1], grow: true, cols: 2,
+      relevant: { by: "bands", map: b === 1 ? {} : Object.fromEntries(["style", "drive", "fb", "dyn", "tone", "mix", "level"].map((k) => [`${k}${b}`, [1, 2, 3, 4].filter((n) => n >= b)])) },
+      ctl: [{ id: `style${b}`, as: "lcd", label: "Style" }, { id: `drive${b}`, label: "Drive", size: "lg" }, { id: `fb${b}`, label: "Réinj." }, { id: `dyn${b}`, label: "Dynam." }, { id: `tone${b}`, label: "Tonalité" }, { id: `mix${b}`, label: "Mélange" }, { id: `level${b}`, label: "Niveau" }],
+    }))],
+  },
+  tphaser: {
+    lcd: { id: "style", label: "Circuit" },
+    side: [{ title: "Phaseur", ctl: [{ id: "freq", size: "lg" }, { id: "reso", size: "lg" }, "stages", "depth", "intensity", "mix"] }], sideW: 320,
+    rows: [[
+      { title: "Modulation", ctl: [{ id: "mode", as: "lcd" }, { id: "shape", as: "lcd" }, { id: "pattern", as: "lcd" }, { id: "division", as: "lcd" }, { id: "sync", as: "led" }, "rate", "envSens", "envRelease"], cols: 4, w: 460, selCols: 2 },
+      { title: "Couleur et stéréo", ctl: ["color", "stereo", "drive"], cols: 3, grow: true },
+    ]],
+  },
+  tflange: {
+    lcd: { id: "mode", label: "Appareil" }, leds: [{ id: "throughZero", label: "Par zéro" }, { id: "autoDouble", label: "Doublage auto" }],
+    side: [{ title: "Flanger", ctl: [{ id: "depth", size: "lg" }, { id: "regen", size: "lg" }, "mix", { id: "polarity", as: "seg" }] }], sideW: 300,
+    rows: [[
+      { title: "Balayage", ctl: [{ id: "sweep", as: "seg", short: ["Auto", "Manuel", "VSO", "Env."] }, { id: "shape", as: "lcd" }, { id: "division", as: "lcd" }, { id: "sync", as: "led" }, "rate", "manual", "vso", "envSens"], cols: 4, w: 520, selCols: 2 },
+      { title: "Bandes", ctl: ["offset", "stereo"], cols: 2, grow: true },
+    ]],
+  },
+  tfilter: {
+    lcd: { id: "routing", label: "Montage" }, leds: [{ id: "f2On", label: "Filtre 2" }],
+    side: [{ title: "Sortie", ctl: [{ id: "mix", size: "lg" }, { id: "output", size: "lg" }, { id: "satStyle", as: "lcd", label: "Saturation" }, { id: "satDrive", label: "Drive" }] }], sideW: 280,
+    rows: [[
+      { title: "Filtre 1", ctl: [{ id: "f1Type", as: "lcd", label: "Type" }, { id: "f1Slope", as: "lcd", label: "Pente" }, { id: "f1Style", as: "lcd", label: "Style" }, { id: "f1Freq", label: "Fréquence", size: "lg" }, { id: "f1Reso", label: "Résonance" }, { id: "f1Gain", label: "Gain" }, { id: "f1Drive", label: "Drive" }], cols: 4, grow: true, selCols: 3 },
+      { title: "Filtre 2", ctl: [{ id: "f2Type", as: "lcd", label: "Type" }, { id: "f2Slope", as: "lcd", label: "Pente" }, { id: "f2Style", as: "lcd", label: "Style" }, { id: "f2Freq", label: "Fréquence", size: "lg" }, { id: "f2Reso", label: "Résonance" }, { id: "f2Gain", label: "Gain" }, { id: "f2Drive", label: "Drive" }], cols: 4, grow: true, selCols: 3 },
+    ], [
+      { title: "Modulation", ctl: [{ id: "modSrc", as: "lcd", label: "Source" }, { id: "modTarget", as: "lcd", label: "Vers" }, { id: "shape", as: "lcd" }, { id: "pattern", as: "lcd" }, { id: "division", as: "lcd" }, { id: "sync", as: "led" }, { id: "modDepth", label: "Profondeur", size: "lg" }, "rate"], cols: 4, grow: true, selCols: 3 },
+      { title: "Suiveur", ctl: ["envAttack", "envRelease", "envSens"], cols: 3, w: 300 },
+    ]],
+  },
+} satisfies Record<string, Layout>);
+// sans écran graphique, la colonne de côté laisserait un grand vide : elle devient un groupe des rangées
+for (const t of ["tvintage", "tspace", "tlimit", "techo", "tdecap", "tsaturn", "tphaser", "tflange", "tfilter"]) {
+  const l = LAYOUTS[t];
+  if (!l?.side) continue;
+  const g = l.side.map((x) => ({ ...x, w: l.sideW }));
+  if (t === "tsaturn") l.rows = [g.map((x) => ({ ...x, w: undefined, grow: true, cols: 5 })), ...l.rows];
+  else if (t === "tfilter") l.rows = [l.rows[0], [...l.rows[1], ...g]];
+  else l.rows = [[...g, ...l.rows[0]], ...l.rows.slice(1)];
+  delete l.side; delete l.sideW;
+}
+
 export function hasModulePanel(type: string): boolean { return type in LAYOUTS; }
 
 const norm = (c: C): Ctl => (typeof c === "string" ? { id: c } : c);
@@ -823,6 +920,9 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
   const preset = useStore((s) => (pad ? undefined : s.tracks.insertPresets?.[channel]?.[slot])) || undefined;
   const [band, setBand] = useState(lay?.firstBand ?? 0);
   const [presetsOpen, setPresetsOpen] = useState(false); // v0.47 : préréglages de l'effet (inserts du canal)
+  // 1.1 : sur téléphone, le module est d'office en grand (comme les façades des instruments) : boutons et
+  // inscriptions lisibles, sections passées à la ligne, la fenêtre défile vers le bas
+  const big = useStore((s) => !!s.ui.phone);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); } };
@@ -834,9 +934,23 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
     if (!el) return;
     const fit = () => {
       el.style.zoom = "1";
-      const w = el.offsetWidth, h = el.offsetHeight;
       const ov = el.parentElement; // surimpression : sa taille en pixels CSS tient compte de l'échelle de l'appareil
       const aw = ov?.clientWidth ?? window.innerWidth, ah = ov?.clientHeight ?? window.innerHeight;
+      if (big) {
+        // grand : agrandissement fixe et lisible, largeur = l'écran ; le module défile en hauteur
+        let z = Math.max(0.7, Math.min(1, (aw - 12) / 1100));
+        el.style.width = `${(aw - 12) / z}px`;
+        el.style.zoom = String(z);
+        // une section plus large que l'écran (rare) : on réduit juste ce qu'il faut
+        for (let k = 0; k < 3 && el.scrollWidth > el.clientWidth + 2; ++k) {
+          z = Math.max(0.5, Math.floor(((aw - 12) / (el.scrollWidth + 4)) * 100) / 100);
+          el.style.width = `${(aw - 12) / z}px`;
+          el.style.zoom = String(z);
+        }
+        return;
+      }
+      el.style.width = "";
+      const w = el.offsetWidth, h = el.offsetHeight;
       const z = Math.max(0.45, Math.min(1, (aw - 24) / w, (ah - 24) / h));
       el.style.zoom = String(z);
     };
@@ -844,7 +958,7 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
     window.addEventListener("resize", fit);
     void document.fonts?.ready.then(fit);
     return () => window.removeEventListener("resize", fit);
-  }, [m.type]);
+  }, [m.type, big]);
   if (!lay) return null;
   const values = raw ?? [];
   const idx = (id: string) => m.params.findIndex((p) => p.id === id);
@@ -866,8 +980,8 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
     </>
   );
   return (
-    <div className="mp-overlay" role="dialog" aria-label={`Module ${m.name}`} onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div ref={root} className={`mp sk-knobs mp--${m.type}${bypassed ? " mp--off" : ""}`} style={style}>
+    <div className={`mp-overlay${big ? " mp-overlay--big" : ""}`} role="dialog" aria-label={`Module ${m.name}`} onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div ref={root} className={`mp sk-knobs mp--${m.type}${bypassed ? " mp--off" : ""}${big ? " mp--big" : ""}`} style={style}>
         <span className="pd-screw pd-screw--tl" aria-hidden /><span className="pd-screw pd-screw--tr" aria-hidden />
         <span className="pd-screw pd-screw--bl" aria-hidden /><span className="pd-screw pd-screw--br" aria-hidden />
         <header className="mp-head">
@@ -879,7 +993,7 @@ export function ModulePanel({ channel, area = "fx", slot, m, onClose }: { channe
             title="Préréglages de l'effet : ceux d'usine et les vôtres (enregistrer, rappeler)">★ Préréglages</button>}
           <ParamMenuZone binding={byp.binding} className="pm-zone--byp">
             <button type="button" className={`mp-lb mp-power${bypassed ? "" : " on"}`} aria-pressed={!bypassed} onClick={toggle}
-              title={bypassed ? "Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"}><i />{bypassed ? "Contourné" : "Actif"}</button>
+              title={bypassed ? "Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"}><i />{bypassed ? "Contourné" : "Actif"}{byp.binding?.locked && <span className={`knob-lock knob-lock--${byp.binding.locked} byp-lock`} aria-hidden />}</button>
           </ParamMenuZone>
           <button type="button" className="mp-close" aria-label="Fermer le module" onClick={onClose}>✕</button>
         </header>

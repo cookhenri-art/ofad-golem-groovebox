@@ -9,6 +9,7 @@ import { numGroups, trackColor } from "../engine/params";
 import { paramAddress, steppedBinding, useParam } from "../controls/bindings";
 import type { EncoderBinding } from "../controls/Encoder";
 import { ScreenFrame, ZoomContext } from "./ScreenFrame";
+import { openSampleEditorForTrack } from "./SampleEditor";
 
 export function TracksScreen() {
   const cat = useStore((s) => s.catalog);
@@ -27,6 +28,20 @@ export function TracksScreen() {
     const el = listRef.current?.querySelector<HTMLElement>("button.on");
     el?.scrollIntoView({ block: "nearest" });
   }, [family, browserIndex]);
+  // 1.1 : appui long (ou clic droit) sur une piste qui joue des échantillons : éditeur d'échantillon
+  const press = useRef<{ id: number; t: number; x: number; y: number } | null>(null);
+  const longDone = useRef(false);
+  const pressDown = (e: React.PointerEvent, t: number) => {
+    longDone.current = false;
+    if (e.button !== 0) return;
+    const id = window.setTimeout(() => { longDone.current = true; press.current = null; void openSampleEditorForTrack(t); }, 600);
+    press.current = { id, t, x: e.clientX, y: e.clientY };
+  };
+  const pressMove = (e: React.PointerEvent) => {
+    const p = press.current;
+    if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10) { window.clearTimeout(p.id); press.current = null; }
+  };
+  const pressEnd = () => { if (press.current) { window.clearTimeout(press.current.id); press.current = null; } };
   const L = cat?.layout;
   const t = Math.min(focus, (L?.numTracks ?? 16) - 1);
   const isTrack = !!L && focus < L.numTracks;
@@ -126,8 +141,11 @@ export function TracksScreen() {
                 onDragLeave={() => { if (dragOver === i) setDragOver(null); }}
                 onDrop={(e) => { e.preventDefault(); const from = dragFrom; setDragFrom(null); setDragOver(null); if (from !== null && from !== i) void actions.moveTrack(from, i); }}
                 onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
-                onPointerEnter={(e) => { if (e.pointerType === "mouse" && inst) setHover(inst.type); }} onPointerLeave={() => setHover(null)}
-                onClick={() => { void actions.focus(i); if (inst) setUi({ browserFamily: inst.family, browserIndex: cat.instruments.filter((x) => x.family === inst.family).indexOf(inst) }); }}
+                onPointerEnter={(e) => { if (e.pointerType === "mouse" && inst) setHover(inst.type); }} onPointerLeave={() => { setHover(null); pressEnd(); }}
+                onPointerDown={(e) => { if (inst) pressDown(e, i); }} onPointerMove={pressMove} onPointerUp={pressEnd} onPointerCancel={pressEnd}
+                onContextMenu={(e) => { if (!inst) return; e.preventDefault(); pressEnd(); longDone.current = true; void openSampleEditorForTrack(i); }}
+                title={inst ? "Appui long ou clic droit : éditeur d'échantillon (pistes qui jouent des échantillons)" : undefined}
+                onClick={() => { if (longDone.current) { longDone.current = false; return; } void actions.focus(i); if (inst) setUi({ browserFamily: inst.family, browserIndex: cat.instruments.filter((x) => x.family === inst.family).indexOf(inst) }); }}
                 onDoubleClick={() => setUi({ screen: inst ? "sound" : "tracks" })}>
                 <span className={`track-swatch${(lit[i] ?? 0) > 0 ? " is-lit" : ""}`} aria-hidden />
                 <span className="track-num tabular">{i + 1}</span>
@@ -156,8 +174,15 @@ export function TracksScreen() {
               <button key={f} type="button" role="tab" aria-selected={f === family} className={f === family ? "on" : ""}
                 onClick={() => setUi({ browserFamily: f, browserIndex: 0 })}>{f}</button>
             ))}
-            <button type="button" className="touch touch--small browser-thumbs" disabled={!isTrack} onClick={() => setPicker(true)}
-              title={`Choisir l'instrument de la piste ${t + 1} en touchant l'image de sa façade`}>Choisir avec les vignettes…</button>
+            {/* 1.1 : vignettes et « Ouvrir le synthé » ensemble, à droite des familles (au moins deux synthés visibles sur téléphone) */}
+            <span className="browser-actions">
+              <button type="button" className="touch touch--small browser-thumbs" disabled={!isTrack} onClick={() => setPicker(true)}
+                title={`Choisir l'instrument de la piste ${t + 1} en touchant l'image de sa façade`}>Choix vignettes</button>
+              {zoom && track?.instrument && <button type="button" className="touch touch--on touch--small bz-open face-open" onClick={() => setUi({ face: true })}
+                title="Ouvrir l'instrument de la piste en grand, comme un synthé, avec son clavier (Échap pour refermer)">Ouvrir synthé ↗</button>}
+              {zoom && track?.instrument && <button type="button" className="touch touch--small bz-free" onClick={() => assign("")}
+                title="Retirer l'instrument de la piste">Libérer</button>}
+            </span>
           </div>
           {/* 1.0 : vue agrandie — la piste en haut (couleur, nom, Mettre sur la piste), puis une seule liste qui
               défile : vignette de la façade à gauche, nom et principe à droite (les préréglages sont dans SON) */}
@@ -173,13 +198,14 @@ export function TracksScreen() {
                     onClick={() => void actions.setTrackColor(t, c)} aria-label={`Couleur ${c + 1}`} />
                 ))}
               </span>
-              {track?.instrument && <button type="button" className="touch touch--quiet bz-free" onClick={() => assign("")}>Libérer</button>}
-              {/* 1.0 (7 nov.) : comme « Ouvrir le module » des effets */}
-              {track?.instrument && <button type="button" className="touch touch--on bz-open face-open" onClick={() => setUi({ face: true })}
-                title="Ouvrir l'instrument de la piste en grand, comme un synthé, avec son clavier (Échap pour refermer)">Ouvrir le synthé ↗</button>}
-              <button type="button" className="touch touch--on bz-assign" disabled={!isTrack} onClick={() => assign(current.type)}>
-                {current.type === track?.instrument ? `Recharger « ${current.name} »` : `Mettre « ${current.name} » sur la piste ${t + 1}`}
-              </button>
+              {/* 1.1 : plus de « Recharger » (il remettait le synthé à zéro) ; le bouton n'apparaît que pour
+                  mettre un AUTRE synthé sur la piste. « Libérer » est monté à côté des vignettes. */}
+              {current.type !== track?.instrument && (<>
+                <span className="bz-break" aria-hidden />
+                <button type="button" className="touch touch--on bz-assign" disabled={!isTrack} onClick={() => assign(current.type)}>
+                  {`Mettre « ${current.name} » sur la piste ${t + 1}`}
+                </button>
+              </>)}
             </div>
             <ul className="bz-list" ref={listRef}>
               {list.map((inst, i) => (
@@ -217,10 +243,10 @@ export function TracksScreen() {
               {current.presets.length > 0 && <>
                 <span className="detail-label">Préréglages</span>
                 <ul className="preset-list">
-                  {current.presets.map((p) => (
+                  {current.presets.map((p, i) => (
                     <li key={p}>
                       <button type="button" className={current.type === track?.instrument && track.preset === p ? "on" : ""}
-                        onClick={async () => { if (current.type !== track?.instrument) await actions.setInstrument(t, current.type); void actions.applyPreset(t, -1, p); }}>{p}</button>
+                        onClick={async () => { if (current.type !== track?.instrument) await actions.setInstrument(t, current.type); void actions.applyPreset(t, -1, p); }}><span className="preset-n">{i + 1}</span>{p}</button>
                     </li>
                   ))}
                 </ul>

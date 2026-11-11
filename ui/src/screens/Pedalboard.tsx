@@ -6,7 +6,7 @@
 // aucune reprise de la façade d'une pédale existante. Échap ou ✕ : refermer.
 
 import { EffectPicker } from "./EffectPicker";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { actions, setUi, useStore } from "../engine/store";
 import type { ModuleDesc } from "../engine/protocol";
 import { channelName, toPlain, trackColor } from "../engine/params";
@@ -112,7 +112,7 @@ function Pedal(props: { channel: number; area?: "fx" | "pfx"; slot: number; labe
 
 /** Modules (v0.35.2) : dans le pédalier, une unité compacte (les réglages principaux) et le bouton
     qui ouvre l'interface dédiée. « nom:libellé » : libellé imposé. */
-const MODULE_KNOBS: Record<string, { big: string[]; small: string[] }> = {
+const MODULE_KNOBS: Record<string, { big: string[]; small: string[]; lcd?: string; sel?: string[] }> = {
   dist:   { big: ["driveA:Drive A", "driveB:Drive B"], small: ["toneA:Tonalité A", "toneB:Tonalité B", "mix", "out"] },
   // v0.46 : Largeur ajoutée ; tourner la quantité d'un effet éteint l'allume (sNamt → sNon)
   sculptor: { big: ["mix:Mélange", "smooth:Lissage"], small: ["s7amt:Volume", "s4amt:Filtre", "s1amt:Temps", "s3amt:Broyage", "s8amt:Panoramique", "s9amt:Largeur"] }, // v0.37
@@ -120,8 +120,20 @@ const MODULE_KNOBS: Record<string, { big: string[]; small: string[] }> = {
   master: { big: ["drive:Gain", "ceiling"], small: ["lowGain", "airGain", "shine:Éclat", "warmth:Chaleur"] },
   eq:     { big: ["output"], small: [1, 2, 3, 4, 5, 6, 7, 8].map((b) => `b${b}_gain:Bande ${b}`) },
   mband:  { big: ["mix:Mélange", "out:Sortie"], small: ["b1thr:Seuil grave", "b2thr:Seuil bas-méd.", "b3thr:Seuil ht-méd.", "b4thr:Seuil aigu"] },
-  stepfx: { big: ["mix", "steps"], small: ["cutoff", "reso", "bits", "echofb"] },
-  atmos:  { big: ["decay", "mix"], small: ["size", "predelay", "modulation", "shimmer"] },
+  stepfx: { big: ["mix", "steps"], small: ["cutoff", "reso", "bits", "echofb"], sel: ["division"] },
+  // 1.1 : les réglages de temps sur la façade (afficheur réglable, synchro, gel) : un effet de pad
+  // ne se règle que dans le pédalier
+  atmos:  { big: ["size", "mix"], lcd: "decay", small: ["predelay", "modulation", "shimmer", "tone"], sel: ["mode", "freeze"] },
+  // 1.1 : famille « Golem Titan FX »
+  tvintage: { big: ["size:Taille", "mix:Mélange"], lcd: "decay", small: ["predelay:Pré-délai", "modDepth:Modulation", "highCut:Coupe-haut", "attack:Attaque"], sel: ["mode", "freeze"] },
+  tspace:   { big: ["space:Espace", "mix:Mélange"], lcd: "predelay", small: ["decayPct:Durée", "distance:Distance", "brightness:Brillance", "character:Caractère"], sel: ["sync", "freeze"] },
+  tlimit:   { big: ["gain:Gain", "ceiling:Plafond"], small: ["lookahead:Anticipation", "attack:Attaque", "release:Relâchement", "linkTrans:Lien"] },
+  techo:    { big: ["feedback:Réinjection", "mix:Mélange"], lcd: "timeL|divL", small: ["timeR|divR", "wow:Pleurage", "drive:Saturation", "pitch:Hauteur"], sel: ["sync", "freeze"] },
+  tdecap:   { big: ["drive:Drive", "mix:Mélange"], small: ["output:Sortie", "lowCut:Coupe-bas", "tone:Tonalité", "highCut:Coupe-haut"] },
+  tsaturn:  { big: ["drive1:Drive grave", "drive2:Drive bas-méd."], small: ["drive3:Drive ht-méd.", "drive4:Drive aigu", "mix:Mélange", "output:Sortie"] },
+  tphaser:  { big: ["freq:Fréquence", "reso:Résonance"], small: ["rate|division", "depth:Profondeur", "stages:Étages", "mix:Mélange"], sel: ["sync", "mode"] },
+  tflange:  { big: ["depth:Profondeur", "regen:Régén."], small: ["rate|division", "manual:Manuel", "offset:Décalage", "mix:Mélange"], sel: ["sync", "mode"] },
+  tfilter:  { big: ["f1Freq:Fréquence", "f1Reso:Résonance"], small: ["rate|division", "modDepth:Modulation", "f1Drive:Drive", "mix:Mélange"], sel: ["sync", "f1Type"] },
 };
 
 /** Pédale (insert du canal : area « fx », slot 0..3 ; insert de pad : « pfx », slot = pad × 2 + n).
@@ -144,7 +156,7 @@ function PedalUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap
       <span className="pd-n">{label}</span>
       {onSwap && <button type="button" className="pd-swap" onClick={onSwap} title="Changer d'effet (vignettes par type)" aria-label={`Changer l'effet ${label}`}>⇄</button>}
       {onPresets && <button type="button" className="pd-swap pd-presets" onClick={onPresets} title={`Préréglages de ${m.name}${preset ? ` (actuel : ${preset})` : ""}`} aria-label={`Préréglages de l'effet ${label}`}>★</button>}
-      <div className="pd-name"><b>{m.name}</b><span>{m.role ?? m.family}</span></div>
+      <div className="pd-name"><b>{m.name}</b>{preset ? <span className="pd-preset" title={`Préréglage : ${preset}`}>★ {preset}</span> : <span>{m.role ?? m.family}</span>}</div>
       <div className="pd-knobs">
         {/* un bouton seul sur sa rangée est centré (nombre impair de commandes) */}
         {knobs.map((id, i) => <Knob key={id} global={addr(id)} type={m.type} index={i} center={odd && i === knobs.length - 1 && (sk.tall || sw.length === 0)} />)}
@@ -160,7 +172,7 @@ function PedalUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap
       )}
       <ParamMenuZone binding={bypBinding} className="pm-zone--byp pm-zone--foot">
         <button type="button" className="pd-foot" aria-pressed={!bypassed} onClick={toggle} aria-label={`${m.name} : ${bypassed ? "contourné" : "actif"}`}
-          title={bypassed ? "Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"} />
+          title={bypassed ? "Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"}>{bypBinding?.locked && <span className={`knob-lock knob-lock--${bypBinding.locked} byp-lock`} aria-hidden />}</button>
       </ParamMenuZone>
     </div>
   );
@@ -171,7 +183,8 @@ function PedalUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap
 const RACK_CURATED: Record<string, { big: string[]; small: string[]; sel: string[] }> = {
   delay: { big: ["feedback", "mix"], small: ["highcut", "lofi"], sel: ["sync", "mode", "echocolour", "freeze"] },
   distcomp: { big: ["input", "output"], small: ["attack", "release"], sel: ["ratio", "audio", "detector", "british"] }, // v0.38
-  prestige: { big: ["size", "mix"], small: ["predelay", "lowmult", "highmult", "early"], sel: ["mode"] },
+  prestige: { big: ["size", "mix"], small: ["predelay", "lowmult", "highmult", "early"], sel: ["mode", "freeze"] },
+  vintverb: { big: ["size", "mix"], small: ["predelay", "damping", "bass", "modulation"], sel: ["mode", "freeze"] }, // 1.1 : gel en façade
 };
 
 /** Réglages d'un rack : gros boutons (les deux premiers réglages continus), petits boutons, sélecteurs. */
@@ -181,9 +194,7 @@ function rackControls(m: ModuleDesc, values: number[], lcd?: string, vu = false)
   const order = m.sections.flatMap((s) => s.params).filter((k, i, a) => a.indexOf(k) === i).map((k) => m.params[k]).filter(Boolean);
   let lcdId: string | undefined;
   if (lcd) {
-    const [free, synced] = lcd.split("|");
-    const si = idx("sync");
-    lcdId = synced && si >= 0 && toPlain(m.params[si], values[si] ?? 0) > 0.5 ? synced : free;
+    lcdId = syncPick(m, values, lcd);
     if (idx(lcdId) < 0) lcdId = undefined;
   }
   if (cur) return { big: cur.big.filter((id) => idx(id) >= 0), small: cur.small.filter((id) => idx(id) >= 0), sel: cur.sel.filter((id) => idx(id) >= 0), lcdId };
@@ -213,10 +224,61 @@ function VuMeter({ db }: { db: number }) {
   );
 }
 
-/** Afficheur à 7 segments : la valeur d'un réglage (temps d'écho, déclin). */
+/** Afficheur à 7 segments : la valeur d'un réglage (temps d'écho, déclin). 1.1 : il se règle sur la
+    façade (les effets d'un pad n'ont que le pédalier) : glisser vers le haut ou le bas, molette, flèches
+    du clavier, boutons − et + ; Maj : réglage fin ; double-clic : valeur d'origine ; appui long ou
+    clic droit sur le nom : le menu du réglage (valeur exacte, contrôleur, scènes). */
 function Lcd({ global }: { global: number }) {
   const b = useParam(global >= 0 ? global : null);
-  return <div className="rk-lcd" title={b?.label}><span>{b?.text ?? ""}</span><small>{b?.label ?? ""}</small></div>;
+  const drag = useRef<{ id: number; y: number; n: number; steps: number } | null>(null);
+  if (!b) return null;
+  const clamp = (v: number) => Math.max(0, Math.min(1, v));
+  const nudge = (dir: 1 | -1, fine = false) => {
+    if (b.kind === "stepped") b.onStep(dir);
+    else b.onChange(clamp(b.normalised + dir * (fine ? 0.002 : 0.01)));
+  };
+  const down = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = { id: e.pointerId, y: e.clientY, n: b.normalised, steps: 0 };
+  };
+  const move = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dy = d.y - e.clientY;
+    if (b.kind === "stepped") {
+      const steps = Math.trunc(dy / 14); // un cran tous les 14 pixels
+      for (; d.steps < steps; d.steps++) b.onStep(1);
+      for (; d.steps > steps; d.steps--) b.onStep(-1);
+    } else b.onChange(clamp(d.n + dy / (e.shiftKey ? 2000 : 400) * (b.sensitivity ?? 1))); // afficheur : plus fin qu'un bouton
+  };
+  const up = (e: React.PointerEvent) => { if (drag.current?.id === e.pointerId) drag.current = null; };
+  const key = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowRight") { e.preventDefault(); nudge(1, e.shiftKey); }
+    else if (e.key === "ArrowDown" || e.key === "ArrowLeft") { e.preventDefault(); nudge(-1, e.shiftKey); }
+  };
+  return (
+    <div className="rk-lcd rk-lcd--edit">
+      <span role="slider" tabIndex={0} aria-label={b.label} aria-valuetext={b.text} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(b.normalised * 100)}
+        title={`${b.label} : glisser vers le haut ou le bas, molette ou flèches (Maj : fin), double-clic : valeur d'origine`}
+        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={key}
+        onWheel={(e) => { e.preventDefault(); e.stopPropagation(); nudge(e.deltaY < 0 ? 1 : -1, e.shiftKey); }}
+        onDoubleClick={() => b.reset?.()} data-long={b.text.length > 7 ? "" : undefined}>{b.text}</span>
+      <ParamMenuZone binding={b} className="rk-lcd-row">
+        <button type="button" className="rk-lcd-step" onClick={() => nudge(-1)} aria-label={`${b.label} : moins`}>−</button>
+        <small>{b.label}</small>
+        <button type="button" className="rk-lcd-step" onClick={() => nudge(1)} aria-label={`${b.label} : plus`}>+</button>
+      </ParamMenuZone>
+    </div>
+  );
+}
+
+/** « libre|synchro » : le réglage affiché selon l'interrupteur Synchro (temps en ms ou division). */
+function syncPick(m: ModuleDesc, values: number[], id: string): string {
+  if (!id.includes("|")) return id;
+  const [free, synced] = id.split("|");
+  const si = m.params.findIndex((p) => p.id === "sync");
+  return si >= 0 && toPlain(m.params[si], values[si] ?? 0) > 0.5 ? synced : free;
 }
 
 /** Rack 19 pouces (v0.35.1) : oreilles vissées, façade, gros boutons pour les réglages principaux,
@@ -229,10 +291,11 @@ function RackUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap,
   const rs = rackSkinStyle(m.type, m.family);
   const { skin } = rs;
   const style = mod ? moduleSkinStyle(m.type).style : rs.style;
-  const c = mod ? { big: mod.big, small: mod.small, sel: [] as string[], lcdId: undefined as string | undefined } : rackControls(m, values, skin.lcd, !!skin.vu);
-  const kid = (s: string) => s.split(":")[0], klab = (s: string) => s.split(":")[1];
+  const c = mod ? { big: mod.big, small: mod.small, sel: mod.sel ?? [], lcdId: mod.lcd ? syncPick(m, values, mod.lcd) : undefined } : rackControls(m, values, skin.lcd, !!skin.vu);
+  // « nom:libellé » (libellé imposé) ; « libre|synchro » : selon l'interrupteur Synchro
+  const kid = (s: string) => syncPick(m, values, s.split(":")[0]), klab = (s: string) => (s.includes("|") ? undefined : s.split(":")[1]);
   return (
-    <div className={`rk sk-knobs${bypassed ? " rk--off" : ""} rk--${m.type}${mod ? " rk--module" : ""}`} style={style}>
+    <div className={`rk sk-knobs${bypassed ? " rk--off" : ""} rk--${m.type}${mod ? " rk--module" : ""}${mod && (mod.lcd || mod.sel?.length) ? " rk--wide" : ""}`} style={style}>
       <span className="rk-ear rk-ear--l" aria-hidden><i /><i /></span>
       <div className="rk-face">
         <span className="rk-n">{label}</span>
@@ -250,11 +313,12 @@ function RackUnit({ channel, area = "fx", slot, label, m, values, meter, onSwap,
           {c.sel.length > 0 && <div className="rk-sel">{c.sel.map((id) => <Knob key={id} global={addr(id)} small />)}</div>}
         </div>
         {m.type === "stepfx" && <div className="rk-steps">{Array.from({ length: 16 }, (_, i) => <StepCell key={i} global={addr(`s${i + 1}`)} index={i} m={m} />)}</div>}
-        <div className="rk-name"><b>{m.name}</b><span>{m.role ?? m.family}</span></div>
+        <div className="rk-name"><b>{m.name}</b>{preset ? <span className="pd-preset" title={`Préréglage : ${preset}`}>★ {preset}</span> : <span>{m.role ?? m.family}</span>}</div>
         <ParamMenuZone binding={bypBinding} className="pm-zone--byp">
         <button type="button" className={`rk-power${bypassed ? "" : " on"}`} aria-pressed={!bypassed} onClick={toggle}
           title={bypassed ? "Effet contourné : appuyer pour l'activer (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Effet actif : appuyer pour le contourner (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"}>
           <span className="rk-lamp" aria-hidden />{bypassed ? "Contourné" : "Actif"}
+          {bypBinding?.locked && <span className={`knob-lock knob-lock--${bypBinding.locked} byp-lock`} aria-hidden />}
         </button>
         </ParamMenuZone>
       </div>

@@ -8,6 +8,9 @@
 
 import { PerfMeter } from "../device/Device";
 import { StepsDock } from "./faces/StepsChoice";
+import { StepStrip } from "./faces/StepStrip";
+import { StepsChoice } from "./faces/StepsChoice";
+import { MidiTrackStrip } from "./faces/MidiTrackStrip";
 import { InstrumentPicker } from "./InstrumentPicker";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { actions, getState, hasNative, setUi, showMessage, useStore, writePref } from "../engine/store";
@@ -23,6 +26,7 @@ import { MacroPage } from "./MacroPage";
 import { FACE_LAYOUTS } from "./faces/layouts";
 import { PanelPage, Wheels } from "./faces/SynthPanel";
 import { faceSkinStyle, fm1FondStyle, useFm1Fond } from "../skin/skins";
+import { openSampleEditor } from "./SampleEditor"; // 1.1 : éditeur d'échantillon unique
 
 /** Couleurs de façade par instrument (dessin propre, aucune reprise d'une façade existante). */
 const FACES: Record<string, { accent: string; panel: string; cheeks?: boolean; tag: string }> = {
@@ -63,6 +67,7 @@ const FACES: Record<string, { accent: string; panel: string; cheeks?: boolean; t
   vocstr:  { accent: "oklch(0.78 0.13 350)", panel: "oklch(0.3 0.01 20)",    tag: "Clavier cordes et vocodeur" },
   vocspec: { accent: "oklch(0.76 0.17 55)",  panel: "oklch(0.19 0.01 250)",  tag: "Vocodeur à algorithmes" },
   vocsyn:  { accent: "oklch(0.8 0.15 160)",  panel: "oklch(0.2 0.03 260)",   tag: "Processeur vocal à modules" },
+  midiext: { accent: "oklch(0.8 0.13 200)",  panel: "oklch(0.17 0.012 240)", tag: "Appareil MIDI externe" }, // après la 1.1
 };
 
 /** Visuels utiles en façade (les autres sections n'ont que leurs boutons). */
@@ -196,7 +201,7 @@ function TrackNav({ focus }: { focus: number }) {
     <div className="face-tracknav" role="group" aria-label="Piste de la façade">
       <button type="button" onClick={() => go(-1)} disabled={used.length < 2} aria-label="Synthé de la piste précédente">◀</button>
       <select value={focus} onChange={(e) => void actions.focus(Number(e.target.value))} aria-label="Piste affichée">
-        {used.map((i) => <option key={i} value={i}>P{i + 1} · {tracks[i].name}</option>)}
+        {used.map((i) => <option key={i} value={i}>P{i + 1} · {tracks[i].name}{tracks[i].preset ? ` — ${tracks[i].preset}` : ""}</option>)}
       </select>
       <button type="button" onClick={() => go(1)} disabled={used.length < 2} aria-label="Synthé de la piste suivante">▶</button>
       <button type="button" className={`face-ms${t?.mute ? " is-mute" : ""}`} onClick={() => void actions.trackMute(focus, !t?.mute)}
@@ -311,6 +316,31 @@ function FitScale({ children, fitKey }: { children: React.ReactNode; fitKey: str
   );
 }
 
+/** 1.1 : fenêtre des préréglages (ou de la bibliothèque) de la façade. Sur téléphone la façade entière
+    défile : la fenêtre suit la partie visible de l'écran, à sa hauteur exacte, pour que le haut de la
+    liste et « Enregistrer ce son » restent toujours visibles (avant : elle prenait toute la hauteur de
+    la façade et descendait sous l'écran). */
+function FacePresetsBox({ phone, children }: { phone: boolean; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current, body = el?.parentElement, face = el?.closest<HTMLElement>(".face");
+    if (!phone || !el || !body || !face) return;
+    const place = () => {
+      // face-body est placé dans la façade qui défile : on se cale sur ce qu'on voit de la façade
+      const top = Math.max(0, face.scrollTop - body.offsetTop);
+      el.style.top = `${top}px`;
+      el.style.bottom = "auto";
+      el.style.height = `${Math.max(240, face.clientHeight - Math.max(0, body.offsetTop - face.scrollTop) - 4)}px`;
+    };
+    place();
+    face.addEventListener("scroll", place, { passive: true });
+    const ro = new ResizeObserver(place);
+    ro.observe(face);
+    return () => { face.removeEventListener("scroll", place); ro.disconnect(); el.style.top = el.style.bottom = el.style.height = ""; };
+  }, [phone]);
+  return <div ref={ref} className="face-presets">{children}</div>;
+}
+
 /** v0.46 fix16 : petit transport dans la façade (enregistrer, lancer, arrêter) sans la quitter. */
 function FaceTransport() {
   const t = useStore((s) => s.tick.t);
@@ -324,6 +354,41 @@ function FaceTransport() {
       <button type="button" className="ft-stop" onClick={actions.stop} title="Arrêt">■</button>
     </span>
   );
+}
+
+// 1.1 : « modifié » — valeurs de l'instrument juste après le chargement du préréglage, par piste. On les
+// relève un peu après le changement de nom (le moteur renvoie les nouvelles valeurs juste après).
+const presetBase = new Map<number, { preset: string; vals: number[] | null; at: number }>();
+function usePresetDirty(track: number, preset: string, inst: number[] | undefined): boolean {
+  const [, tick] = useState(0);
+  let b = presetBase.get(track);
+  if (!b || b.preset !== preset) { b = { preset, vals: null, at: Date.now() }; presetBase.set(track, b); }
+  const base = b;
+  useEffect(() => {
+    if (base.vals || !inst) return;
+    const wait = Math.max(0, 450 - (Date.now() - base.at));
+    const id = window.setTimeout(() => { if (!base.vals) { base.vals = [...(getState().channels[track]?.inst ?? inst)]; tick((n) => n + 1); } }, wait);
+    return () => window.clearTimeout(id);
+  }, [base, inst, track]);
+  if (!preset || !base.vals || !inst) return false;
+  return inst.some((v, i) => Math.abs(v - (base.vals![i] ?? v)) > 1e-3);
+}
+
+/** 1.1 : numéro d'un de vos sons (après les sons d'usine), d'après la liste de vos préréglages. */
+function useUserPresetNumber(track: number, preset: string, m: ModuleDesc | null): number {
+  const [num, setNum] = useState(-1);
+  const isUser = !!m && !!preset && !m.presets.includes(preset);
+  useEffect(() => {
+    if (!isUser || !m) { setNum(-1); return; }
+    let alive = true;
+    void actions.listPresets("inst", track, -1, -1).then((l) => {
+      if (!alive) return;
+      const i = l ? l.user.findIndex((u) => u[1] === preset) : -1;
+      setNum(i < 0 ? -1 : m.presets.length + i + 1);
+    });
+    return () => { alive = false; };
+  }, [isUser, track, preset, m]);
+  return num;
 }
 
 export function InstrumentFace() {
@@ -352,7 +417,9 @@ export function InstrumentFace() {
   }, [open]);
   useEffect(() => { if (open && !m) { setUi({ face: false }); showMessage("Choisissez d'abord une piste qui a un instrument"); } }, [open, m]);
 
-  const fond = useFm1Fond(); // 1.0 : fond du FM Player (petit bouton de couleur)
+  const fond = useFm1Fond(focus); // 1.0 : fond du FM Player (petit bouton de couleur) ; 1.1 : un par piste
+  const dirty = usePresetDirty(focus, track?.preset ?? "", instValues);
+  const userNum = useUserPresetNumber(focus, track?.preset ?? "", m);
   if (!open || !m || !track) return null;
   // (v0.46 fix20 : sur téléphone la façade est toujours en grand et défile : pas de bouton Taille)
   const face = FACES[m.type] ?? FACES.input;
@@ -362,13 +429,14 @@ export function InstrumentFace() {
   const stepsPage = layout && !m.drumKit && !["acid", "octa"].includes(m.type)
     ? [{ id: "steps", label: "Pas", rows: [[{ title: "Pas de la séquence (ligne 1) · note, octave, vélocité, durée, accent, glissé", cols: 1, grow: 1, ctl: [], custom: "steps303" }]] }] : [];
   const facePages = layout ? [...layout.pages, ...stepsPage] : [];
+  const midiTrack = m.type === "midiext"; // après la 1.1 : piste MIDI — page « Pas » (séquence et verrous) comme les synthés
   const pages = layout ? [...facePages.map((p) => ({ id: p.id, label: p.label })), { id: "track", label: "Modulations de la piste" }, { id: "macros", label: "Macros" }]
-    : [{ id: "sound", label: "Son" }, { id: "mod", label: "Modulation" }, { id: "macros", label: "Macros" }];
+    : [{ id: "sound", label: "Son" }, ...(midiTrack ? [{ id: "steps", label: "Pas" }] : []), { id: "mod", label: "Modulation" }, { id: "macros", label: "Macros" }];
   const current = pages.some((p) => p.id === page) ? page : pages[0].id;
   const layoutPage = facePages.find((p) => p.id === current);
   const sk = faceSkinStyle(layout?.theme ?? "generic"); // v0.35.1 : habillage réaliste (matières précalculées)
   const perPad = m.sections.some((s) => s.visual.startsWith("drumpad") || s.visual === "zone");
-  const tabs = moduleTabs(m, "inst").map((t) => t.id).filter((id) => id !== "mod" && id !== "modsrc");
+  const tabs = moduleTabs(m, "inst").map((t) => t.id).filter((id) => id !== "mod" && id !== "modsrc" && id !== "midicfg"); // midicfg : listes du bandeau
   // page Son : tous les modules, dans l'ordre des onglets (un seul pad ou zone à la fois)
   const modules = tabs.flatMap((t) => sectionsFor(m, t, lane)).filter((s, i, a) => a.indexOf(s) === i);
   const color = trackColor(track.color ?? 0);
@@ -382,6 +450,14 @@ export function InstrumentFace() {
   const sampleIndex = m.type === "sampler" || m.type === "keys" || m.type === "fmplayer" ? 0 : m.type === "octa" ? octaSlot : lane;
   const fmp = m.type === "fmplayer"; // v0.49 : FM Player — son « échantillon » est le firmware (.fwsc)
   const takesSamples = m.drumKit || m.type === "keys" || m.type === "octa" || fmp;
+  const factoryIdx = track.preset ? m.presets.indexOf(track.preset) : -1;
+  const presetIdx = factoryIdx >= 0 ? factoryIdx : userNum > 0 ? userNum - 1 : -1;
+  const stepPreset = (d: number) => {
+    const n = m.presets.length;
+    if (!n) return;
+    const next = factoryIdx < 0 ? (d > 0 ? 0 : n - 1) : (factoryIdx + d + n) % n;
+    void actions.applyPreset(focus, -1, m.presets[next]);
+  };
 
   return (
     <MacroMenuContext.Provider value={true}>
@@ -395,7 +471,23 @@ export function InstrumentFace() {
           <span className="face-stripe" aria-hidden />
           <div className="face-title">
             <span className="face-tag">P{focus + 1} · {track.name} · {face.tag}</span>
-            <h2>{m.name}{perPad ? <small> · {lane + 1} {m.padNames[lane] ?? ""}</small> : null}</h2>
+            <div className="face-name-row">
+              <h2>{m.name}{perPad ? <small> · {lane + 1} {m.padNames[lane] ?? ""}</small> : null}</h2>
+              {/* 1.1 : le son qui joue, en petit à côté du nom (numéro = changement de programme) ; le toucher
+                  ouvre les préréglages ; point = réglages changés depuis le chargement */}
+              {!octa && <span className="face-preset">
+                {!phoneUi && m.presets.length > 1 && <button type="button" className="face-preset-step" aria-label="Préréglage précédent" title="Préréglage précédent"
+                  onClick={() => stepPreset(-1)}>◀</button>}
+                <button type="button" className={`face-preset-name${presets === "inst" ? " on" : ""}`} onClick={() => { setPresets(presets === "inst" ? null : "inst"); setLibrary(false); }}
+                  title={`${track.preset ? `Préréglage : ${track.preset}${presetIdx >= 0 ? (presetIdx < 128 ? ` (changement de programme ${presetIdx + 1})` : ` (banque ${Math.floor(presetIdx / 128)}, changement de programme ${(presetIdx % 128) + 1})`) : ""}` : "Aucun préréglage chargé"}${dirty ? " · modifié depuis le chargement" : ""} — toucher pour les préréglages`}>
+                  {presetIdx >= 0 && <span className="preset-n">{presetIdx + 1}</span>}
+                  <span className="face-preset-text">{track.preset || "Aucun préréglage"}</span>
+                  {dirty && <i className="face-preset-dirty" aria-label="modifié" />}
+                </button>
+                {!phoneUi && m.presets.length > 1 && <button type="button" className="face-preset-step" aria-label="Préréglage suivant" title="Préréglage suivant"
+                  onClick={() => stepPreset(1)}>▶</button>}
+              </span>}
+            </div>
           </div>
           {/* v0.46 fix26 : transport juste à gauche du choix de piste, sur tous les instruments */}
           <FaceTransport />
@@ -417,8 +509,13 @@ export function InstrumentFace() {
                 ? <button type="button" onClick={() => actions.chooseFirmware(focus)} disabled={!hasNative("chooseSample")}>Firmware…</button>
                 : <button type="button" onClick={() => (hasNative("chooseSample") ? actions.chooseSample(focus, sampleIndex) : setUi({ face: false, screen: "sound" }))}>Échantillon…</button>}
               <button type="button" className={library ? "on" : ""} onClick={() => { setLibrary(!library); setPresets(null); }} title="Les échantillons du dossier choisi dans les Réglages">Bibliothèque</button>
+              {/* 1.1 : éditeur d'échantillon unique (couper, fondus, traiter par une chaîne d'effets…) */}
+              {!fmp && samples?.[sampleIndex] && <button type="button" onClick={() => openSampleEditor(focus, sampleIndex)}
+                title="Éditer cet échantillon : sélection, fondus, rogner, et « Traiter… » par une chaîne de 4 effets (Restauration ou n'importe quel effet)">Éditer</button>}
             </span>
           )}
+          {m.type === "sampler" && samples?.[0] && <button type="button" className="face-btn" onClick={() => openSampleEditor(focus, 0)}
+            title="Éditer l'échantillon : sélection, fondus, rogner, et « Traiter… » par une chaîne de 4 effets">Éditer l'échantillon</button>}
           <button type="button" className={`face-btn face-btn--swap${picker ? " on" : ""}`} onClick={() => { setPicker(!picker); setPresets(null); setLibrary(false); }}
             title="Choisir un autre instrument pour cette piste, d'après l'image de sa façade">⇄ Instrument</button>
           {/* v0.46 fix6 : raccourci vers les effets de la piste (et du pad), en pédales par-dessus la façade ;
@@ -426,7 +523,7 @@ export function InstrumentFace() {
           <button type="button" className="face-btn face-btn--fx" onClick={() => setUi({ pedals: true })}
             title={m.drumKit && !fmp ? `Les effets de la piste et ceux du ${octa ? `T${lane + 1}` : `pad ${lane + 1}`}, en pédales, sans quitter l'instrument (✕ ou Échap pour revenir)` : "Les effets de cette piste, en pédales, sans quitter l'instrument (✕ ou Échap pour revenir)"}>FX · Effets</button>
           {!octa && <button type="button" className={`face-btn${presets === "inst" ? " on" : ""}`} onClick={() => { setPresets(presets === "inst" ? null : "inst"); setLibrary(false); }}>
-            {m.drumKit && !fmp ? "Kit · préréglages" : "Préréglages"}{track.preset ? ` · ${track.preset}` : ""}
+            {m.drumKit && !fmp ? "Kit · préréglages" : "Préréglages"}
           </button>}
           {m.drumKit && !fmp && <button type="button" className={`face-btn${presets === "pad" ? " on" : ""}`} onClick={() => { setPresets(presets === "pad" ? null : "pad"); setLibrary(false); }}>{octa ? `T${lane + 1}` : `Pad ${lane + 1}`} · préréglages</button>}
           {layout && !phoneUi && <button type="button" className={`face-btn${faceBig ? " on" : ""}`} aria-pressed={faceBig}
@@ -440,9 +537,11 @@ export function InstrumentFace() {
       <div className="face-body">
         {layoutPage ? <PanelPage channel={focus} module={m} page={layoutPage} lane={lane} bigText={!!layout?.bigText} /> : (
         <FitScale fitKey={`${m.type}:${current}:${lane}`}>
-        {current === "macros" ? <MacroPage />
+        {current === "steps" && midiTrack ? <StepsChoice kind="synth"><StepStrip /></StepsChoice>
+        : current === "macros" ? <MacroPage />
         : current === "track" ? <ModPage channel={focus} module={m} lane={lane} trackOnly />
         : current === "sound" ? (<>
+          {m.type === "midiext" && <MidiTrackStrip channel={focus} module={m} />}
           <div className={`face-row face-row--wrap${knobCount <= 22 ? " face-row--roomy" : ""}`}>
             {modules.map((s) => <FaceModule key={s.id} channel={focus} module={m} section={s} lane={lane} />)}
           </div>
@@ -453,24 +552,26 @@ export function InstrumentFace() {
         )}
         </FitScale>)}
         {library && takesSamples && !presets && (
-          <div className="face-presets">
+          <FacePresetsBox phone={phoneUi}>
             <FolderBrowser kind="samples" title={`Bibliothèque · ${fmp ? "firmwares" : m.drumKit ? `pad ${lane + 1}` : m.type === "octa" ? `emplacement ${sampleIndex + 1}` : "échantillon"}`}
               start={fmp ? ["Firmwares"] : undefined}
               onPick={(rel) => actions.loadSampleFile(focus, sampleIndex, rel)} onClose={() => setLibrary(false)} />
-          </div>
+          </FacePresetsBox>
         )}
         {presets && (
-          <div className="face-presets">
+          <FacePresetsBox phone={phoneUi}>
             <PresetPanel key={`${presets}:${focus}:${presets === "pad" ? lane : ""}`} scope={presets} channel={focus} slot={-1} pad={presets === "pad" ? lane : -1}
               title={presets === "pad" ? (octa ? `Pieuvre 8 · T${lane + 1}` : `Pad ${lane + 1} · ${m.padNames[lane] ?? ""}`) : m.name}
               current={presets === "inst" ? track.preset : undefined}
               factory={presets === "inst" || (octa && presets === "pad") ? m.presets : []} factoryCats={presets === "inst" ? m.presetCats : undefined}
               onPickFactory={(n) => void actions.applyPreset(focus, -1, n)}
               onClose={() => setPresets(null)} />
-          </div>
+          </FacePresetsBox>
         )}
       </div>
-      {stepsPage.length > 0 && current !== "steps" && <StepsDock />}
+      {/* après la 1.1 : piste MIDI — la rangée de pas collée au clavier, comme les synthés : on choisit un pas,
+          on tourne un des 32 boutons CC, le verrou se pose */}
+      {(stepsPage.length > 0 || midiTrack) && current !== "steps" && <StepsDock />}
       {fmp && <StepsDock lanes />}
 
       <footer className="face-foot">

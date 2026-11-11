@@ -8,7 +8,7 @@
 // on l'entend tout de suite si la scène joue (crossfader de son côté).
 
 import { useEffect, useState } from "react";
-import { actions, resolveGlobal, setUi, showMessage, useStore } from "../engine/store";
+import { actions, getState, resolveGlobal, setUi, showMessage, useStore } from "../engine/store";
 import { describeGlobal } from "../engine/describe";
 import { BREAK_SCENE, MIDI_XFADE, hostCode } from "../engine/protocol";
 import { formatNorm, toNorm, toPlain } from "../engine/params";
@@ -68,6 +68,11 @@ export function SlotCard({ slot, scene, copying, onCopy, live = false }: { slot:
   const data = useStore((s) => s.scenes[scene]);
   const editing = useStore((s) => (slot === "Break" ? s.ui.editBreak : s.ui.editSlot === slot));
   const locks = data?.locks ?? [];
+  // après la 1.1 : un réglage pas encore reconnu (effet d'un pad d'une piste pas encore ouverte) : on charge
+  // ce canal pour afficher son nom et sa valeur au lieu de « Réglage N »
+  const unresolved = locks.filter(([g]) => !resolveGlobal(g)).map(([g]) => Math.floor(g / (getState().catalog?.layout.slotsPerChannel ?? 8192)));
+  const unresolvedKey = [...new Set(unresolved)].join(",");
+  useEffect(() => { for (const ch of new Set(unresolved)) void actions.refreshChannel(ch); }, [unresolvedKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const toggle = () => setUi(slot === "Break" ? { editBreak: !editing, editSlot: null } : { editSlot: editing ? null : slot, editBreak: false });
   return (
     <section className={`slot slot--${slot === "Break" ? "B" : slot}${editing ? " slot--editing" : ""}${live ? " slot--live" : ""}`}>

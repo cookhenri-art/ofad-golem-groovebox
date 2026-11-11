@@ -181,8 +181,9 @@ export function EffectsScreen() {
                 <>
                   <span className="detail-label">Préréglages</span>
                   <ul className="preset-list preset-list--row">
-                    {module.presets.map((p) => (
-                      <li key={p}><button type="button" onClick={() => void actions.applyPreset(focus, slot, p)}>{p}</button></li>
+                    {module.presets.map((p, i) => (
+                      <li key={p}><button type="button" onClick={() => void actions.applyPreset(focus, slot, p)}
+                        title={`Son ${i + 1} : CC ${102 + slot} à la valeur ${i} sur le canal MIDI de la piste`}><span className="preset-n">{i + 1}</span>{p}</button></li>
                     ))}
                   </ul>
                 </>
@@ -301,7 +302,7 @@ function BypassTool({ channel, slot, name }: { channel: number; slot: number; na
     <ParamMenuZone binding={binding} className="pm-zone--byp">
       <button type="button" className={`fx-tool fx-tool--mute${bypassed ? " on" : ""}`} aria-pressed={bypassed}
         title={bypassed ? "Réactiver l'effet (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)" : "Couper l'effet, contourné (appui long / clic droit : affecter au contrôleur, à un bouton, à une scène)"}
-        aria-label={`Couper l'effet ${slot + 1}`} onClick={toggle}>M</button>
+        aria-label={`Couper l'effet ${slot + 1}`} onClick={toggle}>M{binding?.locked && <span className={`knob-lock knob-lock--${binding.locked} byp-lock`} aria-hidden />}</button>
     </ParamMenuZone>
   );
 }

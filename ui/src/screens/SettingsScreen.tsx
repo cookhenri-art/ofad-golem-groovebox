@@ -6,7 +6,7 @@
 
 import { switchLang } from "../lang";
 import { useEffect, useRef, useState } from "react";
-import { actions, getState, hasNative, readPref, setUi, showMessage, useStore, writePref, type FolderKind } from "../engine/store";
+import { actions, CURVE_CPU_LIMIT, getState, hasNative, readPref, setUi, showMessage, useStore, writePref, type FolderKind } from "../engine/store";
 import { busName } from "../engine/params";
 import { FolderBrowser } from "../controls/FolderBrowser";
 import { cleanName } from "../controls/PresetPanel";
@@ -70,7 +70,7 @@ export function SettingsScreen() {
   const route = midi.route ?? { note: 0, ctrl: 0, ctrlOn: true, tracks: [] };
   const recQuant = useStore((s) => s.pattern?.recQuant ?? 100);
   const launch = useStore((s) => s.launch);
-  const ui = { launchAll: useStore((s) => s.ui.launchAll) };
+  const ui = { launchAll: useStore((s) => s.ui.launchAll), curveAnim: useStore((s) => s.ui.curveAnim), curveAutoOff: useStore((s) => s.ui.curveAutoOff) };
   const files = hasNative("saveProject");
   // v0.46 fix27 : retour visuel des boutons du projet
   const [lit, setLit] = useState<string | null>(null);
@@ -132,7 +132,9 @@ export function SettingsScreen() {
             <span className="proj-btns">
               {/* v0.46 fix27 : le bouton touché s'allume en jaune un instant (on voit qu'il a pris) */}
               <button type="button" className={`touch${lit === "demo" ? " touch--on" : ""}`}
-                onClick={() => press("demo", () => actions.newProject(false), "Projet de démonstration chargé")}>Projet de démonstration</button>
+                onClick={() => press("demo", () => actions.newProject(false), "Démo Techno chargée")}>Démo Techno</button>
+              <button type="button" className={`touch${lit === "tribe" ? " touch--on" : ""}`}
+                onClick={() => press("tribe", () => actions.newProject(false, "tribe"), "Démo Tribe chargée")}>Démo Tribe</button>
               <button type="button" className={`touch${lit === "empty" ? " touch--on" : ""}`}
                 onClick={() => press("empty", () => actions.newProject(true), "Nouveau projet vide")}>Nouveau projet vide</button>
             </span>
@@ -245,6 +247,20 @@ export function SettingsScreen() {
         </section>
 
         <section className="settings-block">
+          <h3>Affichage</h3>
+          <div className="settings-row">
+            <span className="settings-label">Courbes de l'écran SON et des modulations</span>
+            <button type="button" className={`touch touch--small${ui.curveAnim ? " touch--on" : ""}`} onClick={() => { setUi({ curveAnim: true, curveAutoOff: null }); writePref("curveAnim", true); }}
+              title="La courbe suit le son joué (LFO, enveloppes, modulations) et un point court sur l'enveloppe à chaque note">Animées</button>
+            <button type="button" className={`touch touch--small${!ui.curveAnim ? " touch--on" : ""}`} onClick={() => { setUi({ curveAnim: false, curveAutoOff: null }); writePref("curveAnim", false); }}
+              title="Les courbes montrent seulement le réglage : moins de dessins, plus de processeur pour le son (utile sur les petits téléphones)">Fixes (économise le processeur)</button>
+          </div>
+          <p className="settings-note">{ui.curveAutoOff !== null
+            ? `Coupées automatiquement : le calcul audio a atteint ${ui.curveAutoOff} %. Elles restent fixes jusqu'à ce que vous choisissiez « Animées ».`
+            : `Au-delà de ${CURVE_CPU_LIMIT} % de calcul audio, l'animation se coupe d'elle-même avec un message, et reste coupée jusqu'à ce que vous la remettiez ici.`}</p>
+        </section>
+
+        <section className="settings-block">
           <h3>Pads</h3>
           <div className="settings-row">
             <span className="settings-label">En mode Jouer, les 16 pads jouent</span>
@@ -274,6 +290,15 @@ export function SettingsScreen() {
         <section className="settings-block">
           <h3>Contrôleur MIDI</h3>
           <BluetoothMidi />
+          <WifiRemoteSetting />
+          {/* 1.1 : le téléphone comme télécommande ; « Retour à GOLEM » revient ici sans redémarrer */}
+          <div className="settings-row">
+            <button type="button" className="touch touch--small" onClick={() => setUi({ remote: true })}
+              title="Le téléphone pilote GOLEM sur le PC (câble USB) ou un appareil MIDI branché (FM-1) : mixage, boutons, pavé Chaos.">
+              Mode télécommande…
+            </button>
+            <small>Le téléphone pilote GOLEM sur le PC ou un FM-1. Le son du téléphone est mis en pause.</small>
+          </div>
           {/* v0.46 : canaux, comme dans Ableton ou Fruity : un canal pour jouer, un pour les commandes */}
           <div className="midi-route">
             <label>Notes (piste choisie)
@@ -333,6 +358,29 @@ export function SettingsScreen() {
 }
 
 /** v0.46 fix6 : l'accueil (choix du projet, mascotte) au lancement de l'application autonome. */
+/** 1.1 : télécommande Wi-Fi (côté PC) : accepter un téléphone GOLEM du réseau local ; adresse à taper sur
+    le téléphone si la recherche ne trouve pas le PC. Coupé par défaut. */
+function WifiRemoteSetting() {
+  const [info, setInfo] = useState<{ on: boolean; port: number; addresses: string[] } | null>(null);
+  useEffect(() => { void actions.wifiListen().then(setInfo); }, []);
+  if (!info) return null;
+  const toggle = async (on: boolean) => {
+    const r = await actions.wifiListen(on);
+    setInfo(r);
+    writePref("wifiRemote", on);
+    if (on && r && !r.on) showMessage("Le port Wi-Fi de la télécommande est déjà pris par une autre application");
+  };
+  return (
+    <div className="settings-row">
+      <label className="settings-check">
+        <input type="checkbox" checked={info.on} onChange={(e) => void toggle(e.target.checked)} />
+        Accepter une télécommande Wi-Fi
+      </label>
+      <small>{info.on ? `Adresse à taper sur le téléphone si besoin : ${info.addresses.join(" ou ") || "réseau introuvable"}` : "Un téléphone GOLEM du même réseau pilote ce GOLEM (mixage, boutons, pavé)."}</small>
+    </div>
+  );
+}
+
 /** v0.46 fix22 : appairer un clavier ou un contrôleur MIDI Bluetooth (téléphone, tablette). Le son
     peut alors sortir par la prise USB (carte son) pendant que le contrôleur joue sans fil. Sur
     ordinateur, l'appairage se fait dans les réglages Bluetooth du système. */
@@ -342,7 +390,7 @@ function BluetoothMidi() {
   if (!ok) return null;
   return (
     <div className="midi-bt">
-      <button type="button" className="chip" onClick={() => void actions.bluetoothMidi(true)}
+      <button type="button" className="touch touch--small" onClick={() => void actions.bluetoothMidi(true)}
         title="Cherche les claviers et contrôleurs MIDI Bluetooth allumés à proximité ; touchez-en un pour le connecter. Il joue ensuite comme un clavier USB.">
         Appairer un contrôleur Bluetooth…
       </button>
