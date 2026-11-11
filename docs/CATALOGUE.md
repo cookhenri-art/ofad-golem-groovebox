@@ -4,7 +4,7 @@ Fichier écrit par `scripts/gen-docs.py` à partir du catalogue du moteur (`groo
 Les noms sont propres au Groovebox ; chaque module reprend le **principe** d'une famille de machines, jamais son nom,
 sa façade ni ses sons.
 
-**37 instruments** (2432 sons d'usine) et **38 effets**.
+**38 instruments** (2432 sons d'usine) et **54 effets**.
 
 ## Instruments
 
@@ -90,6 +90,12 @@ sa façade ni ses sons.
 |---|---|---|---|
 | <img src="../ui/public/thumbs/input.webp" width="120" alt=""> | **Entrée audio** | Entrée de la carte son ou de la piste du logiciel hôte, traitée par les effets de la piste | — |
 
+### MIDI externe
+
+| | Instrument | Principe | Sons d'usine |
+|---|---|---|---|
+| <img src="../ui/public/thumbs/midiext.webp" width="120" alt=""> | **Piste MIDI** | Joue un appareil MIDI externe : notes, CC, programme, avec le séquenceur, les verrous et les effets MIDI | — |
+
 ## Effets
 
 ### Égaliseurs
@@ -169,3 +175,29 @@ sa façade ni ses sons.
 | <img src="../ui/public/fxthumbs/stepfx.webp" width="120" alt=""> | **Hopscotch** | Grille de 16 à 64 pas calée sur le tempo : un effet et son réglage par pas (préréglages par effet et 4 réglages perso) | 20 |
 | <img src="../ui/public/fxthumbs/sculptor.webp" width="120" alt=""> | **Sculptor** | 9 effets pilotés chacun par sa courbe (14 formes, 1/16 à 4 mesures, au tempo ou à chaque attaque), sur tout le son ou une bande | 20 |
 | <img src="../ui/public/fxthumbs/looper.webp" width="120" alt=""> | **Infinity** | Pédale de boucle : enregistrer, fermer, surcouches, arrêt, effacement ; longueur calée sur les mesures, vitesse, envers | 20 |
+
+### Restauration
+
+| | Effet | Principe | Préréglages |
+|---|---|---|---|
+| <img src="../ui/public/fxthumbs/rdenoise.webp" width="120" alt=""> | **Débruiteur** | Spectral : bruit estimé (statistiques minimales), appris ou figé, gain sans bruit musical ; latence 43 ms en direct, compensée au traitement | 4 |
+| <img src="../ui/public/fxthumbs/rdehum.webp" width="120" alt=""> | **Anti-ronflement** | Coupe-bandes très étroits sur le 50 ou 60 Hz du secteur et ses harmoniques, fondamentale détectée ; sans latence | 4 |
+| <img src="../ui/public/fxthumbs/rdeclick.webp" width="120" alt=""> | **Anti-clics** | Modèle autorégressif : clics détectés sur le résidu de prédiction, trous comblés par interpolation ; latence 21 ms en direct, compensée au traitement | 4 |
+| <img src="../ui/public/fxthumbs/rdeess.webp" width="120" alt=""> | **Dé-esseur spectral** | Sifflantes atténuées dans leur bande seulement, quand elles dépassent : mode filtres sans latence, ou spectral (21 ms en direct) | 5 |
+| <img src="../ui/public/fxthumbs/rdeplosive.webp" width="120" alt=""> | **Anti-plosives** | Bouffées graves détectées (consonnes explosives, souffle sur le micro), coupe-bas dynamique ; sans latence | 3 |
+| <img src="../ui/public/fxthumbs/rdeclip.webp" width="120" alt=""> | **Anti-écrêtage** | Redessine les crêtes coupées d'un son saturé ; qualité maximale au traitement (reconstruction cohérente), version légère en direct (11 ms) | 3 |
+| <img src="../ui/public/fxthumbs/rdereverb.webp" width="120" alt=""> | **Dé-réverb** | Réduit l'écho d'une pièce : prédiction linéaire pondérée au traitement, suppression de la queue en direct (43 ms) | 4 |
+
+### Golem Titan FX
+
+| | Effet | Principe | Préréglages |
+|---|---|---|---|
+| <img src="../ui/public/fxthumbs/tvintage.webp" width="120" alt=""> | **Titan Vintage** | 12 réverbérations numériques des années 70–80 et 3 couleurs d'époque (1970 à mi-fréquence, 1980 bruitée, Maintenant propre) ; sans latence | 10 |
+| <img src="../ui/public/fxthumbs/tspace.webp" width="120" alt=""> | **Titan Espace** | Un bouton Espace (pièce → grande salle), durée réglée par bande dans la boucle (grave, médium, aigu), égaliseur de sortie, ducking ; sans latence | 8 |
+| <img src="../ui/public/fxthumbs/tlimit.webp" width="120" alt=""> | **Titan Limiteur** | 8 styles de limitation (transparent à agressif, bus, sûr), anticipation 0–5 ms compensée, crête vraie, lien des voies, suréchantillonnage, écoute à gain unité | 7 |
+| <img src="../ui/public/fxthumbs/techo.webp" width="120" alt=""> | **Titan Écho** | Deux lignes à bande (libres ou au tempo), réinjection croisée, ping-pong, temps « bande » ou « étirement » ; dans la boucle : 2 filtres, saturation, basse-fidélité, diffusion, hauteur ; ducking, gel | 9 |
+| <img src="../ui/public/fxthumbs/tdecap.webp" width="120" alt=""> | **Titan Décapiteur** | 5 circuits (magnétophone à lampes, console, germanium, triode, pentode) ; coupe-bas, bosse et tonalité avant, coupe-haut doux ou raide après ; punition, gain auto ; sans latence | 9 |
+| <img src="../ui/public/fxthumbs/tsaturn.webp" width="120" alt=""> | **Titan Saturne** | 1 à 4 bandes (Linkwitz-Riley recalées en phase), 16 styles par bande (lampes, bandes, transformateur, amplis, repli, bits, fuzz…), réinjection, dynamique, tonalité ; sans latence | 9 |
+| <img src="../ui/public/fxthumbs/tphaser.webp" width="120" alt=""> | **Titan Phaseur** | 2 à 24 étages passe-tout, 8 styles de circuits, résonance, couleur, saturation ; LFO, rythme, pas, aléatoire, enveloppe, déclenchée ; sans latence | 9 |
+| <img src="../ui/public/fxthumbs/tflange.webp" width="120" alt=""> | **Titan Flanger-Doubleur** | Flanger à deux bandes (auto, manuel, VSO à servo, enveloppe), polarité, passage par zéro (5 ms de latence), régénération ; doubleur de voix et doublage auto à 3 ms sans peigne | 8 |
+| <img src="../ui/public/fxthumbs/tfilter.webp" width="120" alt=""> | **Titan Filtre** | 2 filtres (série, parallèle, stéréo), 8 types, 6 à 48 dB/oct, auto-oscillation, 9 styles non linéaires ; LFO, rythme, suiveur, aléatoire, déclenchée ; saturation à 7 styles ; sans latence | 9 |

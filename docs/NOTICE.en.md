@@ -37,12 +37,15 @@ This manual covers the basics; the instruments and effects are described in deta
 | Right-click (long press with a finger) on an LED button, Photo, Recall, M / S, rows A to P, sequence patterns A to P… | Assign to the MIDI controller |
 | Touch the **tempo** (status bar, or the Tempo row of the Play view) | Type the tempo (40 to 240 BPM, to a tenth) |
 | **Mouse wheel** on the mixer | Scroll the tracks left and right (over a control: adjust it) |
+| **Long press** (right-click) on a track of the TRACKS screen | Sample editor (tracks that play samples) |
+| **Long press** on "● Audio" | Start the take right away, with the last settings of the AUDIO screen |
+| Drag a **point of a curve** (SOUND screen) | Adjust the envelope, filter or waveform it shows |
 
 <figure class="wide"><img src="img/appareil-reperes.jpg" alt="The main controls, numbered"><figcaption>Where the main controls are</figcaption></figure>
 
 1. **Open the synth**: the track's instrument panel, full size.
 2. **Undo / Redo** (Ctrl + Z / Ctrl + Y), **Photo** and **Recall** of all settings, **Knob mods**.
-3. **Audio**: record what comes out (master or separate tracks).
+3. **Audio**: the AUDIO screen — record the master, tracks, returns or the input, with an effects chain (long press: start right away).
 4. **Full screen** (F11).
 5. The **rail**: the **8 screens** (Track, Clips, Seq., Sound, FX, Mix., Scene, ⚙ Settings).
 6. **Live** (live view: crossfader or vector, 16-track console) and **Play view** ("Jeu": pads, 16 knobs, Fill / Break, crossfader, tempo).
@@ -228,7 +231,7 @@ crossfader, scenes, vector pad and macros always respond.
 ## Getting started
 
 - At launch, the mascot shows while loading, then the **home screen**: resume the last session, new
-  empty project, demo project, open a file, or a project from the folder. (Settings › "Home screen at
+  empty project, **Techno demo** or **Tribe demo** (1.1), open a file, or a project from the folder. (Settings › "Home screen at
   startup" to show it or not.)
 - **Language**: French or English, chosen when installing (Windows) or at the first launch (Android); change
   it at any time in Settings › Project (**Français / English**).
@@ -467,6 +470,15 @@ step selected, the values at the bottom of the screen set **that step only**:
 | **Repeats** | 2 to 8 hits within the step (rolls), at equal, decreasing ↘ or increasing ↗ strength |
 | **Locks** | Turn it right: the knobs of every screen write into this step |
 
+**Step sound (1.1)**: in the **Locks** row under the keyboard, a step's details have a **Sound** list. Pick a
+preset of the instrument (numbered as for program change: "Init" = 1, the factory sounds bank by bank, then
+yours): **this step plays with that sound**, and the track goes back to its own sound at the next step without
+a locked sound. The step shows "S12". Locks on the same step override the chosen sound. "— track's sound —"
+removes the step sound. On a **MIDI track**, it is the device's sound (program), and the bank is locked too, with
+the **Bank** list of the top bar (see § 14).
+
+<figure><img src="img/v110/pc-son-du-pas.jpg" alt="Locks row under the keyboard: a selected step, the Sound list and the S3 mark on the step"><figcaption>Step sound: step 3 plays the instrument's sound no. 3 ("S3" mark)</figcaption></figure>
+
 #### Conditions: steps that don't play every time
 
 A condition makes a step play only in certain cases: that is what brings a short loop to life, with
@@ -558,11 +570,54 @@ learn work the same way from all three views.
 
 <figure><img src="img/effets.jpg" alt="EFFECTS screen: the channel's 4 insert effects, in signal order"><figcaption>EFFECTS screen: the channel's 4 insert effects, in signal order</figcaption></figure>
 
+**The curves of the SOUND screen can be adjusted with a finger (1.1).** Envelopes, filters and waveforms follow
+the real values, and **their points can be dragged**: attack, decay, sustain, release (and the rate and level
+envelopes of the FM synths), cutoff across and resonance up and down for a filter, pulse width of an oscillator.
+A dragged point writes its setting **where the encoders write** (base sound, step lock, scene). While playing, a
+**point runs along the envelope**; with a modulation (LFO…), a ghost point and a dotted curve show the sound being
+played, and a line shows the whole range. The "M1 +30 %" depth under an encoder is set by dragging it.
+**Settings › Display**: animated or still curves; above 90 % audio load for 1.5 s, the animation switches itself
+off to leave room for the sound (message, turn it back on by hand).
+
+<figure><img src="img/v110/pc-courbes.jpg" alt="SOUND screen, Envelope tab: the filter envelope with its points to drag"><figcaption>SOUND screen: drag the envelope points, the encoders follow</figcaption></figure>
+
+**Golem Titan FX (1.1)**: nine high-end effects, a compact black-metal face in the pedalboard (with the time
+settings, sync and freeze) and a **full interface** through "Open the module" (full screen on a phone):
+
+| Effect | What for |
+|---|---|
+| **Titan Vintage** | Digital reverbs from the 70s–80s (12 models) and 3 vintage colours |
+| **Titan Espace** | Mixing reverb: one "Space" knob (room → large hall), decay per band, output EQ, ducking, freeze |
+| **Titan Limiteur** | Mastering limiter: 8 styles, 0–5 ms lookahead (compensated), true peak, oversampling, unity-gain listening |
+| **Titan Écho** | Creative echo: two tape lines, ping-pong, "tape" or "stretch" time changes; filters, saturation, lo-fi, diffusion and pitch in the loop |
+| **Titan Décapiteur** | Analogue saturation: 5 circuits (tube tape machine, console, germanium, triode, pentode), thump, high cut |
+| **Titan Saturne** | Multiband saturation: 1 to 4 bands, 16 styles per band (tubes, tapes, transformer, amps, fuzz…) |
+| **Titan Phaseur** | Phaser from 2 to 24 stages, 8 circuit styles; LFO, rhythm, steps, envelope |
+| **Titan Flanger-Doubleur** | Two-tape flanger (through-zero) and voice doubler |
+| **Titan Filtre** | 2 filters (series, parallel, stereo), 8 types, 6 to 48 dB/oct, self-oscillation, 9 styles; LFO, rhythm, follower |
+
+**Restoration (1.1)**: seven tools to clean up sound, to insert like any effect or, better, in the **sample
+editor** and the **AUDIO** screen (offline processing, maximum quality): **Denoiser**, **De-hum** (50 / 60 Hz
+mains), **De-click**, **Spectral de-esser**, **De-plosive**, **De-clip** (redraws clipped peaks) and
+**De-reverb** (removes room echo). Each tool has a **Listen** to what it removes.
+
+**Latency**: some tools (denoiser, lookahead limiter…) delay the sound. GOLEM **compensates by itself**: the
+other tracks, the groups and the returns wait, nothing drifts. The **Latency xx ms** indicator in the top bar
+shows it; touch it to see which tools, on which track.
+
+<figure><img src="img/v110/pc-titan-pedalier.jpg" alt="Pedalboard: Titan Vintage, Titan Écho and Titan Décapiteur as compact faces"><figcaption>Golem Titan FX in the pedalboard: adjustable displays, sync and freeze on the face</figcaption></figure>
+
+<figure><img src="img/v110/pc-titan-espace.jpg" alt="Titan Espace, full interface: space, decay per band, times, output EQ"><figcaption>Titan Espace, full interface</figcaption></figure>
+
+<figure><img src="img/v110/pc-restauration.jpg" alt="Pedalboard: Denoiser and De-hum"><figcaption>Restoration: Denoiser and De-hum as pedals</figcaption></figure>
+
 ### 6. Mixing
 
 MIXER screen: volume, pan, mute (M), solo (S), sends to returns A to D, 7 groups and the master. The **sends A, B, C, D** are
 knobs (tracks: in place of the EQ; groups: EQ and sends), also in the live view; **long press** (right-click):
 exact value.
+A strip's EQ acts after its insert effects; on the **master** it acts before them: a limiter in the last
+insert stays the last stage of the sound and keeps its ceiling.
 
 <figure><img src="img/mixeur.jpg" alt="MIXER screen: tracks and groups, returns and master"><figcaption>MIXER screen: tracks and groups, returns and master</figcaption></figure>
 
@@ -591,7 +646,7 @@ settings stored in A or B move: everything else stays as it is.
 B. Push the crossfader to the right: the sound glides from scene 1 to scene 2. **Shift** + scene 3: it
 goes to A (the side you no longer hear). Bring the crossfader back to the left: the sound glides to scene
 3. And so on, as many scenes as you like, without a gap. Crossfader movements are recorded in the song
-("Rec motion"). From a MIDI controller, Program Change 0 to 31 launch scenes 1 to 32.
+("Rec motion"). From a MIDI controller, Program Change 0 to 31 launch scenes 1 to 32 (on a channel no track is set to).
 
 <figure class="wide"><img src="img/scenes-crossfader-pc.jpg" alt="SCENES › Crossfader on PC: scene 1 in A, scene 9 in B, crossfader, grid of 16 scenes, Break scene, 16 assignable knobs"><figcaption>SCENES › Crossfader (PC): scene 1 in A, scene 9 in B, the crossfader between them</figcaption></figure>
 
@@ -662,17 +717,26 @@ turn **Loop** on, then "● Record a take". The take starts at the beginning of 
 of the loop: each track played becomes a clip exactly the length of the loop. No more stopping by hand at
 the right moment.
 
-**Recording the audio of your playing ("● Audio" button at the top)**: choose **what** (Master, Separate
-tracks or Both), the **format** (24-bit WAV, or 320 kbit/s MP3 with no silence added at the start) and the
-**mode**:
+**AUDIO screen ("● Audio" button at the top, 1.1)**: a whole screen to record and process. A **long press**
+on "● Audio" starts right away with the last settings.
 
-- **Locked to playback**: the take starts with playback (or at the start of the next loop) and stops
-  **exactly**, to the sample: end of the song, STOP, or end of the current loop when you press "■ Audio"
-  again. To export a loop or a song.
-- **Perfect loop**: one **run-up loop** plays first (echoes and compression settle), then the take lasts
-  **exactly one loop** and stops by itself; the end-to-start join is crossfaded in the file, so the loop
-  replays **without a click**, in GOLEM (Pieuvre 8, sampler) or in other software. Prefer WAV.
-- **Free**: records everything, even without playback (playing the pads), until you press "■ Audio" again.
+- **What is recorded**: the **Master**, the **Processed master**, ticked **tracks** (one file per track, or "A
+  single track" = their sum), returns A to D, the **input** (mic / line, with its meter). While listening, you
+  only hear what you record.
+- **Start and end**:
+  - **Synced**: the take starts with playback (or at the next loop cycle) and stops **exactly**, to the sample:
+    end of the song, STOP, or end of the current cycle when you press "■ Audio" again;
+  - **Perfect loop**: one run-up cycle plays first (echoes and compression settle), then the take lasts
+    **exactly one cycle**, with a crossfaded join: the loop replays **without a click** (prefer WAV);
+  - **Bars**: exactly N bars; **Free**: everything, even without playback, until "■ Audio".
+- **Format**: 24-bit WAV, 32-bit float WAV, 320 kbit/s MP3 (no silence added at the start).
+- **Recording chain**: **4 effects** of your choice (Restoration or any effect), applied **after the take**
+  (maximum quality; the raw take is kept) or **during the take** (file processed and realigned as it is
+  written). **Listen to the processing** sends the output through the chain, latency shown.
+- **Where it goes**: **Recordings**, **Processed sound** (files named "Track – 128 BPM – 4 bars – processed"),
+  **Into a pad** (first free slot of the chosen track), or **Replace the original** (can be undone).
+
+<figure><img src="img/v110/pc-audio.jpg" alt="AUDIO screen: tracks 2, 3 and 6 ticked, synced take, chain with the Denoiser"><figcaption>AUDIO screen: sources, start and end, format, destination, 4-effect chain</figcaption></figure>
 
 Takes are stored in **Library › My recordings**.
 
@@ -686,8 +750,9 @@ clip.
 ### 10. Saving
 
 SETTINGS › Project screen: Save (a .gbx file with sounds, samples, sequences, scenes) or "As template"
-(settings and sounds, without the writing). **Demo project**, **New empty project** and **Open…** light
-up yellow when touched, and a message confirms the loading. The demo is deliberately light (7
+(settings and sounds, without the writing). **Techno demo**, **Tribe demo**, **New empty project** and **Open…** light
+up yellow when touched, and a message confirms the loading. The Tribe demo (1.1, 180 BPM) has 5 instruments, 4 scenes, the
+vector pad on a circle and a short song (intro, build-up, break, drop): just press Play. The Techno demo is deliberately light (7
 instruments, 11 effects) to run on every phone. It also shows the vector pad in motion (Circle, one
 cycle in 16 bars) and assignable knob 1 linked to the filter cutoff of Kick Killer. The audio arrangement
 is stored in the "&lt;project name&gt; - audio" folder next to the file.
@@ -727,6 +792,12 @@ samples folder; set it right and you land straight on your sounds.
 - **Settings › Personal folder…**: copies every sound of a folder of the phone or computer (subfolders
   included) into **Library › Custom**; doing it again only adds the new ones.
 - **Library › My recordings**: your audio takes ("● Audio" button).
+
+**Sample editor (1.1)**: the same everywhere — sampler panels, drum kit pads, TRACKS screen (**long press** or
+**right-click** on a track that plays samples), a take sent into a pad. Waveform and selection; **Invert**,
+**Normalize**, **Fade in / out**, **Trim**, **Silence**; and **Process…**: a chain of **4 effects** (Restoration
+included) computed **offline** (no latency while playing), **previewed**, then applied **in place of** the sample
+— the pads and patterns that play it don't change. **Undo** keeps 8 versions.
 
 ### 12. Three special instruments
 
@@ -802,6 +873,46 @@ sponsored by M-VAVE; these names are used only to state compatibility with firmw
 Emulation is based on fm1-emu (Joakim Eriksson, MIT licence). No original M-VAVE software is included: the bundled
 firmwares are free community works, with their authors and sources credited.</sub>
 
+### 14. MIDI track: playing an external synth or drum machine (1.1)
+
+The **MIDI track** instrument (**External MIDI** family, TRACKS screen) makes no sound: it **plays the connected
+device** (synth, drum machine, module). Everything a track has works on it: sequencer (Acid, Locks, SEQUENCE),
+locks, scenes, modulations, launching, song, piano, pads and controller.
+
+- **The top bar** (lists): **Device** (the MIDI output; ↻ reads the list again; the link type — USB, Bluetooth,
+  network — is shown when the system reports it), **Send** (channel 1 to 16), **Receive** (the channel that
+  plays this track from a keyboard), **Bank** and **Sound** (CC 0, CC 32 = 0, then program change, like the
+  remote). On a phone, **Bluetooth…** opens pairing.
+- **32 knobs in 4 sections of 8**: each knob sends its value as a **CC**. **Touch a section title to rename it**
+  ("Filter", "Envelopes"…): the names are kept in the project. A knob's small **⚙ wheel** opens its settings:
+  **Learn** (touch it, turn the synth's knob: its CC number and channel are set), **CC** (0 to 119),
+  **Channel**. Nothing is sent on loading: the device's sound is not overwritten; "Send at start" sends the
+  values again at playback.
+- **CC numbers and channels are fixed**: set them once and for all. A scene, a lock, an LFO or a curve can
+  **never** change them (only the knob's value moves), and CC 120 to 127 (device commands: all off, reset)
+  are never sent.
+- **16 pads**, set up with their ⚙ wheel like those of the remote: **CC held** (127 while pressed), **CC on /
+  off**, **CC steps** (each press moves to the next value, 2 to 8 values) or **Note**.
+- **Sequencer**: the step row is under the keyboard as on the synths. Long press on a step, then: turning one
+  of the 32 knobs sets a **CC lock**; touching a pad **locks** it on that step (pressed for the step's note
+  length, every time round); the **Bank** and **Sound** lists set the **step sound** (the program change goes out
+  just before the note).
+- **MIDI effects**: arpeggiator (20 modes, octaves, rate, length, hold, swing), chord and spread, scale and
+  root, note echo (fading repeats, transposition), probability, fixed or random velocity, transposition.
+- **Mute and solo**: notes in progress stop, nothing goes out while the track is muted.
+- **Output**: in the application (PC, Mac, phone), the output chosen in "Device" (one output shared by all MIDI
+  tracks, each on its own channel). In music software, the **plug-in's MIDI output**.
+- **Possible links**: **USB** everywhere; **Bluetooth MIDI** on phones and tablets (Bluetooth…) and on Mac (the
+  system pairing window); on Windows PC, through a bridge driver that creates a standard MIDI port; **network**
+  through a driver such as rtpMIDI, which shows up as a device in the list. What the device sends back to GOLEM
+  does not replay the track (no MIDI loop).
+
+<figure><img src="img/v110/pc-midi-piste.jpg" alt="MIDI track: Device, Send, Receive, Bank, Sound bar; 4 renamed sections of 8 knobs; 16 pads"><figcaption>MIDI track: the top bar, the 32 knobs in 4 renamed sections, the 16 pads</figcaption></figure>
+
+<figure><img src="img/v110/pc-midi-reglage-bouton.jpg" alt="Settings of knob 2: Learn, CC 71, channel"><figcaption>A knob's ⚙ wheel: Learn, CC number, channel</figcaption></figure>
+
+<figure><img src="img/v110/pc-midi-son-du-pas.jpg" alt="MIDI track: step 5 plays the device's sound 12"><figcaption>Step sound: step 5 sends sound 12 to the device just before its note</figcaption></figure>
+
 ## MIDI controller
 
 ### Plugging in a controller: plug and play
@@ -812,7 +923,9 @@ firmwares are free community works, with their authors and sources credited.</su
 - **Bluetooth (Android)**: Settings › "**Pair a Bluetooth controller…**". The first time, Android asks
   for Bluetooth permission; then choose your wireless MIDI keyboard or controller from the list: it plays
   like a USB controller.
-- **On PC**, a Bluetooth controller only works if Windows presents it as a MIDI port: USB is the simplest.
+- **On Mac**, pair the device in the system's Bluetooth MIDI window (Audio MIDI Setup).
+- **On PC**, a Bluetooth controller only works if Windows presents it as a MIDI port (bridge driver): USB is
+  the simplest.
 - **In a host application** (VST3): the host receives the controller and sends it to the Groovebox.
 - Notes play the selected track (or the tracks set to a channel, Settings › MIDI); on a drum kit, notes 36
   to 51 play the 16 pads. On **Pieuvre 8** and the **FM Player**, the keyboard plays the chosen T **across all its
@@ -830,10 +943,47 @@ firmwares are free community works, with their authors and sources credited.</su
   then hand them whatever you want (Assign to…).
 - Right-click on the buttons (M / S, rows, Photo, Recall, transport…): assign them to the controller.
 - Settings › MIDI: notes channel, commands channel, a channel for each track.
+- **Changing sounds over MIDI**: on a track set to a channel, bank select (CC 0 / CC 32) + program change
+  call the sound number shown in front of each preset ("Init" = 1, your sounds after them); CC 102 to
+  105 change the sound of the effect in inserts 1 to 4. Details are in the **MIDI implementation**
+  document (MIDI-IMPLEMENTATION).
 - In the Android app: Settings › "**Pair a Bluetooth controller…**" (wireless MIDI keyboard or
   controller); a USB keyboard is recognised by itself.
 
 <figure><img src="img/menu-bouton.jpg" alt="Long press on a bottom value: exact value, modulation, Learn MIDI, assignable knob"><figcaption>Long press (right-click) on a bottom value: exact value, modulation, Learn MIDI, knob 1 to 16</figcaption></figure>
+
+## Remote: the phone controls GOLEM (1.1)
+
+A phone (or a tablet) running GOLEM becomes the **remote** of GOLEM on the PC, of an FM-1, or of another MIDI
+device. Way in: the **Remote** button on the home screen, or Settings › MIDI controller › "Remote mode…";
+**‹ GOLEM** goes back to GOLEM without restarting. The phone's sound is paused by default.
+
+- **Connection**:
+  - **USB cable** (the safest): connect the phone to the PC, choose "MIDI" in the USB notification, then turn on
+    the phone's MIDI input in GOLEM on the PC;
+  - **Wi-Fi** (no driver): phone and PC on the same network; on the PC, Settings › "**Accept a Wi-Fi remote**";
+    on the phone, touch the PC's name. Local network only, one remote at a time;
+  - **Bluetooth**: for a wireless MIDI device (Pair, then touch it).
+- **Mix**: the 16 tracks (2 pages of 8), volume, M, S, groups, master; names, colours and levels come from the PC.
+- **Knobs**: GOLEM's 16 assignable knobs (name and value sent back by the PC), crossfader, Fill, Break, Shift,
+  play, stop, record.
+- **Chaos**: the vector pad, with the motion shape chosen on the PC. Each corner drives 4 GOLEM knobs or 4 CCs;
+  "Take the current sound", **Spring** (the orb returns to the centre).
+- **FM-1** (or any MIDI device): keyboard and wheels, pads (CC held, CC on / off, note), 8 CC knobs, sound − / +,
+  bank, channel, firmware profiles, sending a .syx file. For GOLEM on the PC, the sound changes the instrument or
+  the effect of insert 1 to 4 of the track.
+- **Learn**: with a device connected, the small "Learn" button next to a CC setting; touch it, turn the device's
+  knob (or play the note), the number and channel are set.
+- **Profiles**: save the setup (knobs, pads, Chaos pad, device tab) under a name ("Bass synth profile"…) and recall
+  it with one touch.
+
+<figure><img src="img/v110/tel-telecommande-connexion.jpg" alt="Remote: choosing the USB cable, Wi-Fi or Bluetooth link"><figcaption>Remote · Connection</figcaption></figure>
+
+<figure><img src="img/v110/tel-telecommande-mixage.jpg" alt="Remote: mixing the tracks"><figcaption>Remote · Mix</figcaption></figure>
+
+<figure><img src="img/v110/tel-telecommande-chaos.jpg" alt="Remote: Chaos pad"><figcaption>Remote · Chaos</figcaption></figure>
+
+<figure><img src="img/v110/tel-telecommande-fm1.jpg" alt="Remote: FM-1 tab, keyboard, pads and CC knobs"><figcaption>Remote · FM-1</figcaption></figure>
 
 ## Where your files are
 

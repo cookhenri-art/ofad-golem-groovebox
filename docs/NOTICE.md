@@ -18,12 +18,15 @@ Cette notice donne les bases ; le détail des instruments et des effets est dans
 | Clic droit (appui long au doigt) sur un bouton à diode, Photo, Rappel, M / S, rangées A à P, patterns A à P de la séquence… | Affecter au contrôleur MIDI |
 | Toucher le **tempo** (barre d'état, ou rangée Tempo de l'écran Jeu) | Taper le tempo au clavier (40 à 240 BPM, au dixième) |
 | **Molette** sur le mixeur | Faire défiler les pistes de gauche à droite (au-dessus d'un réglage : régler la valeur) |
+| **Appui long** (clic droit) sur une piste de l'écran PISTES | Éditeur d'échantillon (pistes qui jouent des échantillons) |
+| **Appui long** sur « ● Audio » | Démarrer la prise tout de suite, avec les derniers réglages de l'écran AUDIO |
+| Tirer un **point d'une courbe** (écran SON) | Régler l'enveloppe, le filtre ou la forme d'onde qu'il représente |
 
 <figure class="wide"><img src="img/appareil-reperes.jpg" alt="Les commandes générales, numérotées"><figcaption>Où sont les commandes générales</figcaption></figure>
 
 1. **Ouvrir le synthé** : la façade de l'instrument de la piste, en grand.
 2. **Annuler / Rétablir** (Ctrl + Z / Ctrl + Y), **Photo** et **Rappel** de tous les réglages, **Mod. boutons**.
-3. **Audio** : enregistrer ce qui sort (master ou pistes séparées).
+3. **Audio** : l'écran AUDIO — enregistrer le master, des pistes, des retours ou l'entrée, avec une chaîne d'effets (appui long : démarrer tout de suite).
 4. **Plein écran** (F11).
 5. Le **rail** : les **8 écrans** (Piste, Clips, Séq., Son, FX, Mix., Scène, ⚙ Réglages).
 6. **Live** (vue live : crossfader ou vecteur, console des 16 pistes) et **Jeu** (pads, 16 boutons, Fill / Break, crossfader, tempo).
@@ -212,7 +215,7 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 ## Démarrer
 
 - Au lancement, la mascotte s'affiche pendant le chargement, puis l'**accueil** : reprendre la dernière
-  séance, nouveau projet vide, projet de démonstration, ouvrir un fichier, ou un projet du dossier.
+  séance, nouveau projet vide, **Démo Techno** ou **Démo Tribe** (1.1), ouvrir un fichier, ou un projet du dossier.
   (Réglages › « Accueil au démarrage » pour l'afficher ou non.)
 - **Langue** : français ou anglais, choisie à l'installation (Windows) ou au premier lancement (Android) ;
   elle se change à tout moment dans Réglages › Projet (**Français / English**).
@@ -456,6 +459,15 @@ choisi, les valeurs du bas de l'écran règlent **ce pas seulement** :
 | **Répétitions** | 2 à 8 coups dans le pas (roulements), à force égale, décroissante ↘ ou croissante ↗ |
 | **Verrous** | Tourner vers la droite : les boutons de tous les écrans écrivent dans ce pas |
 
+**Son du pas (1.1)** : dans la rangée **À verrous** sous le clavier, le détail d'un pas a une liste **Son**.
+Choisissez un préréglage de l'instrument (numérotés comme pour le changement de programme : « Init » = 1, les
+sons d'usine banque par banque, puis les vôtres) : **ce pas joue avec ce son**, et la piste revient à son son au
+prochain pas sans son verrouillé. Le pas affiche « S12 ». Les verrous du même pas passent au-dessus du son
+choisi. « — son de la piste — » retire le son du pas. Sur une **piste MIDI**, c'est le son (programme) de
+l'appareil, et la banque se verrouille aussi par la liste **Banque** du bandeau (voir § 14).
+
+<figure><img src="img/v110/pc-son-du-pas.jpg" alt="Rangée À verrous sous le clavier : un pas choisi, la liste Son et le repère S3 sur le pas"><figcaption>Son du pas : le pas 3 joue le son n° 3 de l'instrument (repère « S3 »)</figcaption></figure>
+
 #### Les conditions : des pas qui ne jouent pas à chaque fois
 
 Une condition fait jouer un pas seulement dans certains cas : c'est ce qui donne de la vie à une boucle
@@ -546,11 +558,57 @@ l'apprentissage MIDI marchent de la même façon depuis les trois vues.
 
 <figure><img src="img/effets.jpg" alt="Écran EFFETS : les 4 effets d'insert du canal, dans l'ordre du signal"><figcaption>Écran EFFETS : les 4 effets d'insert du canal, dans l'ordre du signal</figcaption></figure>
 
+**Les courbes de l'écran SON se règlent au doigt (1.1).** Enveloppes, filtres et formes d'onde suivent les
+vraies valeurs, et **leurs points se tirent** : attaque, déclin, maintien, relâchement (et les enveloppes à
+vitesses et niveaux des synthés FM), coupure en largeur et résonance en hauteur pour un filtre, largeur
+d'impulsion d'un oscillateur. Un point tiré écrit son réglage **là où écrivent les encodeurs** (son de base,
+verrou de pas, scène). Quand on joue, un **point court sur l'enveloppe** ; avec une modulation (LFO…), un
+point fantôme et une courbe en pointillés montrent le son joué, et un trait montre toute l'amplitude. La
+profondeur « M1 +30 % » sous un encodeur se règle en la tirant. **Réglages › Affichage** : courbes
+animées ou fixes ; au-delà de 90 % de calcul audio pendant 1,5 s, l'animation se coupe d'elle-même pour
+laisser la place au son (message, remise à la main).
+
+<figure><img src="img/v110/pc-courbes.jpg" alt="Écran SON, onglet Enveloppe : l'enveloppe du filtre avec ses points à tirer"><figcaption>Écran SON : on tire les points de l'enveloppe, les encodeurs suivent</figcaption></figure>
+
+**Golem Titan FX (1.1)** : neuf effets haut de gamme, façade compacte en métal noir dans le pédalier (avec les
+réglages de temps, la synchro et le gel) et **interface complète** par « Ouvrir le module » (en grand sur
+téléphone) :
+
+| Effet | Pour quoi |
+|---|---|
+| **Titan Vintage** | Réverbérations numériques des années 70–80 (12 modèles) et 3 couleurs d'époque |
+| **Titan Espace** | Réverbération de mixage : un bouton « Espace » (pièce → grande salle), durée par bande, égaliseur de sortie, ducking, gel |
+| **Titan Limiteur** | Limiteur de mastering : 8 styles, anticipation 0–5 ms (compensée), crête vraie, suréchantillonnage, écoute à gain unité |
+| **Titan Écho** | Écho créatif : deux lignes à bande, ping-pong, temps « bande » ou « étirement » ; filtres, saturation, basse-fidélité, diffusion et hauteur dans la boucle |
+| **Titan Décapiteur** | Saturation analogique : 5 circuits (magnétophone à lampes, console, germanium, triode, pentode), bosse, coupe-haut |
+| **Titan Saturne** | Saturation multibande : 1 à 4 bandes, 16 styles par bande (lampes, bandes, transformateur, amplis, fuzz…) |
+| **Titan Phaseur** | Phaseur de 2 à 24 étages, 8 styles de circuits ; LFO, rythme, pas, enveloppe |
+| **Titan Flanger-Doubleur** | Flanger à deux bandes (passage par zéro) et doubleur de voix |
+| **Titan Filtre** | 2 filtres (série, parallèle, stéréo), 8 types, 6 à 48 dB/oct, auto-oscillation, 9 styles ; LFO, rythme, suiveur |
+
+**Restauration (1.1)** : sept outils de nettoyage du son, à poser comme n'importe quel effet ou, mieux, dans
+l'**éditeur d'échantillon** et l'écran **AUDIO** (traitement hors temps réel, qualité maximale) : **Débruiteur**,
+**Anti-ronflement** (50 / 60 Hz du secteur), **Anti-clics**, **Dé-esseur spectral**, **Anti-plosives**,
+**Anti-écrêtage** (redessine les crêtes coupées) et **Dé-réverb** (retire l'écho d'une pièce). Chaque outil a
+une **Écoute** de ce qu'il retire.
+
+**Latence** : certains outils (débruiteur, limiteur à anticipation…) retardent le son. GOLEM **compense
+tout seul** : les autres pistes, les groupes et les retours attendent, rien ne se décale. Le voyant
+**Latence xx ms** de la barre du haut le signale ; le toucher dit quels outils et sur quelle piste.
+
+<figure><img src="img/v110/pc-titan-pedalier.jpg" alt="Pédalier : Titan Vintage, Titan Écho et Titan Décapiteur en façades compactes"><figcaption>Golem Titan FX dans le pédalier : afficheurs réglables, synchro et gel en façade</figcaption></figure>
+
+<figure><img src="img/v110/pc-titan-espace.jpg" alt="Titan Espace, interface complète : espace, durée par bande, temps, égaliseur de sortie"><figcaption>Titan Espace, interface complète</figcaption></figure>
+
+<figure><img src="img/v110/pc-restauration.jpg" alt="Pédalier : Débruiteur et Anti-ronflement"><figcaption>Restauration : Débruiteur et Anti-ronflement en pédales</figcaption></figure>
+
 ### 6. Mixer
 
 Écran MIXEUR : volume, panoramique, coupure (M), solo (S), envois vers les retours A à D,
 7 groupes et le principal. Les **envois A, B, C, D** sont des boutons (pistes : à la place de l'égaliseur ;
 groupes : égaliseur et envois), aussi dans la vue live ; **appui long** (clic droit) : valeur exacte.
+L'égaliseur d'une tranche agit après ses effets d'insert ; sur le **principal**, il agit avant : le
+limiteur placé en dernier insert reste le dernier étage du son et garde son plafond.
 
 <figure><img src="img/mixeur.jpg" alt="Écran MIXEUR : pistes et groupes, retours et principal"><figcaption>Écran MIXEUR : pistes et groupes, retours et principal</figcaption></figure>
 
@@ -580,7 +638,7 @@ se place en B. Poussez le crossfader vers la droite : le son glisse de la scène
 scène 3 : elle se place en A (le côté qu'on n'entend plus). Ramenez le crossfader à gauche : le son
 glisse vers la scène 3. Et ainsi de suite, autant de scènes qu'on veut, sans coupure. Les mouvements du
 crossfader s'enregistrent dans le morceau (« Enr. les mouvements »). Au contrôleur MIDI, les Program
-Change 0 à 31 lancent les scènes 1 à 32.
+Change 0 à 31 lancent les scènes 1 à 32 (sur un canal où aucune piste n'est réglée).
 
 <figure class="wide"><img src="img/scenes-crossfader-pc.jpg" alt="Écran SCÈNES › Crossfader sur PC : scène 1 en A, scène 9 en B, crossfader, grille des 16 scènes, scène de Break, 16 boutons assignables"><figcaption>SCÈNES › Crossfader (PC) : scène 1 en A, scène 9 en B, le crossfader entre les deux</figcaption></figure>
 
@@ -654,16 +712,27 @@ suivante, dure **exactement** la longueur de la boucle, **s'arrête toute seule*
 près) et se pose au début de la boucle : chaque piste jouée devient un clip pile de la longueur de la
 boucle. Plus besoin d'arrêter à la main au bon moment.
 
-**Enregistrer l'audio du jeu (bouton « ● Audio » en haut)** : on choisit **quoi** (Master, Pistes séparées
-ou Les deux), le **format** (WAV 24 bits, ou MP3 320 kbit/s sans blanc ajouté au début) et le **mode** :
+**Écran AUDIO (bouton « ● Audio » en haut, 1.1)** : un écran entier pour enregistrer et traiter. Un **appui
+long** sur « ● Audio » démarre tout de suite avec les derniers réglages.
 
-- **Calée sur la lecture** : la prise démarre avec la lecture (ou au début du prochain tour de boucle) et
-  s'arrête **pile**, à l'échantillon près : fin du morceau, ARRÊT, ou fin du tour en cours quand on rappuie
-  sur « ■ Audio ». Pour exporter une boucle ou un morceau.
-- **Boucle parfaite** : un **tour d'élan** passe d'abord (échos et compression en place), puis la prise dure
-  **exactement un tour** et s'arrête seule ; la jonction fin → début est fondue dans le fichier : la boucle se
-  rejoue **sans clic**, dans GOLEM (Pieuvre 8, sampler) ou un autre logiciel. Préférez le WAV.
-- **Libre** : enregistre tout, même sans lecture (jeu aux pads), jusqu'à ce qu'on rappuie sur « ■ Audio ».
+- **Ce qu'on enregistre** : le **Master**, le **Master traité**, des **pistes** cochées (un fichier par piste,
+  ou « Une seule piste » = leur somme), les **retours** A à D, l'**entrée** (micro / ligne, avec son
+  vu-mètre). À l'écoute, on n'entend que ce qu'on enregistre.
+- **Début et fin** :
+  - **Calée** : la prise démarre avec la lecture (ou au prochain tour de boucle) et s'arrête **pile**, à
+    l'échantillon près : fin du morceau, ARRÊT, ou fin du tour en cours quand on rappuie sur « ■ Audio » ;
+  - **Boucle parfaite** : un tour d'élan passe d'abord (échos et compression en place), puis la prise dure
+    **exactement un tour**, jonction fondue : la boucle se rejoue **sans clic** (préférez le WAV) ;
+  - **Mesures** : N mesures pile ; **Libre** : tout, même sans lecture, jusqu'à « ■ Audio ».
+- **Format** : WAV 24 bits, WAV 32 bits flottant, MP3 320 kbit/s (sans blanc ajouté au début).
+- **Chaîne d'enregistrement** : **4 effets** au choix (Restauration ou n'importe quel effet), appliqués
+  **après la prise** (qualité maximale ; la prise brute est gardée) ou **pendant la prise** (fichier traité et
+  recalé à l'écriture). **Écouter le traitement** fait passer la sortie dans la chaîne, latence affichée.
+- **Où ça va** : **Enregistrements**, **Son traité** (fichiers nommés « Piste – 128 BPM – 4 mesures –
+  traité »), **Dans un pad** (premier emplacement libre de la piste choisie), ou **Remplacer l'original**
+  (annulable).
+
+<figure><img src="img/v110/pc-audio.jpg" alt="Écran AUDIO : pistes 2, 3 et 6 cochées, prise calée, chaîne avec le Débruiteur"><figcaption>Écran AUDIO : sources, début et fin, format, destination, chaîne de 4 effets</figcaption></figure>
 
 Les prises sont rangées dans **Bibliothèque › Mes enregistrements**.
 
@@ -676,9 +745,9 @@ tous ses clips, **Ctrl+A** choisit tout, et tirer le bord d'un clip choisi règl
 ### 10. Enregistrer
 
 Écran RÉGLAGES › Projet : Enregistrer (un fichier .gbx avec sons, échantillons, séquences,
-scènes) ou « Comme modèle » (réglages et sons, sans les écritures). **Projet de démonstration**,
+scènes) ou « Comme modèle » (réglages et sons, sans les écritures). **Démo Techno**, **Démo Tribe**,
 **Nouveau projet vide** et **Ouvrir…** s'allument en jaune quand on les touche, et un message confirme
-le chargement. La démonstration est volontairement légère (7 instruments, 11 effets) pour tourner sur tous les
+le chargement. La Démo Tribe (1.1, 180 BPM) a 5 instruments, 4 scènes, le pavé vectoriel en cercle et un petit morceau (intro, montée, break, retour) : appuyez sur Lecture. La Démo Techno est volontairement légère (7 instruments, 11 effets) pour tourner sur tous les
 téléphones. Elle montre aussi le pavé vectoriel en mouvement (Cercle, un tour en 16 mesures) et le
 bouton assignable 1 relié à la coupure du filtre de Kick Killer. Le montage audio est rangé dans le
 dossier « &lt;nom du projet&gt; - audio » à côté du fichier.
@@ -720,6 +789,13 @@ s'ouvre dans le dossier des échantillons ; s'il est bien réglé, vous tombez d
 - **Réglages › Dossier perso…** : copie tous les sons d'un dossier du téléphone ou de l'ordinateur
   (sous-dossiers compris) dans **Bibliothèque › Perso** ; le refaire ajoute seulement les nouveaux.
 - **Bibliothèque › Mes enregistrements** : vos prises audio (bouton « ● Audio »).
+
+**Éditeur d'échantillon (1.1)** : le même partout — façades des samplers, pads des batteries, écran PISTES
+(**appui long** ou **clic droit** sur une piste qui joue des échantillons), prise envoyée dans un pad. Forme
+d'onde et sélection ; **Inverser**, **Normaliser**, **Fondu d'entrée / de sortie**, **Rogner**, **Silence** ; et
+**Traiter…** : une chaîne de **4 effets** (Restauration comprise) calculée **hors temps réel** (aucune latence
+pendant le jeu), **pré-écoutée**, puis appliquée **à la place** de l'échantillon — les pads et les patterns qui
+le jouent ne changent pas. **Annuler** garde 8 versions.
 
 ### 12. Trois instruments à part
 
@@ -796,6 +872,47 @@ ni sponsorisé par M-VAVE ; ces noms sont cités uniquement pour indiquer la com
 pour le FM-1. L'émulation repose sur fm1-emu (Joakim Eriksson, licence MIT). Aucun logiciel d'origine de M-VAVE
 n'est fourni : les firmwares inclus sont des créations libres de la communauté, avec leurs auteurs et leurs sources.</sub>
 
+### 14. Piste MIDI : jouer un synthé ou une boîte à rythmes externe (1.1)
+
+L'instrument **Piste MIDI** (famille **MIDI externe**, écran PISTES) ne fait pas de son : il **joue l'appareil
+branché** (synthé, boîte à rythmes, module). Tout ce qu'a une piste agit dessus : séquenceur (Acide, À verrous,
+SÉQUENCE), verrous, scènes, modulations, lancement, morceau, piano, pads et contrôleur.
+
+- **Le bandeau du haut** (listes) : **Appareil** (la sortie MIDI ; ↻ relit la liste ; le type de liaison
+  — USB, Bluetooth, réseau — s'affiche quand le système le dit), **Émission** (canal 1 à 16), **Réception**
+  (le canal qui joue cette piste depuis un clavier), **Banque** et **Son** (CC 0, CC 32 = 0, puis changement de
+  programme, comme la télécommande). Sur téléphone, **Bluetooth…** ouvre l'appairage.
+- **32 boutons en 4 sections de 8** : chaque bouton envoie sa valeur en **CC**. **Touchez le titre d'une
+  section pour la renommer** (« Filtre », « Enveloppes »…) : les noms sont gardés dans le projet. La petite
+  **roue ⚙** d'un bouton ouvre son réglage : **Apprendre** (on touche, on tourne le bouton du synthé : son
+  numéro de CC et son canal se posent), **CC** (0 à 119), **Canal**. Rien n'est envoyé au chargement : le son
+  de l'appareil n'est pas écrasé ; « Envoyer au départ » renvoie les valeurs à la lecture.
+- **Numéros de CC et canaux figés** : on les règle une fois pour toutes. Une scène, un verrou, une LFO ou une
+  courbe ne peut **jamais** les changer (seule la valeur du bouton bouge), et les CC 120 à 127 (ordres de
+  l'appareil : tout couper, remise à zéro) ne partent jamais.
+- **16 pads**, réglés par leur roue ⚙ comme ceux de la télécommande : **CC maintenu** (127 tant qu'on appuie),
+  **CC marche / arrêt**, **CC par pas** (chaque appui passe à la valeur suivante, 2 à 8 valeurs) ou **Note**.
+- **Séquenceur** : la rangée de pas est sous le clavier comme sur les synthés. Appui long sur un pas, puis :
+  tourner un des 32 boutons pose un **verrou de CC** ; toucher un pad le **verrouille** sur ce pas (appuyé le
+  temps de la note du pas, à chaque passage) ; les listes **Banque** et **Son** posent le **son du pas** (le
+  changement de programme part juste avant la note).
+- **Effets MIDI** : arpège (20 modes, octaves, vitesse, durée, maintien, swing), accord et étalement, gamme et
+  tonique, écho de notes (répétitions qui s'éteignent, transposition), probabilité, vélocité fixe ou au
+  hasard, transposition.
+- **Coupure et solo** : les notes en cours s'arrêtent, rien ne part tant que la piste est coupée.
+- **Sortie** : en application (PC, Mac, téléphone), la sortie choisie dans « Appareil » (une sortie commune
+  à toutes les pistes MIDI, chacune sur son canal). Dans un logiciel de musique, la **sortie MIDI du greffon**.
+- **Liaisons possibles** : **USB** partout ; **Bluetooth MIDI** sur téléphone et tablette (Bluetooth…),
+  sur Mac (fenêtre d'appairage du système) ; sur PC Windows, par un pilote passerelle qui crée un port MIDI
+  classique ; **réseau** par un pilote comme rtpMIDI, qui apparaît comme un appareil de la liste. Ce que
+  l'appareil renvoie à GOLEM ne rejoue pas la piste (pas de boucle MIDI).
+
+<figure><img src="img/v110/pc-midi-piste.jpg" alt="Piste MIDI : bandeau Appareil, Émission, Réception, Banque, Son ; 4 sections de 8 boutons renommées ; 16 pads"><figcaption>Piste MIDI : le bandeau du haut, les 32 boutons en 4 sections renommées, les 16 pads</figcaption></figure>
+
+<figure><img src="img/v110/pc-midi-reglage-bouton.jpg" alt="Réglage du bouton 2 : Apprendre, CC 71, canal"><figcaption>La roue ⚙ d'un bouton : Apprendre, numéro de CC, canal</figcaption></figure>
+
+<figure><img src="img/v110/pc-midi-son-du-pas.jpg" alt="Piste MIDI : le pas 5 joue le son 12 de l'appareil"><figcaption>Son du pas : le pas 5 envoie le son 12 à l'appareil juste avant sa note</figcaption></figure>
+
 ## Contrôleur MIDI
 
 ### Brancher un contrôleur : prêt à jouer
@@ -806,8 +923,9 @@ n'est fourni : les firmwares inclus sont des créations libres de la communauté
 - **En Bluetooth (Android)** : Réglages › « **Appairer un contrôleur Bluetooth…** ». La première fois,
   Android demande l'autorisation Bluetooth ; choisissez ensuite votre clavier ou contrôleur MIDI sans fil
   dans la liste : il joue comme un contrôleur USB.
-- **Sur PC**, un contrôleur Bluetooth ne marche que si Windows le présente comme un port MIDI : le plus
-  simple reste l'USB.
+- **Sur Mac**, appairez l'appareil dans la fenêtre Bluetooth MIDI du système (Configuration audio et MIDI).
+- **Sur PC**, un contrôleur Bluetooth ne marche que si Windows le présente comme un port MIDI (pilote
+  passerelle) : le plus simple reste l'USB.
 - **Dans un logiciel hôte** (VST3) : c'est le logiciel hôte qui reçoit le contrôleur et l'envoie au Groovebox.
 - Les notes jouent la piste choisie (ou les pistes réglées sur un canal, Réglages › MIDI) ; sur une
   batterie, les notes 36 à 51 jouent les 16 pads. Sur **Pieuvre 8** et le **FM Player**, le clavier joue la T
@@ -826,10 +944,49 @@ n'est fourni : les firmwares inclus sont des créations libres de la communauté
   les boutons 1 à 16, puis confiez-leur ce que vous voulez (Assigner à…).
 - Clic droit sur les boutons (M / S, rangées, Photo, Rappel, transport…) : les affecter au contrôleur.
 - Réglages › MIDI : canal des notes, canal des commandes, canal propre à chaque piste.
+- **Changer de son par MIDI** : sur une piste réglée sur un canal, banque (CC 0 / CC 32) + changement de
+  programme appellent le son n° affiché devant chaque préréglage (« Init » = 1, vos sons à la suite) ;
+  CC 102 à 105 changent le son de l'effet des inserts 1 à 4. Le détail est dans le document
+  **Implémentation MIDI** (IMPLEMENTATION-MIDI).
 - Sur l'application Android : Réglages › « **Appairer un contrôleur Bluetooth…** » (clavier ou
   contrôleur MIDI sans fil) ; un clavier USB est reconnu tout seul.
 
 <figure><img src="img/menu-bouton.jpg" alt="Appui long sur une valeur du bas : valeur exacte, modulation, Apprendre MIDI, bouton assignable"><figcaption>Appui long (clic droit) sur une valeur du bas : valeur exacte, modulation, Apprendre MIDI, bouton 1 à 16</figcaption></figure>
+
+## Télécommande : le téléphone pilote GOLEM (1.1)
+
+Un téléphone (ou une tablette) avec GOLEM devient la **télécommande** de GOLEM sur le PC, d'un FM-1, ou d'un
+autre appareil MIDI. Entrée : bouton **Télécommande** de l'accueil, ou Réglages › Contrôleur MIDI › « Mode
+télécommande… » ; **‹ GOLEM** revient à GOLEM sans redémarrer. Le son du téléphone est en pause par défaut.
+
+- **Connexion** :
+  - **Câble USB** (le plus sûr) : brancher le téléphone au PC, choisir « MIDI » dans la notification USB, puis
+    activer l'entrée MIDI du téléphone dans GOLEM sur le PC ;
+  - **Wi-Fi** (sans pilote) : téléphone et PC sur le même réseau ; sur le PC, Réglages › « **Accepter une
+    télécommande Wi-Fi** » ; sur le téléphone, toucher le nom du PC. Réseau local seulement, une télécommande
+    à la fois ;
+  - **Bluetooth** : pour un appareil MIDI sans fil (Appairer, puis le toucher).
+- **Mixage** : les 16 pistes (2 pages de 8), volume, M, S, groupes, principal ; les noms, couleurs et niveaux
+  viennent du PC.
+- **Boutons** : les 16 boutons assignables de GOLEM (nom et valeur renvoyés par le PC), crossfader, Fill, Break,
+  Maj, lecture, arrêt, enregistrement.
+- **Chaos** : le pavé vectoriel, avec la forme du mouvement choisie sur le PC. Chaque coin mène 4 boutons de
+  GOLEM ou 4 CC ; « Prendre le son actuel », **Ressort** (l'orbe revient au centre).
+- **FM-1** (ou tout appareil MIDI) : clavier et molettes, pads (CC maintenu, CC marche / arrêt, note), 8
+  boutons CC, son − / +, banque, canal, profils du firmware, envoi d'un fichier .syx. Pour GOLEM sur le PC, le
+  son change l'instrument ou l'effet de l'insert 1 à 4 de la piste.
+- **Apprendre** : avec un appareil branché, le petit bouton « Apprendre » à côté d'un réglage de CC ; on le
+  touche, on tourne le bouton de l'appareil (ou on joue la note), le numéro et le canal se posent.
+- **Profils** : enregistrez le paramétrage (boutons, pads, pavé Chaos, onglet appareil) sous un nom (« Profil
+  Synthé basse »…) et rappelez-le d'un toucher.
+
+<figure><img src="img/v110/tel-telecommande-connexion.jpg" alt="Télécommande : choix de la liaison câble USB, Wi-Fi ou Bluetooth"><figcaption>Télécommande · Connexion</figcaption></figure>
+
+<figure><img src="img/v110/tel-telecommande-mixage.jpg" alt="Télécommande : mixage des pistes"><figcaption>Télécommande · Mixage</figcaption></figure>
+
+<figure><img src="img/v110/tel-telecommande-chaos.jpg" alt="Télécommande : pavé Chaos"><figcaption>Télécommande · Chaos</figcaption></figure>
+
+<figure><img src="img/v110/tel-telecommande-fm1.jpg" alt="Télécommande : onglet FM-1, clavier, pads et boutons CC"><figcaption>Télécommande · FM-1</figcaption></figure>
 
 ## Où sont vos fichiers
 
