@@ -499,10 +499,12 @@ public:
             const auto tuneMod = dest == ldTune ? 24.0 * lfo : 0.0;
             const auto decayMul = dest == ldDecay ? std::exp2 (3.0 * lfo) : 1.0;
             const auto x3 = hasMachines ? mc[mcX3] / 100.0 : 0.5;
-            // Échantillon seul sur un pad de synthèse (sans machine) : lu en entier, sans filtre ni fondu
+            // Échantillon seul sur un pad de synthèse : lu du début à la fin, sans filtre de timbre ni
+            // fondu d'attaque ; 1.1 : le Déclin du pad agit (batteries sans machines ; au maximum, lecture
+            // entière — c'est la valeur posée au dépôt et celle des projets d'avant la version 20)
             const bool wholeSample = sampleAlone && (hasMachines ? curMachine[(size_t) pad] != 0 : ! samplePad[(size_t) pad]);
             const auto vp = wholeSample
-                ? dsp::VoiceParams { v[0], 4000.0, 1.0, 0.0, v[4], 1.0, 0.0 }
+                ? dsp::VoiceParams { v[0], hasMachines ? 4000.0 : (double) v[1] * decayMul, 1.0, 0.0, v[4], 1.0, 0.0 }
                 : dsp::VoiceParams { v[0] + tuneMod, v[1] * decayMul, mod01 (v[2] / 100.0, ldTone), mod01 (v[3] / 100.0, ldSnap),
                                      v[4] + (dest == ldDrive ? 24.0 * lfo : 0.0),
                                      mod01 (ex[exX1] / 100.0, ldX1), mod01 (ex[exX2] / 100.0, ldX2), mod01 (x3, ldX3) };

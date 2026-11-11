@@ -321,7 +321,7 @@ public:
     void reset() noexcept
     {
         o1.reset (0.0); o2.reset (0.0); o3.reset (0.0); f1.reset(); f2.reset(); fv1.reset(); fv2.reset(); comb.reset();
-        e1.reset(); e2.reset(); e3.reset(); dc.reset(); active = false;
+        e1.reset(); e2.reset(); e3.reset(); dc.reset(); active = false; declick = false; lastOut = offset = 0.0;
     }
     void setSpread (int index, int count) noexcept { spread = count > 1 ? (2.0 * index / (count - 1) - 1.0) : 0.0; }
     void seed (std::uint32_t s) noexcept { rng = s; }
@@ -352,6 +352,12 @@ public:
             pending = false;
             pitch.jump ((double) (p[glide] > 0.5f && from >= 0 ? from : target));
             pitch.to ((double) target);
+            // 1.1 : toute note non liée (hors legato) relance ses oscillateurs au même point :
+            // attaque et rondeur identiques d'une note à l'autre (avant, les oscillateurs désaccordés
+            // tournaient librement et chaque note grave tombait ailleurs dans leur battement)
+            // (une voix qui sonne encore — relâchement en cours — repart aussi au même point ; la
+            // sortie rejoint son ancienne valeur en ~2 ms, sans clic)
+            if (! (legatoPending && e2.isActive())) { o1.reset (0.0); o2.reset (0.0); o3.reset (0.0); declick = e2.isActive(); }
             if (! legatoPending || ! e2.isActive()) { e1.gate (true); e2.gate (true); e3.gate (true); }
         }
         e1.set (p[e1A], p[e1D], p[e1S] / 100.0, p[e1R]);
@@ -386,6 +392,7 @@ public:
         sc1.scale = (sc1.count - 1) / 15.0; sc2.scale = (sc2.count - 1) / 15.0;
         double a1 = 0.0, a2 = 0.0, a3 = 0.0, l1 = 0.0, l2 = 0.0;
 
+        const auto offsetCoef = std::exp (-1.0 / (0.0005 * sr)); // 1.1 : fondu de raccord (~2 ms)
         for (int i = 0; i < n; ++i)
         {
             a1 = e1.next(); a2 = e2.next(); a3 = e3.next();
@@ -430,7 +437,9 @@ public:
                     y = f2.processMorph (y, fc2, res2, sr, mrph);
                 }
             }
-            const auto out = dc.process (y) * a2 * gain;
+            auto out = dc.process (y) * a2 * gain;
+            if (declick) { offset = lastOut - out; declick = false; }
+            out += offset; offset *= offsetCoef; lastOut = out;
             L[i] += (float) (out * gl);
             R[i] += (float) (out * gr);
         }
@@ -542,7 +551,8 @@ private:
     double lastE1 = 0.0, lastE2 = 0.0, lastE3 = 0.0, lastL1 = 0.0, lastL2 = 0.0;
     float vel = 1.0f;
     int target = 60, from = -1;
-    bool pending = false, legatoPending = false, active = false;
+    bool pending = false, legatoPending = false, active = false, declick = false;
+    double lastOut = 0.0, offset = 0.0; // 1.1 : raccord sans clic quand les oscillateurs sont relancés
     std::uint32_t rng = 11;
     MorphOscState o1, o2, o3;
     Ladder f1;

@@ -465,6 +465,7 @@ public:
         chorus.prepare (s); dbl.prepare (s);
         dc.prepare (s); dcR.prepare (s);
         noteAtt = std::exp (-1.0 / (0.002 * s));
+        consAtt = 1.0 - std::exp (-1.0 / (0.004 * s)); // 1.1 : ouverture des consonnes (~10 ms à 90 %)
         noteRel = std::exp (-1.0 / (0.080 * s));
         talkRel = std::exp (-1.0 / (0.040 * s));
         resetFx();
@@ -639,7 +640,7 @@ protected:
             if (! idle) { idle = true; bank.resetSynth(); bank.settle(); resetModules(); }
             for (int i = 0; i < n; ++i)
             {
-                carEnv = 0.0; noteEnv = 0.0;
+                carEnv = 0.0; noteEnv = 0.0; consEnv = 0.0;
                 const double m = mod[i];
                 uv.process (m);
                 bank.analyse (m);
@@ -654,6 +655,9 @@ protected:
             const auto ca = 0.5 * std::abs ((double) L[i] + (double) R[i]);
             carEnv = ca > carEnv ? ca + (carEnv - ca) * noteAtt : carEnv * noteRel;
             noteEnv = std::min (1.0, carEnv * 6.0);
+            // 1.1 : souffle, consonnes et aigus directs s'ouvrent en ~10 ms au début d'une note (une note
+            // qui part pendant une consonne de la voix ne claque plus) et se referment avec la note
+            consEnv = noteEnv > consEnv ? consEnv + (noteEnv - consEnv) * consAtt : noteEnv;
             const double m = mod[i];
             const auto u = uv.process (m);
             bank.analyse (m);
@@ -663,9 +667,9 @@ protected:
             double car = 0.5 * ((double) L[i] + (double) R[i]);
             const auto voiced = std::min (1.0, gate.level() * 8.0);
             // (souffle, bourdon et consonnes ne sonnent que pendant le jeu, comme la porteuse)
-            if (hiss > 0.0) car += noise.next() * hiss * u * 0.8 * noteEnv;
+            if (hiss > 0.0) car += noise.next() * hiss * u * 0.4 * consEnv; // 1.1 : -6 dB (consonnes moins saillantes)
             if (buzz > 0.0) car += buzzOsc.next (Osc::pulse, buzzDt, 0.2) * buzz * (1.0 - u) * voiced * 0.5 * noteEnv;
-            if (unv > 0.0) car += noise.next() * unv * u * 0.7 * noteEnv;
+            if (unv > 0.0) car += noise.next() * unv * u * 0.35 * consEnv; // 1.1 : -6 dB
             double l = 0.0, r = 0.0;
             if (mixVoc > 0.0) { bank.synth (car, l, r); vocOn = true; }
             else if (vocOn) { bank.resetSynth(); vocOn = false; }
@@ -676,7 +680,10 @@ protected:
             else
             {
                 hfOn = true;
-                const auto h = hfB.highpass (hfA.highpass (m, bank.config().fHi, sr), bank.config().fHi, sr) * hf * 1.4 * noteEnv;
+                // 1.1 : au niveau propre de la voix (le gain du modulateur règle la sensibilité de
+                // l'analyse, pas le volume des consonnes laissées passer) et ouvert en douceur au
+                // début d'une note (consEnv : ~10 ms), sans coup sec
+                const auto h = hfB.highpass (hfA.highpass (m, bank.config().fHi, sr), bank.config().fHi, sr) * hf * 0.7 * consEnv / std::max (1.0, modGainNow); // 1.1 : -6 dB
                 l += h; r += h;
             }
             if (strDry > 0.0) { l += car * strDry * 0.8; r += car * strDry * 0.8; }
@@ -728,7 +735,7 @@ private:
         for (auto& f : talk) f.reset();
         for (auto& f : bio) f.reset();
         hfA.reset(); hfB.reset(); dc.reset(); dcR.reset(); nasalNotch.reset();
-        crushHold = 0.0; crushCount = 0; carEnv = noteEnv = 0.0; talkF.fill (0.0); talkG.fill (0.0); bioEnv = 0.0; talkEnv = 0.0;
+        crushHold = 0.0; crushCount = 0; carEnv = noteEnv = consEnv = 0.0; talkF.fill (0.0); talkG.fill (0.0); bioEnv = 0.0; talkEnv = 0.0;
         buzzOsc.reset();
     }
 
@@ -748,6 +755,7 @@ private:
             if (t >= 0 && t < numTracks) { a = scL[t]; b = scR[t]; }
         }
         const auto g = dbToGain (at (p, ix.srcgain, 0.0f));
+        modGainNow = g; // 1.1 : les aigus directs gardent le niveau propre de la voix
         const auto gdb = at (p, ix.gate, -60.0f);
         const auto thr = gdb <= -89.9f ? 0.0 : dbToGain (gdb);
         const auto rate = at (p, ix.vrate, 2.5f), pitch = at (p, ix.vpitch, 125.0f), expr = at (p, ix.vexpr, 100.0f) / 100.0f;
@@ -760,7 +768,11 @@ private:
             if (src == voc::srcInternal) x = demo.next (rate, pitch, expr);
             else if (a != nullptr) x = 0.5 * ((double) a[modOffset + i] + (double) (b != nullptr ? b[modOffset + i] : a[modOffset + i]));
             else x = 0.0;
-            x = std::clamp (x * g, -4.0, 4.0);
+            // 1.1 : gain du modulateur puis écrêtage DOUX au-delà de 2 (borné à 4) ; l'ancien écrêtage dur
+            // (gain fort sur la voix interne) fabriquait des aigus parasites qui ouvraient les bandes hautes
+            // et le souffle : des « tchak » sur certaines syllabes
+            x *= g;
+            if (const auto ax = std::abs (x); ax > 2.0) x = std::copysign (2.0 + 2.0 * std::tanh ((ax - 2.0) * 0.5), x);
             if (! std::isfinite (x)) x = 0.0;
             mod[i] = (float) gate.process (x, src == voc::srcInternal ? 0.0 : thr);
         }
@@ -1030,6 +1042,7 @@ private:
     std::array<double, 3> talkF {}, talkG {};
     double mComp = 0.0, mTalk = 0.0, mBio = 0.0, talkShift = 1.0, nasal = 0.0, crushHold = 0.0, bioEnv = 0.0, talkEnv = 0.0;
     double talkRel = 0.9995, noteEnv = 0.0, carEnv = 0.0, noteAtt = 0.99, noteRel = 0.999;
+    double consEnv = 0.0, consAtt = 0.005, modGainNow = 1.0; // 1.1
     bool compOn = false, talkOn = false, bioOn = false, vocOn = false, ensOn = false, dblOn = false, idle = false, hfOn = false;
     int modOffset = 0;
     unsigned shapeTick = 0;

@@ -224,7 +224,7 @@ public:
     void reset() noexcept
     {
         o1.reset (0.0); o2.reset (0.3); o3.reset (0.6); ladder.reset(); svf.reset(); aenv.reset(); m1.reset(); m2.reset(); dc.reset();
-        active = false; last2 = 0.0;
+        active = false; last2 = 0.0; declick = false; lastOut = offset = 0.0;
     }
     void setSpread (int index, int count) noexcept { spread = count > 1 ? (2.0 * index / (count - 1) - 1.0) : 0.0; }
     void seed (std::uint32_t s) noexcept { rng = s; }
@@ -257,6 +257,13 @@ public:
             pending = false;
             pitch.jump ((double) (p[glide] > 0.5f && from >= 0 ? from : target));
             pitch.to ((double) target);
+            // 1.1 : toute note non liée (hors legato) relance ses oscillateurs au même point : attaque et rondeur identiques d'une note à l'autre. Avant,
+            // les oscillateurs tournaient librement : avec le désaccord de l'oscillateur 2 et la
+            // dérive, chaque note grave tombait ailleurs dans le battement (le son « ondulait »).
+            // Le désaccord et la dérive restent, ils font vivre la note pendant qu'elle tient.
+            // (une voix qui sonne encore — relâchement en cours — repart aussi au même point ; la
+            // sortie rejoint son ancienne valeur en ~2 ms, sans clic)
+            if (! (legatoPending && aenv.isActive())) { o1.reset (0.0); o2.reset (0.3); o3.reset (0.6); declick = aenv.isActive(); }
             if (! legatoPending || ! aenv.isActive()) { aenv.gate (true); m1.gate (true); m2.gate (true); }
         }
         const auto& wb = grv::instruments::morph::bank();
@@ -288,6 +295,7 @@ public:
         const bool need3 = mx3 > 0.0 || fmAmt > 0.0, need2 = mx2 > 0.0 || mixR > 0.0 || fmA23 > 0.0;
         double a = 0.0, e2 = 0.0, e3 = 0.0, l1 = 0.0, l2 = 0.0;
 
+        const auto offsetCoef = std::exp (-1.0 / (0.0005 * sr)); // 1.1 : fondu de raccord (~2 ms)
         for (int i = 0; i < n; ++i)
         {
             a = aenv.next(); e2 = m1.next(); e3 = m2.next();
@@ -323,7 +331,9 @@ public:
                 const auto folded = fastSin2Pi (0.25 * softClip (z * 0.5) * (1.0 + dist));
                 y = (y * (1.0 - dist) + folded * 0.5 * dist);
             }
-            const auto out = dc.process (y) * a * gain * (1.0 - tremolo * (1.0 + l2));
+            auto out = dc.process (y) * a * gain * (1.0 - tremolo * (1.0 + l2));
+            if (declick) { offset = lastOut - out; declick = false; }
+            out += offset; offset *= offsetCoef; lastOut = out;
             L[i] += (float) (out * gl);
             R[i] += (float) (out * gr);
         }
@@ -336,7 +346,8 @@ private:
     double lastA = 0.0, lastE2 = 0.0, lastE3 = 0.0, lastL1 = 0.0, lastL2 = 0.0;
     float vel = 1.0f;
     int target = 60, from = -1;
-    bool pending = false, legatoPending = false, active = false;
+    bool pending = false, legatoPending = false, active = false, declick = false;
+    double lastOut = 0.0, offset = 0.0; // 1.1 : raccord sans clic quand les oscillateurs sont relancés
     std::uint32_t rng = 7;
     HybridOsc o1, o2, o3;
     Ladder ladder;

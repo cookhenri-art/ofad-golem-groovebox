@@ -289,7 +289,7 @@ public:
         {
             case 2: return std::clamp (u, -1.0, 1.0);
             case 3: return fastSin2Pi (0.25 * std::clamp (u, -4.0, 4.0));
-            default: return std::tanh (u);
+            default: return dsp::LogCoshTable::get().tanh (u);
         }
     }
     static double prim (int c, double u) noexcept
@@ -298,7 +298,7 @@ public:
         {
             case 2: { const auto a = std::abs (u); return a <= 1.0 ? 0.5 * u * u : a - 0.5; }
             case 3: { const auto w = std::clamp (u, -4.0, 4.0); return -0.6366197723675814 * fastSin2Pi (0.25 * w + 0.25); } // −(2/π)·cos(πu/2)
-            default: { u = std::clamp (u, -40.0, 40.0); const auto a = std::abs (u); return a + std::log1p (std::exp (-2.0 * a)) - 0.6931471805599453; }
+            default: return dsp::LogCoshTable::get().logCosh (std::clamp (u, -40.0, 40.0)); // log(cosh u), par table (1.1)
         }
     }
     double process (double x, int type, double fc, double res, double drive, int curve, double sr) noexcept
@@ -317,7 +317,9 @@ public:
             const auto du = u - uPrev;
             // part linéaire pondérée par la pente de la courbe (aucune pour le repli) ; borné comme la courbe
             const auto mid = 0.5 * (u + uPrev);
-            const auto slope = c == 3 ? 0.0 : c == 2 ? (std::abs (mid) < 1.0 ? 1.0 : 0.0) : 1.0 - std::tanh (mid) * std::tanh (mid);
+            double slope = 0.0;
+            if (c == 2) slope = std::abs (mid) < 1.0 ? 1.0 : 0.0;
+            else if (c != 3) { const auto t = dsp::LogCoshTable::get().tanh (mid); slope = 1.0 - t * t; } // 1.1 : une tangente, par table
             double y = std::clamp ((std::abs (du) > 1.0e-3 ? (f - fPrev) / du : shapeAt (c, mid)) + 0.5 * du * slope, -1.0, 1.0);
             uPrev = u; fPrev = f;
             if (c == 1) y -= 0.24491866240370913;                                 // lampe : asymétrique (− tanh 0,25)
@@ -348,7 +350,7 @@ private:
 class BloVoice
 {
 public:
-    void prepare (double s) { sr = s; for (auto& e : env) e.prepare (s); reset(); }
+    void prepare (double s) { sr = s; for (auto& e : env) e.prepare (s); (void) dsp::LogCoshTable::get(); reset(); } // table prête hors du fil audio
     void reset() noexcept
     {
         oa1.reset(); oa2.reset(); o3.reset(); f1.reset(); f2.reset(); for (auto& e : env) e.reset();
@@ -384,6 +386,7 @@ public:
             pitch.jump ((double) (p[glide] > 0.5f && from >= 0 ? from : target));
             pitch.to ((double) target);
             if (! legatoPending || ! env[1].isActive()) for (auto& e : env) e.gate (true);
+            ctlCount = 0; // nouvelle note : valeurs lentes recalculées tout de suite
         }
         for (int k = 0; k < 4; ++k)
         {
@@ -411,22 +414,39 @@ public:
         const auto cv1 = (int) p[f1Curve], cv2 = (int) p[f2Curve];
         const auto v1 = (p[f1Vel] / 100.0) * 2.0 * (vel - 0.5), v2 = (p[f2Vel] / 100.0) * 2.0 * (vel - 0.5);
         const auto vib = p[vibrato] / 100.0;
-        double l[3] {}, e[4] {};
+        double e[4] {};
+        auto& l = ctlLfo;
 
         for (int i = 0; i < n; ++i)
         {
             for (int k = 0; k < 4; ++k) e[k] = env[(size_t) k].next();
-            lfoAge += 1.0 / sr;
-            for (int k = 0; k < 3; ++k)
+            // 1.1 : réglages lents recalculés tous les 8 échantillons (0,17 ms) : LFO, hauteur des
+            // oscillateurs, coupure des filtres ; enveloppes, oscillateurs et filtres restent calculés
+            // à chaque échantillon. Moitié du coût de la voix environ, son inchangé à l'oreille.
+            const bool tick = ctlCount == 0;
+            if (tick)
             {
-                const auto* q = p + lfoBase + k * lfoStride;
-                l[k] = lfo[(size_t) k].next ((int) q[0], q[1], sr) * lfoDelayGain (lfoAge, lfoDelaySeconds ((int) q[3]));
+                lfoAge += (double) ctlStep / sr;
+                for (int k = 0; k < 3; ++k)
+                {
+                    const auto* q = p + lfoBase + k * lfoStride;
+                    l[k] = lfo[(size_t) k].next ((int) q[0], q[1] * (double) ctlStep, sr) * lfoDelayGain (lfoAge, lfoDelaySeconds ((int) q[3]));
+                }
             }
+            ctlCount = (ctlCount + 1) % ctlStep;
             auto modOf = [&] (int src) { return src < 3 ? l[src] * 0.5 + 0.5 : e[src - 1]; }; // LFO : 0..1 ; Env. 3 / 4
             const auto note = pitch.next (glideCoef) + p[tune] + vib * l[0];
+            if (tick)
+            {
+                ctlHz1 = noteHz (note + off1) / sr; ctlHz2 = noteHz (note + off2) / sr;
+                ctlDt3 = std::clamp (noteHz (note + off3) / sr, 1.0e-7, 0.45);
+                const auto ktc = (note - 60.0) / 12.0;
+                ctlFc1 = std::clamp ((double) p[f1Cut] * fastExp2 (p[f1Key] / 100.0 * ktc + p[f1Env] / 100.0 * 7.0 * e[0] + v1), 16.0, 0.45 * sr);
+                ctlFc2 = std::clamp ((double) p[f2Cut] * fastExp2 (p[f2Key] / 100.0 * ktc + p[f2Env] / 100.0 * 7.0 * e[0] + v2), 16.0, 0.45 * sr);
+            }
 
             // oscillateur 3 (maître de la synchro)
-            const auto dt3 = std::clamp (noteHz (note + off3) / sr, 1.0e-7, 0.45);
+            const auto dt3 = ctlDt3;
             double wrap = -1.0;
             static constexpr Osc::Wave vaWave[4] { Osc::pulse, Osc::saw, Osc::triangle, Osc::sine };
             const auto s3 = o3.next (vaWave[sh3], dt3, 0.5 - 0.45 * p[o3Pw] / 100.0, -1.0, &wrap);
@@ -437,8 +457,8 @@ public:
             auto fmIn = [&] (int src, double other) { return src == 0 ? s3 : src == 1 ? other : white; };
             const auto pos1 = std::clamp (p[o1Pos] / 100.0 + p[o1Pwm] / 100.0 * modOf ((int) p[o1PwmSrc]), 0.0, 1.0);
             const auto pos2 = std::clamp (p[o2Pos] / 100.0 + p[o2Pwm] / 100.0 * modOf ((int) p[o2PwmSrc]), 0.0, 1.0);
-            const auto s1 = oscOut (wb, sh1, oa1, bl1, ph1, noteHz (note + off1) / sr, pos1, fm1 * fmIn (fmSrc1, last2), -1.0);
-            const auto s2 = oscOut (wb, sh2, oa2, bl2, ph2, noteHz (note + off2) / sr, pos2, fm2 * fmIn (fmSrc2, last1), sync2 ? wrap : -1.0);
+            const auto s1 = oscOut (wb, sh1, oa1, bl1, ph1, ctlHz1, pos1, fm1 * fmIn (fmSrc1, last2), -1.0);
+            const auto s2 = oscOut (wb, sh2, oa2, bl2, ph2, ctlHz2, pos2, fm2 * fmIn (fmSrc2, last1), sync2 ? wrap : -1.0);
             last1 = s1; last2 = s2;
 
             // bruit coloré : vers le grave (−) ou l'aigu (+)
@@ -447,9 +467,7 @@ public:
             const auto noise = ncol < 0.0 ? white * (1.0 + ncol) + noiseLp * 2.5 * -ncol : white * (1.0 - ncol) + noiseHp * 1.3 * ncol;
 
             const auto x = (s1 * lv1 + s2 * lv2 + s3 * lv3 + s1 * s2 * lvR + noise * lvN) * 0.4;
-            const auto kt = (note - 60.0) / 12.0;
-            const auto fc1 = std::clamp ((double) p[f1Cut] * fastExp2 (p[f1Key] / 100.0 * kt + p[f1Env] / 100.0 * 7.0 * e[0] + v1), 16.0, 0.45 * sr);
-            const auto fc2 = std::clamp ((double) p[f2Cut] * fastExp2 (p[f2Key] / 100.0 * kt + p[f2Env] / 100.0 * 7.0 * e[0] + v2), 16.0, 0.45 * sr);
+            const auto fc1 = ctlFc1, fc2 = ctlFc2;
             double y;
             if (parallel) y = f1.process (x, t1, fc1, r1, dr1, cv1, sr) * (1.0 - bal) * 2.0 * 0.6 + f2.process (x, t2, fc2, r2, dr2, cv2, sr) * bal * 2.0 * 0.6;
             else y = f2.process (f1.process (x, t1, fc1, r1, dr1, cv1, sr), t2, fc2, r2, dr2, cv2, sr);
@@ -497,6 +515,11 @@ private:
     }
 
     double sr = 48000.0, pan = 0.0, spread = 0.0, ph1 = 0.0, ph2 = 0.0, last1 = 0.0, last2 = 0.0, noiseLp = 0.0, noiseHp = 0.0, lfoAge = 1.0e9;
+    // 1.1 : valeurs lentes tenues entre deux recalculs (tous les ctlStep échantillons)
+    static constexpr int ctlStep = 8;
+    int ctlCount = 0;
+    std::array<double, 3> ctlLfo {};
+    double ctlHz1 = 0.001, ctlHz2 = 0.001, ctlDt3 = 0.001, ctlFc1 = 1000.0, ctlFc2 = 1000.0;
     std::array<double, 4> lastEnv {};
     std::array<double, 3> lastLfo {};
     float vel = 1.0f;

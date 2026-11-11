@@ -406,13 +406,17 @@ public:
                 const auto& k = cs[(size_t) c];
                 const auto dt2 = std::min (0.45, dt * k.ratio);
                 // les phases avancent toujours (un coin qui revient n'a pas de clic)
-                st.ph1 += dt; st.ph1 -= std::floor (st.ph1);
-                st.ph2 += dt2; st.ph2 -= std::floor (st.ph2);
+                // 1.1 : dt < 0,45 : la phase reste sous 1,45 ; retirer 1 donne exactement ph − floor (ph)
+                st.ph1 += dt; if (st.ph1 >= 1.0) st.ph1 -= 1.0;
+                st.ph2 += dt2; if (st.ph2 >= 1.0) st.ph2 -= 1.0;
                 if (w < 1.0e-4) continue;
                 const auto rp1 = st.ph1 + k.po1, rp2 = st.ph2 + k.po2; // phases lues (décalage de départ)
-                const auto g2 = gen (wb, k.g2, k.w2, rp2, lv2[(size_t) c], st, false);
                 double y;
                 const auto b = k.blend;
+                // 1.1 : mélange à 0 % : le générateur 2 ne compte pas, il n'est pas lu (sauf le bruit, dont le
+                // tirage doit avancer pour que le son reste identique)
+                if (b == 0.0 && k.g2 != orbit::noisePattern) { y = gen (wb, k.g1, k.w1, rp1, lv, st, true); mix += w * filt (cf[(size_t) c], y, k.ft); continue; }
+                const auto g2 = gen (wb, k.g2, k.w2, rp2, lv2[(size_t) c], st, false);
                 if (b <= 0.0) y = gen (wb, k.g1, k.w1, rp1, lv, st, true) + (-b) * g2;
                 else
                 {
@@ -453,7 +457,7 @@ private:
     /** Onde d'un générateur (motif, ou onde choisie de la bibliothèque en position W), hors bruit. */
     static double readWave (const WaveBank& wb, int pat, int wave, WaveBank::Mip lv, double phase) noexcept
     {
-        phase -= std::floor (phase);
+        if (phase < 0.0 || phase >= 1.0) phase -= std::floor (phase); // 1.1 : déjà dans [0, 1) le plus souvent (même résultat)
         if (pat < orbit::numHarmonic) return wb.read (pat, lv, phase);
         const auto& lib = morph::bank();
         return lib.read (std::clamp (wave, 0, lib.size() - 1), lv, phase);

@@ -145,6 +145,7 @@ namespace fmplayer
         Fm1* fm = nullptr;
         int channel = 0;
         bool keys = false;
+        float gainDb = 6.0f; // 1.1 : gain d'usine du firmware (mise à niveau avec les autres instruments)
         ~Machine() { if (fm != nullptr) fm1_free (fm); }
     };
 
@@ -158,6 +159,17 @@ namespace fmplayer
         if (has ("fm-1_0") || has ("fm-1.fwsc") || has ("fm-1 ")) m.channel = 1; // firmware d'origine : canal 2
         else if (has ("x0x")) m.channel = 2;                                        // X0X : ses basses sur les canaux 3 et 4
         else if (has ("b1") && (has ("b1.") || has ("b1-") || has ("b1 ") || has ("drawbar"))) m.keys = true; // orgue B1 : touches du boîtier
+        // 1.1 : gain d'usine, pour sortir au niveau des autres instruments de GOLEM (efficace ≈ -20 dB sur
+        // un motif de 8 notes, vélocité 0,8, mesuré le 8 nov. 2026 ; crête gardée sous -4 dB, +12 dB au plus).
+        // Le son n'est pas changé : seul le niveau. Firmware inconnu : +6 dB.
+        static const std::pair<const char*, float> gains[] {
+            { "sloopdx", 4.0f }, { "sloop", 0.0f }, { "jiant", 8.0f }, { "felucca", 7.0f }, { "fmini", 0.0f },
+            { "mycelium", 0.0f }, { "x0x", 0.0f }, { "melodee", 2.0f }, { "frodhes", 7.0f }, { "gr!mm", 8.0f },
+            { "grimm", 8.0f }, { "zp12", 7.0f }, { "obervave", 12.0f }, { "fm-106", 12.0f }, { "fizz", 12.0f } };
+        m.gainDb = 6.0f;
+        bool found = false;
+        for (const auto& [k, g] : gains) if (has (k)) { m.gainDb = g; found = true; break; }
+        if (! found && m.keys) m.gainDb = 9.0f; // orgue B1
     }
 
     /** Crée la machine d'un firmware (fil de l'interface) ; message d'erreur sinon. */
@@ -208,6 +220,7 @@ public:
         fm.store (m != nullptr ? m->fm : nullptr);
         autoChannel = m != nullptr ? m->channel : 0;
         autoKeys = m != nullptr && m->keys;
+        fwGain = m != nullptr ? (float) std::pow (10.0, m->gainDb / 20.0) : 1.0f;
        #else
         (void) s;
        #endif
@@ -397,7 +410,9 @@ public:
             fm1_pull (f, buf.data() + 2 * avail, (std::uint32_t) (need - avail));
             avail = need;
         }
-        const auto g = (float) std::pow (10.0, p[fmplayer::level] / 20.0);
+        const auto g = (float) std::pow (10.0, p[fmplayer::level] / 20.0) * fwGain;
+        // 1.1 : sécurité douce : rien ne change sous 0,9 (-0,9 dB) ; au-delà, la crête s'arrondit vers 1
+        const auto safe = [] (float x) noexcept { const auto a = std::abs (x); return a <= 0.9f ? x : std::copysign (0.9f + 0.1f * std::tanh ((a - 0.9f) * 10.0f), x); };
         for (int i = 0; i < n; ++i)
         {
             auto k = (int) pos;
@@ -407,8 +422,8 @@ public:
             const auto l = hermite (buf[(size_t) (2 * km)], buf[(size_t) (2 * k)], buf[(size_t) (2 * k + 2)], buf[(size_t) (2 * k + 4)], t);
             const auto r = hermite (buf[(size_t) (2 * km + 1)], buf[(size_t) (2 * k + 1)], buf[(size_t) (2 * k + 3)], buf[(size_t) (2 * k + 5)], t);
             if (std::abs (l) + std::abs (r) > 1.0e-4f) idle = 0; // la machine joue (séquenceur, son génératif)
-            L[i] += g * l;
-            R[i] += g * r;
+            L[i] += safe (g * l);
+            R[i] += safe (g * r);
             pos += step;
         }
         // garder une image avant le point courant (interpolation) et tout ce qui suit
@@ -524,6 +539,7 @@ private:
     std::atomic<bool> wakeRequest { false };
     int transposeNow = 0, chan = 0, autoChannel = 0;
     bool useKeys = false, autoKeys = false;
+    float fwGain = 1.0f; // 1.1 : gain d'usine du firmware chargé (linéaire)
     /** Notes tenues par case (slotOf) : canal × 128 + note, 4096 + touche du boîtier, -1 : rien. */
     std::array<std::int16_t, 2176> sent = [] { std::array<std::int16_t, 2176> a {}; a.fill (-1); return a; }();
     int playLane = 0;
