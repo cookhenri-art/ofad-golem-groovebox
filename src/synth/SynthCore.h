@@ -320,13 +320,18 @@ public:
     /** fc en Hz, res 0..1 (auto-oscillation vers 1), drive >= 1. */
     double process (double x, double fc, double res, double sr, Mode mode, double drive = 1.0) noexcept
     {
-        const auto g = prewarp (fc / sr);
-        const auto inv = 1.0 / (1.0 + g);
-        const auto G = g * inv;
+        // 1.1 : coefficients gardés tant que coupure et fréquence ne changent pas (résultat identique)
+        if (fc != cFc || sr != cSr)
+        {
+            const auto g = prewarp (fc / sr);
+            inv = 1.0 / (1.0 + g);
+            G = g * inv;
+            G2 = G * G; G4 = G2 * G2;
+            cFc = fc; cSr = sr;
+        }
         const auto k = 4.0 * std::clamp (res, 0.0, 1.05);
 
         // Estimation de la sortie sans délai : y4 = G^4 u + S, u = x - k y4
-        const auto G2 = G * G, G4 = G2 * G2;
         const auto S = inv * (G2 * G * s[0] + G2 * s[1] + G * s[2] + s[3]);
         auto u = (x * drive - k * S) / (1.0 + k * G4);
         u = fastTanh (u); // la saturation de l'étage d'entrée donne le grain et limite la résonance
@@ -356,6 +361,7 @@ public:
 
 private:
     std::array<double, 4> s {};
+    double cFc = -1.0, cSr = -1.0, inv = 1.0, G = 0.0, G2 = 0.0, G4 = 0.0; // 1.1 : coefficients gardés
 };
 
 /** Filtre à diodes à 4 pôles façon basse acide : pôles inégaux, passe-haut dans la boucle de
@@ -416,6 +422,8 @@ public:
     void reset() noexcept { ic1 = ic2 = 0.0; }
 
     struct Out { double low, band, high; };
+    SvfCoefs cache;
+    double cFc = -1.0, cRes = -1.0, cSr = -1.0;
 
     Out process (double x, const SvfCoefs& c) noexcept
     {
@@ -429,9 +437,10 @@ public:
 
     Out process (double x, double fc, double res, double sr) noexcept
     {
-        SvfCoefs c;
-        c.set (fc, res, sr);
-        return process (x, c);
+        // 1.1 : coefficients gardés tant que coupure, résonance et fréquence ne changent pas (résultat
+        // identique, calcul évité quand la coupure est tenue)
+        if (fc != cFc || res != cRes || sr != cSr) { cache.set (fc, res, sr); cFc = fc; cRes = res; cSr = sr; }
+        return process (x, cache);
     }
 
     double processMorph (double x, double fc, double res, double sr, double morph) noexcept
@@ -514,6 +523,7 @@ public:
         return value;
     }
 
+    double level() const noexcept { return value; } // 1.1 : niveau courant (relance des oscillateurs)
     bool isActive() const noexcept { return stage != idle; }
     Stage getStage() const noexcept { return stage; }
     double getValue() const noexcept { return value; }
