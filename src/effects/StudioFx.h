@@ -128,7 +128,7 @@ public:
     void prepare (double s, int) override { sr = s; reset(); }
     void reset() noexcept override
     {
-        for (auto& c : ch) { for (auto& f : c.lp) f.reset(); for (auto& f : c.hp) f.reset(); for (auto& f : c.ap) f.reset(); for (auto& f : c.bell) f.reset(); }
+        for (auto& c : ch) { for (auto& f : c.xo) f.reset(); for (auto& f : c.ap) f.reset(); for (auto& f : c.bell) f.reset(); }
         for (auto& f : fdet) f.reset();
         env.fill (0.0); gr.fill (0.0); fenv.fill (0.0); fgr.fill (0.0); grMax = 0.0;
     }
@@ -149,11 +149,7 @@ public:
         const auto f3 = std::min (std::max ((double) p[xBase + 2], f2 * 2.0), 0.45 * sr);
         const double fx[3] { f1, f2, f3 };
         for (auto& c : ch)
-            for (int k = 0; k < 3; ++k)
-            {
-                c.lp[(size_t) k].set (SvfEq::lowpass, fx[k], sr);
-                c.hp[(size_t) k].set (SvfEq::highpass, fx[k], sr);
-            }
+            for (int k = 0; k < 3; ++k) c.xo[(size_t) k].set (fx[k], sr); // 1.1 : étage partagé (identique)
         // passe-tout de compensation : grave par les séparations 2 et 3, bas-médium par la 3
         for (auto& c : ch)
         {
@@ -214,9 +210,10 @@ public:
             {
                 auto& s = ch[(size_t) c];
                 const auto x = in2[c];
-                const auto lo = s.lp[0].process (x), r1 = s.hp[0].process (x);
-                const auto m1 = s.lp[1].process (r1), r2 = s.hp[1].process (r1);
-                const auto m2 = s.lp[2].process (r2), hi = s.hp[2].process (r2);
+                double lo, r1, m1, r2, m2, hi;
+                s.xo[0].process (x, lo, r1);
+                s.xo[1].process (r1, m1, r2);
+                s.xo[2].process (r2, m2, hi);
                 band[c][0] = s.ap[1].process (s.ap[0].process (lo));
                 band[c][1] = s.ap[2].process (m1);
                 band[c][2] = m2;
@@ -260,7 +257,7 @@ public:
     }
 
 private:
-    struct Chan { std::array<LR4, 3> lp, hp; std::array<SvfEq, 3> ap; std::array<SvfEq, mband::numFloat> bell; };
+    struct Chan { std::array<LR4Split, 3> xo; std::array<SvfEq, 3> ap; std::array<SvfEq, mband::numFloat> bell; };
     double sr = 48000.0, grMax = 0.0;
     std::array<Chan, 2> ch;
     std::array<SvfEq, mband::numFloat> fdet;

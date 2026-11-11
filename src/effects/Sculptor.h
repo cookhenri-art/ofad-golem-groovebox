@@ -155,7 +155,7 @@ public:
         for (auto& c : ch)
         {
             c.time.clear(); for (auto& l : c.liq) l.clear();
-            for (auto& sp : c.split) for (auto& f : sp.f) f.reset();
+            for (auto& sp : c.split) { sp.lo.reset(); sp.hi.reset(); }
             for (auto& sp : c.split) for (auto& a : sp.ap) a.reset();
             c.filt.reset(); c.liqFb = 0.0; for (auto& a : c.ph) a = {}; c.held = 0.0; c.holdN = 0;
         }
@@ -204,8 +204,7 @@ public:
         for (auto& c : ch)
             for (auto& sp : c.split)
             {
-                sp.f[0].set (SvfEq::lowpass, fl, sr); sp.f[1].set (SvfEq::highpass, fl, sr);
-                sp.f[2].set (SvfEq::lowpass, std::min (fh, 0.45 * sr), sr); sp.f[3].set (SvfEq::highpass, std::min (fh, 0.45 * sr), sr);
+                sp.lo.set (fl, sr); sp.hi.set (std::min (fh, 0.45 * sr), sr); // 1.1 : étage partagé (identique)
                 sp.ap[0].set (SvfEq::allpass, std::min (fh, 0.45 * sr), 0.70710678, 0.0, sr);
             }
         // filtre : position de la courbe → fréquence (1 = ouvert pour passe-bas, fermé pour passe-haut)
@@ -247,7 +246,7 @@ public:
             {
                 auto& g = onG[(size_t) s];
                 if (g <= 0.0 && on[(size_t) s]) // rallumé : séparations de bandes reparties de zéro
-                    for (auto& c : ch) { for (auto& f : c.split[(size_t) s].f) f.reset(); for (auto& a : c.split[(size_t) s].ap) a.reset(); }
+                    for (auto& c : ch) { c.split[(size_t) s].lo.reset(); c.split[(size_t) s].hi.reset(); for (auto& a : c.split[(size_t) s].ap) a.reset(); }
                 g = on[(size_t) s] ? std::min (1.0, g + onStep) : std::max (0.0, g - onStep);
             }
             auto stage = [&] (int s, auto&& fn)
@@ -263,8 +262,9 @@ public:
                     else
                     {
                         auto& sp = ch[(size_t) c].split[(size_t) s];
-                        const auto lo = sp.f[0].process (in), rest = sp.f[1].process (in);
-                        const auto mid = sp.f[2].process (rest), hi = sp.f[3].process (rest);
+                        double lo, rest, mid, hi;
+                        sp.lo.process (in, lo, rest);
+                        sp.hi.process (rest, mid, hi);
                         double bands3[3] { sp.ap[0].process (lo), mid, hi };
                         bands3[b - 1] = fn (c, bands3[b - 1]);
                         y = bands3[0] + bands3[1] + bands3[2];
@@ -324,7 +324,7 @@ public:
 private:
     std::array<float, 8192> wBuf {};
     int wPos = 0, wDelay = 432;
-    struct Split { std::array<LR4, 4> f; std::array<SvfEq, 1> ap; };
+    struct Split { LR4Split lo, hi; std::array<SvfEq, 1> ap; };
     struct Ap { double x1 = 0.0, y1 = 0.0; };
     struct Chan
     {

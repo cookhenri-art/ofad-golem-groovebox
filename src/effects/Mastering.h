@@ -129,6 +129,27 @@ struct LR4
 inline double fdb (double x) noexcept { return 6.0205999 * fastLog2 (x); }
 inline double fgain (double db) noexcept { return fastExp2 (db * 0.16609640); }
 
+/** 1.1 : séparation de Linkwitz-Riley (passe-bas et passe-haut d'ordre 4 à la même fréquence). Le
+    premier étage des deux filtres reçoit le même signal avec les mêmes coefficients : il est calculé
+    une fois (résultat identique à deux LR4 séparés). */
+struct LR4Split
+{
+    SvfEq lpA, hpA, lpB, hpB;
+    void set (double fc, double sr) noexcept
+    {
+        lpA.set (SvfEq::lowpass, fc, 0.70710678, 0.0, sr); lpB.set (SvfEq::lowpass, fc, 0.70710678, 0.0, sr);
+        hpA.set (SvfEq::highpass, fc, 0.70710678, 0.0, sr); hpB.set (SvfEq::highpass, fc, 0.70710678, 0.0, sr);
+    }
+    void process (double x, double& lo, double& hi) noexcept
+    {
+        double v1, v2;
+        lpA.core (x, v1, v2);
+        lo = lpB.process (lpA.mix (x, v1, v2));
+        hi = hpB.process (hpA.mix (x, v1, v2));
+    }
+    void reset() noexcept { lpA.reset(); hpA.reset(); lpB.reset(); hpB.reset(); }
+};
+
 class Mastering final : public Effect
 {
 public:
@@ -139,7 +160,7 @@ public:
         for (auto& c : ch)
         {
             c.hp.reset(); c.low.reset(); c.mid.reset(); c.air.reset();
-            c.lp1.reset(); c.hp1.reset(); c.lp2.reset(); c.hp2.reset(); c.apLp.reset(); c.apHp.reset(); c.mxLp.reset(); c.mxHp.reset();
+            c.x1.reset(); c.x2.reset(); c.ap.reset(); c.mx.reset();
             c.os.reset(); c.clip.reset(); c.warm.reset(); c.shineSat.reset();
             c.kHs.reset(); c.kHp.reset();
         }
@@ -178,9 +199,8 @@ public:
             c.mid.set (SvfEq::bell, p[midFreq], 0.8, p[midGain], sr);
             c.air.set (SvfEq::highShelf, 10000.0, 0.7, p[airGain], sr);
             const auto f1 = (double) p[xLow], f2 = std::max ((double) p[xHigh], f1 * 2.0);
-            c.lp1.set (SvfEq::lowpass, f1, sr); c.hp1.set (SvfEq::highpass, f1, sr);
-            c.lp2.set (SvfEq::lowpass, f2, sr); c.hp2.set (SvfEq::highpass, f2, sr);
-            c.apLp.set (SvfEq::lowpass, f2, sr); c.apHp.set (SvfEq::highpass, f2, sr);
+            c.x1.set (f1, sr); c.x2.set (f2, sr);
+            c.ap.set (SvfEq::allpass, f2, 0.70710678, 0.0, sr); // 1.1 : passe-bas + passe-haut LR4 = ce passe-tout d'ordre 2
             c.kHs.set (SvfEq::highShelf, 1681.0, 0.71, 4.0, sr); // pondération K approchée (sonie affichée)
             c.kHp.set (SvfEq::highpass, 38.0, 0.5, 0.0, sr);
         }
@@ -200,7 +220,7 @@ public:
         const int holdLen = (int) (0.008 * sr);
         const bool split = p[splitLow] > 0.5f;
         const auto lowCeil = ceil * 0.8;
-        for (auto& c : ch) { c.mxLp.set (SvfEq::lowpass, p[xLow], sr); c.mxHp.set (SvfEq::highpass, p[xLow], sr); }
+        for (auto& c : ch) c.mx.set (p[xLow], sr);
         const auto kCoef = msCoef (1500.0, sr); // ≈ fenêtre de 3 s
         double maxBand[3] {}, maxClip = 0.0;
 
@@ -223,12 +243,12 @@ public:
                 for (int c = 0; c < 2; ++c)
                 {
                     auto& s = ch[c];
-                    const auto lo = s.lp1.process (x[c]);
-                    const auto rest = s.hp1.process (x[c]);
-                    // la bande grave passe par le passe-tout de la 2e séparation : somme plate
-                    b[0][c] = s.apLp.process (lo) + s.apHp.process (lo);
-                    b[1][c] = s.lp2.process (rest);
-                    b[2][c] = s.hp2.process (rest);
+                    double lo, rest;
+                    s.x1.process (x[c], lo, rest);
+                    // la bande grave passe par le passe-tout de la 2e séparation : somme plate. 1.1 : la somme
+                    // passe-bas + passe-haut LR4 (4 étages) est exactement ce passe-tout d'ordre 2 (1 étage)
+                    b[0][c] = s.ap.process (lo);
+                    s.x2.process (rest, b[1][c], b[2][c]);
                 }
                 for (int k = 0; k < 3; ++k)
                 {
@@ -276,7 +296,7 @@ public:
                 if (split)
                 {
                     double lo[2], hi[2];
-                    for (int c = 0; c < 2; ++c) { lo[c] = ch[c].mxLp.process (y[c]); hi[c] = ch[c].mxHp.process (y[c]); }
+                    for (int c = 0; c < 2; ++c) ch[c].mx.process (y[c], lo[c], hi[c]);
                     const auto lpk = std::max (std::abs (lo[0]), std::abs (lo[1]));
                     const auto lneed = lpk > lowCeil ? fdb (lpk / lowCeil) : 0.0;
                     if (lneed >= lowFast) { lowFast = lneed; lowHold = holdLen * 2; }
@@ -326,7 +346,8 @@ private:
     struct Channel
     {
         SvfEq hp, low, mid, air, kHs, kHp;
-        LR4 lp1, hp1, lp2, hp2, apLp, apHp, mxLp, mxHp;
+        LR4Split x1, x2, mx; // séparations grave, aigu, graves à part
+        SvfEq ap;            // passe-tout de la bande grave
         dsp::Oversampler2x os;
         AdaaTanh clip, shineSat;
         AdaaSoftClip warm;

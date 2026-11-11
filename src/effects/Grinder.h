@@ -169,8 +169,7 @@ public:
     {
         for (auto& c : ch)
         {
-            for (auto& f : c.lp) f.reset();
-            for (auto& f : c.hp) f.reset();
+            for (auto& f : c.xo) f.reset();
             for (auto& f : c.ap) f.reset();
             for (auto& b : c.fb) b.clear();
             for (auto& o : c.os) o.reset();
@@ -208,7 +207,7 @@ public:
         const double fx[3] { f1, f2, f3 };
         for (auto& c : ch)
         {
-            for (int k = 0; k < 3; ++k) { c.lp[(size_t) k].set (SvfEq::lowpass, fx[k], sr); c.hp[(size_t) k].set (SvfEq::highpass, fx[k], sr); }
+            for (int k = 0; k < 3; ++k) c.xo[(size_t) k].set (fx[k], sr); // 1.1 : séparations à étage partagé (identique)
             c.ap[0].set (SvfEq::allpass, f2, 0.70710678, 0.0, sr);
             c.ap[1].set (SvfEq::allpass, f3, 0.70710678, 0.0, sr);
             c.ap[2].set (SvfEq::allpass, f3, 0.70710678, 0.0, sr);
@@ -251,11 +250,12 @@ public:
             {
                 auto& s = ch[(size_t) c];
                 const auto x = in[c];
-                const auto lo = s.lp[0].process (x), r1 = s.hp[0].process (x);
+                double lo, r1, m1, r2, m2, hi;
+                s.xo[0].process (x, lo, r1);
                 if (nb == 2) { band[c][0] = lo; band[c][1] = r1; band[c][2] = band[c][3] = 0.0; continue; }
-                const auto m1 = s.lp[1].process (r1), r2 = s.hp[1].process (r1);
+                s.xo[1].process (r1, m1, r2);
                 if (nb == 3) { band[c][0] = s.ap[0].process (lo); band[c][1] = m1; band[c][2] = r2; band[c][3] = 0.0; continue; }
-                const auto m2 = s.lp[2].process (r2), hi = s.hp[2].process (r2);
+                s.xo[2].process (r2, m2, hi);
                 band[c][0] = s.ap[1].process (s.ap[0].process (lo));
                 band[c][1] = s.ap[2].process (m1);
                 band[c][2] = m2;
@@ -327,7 +327,7 @@ private:
     struct Dc { double x1 = 0, y1 = 0; double process (double x) { const auto y = x - x1 + 0.9995 * y1; x1 = x; y1 = y; return y; } };
     struct Chan
     {
-        std::array<LR4, 3> lp, hp; std::array<SvfEq, 3> ap;
+        std::array<LR4Split, 3> xo; std::array<SvfEq, 3> ap;
         std::array<FbLine, grinder::numBands> fb;
         std::array<Oversampler2x, grinder::numBands> os;
         std::array<double, grinder::numBands> fbY {};
