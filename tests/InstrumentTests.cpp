@@ -4,6 +4,7 @@
     silence après relâchement, coût de calcul. Écrit un WAV par module si un dossier est donné.
 */
 
+#include "dsp/NoDenormals.h"
 #include <set>
 #include "instruments/HybridPoly.h"
 #include "instruments/WaveMorph.h"
@@ -23,6 +24,7 @@
 #include "instruments/FmX.h"
 #include "instruments/Dfam.h"
 #include "instruments/Vocoders.h"
+#include "instruments/MidiTrack.h"
 #include "instruments/FmPlayer.h"
 #include <thread>
 #include <cstdlib>
@@ -162,7 +164,7 @@ static void testInstrument (const ModuleDesc& d, const char* outDir)
     }
     std::printf ("  %-10s cr\xC3\xAA" "te %5.2f  fin %.5f  calcul %5.2f %% d'un c\xC5\x93ur\n", name.c_str(), peak, tail, sec / 11.0 * 100.0);
     CHECK (finite, "valeurs invalides");
-    if (d.type == "fmplayer") CHECK (peak == 0.0f, "son sans firmware"); // v0.49 : muet tant qu'aucun firmware n'est charg\xC3\xA9
+    if (d.type == "fmplayer" || d.type == "midiext") CHECK (peak == 0.0f, "son sans firmware"); // v0.49 : muet tant qu'aucun firmware n'est charg\xC3\xA9 ; piste MIDI : jamais de son
     else CHECK (peak > 0.05f, "trop faible");
     CHECK (peak < 2.5f, "trop fort");
     CHECK (tail < 0.002f, "ne s'\xC3\xA9teint pas");
@@ -180,7 +182,8 @@ static void testEffect (const ModuleDesc& d, const char* outDir)
     for (const auto& s : d.sections) for (const auto& id : s.params) CHECK (d.indexOf (id) >= 0, ("section " + s.id + " : " + id).c_str());
     for (const auto& pr : d.presets) for (const auto& [id, v] : pr.values) CHECK (d.indexOf (id) >= 0, ("pr\xC3\xA9r\xC3\xA9glage " + pr.name + " : " + id).c_str());
     fx->prepare (sr, block);
-    CHECK (fx->latency() == 0, "latence non nulle");
+    // 1.1 : seules la famille « Restauration » et le limiteur à anticipation ont une latence (annoncée, compensée)
+    CHECK (fx->latency() == 0 || d.family == "Restauration" || d.type == "tlimit" || d.type == "tflange", "latence non nulle");
 
     // Signal : impulsions de batterie synthétiques + nappe, 6 s, puis 6 s de silence
     const int total = sr * 12;
@@ -3440,8 +3443,120 @@ static void testFmPlayer()
    #endif
 }
 
+// Après la 1.1 : piste MIDI — notes, canal d'émission, accord, gamme, écho, CC sur changement, coupure
+static void testMidiTrack()
+{
+    using namespace grv::instruments;
+    const std::string name = "Piste MIDI";
+    std::printf ("%s\n", name.c_str());
+    const auto& d = midit::desc();
+    MidiTrack t;
+    MidiOutQueue q;
+    t.prepare (48000.0, 32);
+    t.setMidiOut (&q);
+    t.setTempo (120.0);
+    auto p = defaults (d);
+    float L[32] {}, R[32] {};
+    auto run = [&] (int blocks) { for (int b = 0; b < blocks; ++b) { q.at = 0; t.render (L, R, 32, p.data()); } };
+    auto count = [&] (int status, int note = -1)
+    {
+        int c = 0;
+        for (int i = 0; i < q.count; ++i) if (q.ev[(size_t) i].b0 == status && (note < 0 || q.ev[(size_t) i].b1 == note)) ++c;
+        return c;
+    };
+    run (1); // premier bloc : rien n'est envoyé (le son de l'appareil n'est pas écrasé)
+    CHECK (q.count == 0, "rien n'est envoy\xC3\xA9 au premier bloc");
+    CHECK (d.indexOf ("arp_mode") == midit::arpMode, "arp\xC3\xA8ge du moteur (positions)");
+    CHECK (d.params[(size_t) d.indexOf ("arp_mode") + 6].id == "arp_on", "arp\xC3\xA8ge sans pas");
+    // note simple, canal 3
+    p[midit::outCh] = 3;
+    q.count = 0; t.noteOn (60, 0.8f);
+    CHECK (count (0x92, 60) == 1 && q.ev[0].b2 == 102, "note jou\xC3\xA9" "e sur le canal 3 avec sa v\xC3\xA9locit\xC3\xA9");
+    q.count = 0; t.noteOff (60);
+    CHECK (count (0x82, 60) == 1, "fin de note sur le m\xC3\xAA" "me canal");
+    // accord majeur + gamme + transposition
+    p[midit::chord] = 4; p[midit::scale] = 1; p[midit::root] = 0; p[midit::transpose] = 12;
+    q.count = 0; t.noteOn (61, 1.0f); // Do# hors de Do majeur → Do, +12 → 72 ; accord 72, 76, 79
+    CHECK (count (0x92, 72) == 1 && count (0x92, 76) == 1 && count (0x92, 79) == 1, "accord majeur dans la gamme, transpos\xC3\xA9");
+    q.count = 0; t.noteOff (61);
+    CHECK (count (0x82) == 3 && t.soundingCount() == 0, "l'accord s'arr\xC3\xAAte entier");
+    p[midit::chord] = 0; p[midit::scale] = 0; p[midit::transpose] = 0;
+    // écho : 3 répétitions qui s'éteignent, toutes relâchées
+    p[midit::echoN] = 3; p[midit::echoDiv] = 4; // croche à 120 : 12 000 échantillons
+    q.count = 0; t.noteOn (64, 1.0f); t.noteOff (64);
+    int ons = count (0x92, 64);
+    for (int b = 0; b < 48000 / 32 * 2; ++b) { q.count = 0; q.at = 0; t.render (L, R, 32, p.data()); ons += count (0x92, 64); }
+    CHECK (ons == 4 && t.soundingCount() == 0, "\xC3\xA9" "cho : 3 r\xC3\xA9p\xC3\xA9titions, toutes rel\xC3\xA2" "ch\xC3\xA9" "es");
+    p[midit::echoN] = 0;
+    // CC : envoyé seulement quand la valeur change
+    q.count = 0; run (3);
+    CHECK (q.count == 0, "pas de CC sans changement");
+    p[midit::k1] = 100;
+    q.count = 0; run (1);
+    CHECK (count (0xB2, 74) == 1, "bouton 1 tourn\xC3\xA9 : CC 74 envoy\xC3\xA9 sur le canal 3");
+    // SÉCURITÉ : changer le numéro d'un bouton n'envoie rien (aucun CC traversé), et jamais 120 à 127
+    q.count = 0;
+    for (int num = 0; num <= 127; ++num) { p[midit::n1 + 2] = (float) std::min (num, 119); run (1); }
+    CHECK (q.count == 0, "changer le num\xC3\xA9ro d'un bouton n'envoie rien");
+    p[midit::n1 + 2] = 73;
+    run (1);
+    // bouton 16 sur son propre canal (10)
+    p[midit::c1 + 15] = 10;
+    q.count = 0; run (1);
+    CHECK (q.count == 0, "changer le canal d'un bouton n'envoie rien");
+    p[midit::k1 + 15] = 5;
+    q.count = 0; run (1);
+    CHECK (count (0xB9, midit::defaultCc[15]) == 1, "bouton 16 sur son canal");
+    // coupure : les notes s'arrêtent et rien ne joue
+    q.count = 0; t.noteOn (50, 1.0f);
+    t.setTrackSilent (true);
+    CHECK (count (0x82, 50) == 1 && t.soundingCount() == 0, "piste coup\xC3\xA9" "e : la note s'arr\xC3\xAAte");
+    q.count = 0; t.noteOn (52, 1.0f);
+    CHECK (q.count == 0, "piste coup\xC3\xA9" "e : rien ne joue");
+    t.setTrackSilent (false);
+    // 32 boutons, réglages figés (ni scène, ni verrou, ni modulation)
+    CHECK (d.indexOf ("cc32") == midit::k1 + 31 && d.indexOf ("ccnum32") == midit::n1 + 31 && d.indexOf ("ccch32") == midit::c1 + 31, "32 boutons (positions)");
+    CHECK (d.params[(size_t) midit::n1].fixed && d.params[(size_t) midit::c1 + 5].fixed && d.params[(size_t) midit::outCh].fixed
+           && ! d.params[(size_t) midit::k1].fixed, "num\xC3\xA9ros de CC et canaux fig\xC3\xA9s, valeurs libres");
+    CHECK (d.indexOf ("pad1") == midit::pad1 && d.indexOf ("padsteps16") == midit::padSteps1 + 15 && d.params[(size_t) midit::padNum1].fixed
+           && d.params[(size_t) midit::pad1].momentary, "16 pads (positions, appui maintenu)");
+    p[midit::k1 + 31] = 90;
+    q.count = 0; run (1);
+    CHECK (count (0xB2, 89) == 1, "bouton 32 : CC 89");
+    // pads : CC maintenu (gate)
+    auto press = [&] (int k, bool on) { p[midit::pad1 + k] = on ? 1.0f : 0.0f; q.count = 0; run (1); };
+    press (0, true);
+    CHECK (count (0xB2, 80) == 1 && q.ev[0].b2 == 127, "pad 1 maintenu : CC 80 = 127");
+    press (0, false);
+    CHECK (count (0xB2, 80) == 1 && q.ev[0].b2 == 0, "pad 1 rel\xC3\xA2" "ch\xC3\xA9 : CC 80 = 0");
+    // marche / arrêt (toggle) : seul l'appui compte
+    p[midit::padMode1 + 1] = midit::padToggle;
+    press (1, true);  CHECK (count (0xB2, 81) == 1 && q.ev[0].b2 == 127, "pad 2 marche");
+    press (1, false); CHECK (q.count == 0, "pad 2 : le rel\xC3\xA2" "chement n'envoie rien");
+    press (1, true);  CHECK (count (0xB2, 81) == 1 && q.ev[0].b2 == 0, "pad 2 arr\xC3\xAAt");
+    press (1, false);
+    // par pas (4) : 42, 85, 127, 0
+    p[midit::padMode1 + 2] = midit::padStep; p[midit::padSteps1 + 2] = 4;
+    int seqv[4] {};
+    for (int i = 0; i < 4; ++i) { press (2, true); seqv[i] = q.count > 0 ? q.ev[0].b2 : -1; press (2, false); }
+    CHECK (seqv[0] == 42 && seqv[1] == 85 && seqv[2] == 127 && seqv[3] == 0, "pad 3 par pas : 4 valeurs puis retour");
+    // note sur son canal (5)
+    p[midit::padMode1 + 3] = midit::padNote; p[midit::padNum1 + 3] = 36; p[midit::padCh1 + 3] = 5;
+    press (3, true);  CHECK (count (0x94, 36) == 1, "pad 4 : note 36 sur le canal 5");
+    press (3, false); CHECK (count (0x84, 36) == 1 && t.soundingCount() == 0, "pad 4 : fin de note");
+    // un pad en CC ne vise jamais 120 à 127
+    p[midit::padNum1 + 4] = 123;
+    press (4, true); press (4, false);
+    CHECK (q.count == 0, "pad sur CC 123 : rien n'est envoy\xC3\xA9");
+    // hasard à 0 % : rien ne joue
+    p[midit::chance] = 0;
+    q.count = 0; t.noteOn (55, 1.0f);
+    CHECK (q.count == 0, "probabilit\xC3\xA9 0 % : silence");
+}
+
 int main (int argc, char** argv)
 {
+    grv::dsp::ScopedFlushDenormals noDenormals; // 1.1 : comme le fil audio de l'application (mesure du calcul réaliste)
     const char* outDir = argc > 1 ? argv[1] : nullptr;
     std::printf ("Instruments (%zu)\n", instrumentCatalog().size());
     for (const auto* d : instrumentCatalog()) testInstrument (*d, outDir);
@@ -3484,6 +3599,7 @@ int main (int argc, char** argv)
     testModeSwitch();
     testDrones();
     testOcta41();
+    testMidiTrack();
     std::printf (failures == 0 ? "OK\n" : "%d \xC3\xA9" "chec(s)\n", failures);
     return failures == 0 ? 0 : 1;
 }

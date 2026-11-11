@@ -21,6 +21,10 @@
 using namespace grv::engine;
 
 static int failures = 0;
+#include "../src/engine/OfflineChain.h"
+#include "../src/dsp/EqFilters.h"
+#include <random>
+#include "../src/instruments/MidiTrack.h"
 #define CHECK(cond) do { if (! (cond)) { std::printf ("ECHEC %s:%d  %s\n", __FILE__, __LINE__, #cond); ++failures; } } while (0)
 
 struct Render
@@ -166,6 +170,38 @@ static void testStepLocksAndConditions()
     CHECK (e2.getHitCount (0, 0) == 2);
 }
 
+// après la 1.1 : son du pas — numéro de préréglage verrouillé sur un pas : tous ses réglages pendant le pas,
+// retour au son de la piste au pas suivant sans verrou ; jamais modulé
+static void testStepSound()
+{
+    Engine e;
+    e.prepare (48000.0, 256);
+    e.setInstrument (0, "drumA", 0.0);
+    const auto tone = e.findParam (0, "inst", "p01_tone");
+    const auto toneLocal = localOf (tone) - instrumentBase;
+    const auto base = e.getParam (tone);
+    const auto snd = e.findParam (0, "son", "n");
+    CHECK (snd == globalSlot (0, trackSoundSlot) && e.describe (snd) != nullptr && e.describe (snd)->noMod);
+    auto pool = std::make_unique<SoundPool>();
+    SoundPool::Entry en;
+    en.track = 0; en.number = 5; en.desc = e.instrumentDesc (0); en.values = { { toneLocal, 0.123f } };
+    pool->entries.push_back (en);
+    e.publishSoundPool (std::move (pool), 0.0);
+    auto& s = e.sequencer();
+    s.setStep (0, 0, 0, 100);
+    s.setStep (0, 0, 8, 100);
+    e.setStepLock (0, 0, 8, snd, 5.0f / (float) trackSoundMax, 0.0);
+    s.requestPlay();
+    run (e, 200); // le pas 8 vient d'être joué
+    CHECK (std::abs (e.getEffective (tone) - 0.123f) < 1.0e-4f);
+    run (e, 180); // pas 0 de la mesure suivante : sans son du pas
+    CHECK (std::abs (e.getEffective (tone) - base) < 1.0e-4f);
+    // un verrou du pas passe au-dessus du son du pas
+    e.setStepLock (0, 0, 8, tone, 0.8f, 0.0);
+    run (e, 196);
+    CHECK (std::abs (e.getEffective (tone) - 0.8f) < 1.0e-4f);
+}
+
 static void testModulation()
 {
     Engine e;
@@ -299,6 +335,235 @@ static void testInserts()
         CHECK (e.setInsert (0, 0, d->type, 0.0));
         CHECK (e.getInsertTypes (0)[0] == d->type);
     }
+}
+
+// 1.1 (lot 6) : un outil à latence sur une piste : le moteur le dit (voyant), le retire quand on l'enlève,
+// et le son reste fini pendant les fondus de changement de retard
+// 1.1 : famille « Golem Titan FX » : plafond du limiteur, gel des réverbérations, bornes des boucles
+static void testTitan11()
+{
+    auto runFx = [] (const char* type, std::vector<std::pair<std::string, float>> set, std::vector<float>& L, std::vector<float>& R)
+    {
+        const auto* d = findEffect (type);
+        std::vector<float> p; for (const auto& pd : d->params) p.push_back (pd.def);
+        for (auto& kv : set) for (size_t i = 0; i < d->params.size(); ++i) if (d->params[i].id == kv.first) p[i] = kv.second;
+        auto fx = createEffect (type); fx->prepare (48000.0, 256);
+        for (size_t i = 0; i < L.size(); i += 256) fx->process (L.data() + i, R.data() + i, (int) std::min<size_t> (256, L.size() - i), p.data(), 120.0);
+        return fx->latency();
+    };
+    const int n = 48000 * 4;
+    std::vector<float> L ((size_t) n), R ((size_t) n);
+    auto fill = [&] { std::uint32_t s = 7; for (int i = 0; i < n; ++i) { s = s * 1664525u + 1013904223u; const float nz = (float) ((s >> 8) / 8388608.0 - 1.0);
+                       L[(size_t) i] = 0.6f * std::sin (i * 0.013f) + 0.4f * nz; R[(size_t) i] = 0.5f * std::sin (i * 0.017f) + 0.3f * nz; } };
+    // limiteur : jamais au-dessus du plafond (tous styles, avec ou sans suréchantillonnage)
+    for (int st = 0; st < 8; ++st)
+        for (int os = 0; os < 3; ++os)
+        {
+            fill();
+            runFx ("tlimit", { { "gain", 18 }, { "ceiling", -1 }, { "style", (float) st }, { "oversampling", (float) os } }, L, R);
+            float pk = 0.0f; for (int i = 0; i < n; ++i) pk = std::max (pk, std::max (std::abs (L[(size_t) i]), std::abs (R[(size_t) i])));
+            CHECK (pk <= std::pow (10.0f, -1.0f / 20.0f) + 1.0e-4f);
+        }
+    // réverbérations : le gel tient la queue ; sans gel, elle s'éteint
+    for (const char* t : { "tvintage", "tspace" })
+        for (int frz = 0; frz < 2; ++frz)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            for (int i = 0; i < 4800; ++i) { L[(size_t) i] = 0.5f * std::sin (i * 0.05f); R[(size_t) i] = L[(size_t) i]; }
+            const auto* d = findEffect (t);
+            std::vector<float> p; for (const auto& pd : d->params) p.push_back (pd.def);
+            for (size_t i = 0; i < d->params.size(); ++i) if (d->params[i].id == "mix") p[i] = 100;
+            auto fx = createEffect (t); fx->prepare (48000.0, 256);
+            for (int i = 0; i < n; i += 256)
+            {
+                if (frz && i > 9600) for (size_t k = 0; k < d->params.size(); ++k) if (d->params[k].id == "freeze") p[k] = 1;
+                fx->process (L.data() + i, R.data() + i, 256, p.data(), 120.0);
+            }
+            float last = 0.0f; for (int i = n - 4800; i < n; ++i) last = std::max (last, std::abs (L[(size_t) i]));
+            std::printf ("  titan \xC2\xB7 %s gel %d : fin %.5f\n", t, frz, last);
+            CHECK (frz ? last > 0.002f : last < 0.002f);
+        }
+    // boucles bornées : écho à 110 %, filtre en auto-oscillation, flanger régénéré
+    fill(); runFx ("techo", { { "feedback", 110 }, { "mix", 100 } }, L, R);
+    float pk = 0.0f; for (auto v : L) pk = std::max (pk, std::abs (v)); CHECK (std::isfinite (pk) && pk < 5.0f);
+    fill(); runFx ("tfilter", { { "f1Reso", 100 }, { "f1Style", 8 }, { "f1Drive", 100 } }, L, R);
+    pk = 0.0f; for (auto v : L) pk = std::max (pk, std::abs (v)); CHECK (std::isfinite (pk) && pk < 4.0f);
+    fill(); const int lat = runFx ("tflange", { { "throughZero", 1 }, { "regen", 95 } }, L, R);
+    pk = 0.0f; for (auto v : L) pk = std::max (pk, std::abs (v)); CHECK (std::isfinite (pk) && pk < 5.0f && lat == 240);
+}
+
+// Après la 1.1 : piste MIDI dans le moteur — notes jouées à leur place, arpège du moteur, coupure
+static void testMidiTrackEngine()
+{
+    Engine e;
+    e.prepare (48000.0, 256);
+    CHECK (e.setInstrument (0, "midiext", 0.0));
+    run (e, 2);
+    const auto setPlain = [&] (const char* id, float plain)
+    {
+        const auto g = e.findParam (0, "inst", id);
+        const auto& d = grv::instruments::midit::desc().params[(size_t) grv::instruments::midit::desc().indexOf (id)];
+        e.setParam (g, d.toNorm (plain));
+    };
+    setPlain ("outch", 5);
+    run (e, 2);
+    std::vector<float> L (256), R (256);
+    InputEvent on { InputEvent::noteOn, 0, 60, 100, 0.8f, false };
+    e.process (nullptr, nullptr, L.data(), R.data(), 256, {}, &on, 1);
+    bool found = false;
+    for (int i = 0; i < e.midiOut.count; ++i)
+        found = found || (e.midiOut.ev[(size_t) i].b0 == 0x94 && e.midiOut.ev[(size_t) i].b1 == 60 && e.midiOut.ev[(size_t) i].offset >= 96 && e.midiOut.ev[(size_t) i].offset < 160);
+    CHECK (found); // canal 5, placée vers l'échantillon 100 du bloc
+    InputEvent off { InputEvent::noteOff, 0, 60, 0, 0.0f, false };
+    e.process (nullptr, nullptr, L.data(), R.data(), 256, {}, &off, 1);
+    CHECK (e.midiOut.count >= 1 && e.midiOut.ev[0].b0 == 0x84);
+    // arpège du moteur : une note tenue donne plusieurs notes
+    setPlain ("arp_mode", 1); setPlain ("arp_oct", 2);
+    run (e, 2);
+    InputEvent hold { InputEvent::noteOn, 0, 48, 0, 1.0f, false };
+    e.process (nullptr, nullptr, L.data(), R.data(), 256, {}, &hold, 1);
+    int notes = 0;
+    for (int b = 0; b < 400; ++b)
+    {
+        e.process (nullptr, nullptr, L.data(), R.data(), 256, {}, nullptr, 0);
+        for (int i = 0; i < e.midiOut.count; ++i) if (e.midiOut.ev[(size_t) i].b0 == 0x94) ++notes;
+    }
+    std::printf ("  piste MIDI : %d notes d'arp\xC3\xA8ge en 2 s\n", notes);
+    CHECK (notes >= 4);
+    // coupée : plus rien
+    e.sequencer().setTrackMute (0, true);
+    run (e, 4);
+    int after = 0;
+    for (int b = 0; b < 200; ++b)
+    {
+        e.process (nullptr, nullptr, L.data(), R.data(), 256, {}, nullptr, 0);
+        for (int i = 0; i < e.midiOut.count; ++i) if (e.midiOut.ev[(size_t) i].b0 == 0x94) ++after;
+    }
+    CHECK (after == 0);
+    // le son de la piste reste muet
+    const auto r = run (e, 10);
+    CHECK (r.finite && r.peak == 0.0f);
+    // numéro de CC figé : une scène ne le change pas (la valeur du bouton, si)
+    {
+        const auto num = e.findParam (0, "inst", "ccnum1"), val = e.findParam (0, "inst", "cc1");
+        const auto n0 = e.getParam (num);
+        e.setSceneLock (0, num, 1.0f, 0.0); e.setSceneLock (8, num, 1.0f, 0.0);
+        e.setSceneLock (0, val, 1.0f, 0.0); e.setSceneLock (8, val, 1.0f, 0.0);
+        Engine::BlockInfo bi; bi.sceneA = 0; bi.sceneB = 8; bi.fader = 1.0f;
+        run (e, 20, bi);
+        CHECK (e.getEffective (num) < 0.99f && e.getParam (num) == n0); // figé : la scène ne le touche pas
+        CHECK (std::abs (e.getEffective (val) - 1.0f) < 0.02f);
+    }
+}
+
+// Après la 1.1 : piste MIDI jouée par le séquenceur — notes à leur place, chaque note a sa fin, rien ne reste à l'arrêt
+static void testMidiTrackSequencer()
+{
+    Engine e;
+    e.prepare (48000.0, 256);
+    CHECK (e.setInstrument (0, "midiext", 0.0));
+    run (e, 2);
+    auto& s = e.sequencer();
+    for (int i = 0; i < 16; i += 4) { s.setStep (0, 0, i, 100); s.setNote (0, 0, i, 60 + i); }
+    s.requestPlay();
+    std::vector<float> L (256), R (256);
+    std::vector<long> onAt;
+    int sounding = 0, maxSounding = 0, ons = 0, offs = 0;
+    for (int b = 0; b < 96000 / 256; ++b)
+    {
+        e.process (nullptr, nullptr, L.data(), R.data(), 256, {}, nullptr, 0);
+        for (int i = 0; i < e.midiOut.count; ++i)
+        {
+            const auto& ev = e.midiOut.ev[(size_t) i];
+            if ((ev.b0 & 0xF0) == 0x90 && ev.b2 > 0) { ++ons; ++sounding; onAt.push_back ((long) b * 256 + ev.offset); }
+            else if ((ev.b0 & 0xF0) == 0x80 || ((ev.b0 & 0xF0) == 0x90 && ev.b2 == 0)) { ++offs; --sounding; }
+            maxSounding = std::max (maxSounding, sounding);
+        }
+    }
+    s.requestStop();
+    for (int b = 0; b < 20; ++b)
+    {
+        e.process (nullptr, nullptr, L.data(), R.data(), 256, {}, nullptr, 0);
+        for (int i = 0; i < e.midiOut.count; ++i)
+        {
+            const auto& ev = e.midiOut.ev[(size_t) i];
+            if ((ev.b0 & 0xF0) == 0x90 && ev.b2 > 0) { ++ons; ++sounding; }
+            else if ((ev.b0 & 0xF0) == 0x80) { ++offs; --sounding; }
+        }
+    }
+    std::printf ("  piste MIDI au s\xC3\xA9quenceur : %d notes, %d fins, max %d en m\xC3\xAAme temps\n", ons, offs, maxSounding);
+    for (size_t k = 1; k < onAt.size() && k < 6; ++k) std::printf ("    \xC3\xA9" "cart %ld \xC3\xA9" "chantillons\n", onAt[k] - onAt[k - 1]);
+    CHECK (ons >= 4 && ons == offs && sounding == 0 && maxSounding <= 1);
+    bool regular = true;
+    for (size_t k = 1; k < onAt.size(); ++k) regular = regular && std::abs ((onAt[k] - onAt[k - 1]) - 24000) <= 32;
+    CHECK (regular); // une noire à 120 : 24 000 échantillons
+    // pad verrouillé sur un pas : appuyé puis relâché à chaque passage (CC 80 = 127, puis 0)
+    s.requestStop();
+    run (e, 4);
+    e.setStepLock (0, 0, 0, e.findParam (0, "inst", "pad1"), 1.0f, 0.0);
+    s.requestPlay();
+    int press = 0, release = 0;
+    for (int b = 0; b < 192000 / 256; ++b) // 4 s : deux passages du pas 1
+    {
+        e.process (nullptr, nullptr, L.data(), R.data(), 256, {}, nullptr, 0);
+        for (int i = 0; i < e.midiOut.count; ++i)
+        {
+            const auto& ev = e.midiOut.ev[(size_t) i];
+            if (ev.b0 == 0xB0 && ev.b1 == 80) (ev.b2 == 127 ? press : release)++;
+        }
+    }
+    s.requestStop();
+    std::printf ("  pad verrouill\xC3\xA9 : %d appuis, %d rel\xC3\xA2" "chements en 4 s\n", press, release);
+    CHECK (press >= 2 && release >= 2 && std::abs (press - release) <= 1);
+    // son (programme) verrouillé sur le pas 1 : le changement de programme part avant la note du pas
+    run (e, 4);
+    e.setStepLock (0, 0, 0, e.findParam (0, "inst", "pad1"), 0.0f, 0.0);
+    e.setStepLock (0, 0, 0, e.findParam (0, "inst", "program"), 5.0f / 128.0f, 0.0);
+    s.requestPlay();
+    bool pcFirst = false, sawPc = false;
+    for (int b = 0; b < 96000 / 256 && ! sawPc; ++b)
+    {
+        e.process (nullptr, nullptr, L.data(), R.data(), 256, {}, nullptr, 0);
+        for (int i = 0; i < e.midiOut.count; ++i)
+        {
+            const auto& ev = e.midiOut.ev[(size_t) i];
+            if ((ev.b0 & 0xF0) == 0xC0 && ev.b1 == 4)
+            {
+                sawPc = true;
+                pcFirst = true;
+                for (int j = 0; j < i; ++j)
+                    if ((e.midiOut.ev[(size_t) j].b0 & 0xF0) == 0x90 && e.midiOut.ev[(size_t) j].offset == ev.offset) pcFirst = false;
+            }
+        }
+    }
+    s.requestStop();
+    CHECK (sawPc && pcFirst);
+    CHECK (e.describe (e.findParam (0, "inst", "program"))->noMod && ! e.describe (e.findParam (0, "inst", "program"))->fixed);
+}
+
+static void testLatencyCompensation11()
+{
+    Engine e;
+    e.prepare (48000.0, 256);
+    e.setInstrument (0, "drumA", 0.0);
+    e.setInstrument (1, "drumA", 0.0);
+    run (e, 4);
+    CHECK (e.insertLatencySamples() == 0);
+    CHECK (e.setInsert (0, 0, "rdenoise", 0.0));
+    auto r = run (e, 20);
+    std::printf ("  latence compens\xC3\xA9" "e : %d \xC3\xA9" "chantillons (inserts), %d annonc\xC3\xA9" "s\n", e.insertLatencySamples(), e.compensationSamples());
+    CHECK (e.insertLatencySamples() >= 1024 && e.compensationSamples() >= e.insertLatencySamples());
+    CHECK (r.finite);
+    e.setInsert (0, 0, "", 0.0);
+    r = run (e, 20);
+    CHECK (r.finite && e.insertLatencySamples() == 0);
+    // un retour à latence : le son direct et les autres retours l'attendent
+    CHECK (e.setInsert (numTracks, 0, "rdereverb", 0.0));
+    r = run (e, 20);
+    CHECK (r.finite && e.channelInsertLatency (numTracks) >= 1024 && e.insertLatencySamples() >= 1024);
+    e.setInsert (numTracks, 0, "", 0.0);
+    r = run (e, 20);
+    CHECK (r.finite && e.insertLatencySamples() == 0 && e.channelInsertLatency (numTracks) == 0);
 }
 
 // v0.46 fix16 : décaler l'écriture d'un pas, en boucle ; fonctions des pas, conditions et verrous suivent
@@ -2073,6 +2338,196 @@ static void testRemoveStepResets()
     CHECK (s.getStepFlags (0, 4) == stepAccent);
 }
 
+// 1.1 (lot 1) : traitement hors temps réel d'un tampon par une chaîne d'effets
+static void testOfflineChain11()
+{
+    const double sr = 48000.0;
+    const int n = 24000;
+    std::vector<float> x ((size_t) n);
+    for (int i = 0; i < n; ++i) x[(size_t) i] = 0.3f * std::sin (2.0 * 3.14159265358979 * 440.0 * i / sr);
+    // chaîne vide ou contournée : rien à faire
+    {
+        OfflineChain oc;
+        CHECK (oc.prepare ({ { "", {}, false }, { "eq", {}, true } }, sr, 120.0).empty());
+        CHECK (oc.empty());
+    }
+    // effet inconnu : message
+    {
+        OfflineChain oc;
+        CHECK (! oc.prepare ({ { "inconnu", {}, false } }, sr, 120.0).empty());
+    }
+    // égaliseur aux réglages par défaut : même longueur, son fini et proche de l'original
+    {
+        OfflineChain oc;
+        CHECK (oc.prepare ({ { "eq", {}, false } }, sr, 120.0).empty());
+        auto r = oc.render (x.data(), nullptr, n, false);
+        CHECK (r.error.empty());
+        CHECK ((int) r.left.size() == n);
+        double diff = 0.0, ref = 0.0;
+        for (int i = 0; i < n; ++i) { CHECK (std::isfinite (r.left[(size_t) i])); diff += std::abs (r.left[(size_t) i] - x[(size_t) i]); ref += std::abs (x[(size_t) i]); }
+        CHECK (diff < 0.05 * ref);
+    }
+    // delay : avec la queue, le son s'allonge ; sans, il garde sa longueur
+    {
+        const auto* d = findEffect ("delay");
+        CHECK (d != nullptr);
+        std::vector<float> p;
+        for (const auto& pd : d->params) p.push_back (pd.def);
+        for (size_t i = 0; i < d->params.size(); ++i)
+            if (d->params[i].id == "mix" || d->params[i].id == "wet") p[i] = d->params[i].max * 0.5f;
+        std::vector<float> burst ((size_t) 4800, 0.0f);
+        for (int i = 0; i < 480; ++i) burst[(size_t) i] = 0.5f * std::sin (i * 0.1);
+        OfflineChain a, b;
+        CHECK (a.prepare ({ { "delay", p, false } }, sr, 120.0).empty());
+        CHECK (b.prepare ({ { "delay", p, false } }, sr, 120.0).empty());
+        auto ra = a.render (burst.data(), nullptr, 4800, true);
+        auto rb = b.render (burst.data(), nullptr, 4800, false);
+        CHECK (ra.error.empty() && rb.error.empty());
+        CHECK ((int) rb.left.size() == 4800);
+        CHECK ((int) ra.left.size() > 4800 && ra.tail > 0);
+    }
+    // annulation
+    {
+        OfflineChain oc;
+        CHECK (oc.prepare ({ { "eq", {}, false } }, sr, 120.0).empty());
+        std::atomic<bool> stop { true };
+        auto r = oc.render (x.data(), nullptr, n, false, 20.0, nullptr, &stop);
+        CHECK (! r.error.empty() && r.left.empty());
+    }
+}
+
+// 1.1 (lot 4) : restauration au banc — on salit un son propre (souffle, ronflement, clics, sifflantes,
+// bouffées graves), on le traite, on mesure ; et le son propre ne doit pas être abîmé
+static double rmsDiff (const std::vector<float>& a, const std::vector<float>& b, int from, int to)
+{
+    double s = 0.0; for (int i = from; i < to; ++i) { const double d = (double) a[(size_t) i] - b[(size_t) i]; s += d * d; }
+    return std::sqrt (s / std::max (1, to - from));
+}
+static std::vector<float> renderFx (const char* type, const std::vector<float>& in, std::vector<std::pair<std::string, float>> set = {}, int* latOut = nullptr)
+{
+    const auto* d = findEffect (type);
+    std::vector<float> p; for (const auto& pd : d->params) p.push_back (pd.def);
+    for (auto& kv : set) for (size_t i = 0; i < d->params.size(); ++i) if (d->params[i].id == kv.first) p[i] = kv.second;
+    OfflineChain oc;
+    oc.prepare ({ { type, p, false } }, 48000.0, 120.0);
+    auto r = oc.render (in.data(), nullptr, (int) in.size(), false);
+    if (latOut) *latOut = r.latency;
+    return r.left;
+}
+/** Rendu « en direct » : l'effet tel qu'en piste (pas de mode hors temps réel), latence retirée. */
+static std::vector<float> renderLive (const char* type, const std::vector<float>& in, std::vector<std::pair<std::string, float>> set = {})
+{
+    const auto* d = findEffect (type);
+    std::vector<float> p; for (const auto& pd : d->params) p.push_back (pd.def);
+    for (auto& kv : set) for (size_t i = 0; i < d->params.size(); ++i) if (d->params[i].id == kv.first) p[i] = kv.second;
+    auto fx = createEffect (type); fx->prepare (48000.0, 256);
+    const int lat = fx->latency(), n = (int) in.size();
+    std::vector<float> L ((size_t) (n + lat), 0.0f), R; std::copy (in.begin(), in.end(), L.begin()); R = L;
+    for (int i = 0; i < n + lat; i += 256) fx->process (L.data() + i, R.data() + i, std::min (256, n + lat - i), p.data(), 120.0);
+    return std::vector<float> (L.begin() + lat, L.end());
+}
+static void testRestoration11()
+{
+    const int n = 96000; const double sr = 48000.0, pi = 3.14159265358979;
+    std::vector<float> clean ((size_t) n);
+    for (int i = 0; i < n; ++i)   // « musique » : deux notes et une enveloppe
+        clean[(size_t) i] = (float) (0.25 * std::sin (2 * pi * 330 * i / sr) * (0.6 + 0.4 * std::sin (2 * pi * 1.3 * i / sr)) + 0.12 * std::sin (2 * pi * 523 * i / sr));
+    std::mt19937 rng (7); std::normal_distribution<float> g (0.0f, 1.0f);
+    // débruiteur : souffle à -32 dB ; le résultat doit se rapprocher du propre
+    {
+        std::vector<float> noisy = clean; for (auto& x : noisy) x += 0.02f * g (rng);
+        int lat = 0; auto out = renderFx ("rdenoise", noisy, { { "reduction", 20 } }, &lat);
+        const double before = rmsDiff (noisy, clean, n / 2, n), after = rmsDiff (out, clean, n / 2, n);
+        std::printf ("  restauration · d\xC3\xA9" "bruiteur : \xC3\xA9" "cart au propre %.4f -> %.4f (latence compens\xC3\xA9" "e %d)\n", before, after, lat);
+        CHECK (lat > 0 && after < 0.75 * before);
+    }
+    // anti-ronflement : 50 Hz + harmoniques
+    {
+        std::vector<float> hum = clean; for (int i = 0; i < n; ++i) for (int h = 1; h <= 6; ++h) hum[(size_t) i] += (float) (0.03 / h * std::sin (2 * pi * 50 * h * i / sr));
+        auto out = renderFx ("rdehum", hum, { { "fund", 1 }, { "mode", 0 } });
+        const double before = rmsDiff (hum, clean, n / 2, n), after = rmsDiff (out, clean, n / 2, n);
+        std::printf ("  restauration · anti-ronflement : %.4f -> %.4f\n", before, after);
+        CHECK (after < 0.35 * before);
+        auto autoOut = renderFx ("rdehum", hum, { { "fund", 0 }, { "mode", 1 } });
+        CHECK (rmsDiff (autoOut, clean, n / 2, n) < 0.6 * before);
+    }
+    // anti-clics : 40 clics brefs
+    {
+        std::vector<float> clicky = clean;
+        for (int k = 0; k < 40; ++k) { const int at = 3000 + k * 2300; for (int j = 0; j < 6; ++j) clicky[(size_t) (at + j)] += (j % 2 ? -0.6f : 0.7f); }
+        int lat = 0; auto out = renderFx ("rdeclick", clicky, {}, &lat);
+        const double before = rmsDiff (clicky, clean, 2000, n - 2000), after = rmsDiff (out, clean, 2000, n - 2000);
+        std::printf ("  restauration · anti-clics : %.4f -> %.4f (latence %d)\n", before, after, lat);
+        CHECK (after < 0.3 * before);
+        // son propre : à peine touché
+        auto same = renderFx ("rdeclick", clean);
+        CHECK (rmsDiff (same, clean, 2000, n - 2000) < 0.01);
+    }
+    // dé-esseur : bouffées de bruit aigu ; mode filtres puis spectral
+    {
+        std::vector<float> ess = clean; grv::dsp::SvfEq hp; hp.set (grv::dsp::SvfEq::highpass, 6000.0, 0.7071, 0.0, sr);
+        for (int i = 0; i < n; ++i) { const bool on = (i / 6000) % 3 == 1; const float z = (float) hp.process (g (rng)); if (on) ess[(size_t) i] += 0.3f * z; }
+        for (int mode = 0; mode < 2; ++mode)
+        {
+            auto out = renderFx ("rdeess", ess, { { "mode", (float) mode }, { "thresh", -40 }, { "amount", 18 } });
+            const double before = rmsDiff (ess, clean, 0, n), after = rmsDiff (out, clean, 0, n);
+            std::printf ("  restauration \xC2\xB7 d\xC3\xA9-esseur (%s) : %.4f -> %.4f\n", mode ? "spectral" : "filtres", before, after);
+            CHECK (after < 0.8 * before);
+        }
+    }
+    // anti-plosives : bouffées graves
+    {
+        std::vector<float> pl = clean;
+        for (int k = 0; k < 8; ++k) { const int at = 5000 + k * 11000; for (int j = 0; j < 2400; ++j) pl[(size_t) (at + j)] += (float) (0.6 * std::exp (-j / 500.0) * std::sin (2 * pi * 45 * j / sr)); }
+        auto out = renderFx ("rdeplosive", pl, { { "sensitivity", 7 } });
+        const double before = rmsDiff (pl, clean, 0, n), after = rmsDiff (out, clean, 0, n);
+        std::printf ("  restauration \xC2\xB7 anti-plosives : %.4f -> %.4f\n", before, after);
+        CHECK (after < 0.85 * before);
+    }
+    // anti-écrêtage : son écrêté à 60 % de sa crête ; hors temps réel puis en direct
+    {
+        std::vector<float> loud = clean; for (auto& x : loud) x *= 2.4f;      // crête ≈ 0,9
+        std::vector<float> clipped = loud; for (auto& x : clipped) x = std::clamp (x, -0.55f, 0.55f);
+        int lat = 0; auto out = renderFx ("rdeclip", clipped, { { "output", 0 } }, &lat);
+        const double before = rmsDiff (clipped, loud, 4000, n - 4000), after = rmsDiff (out, loud, 4000, n - 4000);
+        std::printf ("  restauration \xC2\xB7 anti-\xC3\xA9" "cr\xC3\xAA" "tage : %.4f -> %.4f (latence %d)\n", before, after, lat);
+        CHECK (after < 0.3 * before);
+        auto live = renderLive ("rdeclip", clipped, { { "output", 0 } });
+        const double afterLive = rmsDiff (live, loud, 4000, n - 4000);
+        std::printf ("  restauration \xC2\xB7 anti-\xC3\xA9" "cr\xC3\xAA" "tage direct : %.4f\n", afterLive);
+        CHECK (afterLive < 0.8 * before);
+        auto same = renderFx ("rdeclip", clean, { { "output", 0 } });
+        CHECK (rmsDiff (same, clean, 4000, n - 4000) < 0.003);
+    }
+    // dé-réverb : notes brèves dans une pièce (queue exponentielle, T60 0,8 s)
+    {
+        std::vector<float> dry ((size_t) n, 0.0f);
+        for (int k = 0; k < 12; ++k) { const int at = 2000 + k * 7600; const double f = 220.0 * std::pow (2.0, (k % 5) / 12.0);
+            for (int j = 0; j < 2400; ++j) dry[(size_t) (at + j)] = (float) (0.4 * std::exp (-j / 900.0) * std::sin (2 * pi * f * j / sr)); }
+        const int irLen = 36000; std::vector<float> ir ((size_t) irLen);
+        for (int j = 0; j < irLen; ++j) ir[(size_t) j] = j == 0 ? 1.0f : (j < 1200 ? 0.0f : (float) (0.25 * g (rng) * std::exp (-6.9 * j / (0.8 * sr))));
+        std::vector<float> wet ((size_t) n, 0.0f);
+        for (int i = 0; i < n; ++i) if (dry[(size_t) i] != 0.0f) for (int j = 0; j < irLen && i + j < n; ++j) wet[(size_t) (i + j)] += dry[(size_t) i] * ir[(size_t) j];
+        for (int live = 0; live < 2; ++live)
+        {
+            auto out = live ? renderLive ("rdereverb", wet, { { "amount", 15 } }) : renderFx ("rdereverb", wet, { { "amount", 15 } });
+            const double before = rmsDiff (wet, dry, n / 4, n), after = rmsDiff (out, dry, n / 4, n);
+            std::printf ("  restauration \xC2\xB7 d\xC3\xA9-r\xC3\xA9verb (%s) : %.4f -> %.4f\n", live ? "direct" : "traitement", before, after);
+            CHECK (after < 0.85 * before);
+        }
+    }
+    // chaque outil : fini et sans explosion sur du bruit fort et du silence
+    for (const char* t : { "rdenoise", "rdehum", "rdeclick", "rdeess", "rdeplosive", "rdeclip", "rdereverb" })
+    {
+        std::vector<float> loud ((size_t) 24000); for (auto& x : loud) x = 0.9f * g (rng);
+        auto out = renderFx (t, loud); bool fin = true; float pk = 0.0f;
+        for (auto x : out) { fin = fin && std::isfinite (x); pk = std::max (pk, std::abs (x)); }
+        CHECK (fin && pk < 8.0f);
+        std::vector<float> sil ((size_t) 24000, 0.0f); auto o2 = renderFx (t, sil); float p2 = 0.0f; for (auto x : o2) p2 = std::max (p2, std::abs (x));
+        CHECK (p2 < 1.0e-4f);
+    }
+}
+
 int main()
 {
     std::printf ("Tests du moteur\n");
@@ -2085,6 +2540,7 @@ int main()
     testScenes();
     testVectorScenes();
     testStepLocksAndConditions();
+    testStepSound();
     testRemoveStepResets();
     testModulation();
     testSeqModSource();
@@ -2123,6 +2579,12 @@ int main()
     testVocoderInEngine();
     testMoveKeepsState26();
     testPadSidechain24();
+    testOfflineChain11();
+    testRestoration11();
+    testLatencyCompensation11();
+    testMidiTrackEngine();
+    testMidiTrackSequencer();
+    testTitan11();
     testCpu();
     if (failures == 0) std::printf ("OK\n");
     return failures == 0 ? 0 : 1;

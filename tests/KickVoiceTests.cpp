@@ -62,6 +62,33 @@ int main()
 {
     KickVoice::Params p;
 
+    // 1.1 : coups répétés alors que la queue sonne encore (180 BPM, déclin 450 ms) : chaque coup a
+    // la même attaque (avant : un coup sur deux ou trois gardait la phase de la queue, -16 dB d'écart)
+    {
+        KickVoice v; v.prepare (48000.0); v.setParams (p);
+        constexpr int period = 16000, hits = 8, win = 2400;
+        std::vector<float> x ((size_t) (period * hits), 0.0f);
+        for (int h = 0; h < hits; ++h)
+        {
+            v.trigger (0.9);
+            for (int i = 0; i < period; i += 64) v.renderAdding (x.data() + (size_t) (h * period + i), std::min (64, period - i));
+        }
+        double worst = -200.0;
+        for (int h = 2; h < hits; ++h)
+        {
+            double e = 0.0, r = 0.0;
+            for (int i = 0; i < win; ++i)
+            {
+                const double a = x[(size_t) (period + i)], b = x[(size_t) (h * period + i)];
+                e += (a - b) * (a - b); r += a * a;
+            }
+            worst = std::max (worst, 10.0 * std::log10 (e / r + 1.0e-20));
+        }
+        char what[120];
+        std::snprintf (what, sizeof what, "coups r\xC3\xA9p\xC3\xA9t\xC3\xA9s : attaque identique (\xC3\xA9" "cart max %.1f dB)", worst);
+        check (worst < -40.0, what);
+    }
+
     // 1. Aucune valeur invalide, niveau borné
     {
         auto x = render (48000.0, 2.0, p);
