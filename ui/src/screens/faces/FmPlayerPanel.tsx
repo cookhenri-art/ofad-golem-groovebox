@@ -291,14 +291,14 @@ function Fm1BigSteps() {
   );
 }
 
-/** 1.0 : petit bouton de couleur du fond (ambre, nuit, émeraude, sobre), gardé sur l'appareil. */
-function Fm1FondPicker() {
-  const fond = useFm1Fond();
+/** 1.0 : petit bouton de couleur du fond (ambre, nuit, émeraude, sobre), gardé sur l'appareil ; 1.1 : un fond par piste. */
+function Fm1FondPicker({ channel }: { channel: number }) {
+  const fond = useFm1Fond(channel);
   return (
     <span className="fm1-fonds" role="radiogroup" aria-label="Couleur du fond">
       {(Object.keys(FM1_FONDS) as Fm1Fond[]).map((f) => (
         <button key={f} type="button" role="radio" aria-checked={fond === f} className={`fm1-fond${fond === f ? " on" : ""}`}
-          style={{ background: FM1_FONDS[f].swatch }} onClick={() => setFm1Fond(f)} title={`Fond ${FM1_FONDS[f].label}`} aria-label={`Fond ${FM1_FONDS[f].label}`} />
+          style={{ background: FM1_FONDS[f].swatch }} onClick={() => setFm1Fond(f, channel)} title={`Fond ${FM1_FONDS[f].label}`} aria-label={`Fond ${FM1_FONDS[f].label}`} />
       ))}
     </span>
   );
@@ -318,7 +318,7 @@ export function Fm1Panel({ channel }: { channel: number }) {
   const [big, setBig] = useState(false);
   return (
     <div className="fm1">
-      <span className="fm1-tools"><Fm1FondPicker />
+      <span className="fm1-tools"><Fm1FondPicker channel={channel} />
       <button type="button" className="fm1-bigbtn" onClick={() => setBig(true)} aria-label="Ouvrir la machine en grand (tout l'écran)">⤢ Grand</button></span>
       {big && <Fm1Big channel={channel} scr={scr} onClose={() => setBig(false)} />}
       <div className="fm1-top">
@@ -421,7 +421,7 @@ export function Fm1Firmware({ channel }: { channel: number }) {
     unités du conteneur : elle tient dans la zone visible, quelle que soit la taille annoncée. */
 function Fm1Big({ channel, scr, onClose }: { channel: number; scr: ReturnType<typeof useScreen>; onClose: () => void }) {
   const cv = useRef<HTMLCanvasElement>(null);
-  const fond = useFm1Fond();
+  const fond = useFm1Fond(channel);
   const name = useStore((s) => s.channels[channel]?.samples?.[0]);
   useEffect(() => {
     const g = cv.current?.getContext("2d");
@@ -445,7 +445,7 @@ function Fm1Big({ channel, scr, onClose }: { channel: number; scr: ReturnType<ty
           title="Changer de firmware : la bibliothèque, ouverte sur le dossier Firmwares">Bibliothèque</button>
         <span className="fm1big-name">{name ?? "FM Player"}</span>
         <LearnChips />
-        <Fm1FondPicker />
+        <Fm1FondPicker channel={channel} />
         <button type="button" className="fm1big-close" onClick={onClose}>✕ Fermer</button>
       </div>
       {lib && (

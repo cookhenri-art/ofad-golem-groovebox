@@ -13,6 +13,7 @@ import type { EncoderBinding } from "../../controls/Encoder";
 import { useValueDrag } from "../../controls/useValueDrag";
 import { OctaStepEdit } from "./OctaPanel";
 import { noteSpans, spanClass } from "./noteSpans";
+import { stepInBar, stepLabel } from "../../engine/steps"; // 1.1 : pas 1 à 16 dans chaque mesure
 
 /** Durées proposées (en huitièmes de pas, comme le moteur) : 1/4 de pas à 16 pas. */
 const LENS = [2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 256, 512, 1024];
@@ -89,11 +90,11 @@ export function StepStrip({ lane: laneMode = false }: { lane?: boolean } = {}) {
         ))}
         {lockSel !== null && (
           <button type="button" className="steps303-lockchip" onClick={() => setUi({ step: null, stepEdit: false })}
-            title={`Pas ${lockSel + 1} choisi : les boutons écrivent dans ce pas seulement. Toucher pour le libérer.`}>{`Verrous · pas ${lockSel + 1} ✕`}</button>
+            title={`Pas ${stepLabel(lockSel)} choisi : les boutons écrivent dans ce pas seulement. Toucher pour le libérer.`}>{`Verrous · pas ${stepLabel(lockSel)} ✕`}</button>
         )}
         {menu !== null && (
           <button type="button" className="steps303-selchip" onClick={() => setMenu(null)}
-            title="Le menu de ce pas est ouvert : ses réglages changent ce pas seulement. Toucher pour le fermer.">{`Pas ${menu + 1} choisi ✕`}</button>
+            title="Le menu de ce pas est ouvert : ses réglages changent ce pas seulement. Toucher pour le fermer.">{`Pas ${stepLabel(menu)} choisi ✕`}</button>
         )}
       </div>
       <div className="steps303-row">
@@ -113,7 +114,7 @@ export function StepStrip({ lane: laneMode = false }: { lane?: boolean } = {}) {
               onPointerDownCapture={() => { if (menu !== null && menu !== s) setMenu(null); }}
               onWheelCapture={() => { if (menu !== null && menu !== s) setMenu(null); }}>
               <button type="button" className="step303-key" disabled={out} aria-pressed={on}
-                aria-label={`Pas ${s + 1}${on ? `, ${noteName(note)}${more > 0 ? ` + ${more} note${more > 1 ? "s" : ""} d'accord` : ""}` : ", silence"} (tirer : note)`}
+                aria-label={`Pas ${stepLabel(s)}${on ? `, ${noteName(note)}${more > 0 ? ` + ${more} note${more > 1 ? "s" : ""} d'accord` : ""}` : ", silence"} (tirer : note)`}
                 title={more > 0 ? `Accord de ${held.length} notes (piano roll) : toucher retire tout le pas` : undefined}
                 onPointerDown={(e) => {
                   e.currentTarget.setPointerCapture(e.pointerId); drag.current = { id: e.pointerId, y: e.clientY, step: s, note, moved: false };
@@ -144,7 +145,7 @@ export function StepStrip({ lane: laneMode = false }: { lane?: boolean } = {}) {
                   }
                 }}
                 onWheel={(e) => setNote(s, note + (e.deltaY < 0 ? 1 : -1), ml)}>
-                <span className="step303-num">{s + 1}</span>
+                <span className="step303-num">{stepInBar(s)}</span>
                 <span className="step303-note">{on ? noteName(note) : spans.get(s) && spans.get(s)!.note >= 0 ? <i className="step303-cont">{noteName(spans.get(s)!.note)}</i> : "—"}{more > 0 && <sup className="step303-chord">+{more}</sup>}</span>
               </button>
               <div className="step303-fn">
@@ -152,10 +153,10 @@ export function StepStrip({ lane: laneMode = false }: { lane?: boolean } = {}) {
                 <button type="button" disabled={out} title="Octave plus bas" onClick={() => setNote(s, note - 12, ml)}>▼</button>
               </div>
               <div className="step303-vals">
-                <StepValue label={`Vélocité du pas ${s + 1}`} text={on ? String(lane?.vel[s] ?? 100) : "—"} disabled={!on}
+                <StepValue label={`Vélocité du pas ${stepLabel(s)}`} text={on ? String(lane?.vel[s] ?? 100) : "—"} disabled={!on}
                   binding={{ kind: "continuous", label: "Vélocité", text: String(lane?.vel[s] ?? 100), normalised: ((lane?.vel[s] ?? 100) - 1) / 126,
                     onChange: (n) => void actions.seq("seqSetStep", ml, s, Math.max(1, Math.min(127, Math.round(1 + n * 126)))) }} />
-                <StepValue label={`Durée du pas ${s + 1} (en pas)`} text={on ? lenText(lane?.len[s] ?? 8) : "—"} disabled={!on}
+                <StepValue label={`Durée du pas ${stepLabel(s)} (en pas)`} text={on ? lenText(lane?.len[s] ?? 8) : "—"} disabled={!on}
                   binding={{ kind: "stepped", label: "Durée", text: lenText(lane?.len[s] ?? 8), normalised: 0,
                     onStep: (d) => { const cur = lane?.len[s] ?? 8; const i = LENS.findIndex((x) => x >= cur); const k = Math.max(0, Math.min(LENS.length - 1, (i < 0 ? LENS.length - 1 : i) + d)); void actions.seq("seqSetLength8", ml, s, LENS[k]); } }} />
               </div>

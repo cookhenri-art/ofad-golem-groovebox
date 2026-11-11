@@ -27,6 +27,8 @@ import { StepsEditor } from "./MatrixPanel";
 import { ShiftButtons } from "./ShiftButtons";
 import { beginStepPaint, justPainted } from "../../controls/stepPaint";
 import { noteSpans, spanClass } from "./noteSpans";
+import { stepInBar, stepLabel } from "../../engine/steps"; // 1.1 : pas 1 à 16 dans chaque mesure
+import { useStepSound } from "../../engine/stepSound"; // après la 1.1 : son du pas
 
 const MACHINES = ["Flex", "Pickup"];
 const MACHINE_HINTS = [
@@ -427,6 +429,7 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
   const sel = useStore((s) => (s.ui.stepEdit && (s.ui.lane === T || (chordish && s.ui.lane >= 0 && s.ui.lane < (s.pattern?.lanes.length ?? 0))) ? s.ui.step : null));
   const uiLane = useStore((s) => s.ui.lane);
   const focus = useStore((s) => s.focus);
+  const snd = useStepSound(focus); // après la 1.1 : son (préréglage, programme MIDI) verrouillé sur un pas
   useStore((s) => s.ui.message); // le bouton Coller suit la copie (message affiché)
   const [page, setPage] = useState(0);
   const [lockMode, setLockMode] = useState(false);
@@ -457,7 +460,7 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
   const choose = (step: number) => {
     if (sel === step) { setUi({ step: null, stepEdit: false }); return; }
     setUi({ lane: chordish ? (stepLanes(getState().pattern, step)[0] ?? T) : T, step, stepEdit: true, selection: [] });
-    showMessage(`Pas ${step + 1} de ${nm} : tournez les boutons pour y poser des verrous`);
+    showMessage(`Pas ${stepLabel(step)} de ${nm} : tournez les boutons pour y poser des verrous`);
   };
   const down = (step: number) => {
     // v0.47 (5 nov. après-midi) : poser ou retirer une note sur un AUTRE pas libère le pas choisi — sinon la touche
@@ -572,6 +575,8 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
           const cont = !on && spans.get(s);
           // v0.43.4 : emplacement verrouillé sur ce pas (lecture d'un autre son à ce pas)
           const slotLock = ex?.locks.find(([g]) => g === slotAddr)?.[1];
+          const sndLock = slotAddr < 0 && snd.addr >= 0 ? ex?.locks.find(([g]) => g === snd.addr)?.[1] : undefined;
+          const sndNum = sndLock !== undefined ? snd.num(sndLock) : 0;
           return (
             <button key={k} type="button" className={cls.join(" ")} disabled={out} data-paint-step={s}
               onPointerDown={(e) => {
@@ -587,10 +592,11 @@ export function LockSteps({ T, slotAddr = -1, slotName, name, shift = "lane", me
                   onStart: () => { if (press.current) { window.clearTimeout(press.current.timer); press.current = null; } },
                 });
               }} onPointerUp={() => up(s)} onPointerLeave={() => { if (press.current?.step === s) { window.clearTimeout(press.current.timer); press.current = null; } }}
-              title={`Pas ${s + 1}${on ? ` (posé${melodic ? `, ${noteName(pattern.lanes[ml]?.note[s] ?? 60)}${more > 0 ? ` + ${more} note${more > 1 ? "s" : ""} d'accord` : ""}` : ""})` : ""}${ex && ex.locks.length ? ` · ${ex.locks.length} verrou${ex.locks.length > 1 ? "s" : ""}` : ""} — toucher : poser / retirer ; appui long : verrous`}>
-              <span className="fc-led" aria-hidden /><i>{notes && on ? noteName(pattern.lanes[ml]?.note[s] ?? 60) : cont && notes && cont.note >= 0 ? <b className="ot-step-cont">{noteName(cont.note)}</b> : s + 1}{more > 0 && <sup className="step303-chord">+{more}</sup>}</i>
+              title={`Pas ${stepLabel(s)}${on ? ` (posé${melodic ? `, ${noteName(pattern.lanes[ml]?.note[s] ?? 60)}${more > 0 ? ` + ${more} note${more > 1 ? "s" : ""} d'accord` : ""}` : ""})` : ""}${ex && ex.locks.length ? ` · ${ex.locks.length} verrou${ex.locks.length > 1 ? "s" : ""}` : ""} — toucher : poser / retirer ; appui long : verrous`}>
+              <span className="fc-led" aria-hidden /><i>{notes && on ? noteName(pattern.lanes[ml]?.note[s] ?? 60) : cont && notes && cont.note >= 0 ? <b className="ot-step-cont">{noteName(cont.note)}</b> : stepInBar(s)}{more > 0 && <sup className="step303-chord">+{more}</sup>}</i>
               {octaNote && on && (ln.len[s] ?? 8) > 8 && <em className="ot-step-len" title={`Durée : ${(ln.len[s] / 8).toFixed(ln.len[s] % 8 ? 2 : 0)} pas`}>{(ln.len[s] / 8).toFixed(ln.len[s] % 8 ? 1 : 0)}</em>}
               {slotLock !== undefined && slotName && <em className="ot-step-slot" title="Emplacement joué sur ce pas">{slotName(slotLock)}</em>}
+              {sndNum > 0 && <em className="ot-step-slot" title={`Son joué sur ce pas : ${snd.label(sndNum)}`}>{snd.short(sndNum)}</em>}
             </button>
           );
         })}
@@ -606,7 +612,15 @@ const LEN8 = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 
 export function OctaStepEdit({ T, step, withNote = true, octa = false, extra, onClose }: { T: number; step: number; withNote?: boolean; octa?: boolean; extra?: React.ReactNode; onClose?: () => void }) {
   const ln = useStore((s) => s.pattern?.lanes[T]);
   const ex = useStore((s) => s.extras.find((e) => e.lane === T && e.step === step));
+  const focus = useStore((s) => s.focus);
+  const snd = useStepSound(focus); // après la 1.1 : son du pas
   if (!ln) return null;
+  const sndLock = snd.addr >= 0 ? ex?.locks.find(([g]) => g === snd.addr)?.[1] : undefined;
+  const sndNum = sndLock !== undefined ? snd.num(sndLock) : 0;
+  const setSound = (n: number) => {
+    if (n <= 0) void actions.extras("stepClearLock", T, step, snd.addr);
+    else void actions.extras("stepLock", T, step, snd.addr, snd.norm(n));
+  };
   const note = ln.note[step] ?? 60, vel = ln.vel[step] ?? 100, len = ln.len[step] ?? 8, micro = ln.micro[step] ?? 0;
   const cond = { cond: ex?.cond ?? 0, a: ex?.a ?? 1, b: ex?.b ?? 2, prob: ex?.prob ?? 100 };
   const ck = condKey(cond.cond, cond.a, cond.b);
@@ -626,8 +640,8 @@ export function OctaStepEdit({ T, step, withNote = true, octa = false, extra, on
     { label: "Répétitions", text: ratchetText(rk), step: (d) => { const [n, sl] = pick(RATCHET_CHOICES, rk, d).split(":").map(Number); void actions.extras("stepRatchet", T, step, n, sl); } },
   ] as Row[]).filter((r) => withNote || r.label !== "Note");
   return (
-    <div className="ot-stepedit" role="group" aria-label={`Pas ${step + 1} de T${T + 1}`}>
-      <b>Pas {step + 1}</b>
+    <div className="ot-stepedit" role="group" aria-label={`Pas ${stepLabel(step)} de T${T + 1}`}>
+      <b>Pas {stepLabel(step)}</b>
       {extra}
       {rows.map((r) => (
         <span key={r.label} className="ot-stepedit-item">
@@ -637,6 +651,17 @@ export function OctaStepEdit({ T, step, withNote = true, octa = false, extra, on
           <button type="button" onClick={() => r.step(1)} aria-label={`${r.label} +`}>▶</button>
         </span>
       ))}
+      {!octa && snd.addr >= 0 && snd.count > 0 && (
+        <span className="ot-stepedit-item ot-stepedit-sound" title="Son joué sur ce pas (comme les emplacements de la Pieuvre) : la piste revient à son son au pas suivant sans son verrouillé">
+          <small>Son</small>
+          <button type="button" onClick={() => setSound(Math.max(0, sndNum - 1))} aria-label="Son −">◀</button>
+          <select value={sndNum} onChange={(e) => setSound(Number(e.target.value))} aria-label="Son joué sur ce pas">
+            <option value={0}>— son de la piste —</option>
+            {Array.from({ length: snd.count }, (_, i) => <option key={i + 1} value={i + 1}>{snd.label(i + 1)}</option>)}
+          </select>
+          <button type="button" onClick={() => setSound(Math.min(snd.count, sndNum + 1))} aria-label="Son +">▶</button>
+        </span>
+      )}
       {onClose && <button type="button" className="ot-stepedit-close" onClick={onClose} aria-label="Fermer le menu du pas">✕</button>}
       {octa && <span className="fp-hint">La durée s'entend quand le Déclenchement de la T est sur « Tant qu'appuyé ».</span>}
     </div>

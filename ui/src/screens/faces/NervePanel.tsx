@@ -8,6 +8,7 @@ import { useRef, useState } from "react";
 import type React from "react";
 import { actions, setUi, useStore } from "../../engine/store";
 import type { ModuleDesc } from "../../engine/protocol";
+import { stepInBar, stepLabel } from "../../engine/steps"; // 1.1 : pas 1 à 16 dans chaque mesure
 
 type LaneKind = "vel" | "len" | "micro";
 const LANES: { id: LaneKind; label: string }[] = [
@@ -60,7 +61,7 @@ export function NervePattern({ module: m }: { channel: number; module: ModuleDes
         {pages > 1 && (
           <span className="nv-pages">
             <button type="button" disabled={pg <= 0} onClick={() => setUi({ page: pg - 1 })} aria-label="Pas précédents">◀</button>
-            <span className="tabular">{pg * 16 + 1}–{Math.min(pattern.length, pg * 16 + 16)}</span>
+            <span className="tabular">Mesure {pg + 1}</span>
             <button type="button" disabled={pg >= pages - 1} onClick={() => setUi({ page: pg + 1 })} aria-label="Pas suivants">▶</button>
           </span>
         )}
@@ -75,10 +76,10 @@ export function NervePattern({ module: m }: { channel: number; module: ModuleDes
           const here = playing && (pos[lane] ?? -1) === s;
           return (
             <button key={i} type="button" disabled={out} className={`nv-bar g${Math.floor(i / 4)}${on ? " on" : ""}${here ? " here" : ""}`}
-              aria-label={`Pas ${s + 1} : ${on ? shape.text(v) : "vide"}`}
+              aria-label={`Pas ${stepLabel(s)} : ${on ? shape.text(v) : "vide"}`}
               onPointerDown={onPointer(s)} onPointerMove={onPointer(s)}>
               <span className="nv-bar-fill" style={{ height: `${Math.round(h * 100)}%` }} />
-              <span className="nv-bar-num">{s + 1}</span>
+              <span className="nv-bar-num">{stepInBar(s)}</span>
               {on && <span className="nv-bar-val tabular">{shape.text(v)}</span>}
             </button>
           );

@@ -1290,16 +1290,16 @@ const drumImp: FaceLayout = {
   ],
 };
 
-/** Batterie « Nerve » (v0.26) : disposée comme le logiciel — l'éditeur de motif du pad choisi en
-    haut, la grille 4 × 4 des pads, le pad choisi (forme d'onde et pages, dont le précalcul) et le
+/** Batterie « Nerve » (v0.26) : disposée comme le logiciel — en haut la grille 4 × 4 des pads et les
+    réglages du son du pad choisi (1.1, à la place de l'éditeur de motif), le pad choisi (forme d'onde et pages, dont le précalcul) et le
     compresseur interne ; le kit en colonnes dans la page « Le kit ». */
 const drumNrv: FaceLayout = {
   theme: "cutbeat",
   pages: [
     {
-      id: "sound", label: "Pads et motif",
+      id: "sound", label: "Pads et son",
       rows: [
-        [{ title: "Pads", ctl: [], custom: "nervepads", grow: 1 }, { title: "Motif du pad choisi", ctl: [], custom: "nervepat", grow: 2.3 }],
+        [{ title: "Pads", ctl: [], custom: "nervepads", grow: 1 }, { title: "Son du pad choisi", ctl: [], custom: "padsound", grow: 2.3 }],
         [
           { title: "Pad choisi · déposez un échantillon sur un pad pour remplacer son son", ctl: [], custom: "elektron", grow: 2.6 },
           { title: "Compresseur interne", cols: 3, grow: 0.9, tone: "oklch(0.78 0.15 170)", ctl: [

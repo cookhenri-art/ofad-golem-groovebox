@@ -17,7 +17,7 @@ import { SectionVisual } from "../ModuleView";
 import { actions, useStore } from "../../engine/store";
 import { StepStrip } from "./StepStrip";
 import { StepsChoice } from "./StepsChoice";
-import { AccentKnob, ElektronPages, KitColumns, StepKeys } from "./KitPanels";
+import { AccentKnob, ElektronPages, KitColumns, PadSoundKnobs, StepKeys } from "./KitPanels";
 import { MatrixPanel, StepsEditor } from "./MatrixPanel";
 import { OctaPanel } from "./OctaPanel";
 import { WaveScanPanel } from "./WaveScanPanel";
@@ -26,7 +26,7 @@ import { GlutaLane, GlutaOsc, GlutaPad } from "./GlutaPanel";
 import { GoodDocOsc, GoodDocRoute } from "./GoodDocPanel";
 import { DfamSeqPanel, DfamTransport } from "./DfamPanel";
 import { ImpactOut, ImpactStrips } from "./ImpactPanel";
-import { NervePads, NervePattern } from "./NervePanel";
+import { NervePads } from "./NervePanel";
 import { VocBandsPanel, VocSourcePanel } from "./VocoderPanel";
 import { BigWave, ZonePads } from "./SamplerPanels";
 import { BigKnobView } from "./BigKnob";
@@ -65,7 +65,8 @@ const CUSTOM: Record<string, (p: { channel: number; module: ModuleDesc; args: st
   impstrips: ({ channel, module }) => <ImpactStrips channel={channel} module={module} />,
   impout: ({ channel, module }) => <ImpactOut channel={channel} module={module} />,
   stepkeysI: () => <StepsChoice kind="drum"><StepKeys palette="dragon" /></StepsChoice>,
-  nervepat: ({ channel, module }) => <NervePattern channel={channel} module={module} />,
+  // 1.1 : réglages du son du pad choisi (remplace l'éditeur de motif de la batterie à échantillons)
+  padsound: ({ channel, module }) => <PadSoundKnobs channel={channel} module={module} />,
   nervepads: ({ channel, module }) => <NervePads channel={channel} module={module} />,
   vocsrc: ({ channel, module }) => <VocSourcePanel channel={channel} module={module} />,
   vocbands: ({ channel, module }) => <VocBandsPanel channel={channel} module={module} />,

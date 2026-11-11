@@ -14,6 +14,7 @@ import { beginStepPaint, justPainted } from "../../controls/stepPaint";
 import { paramAddress, steppedBinding, useParam } from "../../controls/bindings";
 import { Encoder } from "../../controls/Encoder";
 import { SectionVisual, TAB_LABELS, sectionsFor } from "../ModuleView";
+import { stepInBar, stepLabel } from "../../engine/steps"; // 1.1 : pas 1 à 16 dans chaque mesure
 
 function Knob({ global, label, size }: { global: number; label?: string; size?: "small" | "big" }) {
   const b = useParam(global, label);
@@ -59,6 +60,37 @@ export function ElektronPages({ channel, module: m }: { channel: number; module:
             <span className="fc-led" aria-hidden />{p.label}
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** 1.1 : réglages essentiels du son du pad choisi (échantillon déposé ou son de synthèse), en un seul
+    rang : accord, déclin, départ et fin (pads « Échantillon »), attaque, filtre (type, coupure,
+    résonance, enveloppe) et niveau. Remplace l'éditeur de motif de la batterie à échantillons (les pas,
+    leur vélocité, leur durée et leur décalage se règlent dans le séquenceur à verrous). */
+const PAD_SOUND_SAMPLE = ["tune", "decay", "snap", "x1", "aatk", "ftype", "fcut", "freso"];
+const PAD_SOUND_SYNTH = ["tune", "decay", "aatk", "ftype", "fcut", "freso", "fenv", "level"];
+const PAD_SOUND_LABEL: Record<string, string> = { aatk: "Attaque", ftype: "Filtre", fenv: "Env. filtre" };
+
+export function PadSoundKnobs({ channel, module: m }: { channel: number; module: ModuleDesc }) {
+  const lane = useStore((s) => s.ui.lane);
+  const prefix = `p${String(lane + 1).padStart(2, "0")}_`;
+  const ids = (m.padKinds?.[lane] === "sample" ? PAD_SOUND_SAMPLE : PAD_SOUND_SYNTH)
+    .filter((id) => m.params.some((p) => p.id === prefix + id));
+  return (
+    <div className="padsound">
+      <div className="padsound-head"><b>{String(lane + 1).padStart(2, "0")} · {m.padNames[lane]}</b></div>
+      <div className="padsound-knobs">
+        {ids.map((id) => {
+          const k = m.params.findIndex((p) => p.id === prefix + id);
+          const label = PAD_SOUND_LABEL[id] ?? m.params[k]?.name;
+          return (
+            <div key={prefix + id} className="padsound-k">
+              <Knob global={paramAddress(channel, "inst", 0, k)} label={label} size="big" />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -132,7 +164,7 @@ export function StepKeys({ palette }: { palette: "boum" | "club" | "machine" | "
           const out = s >= pattern.length;
           const here = playing && (accentMode ? playStep : pos[lane] ?? -1) === s;
           return (
-            <button key={i} type="button" disabled={out} aria-pressed={on} aria-label={accentMode ? `Accent du pas ${s + 1}` : `Pas ${s + 1}`} data-paint-step={s}
+            <button key={i} type="button" disabled={out} aria-pressed={on} aria-label={accentMode ? `Accent du pas ${stepLabel(s)}` : `Pas ${stepLabel(s)}`} data-paint-step={s}
               onPointerDown={(e) => beginStepPaint(e, s, {
                 // v0.46.2 : pinceau : glisser sur les touches voisines pose (ou retire) tous ces pas
                 isOn: (x) => { const p = getState().pattern; return accentMode ? ((p?.flags[x] ?? 0) & STEP_ACCENT) !== 0 : (p?.lanes[lane]?.vel[x] ?? 0) > 0; },
@@ -146,7 +178,7 @@ export function StepKeys({ palette }: { palette: "boum" | "club" | "machine" | "
               onClick={() => justPainted() ? undefined : accentMode ? void actions.seq("seqStepsFlag", JSON.stringify([s]), STEP_ACCENT, !acc(s))
                 : void actions.seq("seqSetStep", lane, s, on ? 0 : 100)}>
               <span className="stepkey-lamp" aria-hidden />
-              <span className="stepkey-num">{s + 1}</span>
+              <span className="stepkey-num">{stepInBar(s)}</span>
             </button>
           );
         })}
