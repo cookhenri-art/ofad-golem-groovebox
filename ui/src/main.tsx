@@ -7,11 +7,13 @@ import "./skin/skin.css";
 
 // v0.32.1 : pas de menu du navigateur au clic droit (Retour, Actualiser, Imprimer…) : « Actualiser »
 // rechargerait l'interface en plein jeu. Les champs de texte gardent le leur (copier, coller).
+// Capture (après la 1.1) : vu avant tout le reste, même quand une commande arrête la propagation du clic
+// droit (badge de modulation « M5 +30 % ») ; les menus de GOLEM s'ouvrent toujours (rien n'est arrêté ici).
 document.addEventListener("contextmenu", (e) => {
   const t = e.target as HTMLElement | null;
   if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
   e.preventDefault();
-});
+}, true);
 
 // v0.46 fix28 : l'écran ne se zoome ni ne se déplace (pincer, Ctrl + molette, Ctrl + / - / 0 ; le double
 // toucher est coupé par touch-action, sans perdre les touchers rapides des boutons) : le zoom du navigateur cassait la disposition. Les gestes à deux doigts des commandes

@@ -3014,26 +3014,26 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 /* Accueil (application autonome, au lancement) */
 .welcome {
   position: absolute; inset: 0; z-index: 400; border-radius: inherit; overflow: hidden;
-  display: grid; grid-template-columns: 560px minmax(0, 1fr); align-items: center; gap: 24px; padding: 40px 56px 40px 24px;
+  display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: center; gap: 24px; padding: 32px 56px 32px 24px;
   background: radial-gradient(120% 90% at 28% 55%, oklch(0.27 0.03 60 / 0.97), oklch(0.15 0.008 250 / 0.985) 62%);
   backdrop-filter: blur(6px);
   animation: welcome-in 0.22s ease-out both;
 }
 .welcome.is-closing { animation: welcome-out 0.22s ease-in both; }
-.welcome-hero { position: relative; height: 640px; display: grid; place-items: center; }
+.welcome-hero { position: relative; height: 100%; min-height: 0; display: grid; place-items: center; }
 .welcome-halo {
-  position: absolute; width: 440px; height: 440px; border-radius: 50%;
+  position: absolute; width: min(440px, 78%); aspect-ratio: 1; border-radius: 50%;
   background: radial-gradient(circle, oklch(0.78 0.16 70 / 0.38), transparent 68%);
   animation: welcome-halo 0.9s ease-out 0.1s both;
 }
 .welcome-golem {
-  position: relative; height: 600px; width: auto; user-select: none;
+  position: relative; height: min(600px, 94%); max-width: 100%; width: auto; object-fit: contain; user-select: none;
   filter: drop-shadow(0 18px 30px oklch(0 0 0 / 0.6));
   transform-origin: 50% 85%;
   animation: welcome-pop 0.62s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 .welcome-panel {
-  display: flex; flex-direction: column; gap: 16px; min-width: 0; max-height: 100%;
+  display: flex; flex-direction: column; gap: 16px; min-width: 0; transform-origin: left center;
   animation: welcome-panel 0.4s ease-out 0.28s both;
 }
 .welcome-brand { display: flex; flex-direction: column; gap: 4px; }
@@ -3236,7 +3236,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .device--ghost-phone .ot { grid-template-columns: 160px 724px; grid-template-areas: "pages pages" "trk screen" "trk knobs" "rec steps" "rec lfo"; }
 .device--ghost-phone .ot-pages { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
 .device--ghost-phone .ot-pages button { justify-content: center; }
-.device--ghost-phone .welcome { overflow-y: auto; overscroll-behavior: contain; }
+.device--ghost-phone .welcome { overflow: hidden; grid-template-columns: minmax(0, 0.75fr) minmax(0, 1fr); padding: 20px 32px 20px 12px; gap: 16px; } /* 1.1 : l'accueil tient dans l'écran (Welcome.tsx) */
 
 /* v0.46 fix20 : menus des réglages sur téléphone, agrandis au milieu de l'écran */
 .mod-menu.mod-menu--sheet { animation: none; z-index: 900; box-shadow: 0 18px 60px oklch(0 0 0 / 0.75), inset 0 0 0 1px oklch(0.42 0.02 245); }
@@ -4268,6 +4268,8 @@ html, body, #root { overflow: clip; }
 .zoom-rail-duo { display: flex; gap: 5px; flex: 1.1 1 0; min-height: 0; }
 .zoom-rail-duo > button { flex: 1 1 0; appearance: none; border: 0; border-radius: 10px; cursor: pointer; font: 800 12.5px/1 inherit; letter-spacing: 0.03em; color: oklch(0.95 0.01 250); box-shadow: inset 0 -2px 0 oklch(0 0 0 / 0.35); }
 .zoom-rail-live { background: linear-gradient(oklch(0.62 0.17 0), oklch(0.54 0.17 0)); }
+/* 1.1 : un libellé traduit plus long ne déborde jamais du rail (il est coupé dans son bouton) */
+.zoom-rail-duo > button { min-width: 0; overflow: hidden; white-space: nowrap; padding: 0 3px; }
 /* 1.0 : bouton ⤢ (vue agrandie) bien visible : vert, plus grand (plus de plein écran sur téléphone) */
 .top-full.top-zoom { background: linear-gradient(oklch(0.72 0.16 150), oklch(0.62 0.16 150)) !important; color: oklch(0.15 0.03 150) !important;
   border: 0 !important; font-weight: 800; box-shadow: 0 0 10px oklch(0.7 0.16 150 / 0.45), inset 0 -2px 0 oklch(0 0 0 / 0.25); }
@@ -4463,3 +4465,242 @@ html, body, #root { overflow: clip; }
 .device--phone .screen-status[data-screen="Mixeur"] .screen-extra .perf-meter { display: none; }
 .face-transport .perf-meter { margin-right: 6px; }
 .face-transport .perf-sep, .face-transport .perf-val--mem, .face-transport .perf-bar { display: none; }
+
+/* 1.1 : courbes de l'écran SON réglables (points à tirer) et point qui court sur l'enveloppe */
+.curve-box { position: relative; flex: 1; min-height: 0; width: 100%; display: flex; }
+.curve-box > .filter-curve { flex: 1; width: 100%; height: 100%; min-height: 0; }
+.curve-handle {
+  position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; padding: 0; border-radius: 50%;
+  border: 2px solid var(--k); background: var(--scr-bg); cursor: grab; touch-action: none; z-index: 2;
+  box-shadow: 0 0 0 4px transparent; transition: box-shadow 0.12s, background 0.12s;
+}
+.curve-handle::before { content: ""; position: absolute; inset: -12px; border-radius: 50%; } /* zone de prise au doigt */
+.curve-handle:hover, .curve-handle:focus-visible { background: var(--k); box-shadow: 0 0 0 4px color-mix(in oklab, var(--k) 30%, transparent); outline: none; }
+.curve-handle.is-active { background: var(--k); cursor: grabbing; box-shadow: 0 0 0 6px color-mix(in oklab, var(--k) 35%, transparent); }
+.curve-handle--x { border-radius: 4px; width: 10px; height: 18px; margin: -9px 0 0 -5px; cursor: ew-resize; }
+.curve-handle--y { border-radius: 4px; width: 18px; height: 10px; margin: -5px 0 0 -9px; cursor: ns-resize; }
+.curve-box--ro { pointer-events: none; }
+.curve-head { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--scr-fg); box-shadow: 0 0 8px var(--k); z-index: 1; pointer-events: none; }
+.curve-head-line { stroke: var(--scr-fg); stroke-width: 1; opacity: 0.35; vector-effect: non-scaling-stroke; }
+.filter-curve .grid--zero { stroke-dasharray: 3 4; }
+.curve-legend { position: absolute; top: 4px; right: 6px; display: flex; gap: 10px; font-size: 10.5px; color: var(--scr-subtle); pointer-events: none; }
+.curve-legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; margin-right: 5px; vertical-align: middle; border-radius: 2px; background: var(--k); }
+.curve-bubble {
+  position: absolute; transform: translate(12px, -130%); padding: 3px 8px; border-radius: 5px; white-space: nowrap; pointer-events: none; z-index: 3;
+  font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--scr-fg); background: var(--scr-raise-hi, var(--scr-raise));
+  box-shadow: 0 2px 10px oklch(0 0 0 / 0.45), inset 0 0 0 1px color-mix(in oklab, var(--k) 50%, transparent);
+}
+.curve-bubble--left { transform: translate(calc(-100% - 12px), -130%); }
+.curve-loop { fill: none; stroke: var(--k); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; opacity: 0.8; }
+.curve-legend em { font-style: normal; color: var(--k); }
+/* 1.1 : modulation sur les courbes — trait d'amplitude, point fantôme et courbe jouée en pointillés */
+.curve-ranges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; overflow: visible; }
+.curve-ranges line { stroke: var(--k); stroke-width: 6; stroke-linecap: round; opacity: 0.28; vector-effect: non-scaling-stroke; }
+.curve-ghost { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; border: 2px dashed var(--k); background: color-mix(in oklab, var(--k) 25%, transparent); pointer-events: none; z-index: 1; }
+.filter-curve .stroke--ghost { stroke-dasharray: 5 4; stroke-width: 1.6; opacity: 0.75; }
+/* 1.1 : écran Pistes — « Ouvrir le synthé » à côté des vignettes ; Libérer et Recharger sur la même ligne */
+.bz-break { flex-basis: 100%; height: 0; }
+.bz-head .bz-assign { min-width: 0; }
+.browser-actions { margin-left: auto; display: flex; flex-flow: row nowrap; gap: 6px; flex: none; max-width: 100%; }
+.browser-actions > .touch { white-space: nowrap; width: auto; flex: none; }
+.browser-actions .browser-thumbs { margin-left: 0; }
+.browser-tabs .browser-actions .bz-open { flex: none; background: var(--accent); color: var(--scr-bg); border-color: var(--accent); }
+.device--phone .browser-actions .touch { font-size: 12.5px; padding-left: 9px; padding-right: 9px; }
+.browser-tabs .browser-actions .bz-free { background: var(--scr-raise-hi, var(--scr-raise)); color: var(--scr-fg); }
+/* 1.1 : profondeur de modulation sous la valeur (« M1 +30 % ») : se tire vers le haut / le bas, comme la
+   petite molette des façades (même petit rond) ; grande zone de prise au doigt */
+.enc-mod--drag { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: ns-resize; touch-action: none; padding: 3px 7px; margin: -3px -7px; border-radius: 5px; }
+.enc-mod--drag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; box-sizing: border-box; flex: none; }
+.enc-mod--drag::after { content: ""; position: absolute; inset: -8px -6px; } /* prise au doigt */
+.enc-mod--drag:hover { background: color-mix(in oklab, currentColor 14%, transparent); }
+.device--phone .enc-mod--drag { font-size: 11px; }
+/* 1.1 : piste en solo bien visible (les autres se grisent comme coupées) */
+.strip--solo { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--k) 70%, transparent), 0 0 14px color-mix(in oklab, var(--k) 35%, transparent); }
+/* 1.1 : Réglages avec les pads dépliés — une seule colonne, et la ligne « Enregistrer » passe à la ligne
+   au lieu de faire chevaucher ses boutons */
+.zoom-split.is-open .settings { grid-template-columns: minmax(0, 1fr); }
+.project-save { flex-wrap: wrap; }
+.project-save input { flex: 1 1 140px; }
+.project-save .touch { white-space: nowrap; flex: none; }
+
+.welcome-remote { width: 100%; margin-top: 6px; }
+
+/* 1.1 : écran FX avec les pads dépliés : colonne des inserts plus étroite, en-têtes qui passent à la ligne
+   (plus de texte coupé mot par mot ni de bouton par-dessus le titre) ; sans les pads, rien ne change */
+.zoom-split.is-open .fxs { grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 10px; }
+.zoom-split.is-open .fx-head, .zoom-split.is-open .browser-detail header, .zoom-split.is-open .bz-head { flex-wrap: wrap; }
+.zoom-split.is-open .fx-head > div { flex: 1 1 200px; }
+.zoom-split.is-open .fx-slot-main { grid-template-columns: 16px minmax(0, 1fr); gap: 6px; padding: 8px 6px 8px 9px; }
+.zoom-split.is-open .fx-slot-main .fx-form, .zoom-split.is-open .fx-slot-main .fx-slot-meter, .zoom-split.is-open .fx-slot-main .fx-slot-preset { display: none; }
+.zoom-split.is-open .fx-slot-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zoom-split.is-open .fx-slot-tools .fx-tool { width: 22px; height: 24px; }
+
+/* 1.1 : numéro du préréglage = changement de programme (canal MIDI de la piste ; banque CC 0 : 0 instrument, 1-4 insert) */
+.preset-n { display: inline-block; min-width: 1.6em; margin-right: 6px; padding: 0 4px; border-radius: 4px; font-size: 0.78em; font-weight: 800;
+  font-variant-numeric: tabular-nums; text-align: center; background: oklch(1 0 0 / 0.08); color: var(--silk-dim, oklch(0.72 0.02 245)); }
+
+/* 1.1 : le son qui joue, en petit à côté du nom de l'instrument. Le nom de l'instrument garde la priorité :
+   c'est le nom du préréglage qui se raccourcit (« … ») quand la place manque, surtout sur téléphone. */
+.face-name-row { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.face-head-row > .face-title .face-name-row h2 { flex: 0 0 auto; max-width: 100%; }
+.face-preset { display: inline-flex; align-items: center; gap: 2px; flex: 0 1 auto; min-width: 0; transform: translateY(-3px); }
+.face-preset button { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.face-preset-name { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; gap: 0; padding: 2px 8px; border-radius: 6px;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.01em; opacity: 0.82; background: oklch(1 0 0 / 0.06); }
+.face-preset-name:hover, .face-preset-name.on { opacity: 1; background: oklch(1 0 0 / 0.12); }
+.face-preset-name .preset-n { flex: none; margin-right: 6px; }
+.face-preset-text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.face-preset-dirty { flex: none; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--k, var(--face-accent, oklch(0.8 0.15 70))); box-shadow: 0 0 6px var(--k, transparent); }
+.face-preset-step { flex: none; width: 22px; height: 22px; border-radius: 5px; font-size: 10px !important; opacity: 0.55; }
+.face-preset-step:hover { opacity: 1; background: oklch(1 0 0 / 0.1) !important; }
+.face--t-acid .face-preset, .face--t-club .face-preset, .face--t-voc16 .face-preset { color: oklch(0.2 0.01 250); }
+.face--t-acid .face-preset-name, .face--t-club .face-preset-name, .face--t-voc16 .face-preset-name { background: oklch(0 0 0 / 0.07); }
+.face--t-acid .face-preset-name .preset-n, .face--t-club .face-preset-name .preset-n, .face--t-voc16 .face-preset-name .preset-n { background: oklch(0 0 0 / 0.1); color: inherit; }
+/* 1.1 : le préréglage de la piste sous son nom, dans la tranche de mixage */
+.strip-preset { grid-column: 1 / -1; font-size: 9px; line-height: 1.2; font-weight: 500; color: var(--scr-subtle, oklch(0.62 0.02 245)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.device--zoom .strip-preset { grid-column: 1 / -1; font-size: 11px; }
+/* 1.1 : le préréglage de l'effet sous son nom (pédales et racks) */
+.pd-name .pd-preset, .rk-name .pd-preset { display: block; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; opacity: 0.95; }
+
+/* 1.1 : son du pad choisi (batterie à échantillons) — un rang de grands boutons libellés */
+.padsound { display: flex; flex-direction: column; gap: 10px; padding: 6px 4px 2px; }
+.padsound-head b { font-size: 18px; letter-spacing: 0.02em; }
+.padsound-knobs { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px 10px; align-items: start; }
+.padsound-k { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+
+/* 1.1 (lot 2) : éditeur d'échantillon unique (plein écran) et chaîne de traitement de 4 effets */
+.sedit { position: absolute; inset: 50px 14px 14px; z-index: 55; display: grid; grid-template-rows: auto 170px minmax(0, 1fr); gap: 10px;
+  padding: 12px 16px; border-radius: 16px; background: oklch(0.17 0.012 250); color: var(--scr-fg, oklch(0.93 0.01 250));
+  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08), 0 20px 50px oklch(0 0 0 / 0.6); overflow: hidden; }
+.device--ghost-phone .sedit { inset: 4px; overflow-y: auto; grid-template-rows: auto 150px auto; }
+.sedit-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sedit-title { font-size: 14px; letter-spacing: 0.14em; }
+.sedit-name { font-size: 13px; color: oklch(0.8 0.01 250); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+.sedit-wave { position: relative; border-radius: 10px; background: oklch(0.12 0.01 250); overflow: hidden; touch-action: none; cursor: crosshair; }
+.sedit-wave > svg { position: absolute; inset: 8px 0; width: 100%; height: calc(100% - 16px); }
+.sedit-wave-path { stroke: oklch(0.8 0.12 75); stroke-width: 1.2px; fill: none; }
+.sedit-sel { position: absolute; top: 0; bottom: 0; background: oklch(0.8 0.14 75 / 0.16); border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); pointer-events: none; }
+.sedit-hint { position: absolute; left: 10px; bottom: 6px; font-size: 11px; color: oklch(0.75 0.01 250); pointer-events: none; }
+.sedit-empty { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; color: oklch(0.7 0.01 250); }
+.sedit-body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 10px; min-height: 0; }
+.device--ghost-phone .sedit-body { grid-template-columns: 1fr; }
+.sedit-box { position: relative; border-radius: 10px; background: oklch(0.14 0.01 250); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: auto; }
+.sedit-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.sedit-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.sedit-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.sedit-progress { height: 10px; border-radius: 5px; background: oklch(0.24 0.01 250); overflow: hidden; }
+.sedit-progress > span { display: block; height: 100%; background: oklch(0.75 0.17 145); transition: width 0.2s linear; }
+.sedit-note { font-size: 12px; color: oklch(0.75 0.01 250); line-height: 1.4; }
+.sedit-apply { font-weight: 800; }
+.chain { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.chain-title { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.72 0.01 250); }
+.chain-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.chain-slot { display: flex; align-items: stretch; gap: 4px; border-radius: 8px; background: oklch(0.21 0.012 250); }
+.chain-slot.sel { box-shadow: inset 0 0 0 2px var(--accent); }
+.chain-slot.empty { background: transparent; box-shadow: inset 0 0 0 1px oklch(0.35 0.01 250); }
+.chain-slot.off .chain-name { opacity: 0.5; }
+.chain-slot-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; border: 0; background: none; color: inherit; padding: 8px 10px; cursor: pointer; text-align: left; font: inherit; }
+.chain-n { flex: none; width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: oklch(0.27 0.012 250); color: oklch(0.75 0.01 250); }
+.chain-name { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chain-name small { font-size: 11.5px; font-weight: 500; color: oklch(0.72 0.01 250); overflow: hidden; text-overflow: ellipsis; }
+.chain-lat { flex: none; font-size: 10.5px; font-weight: 700; padding: 3px 7px; border-radius: 5px; background: oklch(0.3 0.06 150); color: oklch(0.85 0.15 150); }
+.chain-lat.warn { background: oklch(0.32 0.06 80); color: oklch(0.85 0.14 80); }
+.chain-pw { flex: none; width: 34px; margin: 6px 6px 6px 0; border-radius: 50%; border: 2px solid oklch(0.45 0.01 250); background: transparent; cursor: pointer; }
+.chain-pw.on { border-color: oklch(0.75 0.17 145); box-shadow: 0 0 8px oklch(0.75 0.17 145 / 0.4); }
+.chain-edit { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid oklch(1 0 0 / 0.08); padding-top: 8px; min-height: 0; }
+.chain-edit-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.chain-knobs { display: flex; flex-wrap: wrap; gap: 4px 6px; overflow: auto; }
+.chain-knobs > * { flex: 0 0 auto; }
+.device--ghost-phone .sedit-body, .device--ghost-phone .sedit-box { min-height: auto; overflow: visible; }
+
+/* 1.1 (lot 3) : écran AUDIO (plein écran, même cadre que l'éditeur d'échantillon) */
+.sedit.aud { grid-template-rows: auto minmax(0, 1fr); }
+.device--ghost-phone .sedit.aud { grid-template-rows: auto auto; }
+.aud-body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 10px; min-height: 0; }
+.device--ghost-phone .aud-body { grid-template-columns: 1fr; }
+.aud-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: oklch(0.72 0.01 250); margin-top: 2px; }
+.aud-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.aud-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.aud-chip { min-height: 34px; padding: 4px 10px; border-radius: 8px; border: 1px solid oklch(1 0 0 / 0.12); background: oklch(0.22 0.01 250);
+  color: inherit; font: inherit; font-size: 12.5px; cursor: pointer; }
+.aud-chip.on { background: var(--accent); color: oklch(0.15 0.01 250); border-color: transparent; font-weight: 700; }
+.aud-chip:disabled { opacity: 0.38; cursor: default; }
+.aud-num { padding: 4px 0; text-align: center; }
+.aud select { min-height: 34px; border-radius: 8px; background: oklch(0.22 0.01 250); color: inherit; border: 1px solid oklch(1 0 0 / 0.12); padding: 0 8px; }
+.device--ghost-phone .aud-chip { min-height: 40px; }
+/* 1.1 (lot 6) : voyant de latence (outil de Restauration en direct sur une piste) */
+.perf-lat { margin-left: 6px; padding: 1px 6px; border-radius: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+  background: oklch(0.78 0.15 75); color: oklch(0.18 0.02 75); white-space: nowrap; }
+.perf-lat { border: 0; cursor: pointer; font-family: inherit; }
+.aud-vu { display: inline-block; width: 90px; height: 8px; border-radius: 4px; background: oklch(0.25 0.01 250); overflow: hidden; }
+.aud-vu i { display: block; height: 100%; background: oklch(0.75 0.16 150); transition: width 80ms linear; }
+.aud-vu.hot i { background: oklch(0.66 0.21 25); }
+.aud-vus { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; }
+.aud-vurow { display: flex; align-items: center; gap: 6px; justify-content: space-between; font-size: 11px; }
+.aud-vurow small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Après la 1.1 : façade de la Piste MIDI — sortie MIDI et « Apprendre » le CC de chaque bouton */
+.midi-strip { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; padding: 10px 12px; border-radius: 8px;
+  background: oklch(0 0 0 / 0.28); border: 1px solid oklch(1 0 0 / 0.08); }
+.midi-strip-out { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.midi-strip-lab { font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--face-accent, var(--accent)); }
+.midi-strip-out select { min-height: 32px; min-width: 220px; padding: 0 8px; border-radius: 6px; border: 1px solid oklch(1 0 0 / 0.16); background: oklch(0.2 0.01 250); color: inherit; font: inherit; }
+.midi-strip-btn { min-height: 32px; min-width: 32px; border-radius: 6px; border: 1px solid oklch(1 0 0 / 0.16); background: oklch(0.24 0.01 250); color: inherit; cursor: pointer; }
+.midi-strip-note { font-size: 12px; opacity: 0.75; }
+.midi-strip-learn { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.midi-learn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 0 6px; border-radius: 16px; cursor: pointer;
+  border: 1px solid oklch(1 0 0 / 0.16); background: oklch(0.22 0.012 250); color: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.midi-learn-dot { width: 8px; height: 8px; border-radius: 50%; background: oklch(0.55 0.15 25); flex: none; }
+.midi-learn.on { border-color: oklch(0.72 0.19 28); background: oklch(0.3 0.08 28); }
+.midi-learn.on .midi-learn-dot { background: oklch(0.72 0.21 28); animation: midi-learn-pulse 0.9s ease-in-out infinite; }
+@keyframes midi-learn-pulse { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .midi-learn.on .midi-learn-dot { animation: none; } }
+@media (max-width: 700px) { .midi-strip-learn { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* après la 1.1 : point de scène (bleu A, rose B) sur les interrupteurs Actif / Contourné des effets, comme sur les boutons */
+.fx-tool--mute, .mp-power { position: relative; }
+.knob-lock.byp-lock { top: 2px; right: 2px; width: 8px; height: 8px; box-shadow: 0 0 6px var(--led-blue); z-index: 1; }
+.knob-lock--B.byp-lock { box-shadow: 0 0 6px var(--led-magenta); }
+.pd-foot .knob-lock.byp-lock { top: -2px; right: -2px; width: 10px; height: 10px; }
+/* après la 1.1 : piste MIDI — listes du bandeau et fenêtre de paramétrage d'un bouton */
+.midi-field { display: inline-flex; align-items: center; gap: 6px; }
+.midi-field > span { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.8; }
+.midi-field select { min-height: 32px; padding: 0 8px; border-radius: 6px; border: 1px solid oklch(1 0 0 / 0.16); background: oklch(0.2 0.01 250); color: inherit; font: inherit; }
+.midi-field em { font-size: 12px; opacity: 0.75; }
+.midi-knob-cfg { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 10px; border-radius: 8px;
+  background: oklch(0.24 0.03 230); border: 1px solid var(--face-accent, var(--accent)); }
+.midi-close { padding: 0 14px; font-weight: 700; }
+.midi-strip-learn .midi-learn { font-size: 11px; padding: 0 4px; }
+/* après la 1.1 : piste MIDI v2 — 4 sections de 8 boutons renommables, 16 pads (comme la télécommande) */
+.midi-secs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.midi-sec { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 8px; background: oklch(0 0 0 / 0.22); border: 1px solid oklch(1 0 0 / 0.07); }
+.midi-sec-title { align-self: flex-start; min-height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; cursor: text;
+  color: var(--face-accent, var(--accent)); font: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.midi-sec-title span { opacity: 0.45; font-size: 11px; }
+.midi-sec-title:hover span, .midi-sec-title:focus-visible span { opacity: 0.9; }
+.midi-sec-input { align-self: flex-start; min-height: 28px; width: min(100%, 240px); padding: 0 8px; border-radius: 6px; border: 1px solid var(--face-accent, var(--accent));
+  background: oklch(0.2 0.01 250); color: inherit; font: inherit; font-size: 13px; font-weight: 700; }
+.midi-sec-knobs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.midi-knob { position: relative; display: flex; justify-content: center; border-radius: 8px; }
+.midi-knob.on { box-shadow: 0 0 0 1px var(--face-accent, var(--accent)); }
+.midi-knob-gear { position: absolute; top: 0; right: 0; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid oklch(1 0 0 / 0.14);
+  background: oklch(0.22 0.012 250 / 0.9); color: inherit; font-size: 12px; line-height: 1; cursor: pointer; opacity: 0.7; z-index: 2; }
+.midi-knob-gear:hover, .midi-knob-gear:focus-visible, .midi-knob.on .midi-knob-gear, .midi-pad-wrap.cfg .midi-knob-gear { opacity: 1; border-color: var(--face-accent, var(--accent)); }
+.midi-pads { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 6px; }
+.midi-pad-wrap { position: relative; }
+.midi-pad-wrap.cfg .midi-pad { box-shadow: 0 0 0 2px var(--face-accent, var(--accent)); }
+.midi-pad { width: 100%; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 8px;
+  border: 1px solid oklch(1 0 0 / 0.14); background: oklch(0.24 0.012 250); color: inherit; cursor: pointer; touch-action: none; user-select: none;
+  transition: background-color 60ms linear, box-shadow 60ms linear; }
+.midi-pad b { font-size: 14px; }
+.midi-pad span { font-size: 10px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.midi-pad.on { background: color-mix(in oklch, var(--face-accent, var(--accent)) 55%, oklch(0.24 0.012 250)); box-shadow: 0 0 10px color-mix(in oklch, var(--face-accent, var(--accent)) 60%, transparent); }
+.midi-pad-wrap .midi-knob-gear { top: -6px; right: -6px; }
+@media (max-width: 1100px) { .midi-secs { grid-template-columns: minmax(0, 1fr); } .midi-pads { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .midi-sec-knobs { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .midi-pad { transition: none; } }
+.midi-pad.locked { box-shadow: 0 0 0 2px var(--led-blue, oklch(0.7 0.15 240)), 0 0 10px var(--led-blue, oklch(0.7 0.15 240)); }
+/* après la 1.1 : son du pas (préréglage / programme MIDI verrouillé) */
+.midi-field select.is-locked { border-color: var(--led-blue, oklch(0.7 0.15 240)); box-shadow: 0 0 0 1px var(--led-blue, oklch(0.7 0.15 240)); }
+.ot-stepedit-sound select { max-width: 220px; min-height: 30px; background: oklch(0.2 0.01 250); color: inherit; border: 1px solid oklch(1 0 0 / 0.16); border-radius: 6px; font: inherit; font-size: 12px; }
+.midi-hint { align-self: center; font-size: 12px; opacity: 0.75; max-width: 420px; }
