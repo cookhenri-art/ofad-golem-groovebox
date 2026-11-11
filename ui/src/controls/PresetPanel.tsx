@@ -3,7 +3,7 @@
 // Toucher un nom le charge ; « Enregistrer » range le son actuel (instrument, effet ou pad)
 // dans une banque. Les préréglages perso servent dans tous les projets.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { actions, hasNative } from "../engine/store";
 import type { PresetScope, UserPresetList } from "../engine/protocol";
 
@@ -45,7 +45,10 @@ export function PresetPanel({ scope, channel, slot, pad, title, current, factory
   const catOf = (i: number) => (factoryCats?.[i] || "Classiques");
   const grouped = !!factoryCats && factoryCats.some((c) => c);
   const factoryBanks = !factory.length ? [] : grouped
-    ? CATEGORY_ORDER.filter((c) => factory.some((_, i) => catOf(i) === c)).map(factoryKey)
+    // 1.1 : les banques connues dans l'ordre, puis les autres (« Percussions », « Voix »…) dans l'ordre où elles
+    // apparaissent — même ordre que la numérotation du moteur (PresetOrder.h)
+    ? [...CATEGORY_ORDER.filter((c) => factory.some((_, i) => catOf(i) === c)),
+       ...factory.map((_, i) => catOf(i)).filter((c, i, a) => !CATEGORY_ORDER.includes(c) && a.indexOf(c) === i)].map(factoryKey)
     : [FACTORY];
   const currentIdx = current ? factory.indexOf(current) : -1;
   const firstFactory = factoryBanks.length ? (grouped && currentIdx >= 0 ? factoryKey(catOf(currentIdx)) : factoryBanks[0]) : "";
@@ -56,11 +59,16 @@ export function PresetPanel({ scope, channel, slot, pad, title, current, factory
   const [confirm, setConfirm] = useState<{ kind: "replace" | "delete"; bank: string; name: string } | null>(null);
   const native = hasNative("listPresets");
 
+  const opened = useRef(false);
   const reload = useCallback(async () => {
     const l = await actions.listPresets(scope, channel, slot, pad);
     setList(l);
     if (l) {
-      setBank((b) => (b && (isFactory(b) || l.banks.includes(b)) ? b : l.banks[0] ?? firstFactory));
+      // 1.1 : à l'ouverture, la banque qui contient le son actuel (un son à vous : sa banque perso)
+      const mine = !opened.current && current && currentIdx < 0 ? l.user.find((u) => u[1] === current)?.[0] : undefined;
+      opened.current = true;
+      if (mine) setBank(mine);
+      else setBank((b) => (b && (isFactory(b) || l.banks.includes(b)) ? b : l.banks[0] ?? firstFactory));
       setSaveBank((b) => b || l.banks[0] || "Mes sons");
     }
   }, [scope, channel, slot, pad, factory.length, firstFactory]);
@@ -76,6 +84,13 @@ export function PresetPanel({ scope, channel, slot, pad, title, current, factory
   const items = bank === FACTORY ? factory.map((n) => ({ name: n, kind: "" }))
     : isFactory(bank) ? factory.map((n, i) => ({ name: n, kind: "", cat: catOf(i) })).filter((x) => factoryKey(x.cat) === bank).map(({ name, kind }) => ({ name, kind }))
     : (list?.user ?? []).filter((u) => u[0] === bank).map((u) => ({ name: u[1], kind: u[2] }));
+  // 1.1 : numéros (changement de programme) : sons d'usine (« Init » = 1, banque par banque), puis les vôtres
+  const numberOf = (name: string): number => {
+    if (scope === "pad") return -1;
+    if (isFactory(bank)) { const i = factory.indexOf(name); return i < 0 ? -1 : i + 1; }
+    const i = (list?.user ?? []).findIndex((u) => u[0] === bank && u[1] === name);
+    return i < 0 ? -1 : factory.length + i + 1;
+  };
 
   const save = async (overwrite: boolean) => {
     const b = cleanName(saveBank), n = cleanName(saveName);
@@ -125,6 +140,7 @@ export function PresetPanel({ scope, channel, slot, pad, title, current, factory
                       else void actions.loadPreset(scope, channel, slot, pad, bank, name);
                       setSaveName(name);
                     }}>
+                      {numberOf(name) > 0 && <span className="preset-n">{numberOf(name)}</span>}
                       {name}{otherKind ? <small> · son de {KIND_NAMES[kind] ?? kind}</small> : null}
                     </button>
                     {!isFactory(bank) && (

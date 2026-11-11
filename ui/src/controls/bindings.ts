@@ -57,7 +57,7 @@ export function useWriteTarget(channel: number): WriteTarget {
   return { kind: "base" };
 }
 
-function lockedValue(target: WriteTarget, global: number): number | undefined {
+export function lockedValue(target: WriteTarget, global: number): number | undefined {
   const s = getState();
   if (target.kind === "scene") return s.scenes[target.scene]?.locks.find(([g]) => g === global)?.[1];
   if (target.kind === "step") return s.extras.find((e) => e.lane === target.lane && e.step === target.step)?.locks.find(([g]) => g === global)?.[1];
@@ -72,6 +72,8 @@ function lockedValue(target: WriteTarget, global: number): number | undefined {
 
 /** Écrit une valeur là où écrivent les encodeurs (base, scène, pas) : pour les visuels cliquables. */
 export function writeParam(target: WriteTarget, global: number, norm: number) { write(target, global, norm); }
+/** Après la 1.1 : retire le verrou d'un réglage là où écrivent les encodeurs (pads de la piste MIDI). */
+export function clearParamLock(target: WriteTarget, global: number) { clearLock(target, global); }
 
 /** Réglages tout juste tournés : pendant le geste, l'encodeur montre la valeur écrite et non la
     valeur jouée (sinon il sautait entre les deux quand une scène ou un verrou la remplace). */
@@ -146,7 +148,7 @@ export function useParam(global: number | null, label?: string): EncoderBinding 
   const target = useWriteTarget(ch);
   // abonnements : valeur de base, valeur jouée, verrous
   useStore((s) => (global !== null && global >= 0 ? s.channels[ch] : null));
-  useStore((s) => (ch === s.focus && global !== null ? s.eff[global % S] : undefined));
+  useStore((s) => (global === null ? undefined : ch === s.focus ? s.eff[global % S] : s.effG[global]));
   useStore((s) => (target.kind === "scene" ? s.scenes[target.scene] : target.kind === "step" || target.kind === "steps" ? s.extras : null));
   useStore((s) => s.scenes);
   useStore((s) => (Math.round(s.tick.g.xfade * 100) << 12) + s.tick.g.sceneA * 64 + s.tick.g.sceneB);
@@ -170,7 +172,7 @@ export function useParam(global: number | null, label?: string): EncoderBinding 
     return baseValueOf(global);
   })();
   const lock = lockedValue(target, global);
-  const eff = ch === s.focus ? s.eff[global % S] : undefined;
+  const eff = ch === s.focus ? s.eff[global % S] : s.effG[global]; // après la 1.1 : les autres canaux suivent aussi les scènes
   const editing = target.kind === "base" && performance.now() - editedAt < EDIT_HOLD_MS;
   const shown = target.kind === "base" ? (editing ? base : eff ?? base) : (lock ?? base);
   const d = r.desc;
