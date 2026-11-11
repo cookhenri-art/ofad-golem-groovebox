@@ -253,6 +253,120 @@ int main()
 
     work.deleteRecursively();
     proc.releaseResources();
+    // --- 1.1 (lot 3) : écran AUDIO — prise traitée après ou pendant, longueur et calage --------
+    for (const bool during : { false, true })
+    {
+        proc.getEngine().setInstrument (0, "acid", 0.0);
+        juce::DynamicObject::Ptr o = new juce::DynamicObject();
+        o->setProperty ("master", true); o->setProperty ("masterTreated", true);
+        o->setProperty ("tracks", 1); o->setProperty ("sum", false); o->setProperty ("returns", 0);
+        o->setProperty ("during", during); o->setProperty ("dest", 1); o->setProperty ("format", 0); o->setProperty ("follow", 0);
+        juce::Array<juce::var> chain;
+        { juce::DynamicObject::Ptr c = new juce::DynamicObject(); c->setProperty ("type", "rdenoise"); juce::Array<juce::var> v; v.add (0.0); c->setProperty ("values", v); c->setProperty ("bypass", false); chain.add (juce::var (c.get())); }
+        o->setProperty ("chain", chain);
+        const auto err = proc.audioRecStartEx (juce::var (o.get()));
+        check (err.isEmpty(), during ? "\xC3\xA9" "cran AUDIO : prise trait\xC3\xA9" "e pendant, d\xC3\xA9marr\xC3\xA9" "e" : "\xC3\xA9" "cran AUDIO : prise trait\xC3\xA9" "e apr\xC3\xA8s, d\xC3\xA9marr\xC3\xA9" "e");
+        juce::AudioBuffer<float> buf (2, 256);
+        for (int b = 0; b < 400; ++b)
+        {
+            juce::MidiBuffer midi;
+            if (b % 40 == 0) midi.addEvent (juce::MidiMessage::noteOn (1, 48 + (b / 40) % 12, (juce::uint8) 110), 0);
+            if (b % 40 == 30) midi.addEvent (juce::MidiMessage::allNotesOff (1), 0);
+            buf.clear();
+            proc.processBlock (buf, midi);
+            // au rythme réel (256 échantillons ≈ 5,8 ms) : plus vite, la file d'écriture (≈ 2 s) déborde
+            // quand la machine est chargée et le fichier traité perd des échantillons (« dropped »)
+            juce::Thread::sleep (5);
+        }
+        proc.audioRecStop();
+        for (int k = 0; k < 600 && (proc.audioRecStatus().contains ("\"processing\":true") || proc.audioRecStatus().contains ("\"encoding\":true")); ++k) juce::Thread::sleep (50);
+        const auto st = juce::JSON::parse (proc.audioRecStatus());
+        if ((double) st.getProperty ("dropped", 0.0) > 0.0) std::printf ("  perdu par la file d'\xC3\xA9" "criture : %.3f s\n", (double) st.getProperty ("dropped", 0.0));
+        const auto treated = st.getProperty ("treated", juce::var());
+        check (treated.isArray() && treated.size() == 2, "\xC3\xA9" "cran AUDIO : 2 fichiers trait\xC3\xA9" "s (master trait\xC3\xA9, piste 1) dans \xC2\xAB Son trait\xC3\xA9 \xC2\xBB");
+        // longueur et calage : le master traité (réduction 0 dB : identité, latence retirée) = le master brut
+        juce::File raw, done;
+        for (const auto& f : grv::Recorder::rootFolder().findChildFiles (juce::File::findFiles, true, "Master*.wav"))
+            if (raw == juce::File() || f.getLastModificationTime() > raw.getLastModificationTime()) raw = f;
+        for (const auto& f : grv::GrooveboxProcessor::processedFolder().findChildFiles (juce::File::findFiles, true, "*Master*.wav"))
+            if (done == juce::File() || f.getLastModificationTime() > done.getLastModificationTime()) done = f;
+        juce::WavAudioFormat wav;
+        std::unique_ptr<juce::AudioFormatReader> ra (raw.existsAsFile() ? wav.createReaderFor (raw.createInputStream().release(), true) : nullptr);
+        std::unique_ptr<juce::AudioFormatReader> rb (done.existsAsFile() ? wav.createReaderFor (done.createInputStream().release(), true) : nullptr);
+        bool sameLen = false, aligned = false; double energy = 0.0;
+        if (ra != nullptr && rb != nullptr)
+        {
+            // prise libre traitée après : la queue des effets est gardée (le fichier peut s'allonger)
+            sameLen = during ? ra->lengthInSamples == rb->lengthInSamples : rb->lengthInSamples >= ra->lengthInSamples;
+            const int n = (int) std::min (ra->lengthInSamples, rb->lengthInSamples);
+            juce::AudioBuffer<float> a (2, n), b2 (2, n);
+            ra->read (&a, 0, n, 0, true, true); rb->read (&b2, 0, n, 0, true, true);
+            double d = 0.0;
+            for (int i = 0; i < n; ++i) { const double x = a.getSample (0, i); energy += x * x; const double y = b2.getSample (0, i) - x; d += y * y; }
+            aligned = energy > 1.0e-6 && d < 0.01 * energy;
+            std::printf ("  prise %s : %d \xC3\xA9" "chantillons, \xC3\xA9" "nergie %.3f, \xC3\xA9" "cart %.2e\n", during ? "pendant" : "apr\xC3\xA8s", n, energy, d);
+        }
+        check (sameLen, "\xC3\xA9" "cran AUDIO : longueur du fichier trait\xC3\xA9 (pile la prise ; apr\xC3\xA8s une prise libre : avec sa queue)");
+        check (aligned, "\xC3\xA9" "cran AUDIO : le fichier trait\xC3\xA9 est recal\xC3\xA9 (latence retir\xC3\xA9" "e)");
+    }
+
+    // --- 1.1 : écoute de l'écran AUDIO ---------------------------------------------------------
+    {
+        // un bouton tourné ne reconstruit pas la chaîne (même suite d'effets) : pas de remise à zéro
+        auto chainOf = [] (double cutoff)
+        {
+            juce::Array<juce::var> chain;
+            juce::DynamicObject::Ptr c = new juce::DynamicObject(); c->setProperty ("type", "tvintage");
+            juce::Array<juce::var> v; c->setProperty ("values", v); c->setProperty ("bypass", false); chain.add (juce::var (c.get()));
+            juce::DynamicObject::Ptr f = new juce::DynamicObject(); f->setProperty ("type", "filter");
+            juce::Array<juce::var> fv; juce::ignoreUnused (cutoff); f->setProperty ("values", fv); f->setProperty ("bypass", false); chain.add (juce::var (f.get()));
+            return juce::var (chain);
+        };
+        auto run = [&] (bool stage)
+        {
+            proc.getEngine().setInstrument (0, "acid", 0.0);
+            proc.setMonitorChain (juce::var (juce::Array<juce::var>()));
+            proc.setMonitorChain (chainOf (2000.0));
+            juce::AudioBuffer<float> buf (2, 256);
+            double tailEnergy = 0.0;
+            for (int b = 0; b < 120; ++b)
+            {
+                juce::MidiBuffer midi;
+                if (b == 0) midi.addEvent (juce::MidiMessage::noteOn (1, 48, (juce::uint8) 110), 0);
+                if (b == 20) midi.addEvent (juce::MidiMessage::allNotesOff (1), 0);
+                if (stage && b == 20) proc.setMonitorChain (chainOf (2000.0)); // même réglage, renvoyé comme un bouton tourné
+                buf.clear(); proc.processBlock (buf, midi);
+                if (b >= 20 && b < 60) for (int i = 0; i < 256; ++i) tailEnergy += (double) buf.getSample (0, i) * buf.getSample (0, i);
+            }
+            proc.setMonitorChain (juce::var (juce::Array<juce::var>()));
+            return tailEnergy;
+        };
+        const auto a1 = run (false), a2 = run (true);
+        check (a1 > 1.0e-6 && std::abs (a1 - a2) < 0.02 * a1, "\xC3\xA9" "cran AUDIO : un r\xC3\xA9glage tourn\xC3\xA9 pendant l'\xC3\xA9" "coute ne remet pas la cha\xC3\xAE" "ne \xC3\xA0 z\xC3\xA9ro (pas de craquement)");
+        std::printf ("  queue de r\xC3\xA9verb\xC3\xA9ration : %.4f sans, %.4f avec r\xC3\xA9glage renvoy\xC3\xA9\n", a1, a2);
+
+        // écoute limitée aux sources de la prise : une piste vide cochée → silence ; arrêt → le mixage revient
+        auto energyWith = [&] (bool on)
+        {
+            juce::DynamicObject::Ptr o = new juce::DynamicObject();
+            juce::Array<juce::var> tr; tr.add (7); o->setProperty ("tracks", tr); o->setProperty ("on", on);
+            proc.setMonitorSources (juce::var (o.get()));
+            juce::AudioBuffer<float> buf (2, 256);
+            double e = 0.0;
+            for (int b = 0; b < 40; ++b)
+            {
+                juce::MidiBuffer midi;
+                if (b % 10 == 0) midi.addEvent (juce::MidiMessage::noteOn (1, 48, (juce::uint8) 110), 0);
+                buf.clear(); proc.processBlock (buf, midi);
+                if (b >= 4) for (int i = 0; i < 256; ++i) e += (double) buf.getSample (0, i) * buf.getSample (0, i);
+            }
+            return e;
+        };
+        const auto eOn = energyWith (true), eOff = energyWith (false);
+        check (eOff > 1.0e-4 && eOn < 1.0e-6 * std::max (1.0, eOff), "\xC3\xA9" "cran AUDIO : \xC3\xA0 l'\xC3\xA9" "coute, on n'entend que les pistes coch\xC3\xA9" "es (piste vide : silence)");
+        std::printf ("  \xC3\xA9" "coute piste 8 seule : %.2e ; mixage : %.2e\n", eOn, eOff);
+    }
+
     std::printf ("%s\n", failures == 0 ? "Tous les tests de s\xC3\xA9" "curit\xC3\xA9 passent." : "Des tests de s\xC3\xA9" "curit\xC3\xA9 \xC3\xA9" "chouent.");
     return failures == 0 ? 0 : 1;
 }

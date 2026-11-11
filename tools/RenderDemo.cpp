@@ -125,6 +125,8 @@ int main (int argc, char* argv[])
         juce::AudioBuffer<float> all (2, frames + bs);
         all.clear();
         auto& seq = pp.getEngine().sequencer();
+        // 1.1 (vidéo) : le scénario mène le jeu : mode Morceau coupé (on lance les pistes par les coupures)
+        { auto sg = pp.getEngine().getSong(); sg.songMode = false; pp.getEngine().setSong (std::move (sg), 0.0); }
         seq.requestPlay();
         juce::AudioBuffer<float> b (2, bs);
         juce::MidiBuffer m;
@@ -142,6 +144,8 @@ int main (int argc, char* argv[])
                 if (t.startsWith ("rangee=")) pp.launchRow (t.fromFirstOccurrenceOf ("=", false, false).toUpperCase()[0] - 'A');
                 if (t.startsWith ("pistes=")) tracks = t.fromFirstOccurrenceOf ("=", false, false);
                 if (t.startsWith ("xfade=")) xf = t.fromFirstOccurrenceOf ("=", false, false);
+                // 1.1 (vidéo) : vec=1 / vec=0 : pavé vectoriel allumé ou éteint
+                if (t.startsWith ("vec=")) pp.setGlobal (grv::ParamID::vecOn, t.fromFirstOccurrenceOf ("=", false, false).getFloatValue() > 0.5f ? 1.0f : 0.0f);
             }
             juce::Array<int> on;
             if (tracks != "toutes") for (auto& n : juce::StringArray::fromTokens (tracks, ",", "")) on.add (n.getIntValue() - 1);
@@ -165,7 +169,7 @@ int main (int argc, char* argv[])
         out.deleteFile();
         juce::WavAudioFormat wav;
         std::unique_ptr<juce::OutputStream> stream = std::make_unique<juce::FileOutputStream> (out);
-        auto writer = wav.createWriterFor (stream, juce::AudioFormatWriterOptions{}.withSampleRate (sr).withNumChannels (2).withBitsPerSample (24));
+        auto writer = wav.createWriterFor (stream, juce::AudioFormatWriterOptions{}.withSampleRate (sr).withNumChannels (2).withBitsPerSample (32));
         if (writer == nullptr) return 2;
         writer->writeFromAudioSampleBuffer (all, 0, pos);
         writer.reset();
@@ -188,10 +192,26 @@ int main (int argc, char* argv[])
         juce::AudioBuffer<float> b (2, 256);
         juce::MidiBuffer m;
         float peak = 0.0f; bool finite = true;
-        for (int i = 0; i < (int) (secs * 48000.0 / 256.0); ++i)
+        // 1.1 : --project <projet.gbx> <secondes> <sortie.wav> : garde aussi le rendu (analyse d'un défaut)
+        const int blocks = (int) (secs * 48000.0 / 256.0);
+        juce::AudioBuffer<float> all (2, argc > 4 ? blocks * 256 : 1);
+        for (int i = 0; i < blocks; ++i)
         {
             b.clear(); pp.processBlock (b, m);
             for (int c = 0; c < 2; ++c) for (int k = 0; k < 256; ++k) { const auto v = b.getSample (c, k); finite = finite && std::isfinite (v); peak = std::max (peak, std::abs (v)); }
+            if (argc > 4) for (int c = 0; c < 2; ++c) all.copyFrom (c, i * 256, b, c, 0, 256);
+        }
+        if (argc > 4)
+        {
+            const juce::File out (juce::File::getCurrentWorkingDirectory().getChildFile (argv[4]));
+            out.deleteFile();
+            juce::WavAudioFormat wav;
+            if (auto os = out.createOutputStream())
+                if (std::unique_ptr<juce::AudioFormatWriter> w (wav.createWriterFor (os.get(), 48000.0, 2, 24, {}, 0)); w != nullptr)
+                {
+                    os.release();
+                    w->writeFromAudioSampleBuffer (all, 0, all.getNumSamples());
+                }
         }
         std::printf ("Projet relu : %d pistes, cr\xC3\xAAte %.3f, fini %d\n", used, peak, (int) finite);
         // v0.46 fix28 : réglages du pavé vectoriel relus (la démonstration doit l'ouvrir actif)
