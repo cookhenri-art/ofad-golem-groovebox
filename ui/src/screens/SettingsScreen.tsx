@@ -352,6 +352,11 @@ export function SettingsScreen() {
           <h3>Clavier de l'ordinateur</h3>
           <p className="settings-note">W X C V · Q S D F · A Z E R · 1 2 3 4 : pads 1 à 16 (Maj : accent). Espace : lecture / arrêt. B maintenu : Break. N maintenu : Fill.</p>
         </section>
+
+        <section className="settings-block">
+          <h3>Infos écran</h3>
+          <ScreenInfo />
+        </section>
       </div>
     </ScreenFrame>
   );
@@ -409,6 +414,30 @@ function LangChoice() {
       <button type="button" role="radio" aria-checked={cur === "fr"} className={`touch touch--small${cur === "fr" ? " touch--on" : ""}`} onClick={() => pick("fr")}>Français</button>
       <button type="button" role="radio" aria-checked={cur === "en"} className={`touch touch--small${cur === "en" ? " touch--on" : ""}`} onClick={() => pick("en")}>English</button>
     </span>
+  );
+}
+
+/** 1.1.1 : tailles d'écran annoncées par l'appareil (fenêtre, zone visible, page, écran, densité, zone
+    retenue, échelle), à copier en texte pour signaler un écran mal ajusté. */
+function ScreenInfo() {
+  const read = () => {
+    const i = (window as unknown as { __golemScreen?: Record<string, number | string> }).__golemScreen ?? {};
+    return ["win", "vv", "doc", "scr", "dpr", "zone", "scale", "mode"].map((k) => `${k} ${i[k] ?? "-"}`).join(" · ")
+      + ` · ${/Android [\d.]+/.exec(navigator.userAgent)?.[0] ?? navigator.platform}`;
+  };
+  const [txt, setTxt] = useState(read);
+  const [done, setDone] = useState(false);
+  useEffect(() => { const t = window.setInterval(() => setTxt(read()), 1000); return () => window.clearInterval(t); }, []);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(txt); setDone(true); window.setTimeout(() => setDone(false), 1500); }
+    catch { showMessage("Copie impossible : sélectionnez le texte et copiez-le à la main"); }
+  };
+  return (
+    <div className="settings-row">
+      <input className="screen-info" readOnly value={txt} translate="no" onFocus={(e) => e.currentTarget.select()} aria-label="Infos écran" />
+      <button type="button" className="touch touch--small" onClick={() => void copy()}>{done ? "Copié" : "Copier"}</button>
+      <small>À copier dans un signalement si un écran est mal ajusté (bande vide, bas coupé).</small>
+    </div>
   );
 }
 
