@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger_1.1.0-Windows_·_Mac_·_Android_·_iPhone-F5A623?style=for-the-badge" alt="Télécharger la 1.1.0 pour Windows, Mac, Android et iPhone"></a>
+  <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger_1.1.1-Windows_·_Mac_·_Android_·_iPhone-F5A623?style=for-the-badge" alt="Télécharger la 1.1.1 pour Windows, Mac, Android et iPhone"></a>
   <a href="docs/NOTICE.pdf"><img src="https://img.shields.io/badge/📘_Notice-PDF-2B2F3A?style=for-the-badge" alt="Notice de prise en main (PDF)"></a>
   <a href="docs/NOTICE-EN.pdf"><img src="https://img.shields.io/badge/📘_Manual_(English)-PDF-2B2F3A?style=for-the-badge" alt="Manual in English (PDF)"></a>
   <a href="docs/CATALOGUE.pdf"><img src="https://img.shields.io/badge/🎹_Catalogue-PDF-2B2F3A?style=for-the-badge" alt="Catalogue des sons et effets (PDF)"></a>
@@ -502,7 +502,7 @@ Settings). Free software (AGPL-3.0).
 Previous release: [what's new in 1.0.0](../../releases/tag/v1.0.0) (FM Player and free FM-1 firmwares, single-view workflow, Play view, Big mode…).
 
 <p align="center">
-  <b><a href="../../releases/tag/v1.1.0">Download 1.1.0 (Windows · Mac · Android · iPhone)</a></b> ·
+  <b><a href="../../releases/tag/v1.1.1">Download 1.1.1 (Windows · Mac · Android · iPhone)</a></b> ·
   <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
   <b><a href="docs/CATALOGUE.pdf">Catalogue (PDF)</a></b>
 </p>

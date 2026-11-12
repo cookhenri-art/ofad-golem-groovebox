@@ -2,7 +2,7 @@
 # Moteur C++ / JUCE 8 + interface React unique (WebView), VST3 + application autonome.
 
 cmake_minimum_required(VERSION 3.22)
-project(Groovebox VERSION 1.1.0 LANGUAGES C CXX)
+project(Groovebox VERSION 1.1.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
