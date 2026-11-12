@@ -4704,3 +4704,5 @@ html, body, #root { overflow: clip; }
 .midi-field select.is-locked { border-color: var(--led-blue, oklch(0.7 0.15 240)); box-shadow: 0 0 0 1px var(--led-blue, oklch(0.7 0.15 240)); }
 .ot-stepedit-sound select { max-width: 220px; min-height: 30px; background: oklch(0.2 0.01 250); color: inherit; border: 1px solid oklch(1 0 0 / 0.16); border-radius: 6px; font: inherit; font-size: 12px; }
 .midi-hint { align-self: center; font-size: 12px; opacity: 0.75; max-width: 420px; }
+/* 1.1.1 : ligne « Infos écran » des réglages (tailles annoncées, à copier) */
+.screen-info { flex: 1 1 100%; min-width: 0; font: 11px/1.4 ui-monospace, monospace; color: var(--scr-subtle); background: oklch(0.2 0.01 250); border: 1px solid oklch(1 0 0 / 0.12); border-radius: 6px; padding: 5px 8px; }
