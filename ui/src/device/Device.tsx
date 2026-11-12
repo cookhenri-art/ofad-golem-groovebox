@@ -88,11 +88,25 @@ function useFitScale() {
       // v0.46 fix17 : sur Android, la fenêtre de l'application peut être plus grande que l'écran
       // (seul son coin en haut à gauche se voit) : on se limite à la taille de l'écran
       let areaW = 0, areaH = 0;
-      if (/Android/i.test(navigator.userAgent) && window.screen?.width > 0 && window.screen?.height > 0) {
+      const android = /Android/i.test(navigator.userAgent);
+      if (android && window.screen?.width > 0 && window.screen?.height > 0) {
         const big = Math.max(screen.width, screen.height), small = Math.min(screen.width, screen.height);
         const sw = w >= h ? big : small, sh = w >= h ? small : big;
-        if (sw < w - 1 || sh < h - 1) { w = Math.min(w, sw); h = Math.min(h, sh); areaW = Math.floor(w); areaH = Math.floor(h); }
+        if (sw < w - 1 || sh < h - 1) { w = Math.min(w, sw); h = Math.min(h, sh); }
       }
+      // 1.1.1 : sur Android, la zone de l'appareil prend TOUJOURS la taille visible mesurée, collée en
+      // haut à gauche. Certaines WebView (Galaxy S25+, Android 17) font une zone plein écran plus haute
+      // que la partie visible : l'appareil, centré dedans, descendait (bande vide en haut, bas coupé).
+      if (android) { areaW = Math.floor(w); areaH = Math.floor(h); }
+      // 1.1.1 : tailles annoncées, pour la ligne « Infos écran » des réglages (signalement d'un problème)
+      (window as unknown as { __golemScreen?: Record<string, number | string> }).__golemScreen = {
+        win: `${window.innerWidth}×${window.innerHeight}`,
+        vv: vv ? `${Math.round(vv.width)}×${Math.round(vv.height)}` : "-",
+        doc: de ? `${de.clientWidth}×${de.clientHeight}` : "-",
+        scr: window.screen ? `${screen.width}×${screen.height}` : "-",
+        dpr: Math.round((window.devicePixelRatio || 1) * 1000) / 1000,
+        zone: `${Math.floor(w)}×${Math.floor(h)}`,
+      };
       const phone = isPhoneViewport(w, h);
       const tablet = Math.min(w / DESIGN_W, h / DESIGN_H);
       // fenêtres de tablette sur un téléphone : hauteur de dessin gardée, largeur étirée à celle de l'écran
@@ -101,7 +115,10 @@ function useFitScale() {
       // pas d'unités vh (certaines vues web Android les calculent mal)
       document.documentElement.style.setProperty("--app-w", `${Math.floor(w)}px`);
       document.documentElement.style.setProperty("--app-h", `${Math.floor(h)}px`);
-      setFit({ scale: (phone ? Math.min(w / PHONE_W, h / PHONE_H) : tablet) * 0.995, phone, ghost, ghostW: phone ? PHONE_FACE_W : Math.round(DESIGN_H * w / h), ghostH: phone ? Math.floor(h / ghost) : DESIGN_H, areaW, areaH });
+      const scale = (phone ? Math.min(w / PHONE_W, h / PHONE_H) : tablet) * 0.995;
+      const info = (window as unknown as { __golemScreen?: Record<string, number | string> }).__golemScreen;
+      if (info) { info.scale = Math.round(scale * 1000) / 1000; info.mode = phone ? "phone" : "tablet"; }
+      setFit({ scale, phone, ghost, ghostW: phone ? PHONE_FACE_W : Math.round(DESIGN_H * w / h), ghostH: phone ? Math.floor(h / ghost) : DESIGN_H, areaW, areaH });
     };
     update();
     // fin de saisie : le clavier se referme, on recalcule (deux fois : le système finit de rendre la place)
