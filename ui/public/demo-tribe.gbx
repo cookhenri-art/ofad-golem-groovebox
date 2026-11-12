@@ -10,7 +10,7 @@
   <PARAM id="macro6" value="0.5"/>
   <PARAM id="macro7" value="0.5"/>
   <PARAM id="macro8" value="0.5"/>
-  <PARAM id="sceneA" value="1.0"/>
+  <PARAM id="sceneA" value="9.0"/>
   <PARAM id="sceneB" value="10.0"/>
   <PARAM id="swing" value="50.0"/>
   <PARAM id="xfade" value="0.5"/>
@@ -341,8 +341,7 @@
       <P c="19" a="mod4" i="retrig" v="0.25"/>
       <P c="19" a="mod5" i="type" v="0.625"/>
       <P c="19" a="mod6" i="type" v="0.875"/>
-      <P c="20" a="mix" i="volume" v="0.8942309617996216"/>
-      <P c="20" a="mix" i="bypass2" v="0.75"/>
+      <P c="20" a="mix" i="volume" v="0.8783669471740723"/>
       <P c="20" a="fx1" i="type" v="0.300000011920929"/>
       <P c="20" a="fx1" i="cutoff" v="0.3741999864578247"/>
       <P c="20" a="fx1" i="reso" v="0.4199999868869781"/>
@@ -511,25 +510,15 @@
     <ROWS scene0="-1" scene1="-1" scene2="-1" scene3="-1" scene4="-1" scene5="-1"
           scene6="-1" scene7="-1" scene8="-1" scene9="-1" scene10="-1"
           scene11="-1" scene12="-1" scene13="-1" scene14="-1" scene15="-1"/>
-    <SONG mode="1" loop="1" read="1">
-      <ROW bars="8" pat="-1,0,-1,-1,-1,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2"/>
-      <ROW bars="8" pat="0,0,-1,-1,-1,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2"/>
-      <ROW bars="8" pat="0,0,-1,-1,0,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2"/>
-      <ROW bars="16" pat="0,0,0,0,0,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2"/>
-      <ROW bars="8" pat="-1,-1,0,0,-1,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2"/>
-      <ROW bars="8" pat="0,-1,0,0,0,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2"/>
-      <ROW bars="24" pat="0,0,0,0,0,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2"/>
-      <ROW bars="16" pat="-1,0,-1,-1,0,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2"/>
-    </SONG>
     <EXTRA t="2" p="0" l="0" s="7" cond="1" a="2" b="4" prob="100">
       <L c="2" a="inst" i="a_pos" v="1.0"/>
     </EXTRA>
     <EXTRA t="1" p="0" l="0" s="26" cond="1" a="1" b="2" prob="100"/>
     <EXTRA t="1" p="0" l="0" s="46" cond="1" a="2" b="2" prob="100"/>
-    <EXTRA t="1" p="0" l="0" s="30" cond="1" a="2" b="2" prob="100"/>
     <EXTRA t="2" p="0" l="0" s="11" cond="1" a="4" b="4" prob="100">
       <L c="2" a="inst" i="a_pos" v="0.03999999910593033"/>
     </EXTRA>
+    <EXTRA t="1" p="0" l="0" s="30" cond="1" a="2" b="2" prob="100"/>
     <EXTRA t="1" p="0" l="0" s="54" cond="1" a="1" b="2" prob="100"/>
     <EXTRA t="1" p="0" l="0" s="63" cond="1" a="2" b="2" prob="100"/>
     <EXTRA t="1" p="0" l="0" s="44" cond="1" a="1" b="2" prob="100"/>
