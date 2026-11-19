@@ -265,6 +265,7 @@ int main()
         { juce::DynamicObject::Ptr c = new juce::DynamicObject(); c->setProperty ("type", "rdenoise"); juce::Array<juce::var> v; v.add (0.0); c->setProperty ("values", v); c->setProperty ("bypass", false); chain.add (juce::var (c.get())); }
         o->setProperty ("chain", chain);
         const auto err = proc.audioRecStartEx (juce::var (o.get()));
+        if (err.isNotEmpty()) std::printf ("  refus : %s\n", err.toRawUTF8());
         check (err.isEmpty(), during ? "\xC3\xA9" "cran AUDIO : prise trait\xC3\xA9" "e pendant, d\xC3\xA9marr\xC3\xA9" "e" : "\xC3\xA9" "cran AUDIO : prise trait\xC3\xA9" "e apr\xC3\xA8s, d\xC3\xA9marr\xC3\xA9" "e");
         juce::AudioBuffer<float> buf (2, 256);
         for (int b = 0; b < 400; ++b)
@@ -279,10 +280,15 @@ int main()
             juce::Thread::sleep (5);
         }
         proc.audioRecStop();
-        for (int k = 0; k < 600 && (proc.audioRecStatus().contains ("\"processing\":true") || proc.audioRecStatus().contains ("\"encoding\":true")); ++k) juce::Thread::sleep (50);
+        // le traitement tourne dans un fil de basse priorité : sur un PC chargé (compilation,
+        // antivirus qui examine les WAV écrits), il peut dépasser 30 s ; on attend jusqu'à 10 min (le test repart dès que c'est fini)
+        const auto t0 = juce::Time::getMillisecondCounterHiRes();
+        for (int k = 0; k < 12000 && (proc.audioRecStatus().contains ("\"processing\":true") || proc.audioRecStatus().contains ("\"encoding\":true")); ++k) juce::Thread::sleep (50);
+        std::printf ("  traitement de la prise : %.1f s\n", (juce::Time::getMillisecondCounterHiRes() - t0) / 1000.0);
         const auto st = juce::JSON::parse (proc.audioRecStatus());
         if ((double) st.getProperty ("dropped", 0.0) > 0.0) std::printf ("  perdu par la file d'\xC3\xA9" "criture : %.3f s\n", (double) st.getProperty ("dropped", 0.0));
         const auto treated = st.getProperty ("treated", juce::var());
+        if (! (treated.isArray() && treated.size() == 2)) std::printf ("  \xC3\xA9" "tat : %s\n", proc.audioRecStatus().toRawUTF8());
         check (treated.isArray() && treated.size() == 2, "\xC3\xA9" "cran AUDIO : 2 fichiers trait\xC3\xA9" "s (master trait\xC3\xA9, piste 1) dans \xC2\xAB Son trait\xC3\xA9 \xC2\xBB");
         // longueur et calage : le master traité (réduction 0 dB : identité, latence retirée) = le master brut
         juce::File raw, done;
