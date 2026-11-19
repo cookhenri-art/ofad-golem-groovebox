@@ -53,7 +53,9 @@ figure.wide + ol, figure.wide { break-inside: avoid; }
 
 
 def build(md_name, pdf_name, title, sub, note, golem_h, keys_section=None, lang="fr"):
-    text = (DOCS / md_name).read_text(encoding="utf-8")
+    # 1.2 : plusieurs fichiers à la suite (implémentation MIDI : français puis anglais)
+    names = md_name if isinstance(md_name, (list, tuple)) else [md_name]
+    text = "\n\n".join((DOCS / n).read_text(encoding="utf-8") for n in names)
     # note pour les développeurs en tête du catalogue (« Fichier écrit par… ») : pas dans le PDF
     text = re.sub(r"^Fichier écrit par.*?\n\n", "", text, flags=re.S | re.M)
     html = markdown.markdown(text, extensions=["tables"])
@@ -95,12 +97,15 @@ def build(md_name, pdf_name, title, sub, note, golem_h, keys_section=None, lang=
 
 
 if __name__ == "__main__":
-    build("NOTICE.md", "NOTICE.pdf", "OFAD GOLEM — Notice", "Notice de prise en main · raccourcis · version 1.1",
+    build("NOTICE.md", "NOTICE.pdf", "OFAD GOLEM — Notice", "Notice de prise en main · raccourcis · version 1.2",
           "Groovebox à 16 pistes, logiciel libre (AGPL) de One For All Distribution.", "150px",
           keys_section="Raccourcis")
     # v0.46 fix28 : notice en anglais (l'interface reste en français pour l'instant : table de correspondance en tête)
-    build("NOTICE.en.md", "NOTICE-EN.pdf", "OFAD GOLEM — Manual", "Getting started · shortcuts · version 1.1",
+    build("NOTICE.en.md", "NOTICE-EN.pdf", "OFAD GOLEM — Manual", "Getting started · shortcuts · version 1.2",
           "16-track groovebox, free software (AGPL) by One For All Distribution.", "150px",
           keys_section="Keyboard and mouse shortcuts", lang="en")
-    build("CATALOGUE.md", "CATALOGUE.pdf", "OFAD GOLEM — Catalogue", "Catalogue des instruments et des effets · version 1.1",
+    build("CATALOGUE.md", "CATALOGUE.pdf", "OFAD GOLEM — Catalogue", "Catalogue des instruments et des effets · version 1.2",
           "Les noms sont propres au Groovebox ; chaque module reprend le principe d'une famille de machines, jamais son nom, sa façade ni ses sons.", "110px")
+    # 1.2 : implémentation MIDI, français puis anglais, dans un seul document
+    build(["IMPLEMENTATION-MIDI.md", "MIDI-IMPLEMENTATION.en.md"], "IMPLEMENTATION-MIDI.pdf", "OFAD GOLEM — Implémentation MIDI / MIDI implementation",
+          "Implémentation MIDI · français puis anglais · version 1.2", "Ce que GOLEM reçoit et envoie en MIDI. English version from the second part.", "110px")

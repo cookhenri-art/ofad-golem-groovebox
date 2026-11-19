@@ -11,6 +11,7 @@
 #include "Folders.h"
 #include "PerfStats.h"
 #include "instruments/FmPlayer.h"
+#include "instruments/KickForge.h"
 #include "CrashGuard.h" // v0.49 (essai 3)
 
 #include <unordered_map>
@@ -340,6 +341,30 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
     fn ("getSpectrum", [&eng, C] (const Args& a, Completion done)
     { done (json (bridge::spectrumJson (eng, intArg (a, 0, 0, C, 0), intArg (a, 1, 0, numInserts - 1, 0), intArg (a, 2, 8, 200, 96)))); });
     fn ("getWave", [&eng, T] (const Args& a, Completion done) { done (json (bridge::waveJson (eng, intArg (a, 0, 0, T, 0), intArg (a, 1, 0, maxSamples - 1, 0), intArg (a, 2, 16, 2048, 400)))); });
+    // 1.2 : Kick Forge — vues de l'afficheur (couches, somme, après effets, écrêtage) ; arg 1 = version déjà reçue
+    fn ("getKickView", [&eng, T] (const Args& a, Completion done)
+    {
+        const auto* k = dynamic_cast<const instruments::KickForge*> (eng.instrumentAt (intArg (a, 0, 0, T, 0)));
+        done (json (k != nullptr ? k->viewJson ((unsigned) intArg (a, 1, -1, 0x7fffffff, -1)) : std::string ("null")));
+    });
+    // 1.2 : Kick Forge — tirage au hasard (piste, mode 0 tout / 1 une couche / 2 vider, couche, graine, BPM,
+    // garder les fondus) : les réglages tirés sont posés dans le moteur, l'interface reçoit la piste à jour
+    fn ("kickRandomize", [&eng, T] (const Args& a, Completion done)
+    {
+        const auto t = intArg (a, 0, 0, T, -1);
+        const auto* d = t >= 0 ? eng.instrumentDesc (t) : nullptr;
+        if (d == nullptr || d->type != "kickforge") { done (juce::var()); return; }
+        std::vector<float> p (d->params.size());
+        for (size_t i = 0; i < p.size(); ++i) p[i] = d->params[i].toPlain (eng.getParam (globalSlot (t, instrumentBase + (int) i)));
+        const auto before = p;
+        instruments::kf::randomize (p, intArg (a, 1, 0, 2, 0), intArg (a, 2, -1, 7, -1), (std::uint32_t) intArg (a, 3, 0, 0x7fffffff, 1),
+                                    floatArg (a, 4, 40.0f, 300.0f, 120.0f), boolArg (a, 5));
+        for (size_t i = 0; i < p.size(); ++i)
+            if (p[i] != before[i]) eng.setParam (globalSlot (t, instrumentBase + (int) i), d->params[i].toNorm (p[i]));
+        done (json (bridge::channelJson (eng, t)));
+    });
+    fn ("getKickLibrary", [] (const Args&, Completion done) { done (json (instruments::kf::libraryJson())); });
+    fn ("getTableFrames", [&eng, T] (const Args& a, Completion done) { done (json (bridge::tableFramesJson (eng, intArg (a, 0, 0, T, 0), intArg (a, 1, 0, maxSamples - 1, 0)))); }); // après la 1.1
     // v0.46 fix30 : langue choisie dans l'application (gardée avec l'installation en cours)
     fn ("setLang", [] (const Args& a, Completion done)
     {
@@ -511,7 +536,8 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
             {
                 const auto pad = intArg (a, 3, 0, 15, -1);
                 if (pad < 0) return t;
-                t.folder = "Pads";
+                // après la 1.1 : les sons de canal de Micro Tonnerre ont leurs propres réglages (dossier à part)
+                t.folder = d->type == "microton" ? juce::String::fromUTF8 ("Canaux Micro Tonnerre") : juce::String ("Pads");
                 t.kind = juce::String (pad < (int) d->padKinds.size() ? d->padKinds[(size_t) pad] : std::string());
                 t.prefix = std::string ("p") + (pad < 9 ? "0" : "") + std::to_string (pad + 1) + "_";
                 t.ok = true;
@@ -2087,8 +2113,17 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         else if (a.size() <= 3 || ! a[3].isString() || a[3].toString().length() > 90 * 1024 * 1024) error = "Fichier trop lourd (64 Mo au plus)";
         else
         {
+            // après la 1.1 : l'interface envoie du base64 standard (btoa) ; MemoryBlock::fromBase64Encoding attend le
+            // format propre à JUCE (« taille.données ») et refusait ces fichiers (« Fichier illisible »)
             juce::MemoryBlock bytes;
-            if (! bytes.fromBase64Encoding (a[3].toString())) error = "Fichier illisible";
+            const auto text = a[3].toString();
+            bool ok = false;
+            {
+                juce::MemoryOutputStream out (bytes, false);
+                ok = juce::Base64::convertFromBase64 (out, text);
+            }
+            if (! ok) { bytes.reset(); ok = bytes.fromBase64Encoding (text); }
+            if (! ok || bytes.isEmpty()) error = "Fichier illisible";
             else error = proc.loadSample (t, i, name, std::move (bytes));
             if (error.isEmpty()) proc.openSampleDecay (t, i); // 1.1 : pad de synthèse → lecture entière au départ
         }

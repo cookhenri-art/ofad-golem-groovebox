@@ -10,6 +10,9 @@
 #include "instruments/WaveMorph.h"
 #include "instruments/Glutamake.h"
 #include "instruments/GoodDoctor.h"
+#include "instruments/GoodDoctor2.h"
+#include "instruments/KickForge.h"
+#include "instruments/MicroTonnerre.h"
 #include "instruments/Pads.h"
 #include "instruments/Octa.h"
 #include "instruments/MS20.h"
@@ -644,6 +647,342 @@ static void testGoodDoctor()
             for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); }
         }
         CHECK (finite && peak > 0.01f && peak < 2.5f, (std::string ("son d'usine ") + pr.name).c_str());
+    }
+}
+
+// après la 1.1 : Good Doctor 2 — trois modes d'oscillateur, 25 déformations, 18 filtres, rack de 10 effets,
+// tables perso (emplacements 2 à 4) et source d'échantillon (emplacement 1), queues, sons d'usine
+/** Après la 1.1 : Micro Tonnerre — 8 canaux, chaque mode, kits d'usine, relance sans saut, étouffement. */
+static void testKickForge()
+{
+    const std::string name = "kick forge : couches, biblioth\xC3\xA8que, rack, hauteur, fil de calcul";
+    namespace k = grv::instruments::kf;
+    const auto& d = *[] { for (const auto* x : instrumentCatalog()) if (x->type == "kickforge") return x; return (const ModuleDesc*) nullptr; }();
+    CHECK ((int) d.params.size() == k::numSlots() && d.indexOf ("style") == k::gStyle && d.indexOf ("autogain") == k::gAutogain, "positions des r\xC3\xA9glages");
+    for (int l = 0; l < k::numLayers; ++l)
+        for (int q = 0; q < k::numLayerParams; ++q)
+            CHECK (d.indexOf (k::layerPrefix (l) + k::layerIds[q]) == l * k::numLayerParams + q, "bloc d'une couche");
+    for (int m = 0; m < k::numModules; ++m)
+        CHECK (d.indexOf (std::string (k::modulePrefix[m]) + "_on") == k::moduleBase()[(size_t) m]
+               && d.indexOf (std::string (k::modulePrefix[m]) + "_mix") == k::moduleBase()[(size_t) m + 1] - 1, "bloc d'un module");
+    std::vector<float> def (d.params.size());
+    for (size_t i = 0; i < def.size(); ++i) def[i] = d.params[i].def;
+    auto run = [&] (const std::vector<float>& p) { k::Input in; in.p = p; in.sr = 48000.0; in.bpm = 150.0; return k::render (in); };
+    auto ok = [] (const k::Result& r)
+    {
+        float pk = 0.0f;
+        for (size_t i = 0; i < r.L.size(); ++i)
+        {
+            if (! std::isfinite (r.L[i]) || ! std::isfinite (r.R[i])) return -1.0f;
+            pk = std::max ({ pk, std::abs (r.L[i]), std::abs (r.R[i]) });
+        }
+        return pk;
+    };
+    // chaque famille de la bibliothèque (premier et dernier morceau) sur la couche 1 seule
+    for (int f = 0; f < k::numFamilies; ++f)
+    {
+        if (f == k::fSample) continue;
+        for (const int part : { 0, k::partCount (f) - 1 })
+        {
+            auto p = def;
+            for (int l = 1; l < k::numLayers; ++l) p[(size_t) (l * k::numLayerParams + k::lOn)] = 0;
+            p[k::lFam] = (float) f; p[k::lPart] = (float) part;
+            const auto pk = ok (run (p));
+            CHECK (pk > 0.45f && pk < 0.52f, "morceau jouable, gain automatique \xC3\xA0 -6 dB");
+        }
+    }
+    // chaque module du rack, puis tous ensemble, au maximum de leurs réglages
+    for (int m = 0; m <= k::numModules; ++m)
+    {
+        auto p = def;
+        for (int x = 0; x < k::numModules; ++x)
+            if (x == m || m == k::numModules)
+            {
+                p[(size_t) k::moduleBase()[(size_t) x]] = 1;
+                for (int s = k::moduleBase()[(size_t) x] + 2; s < k::moduleBase()[(size_t) x + 1] - 1; ++s) p[(size_t) s] = d.params[(size_t) s].max;
+            }
+        const auto r = run (p);
+        CHECK (ok (r) > 0.45f && ok (r) < 0.52f && r.length < (int) (k::maxSeconds * 48000.0) + 1, "module du rack stable");
+    }
+    // muet, solo, inversion, étirement, fondus extrêmes
+    {
+        auto p = def;
+        for (int l = 0; l < k::numLayers; ++l) p[(size_t) (l * k::numLayerParams + k::lMute)] = 1;
+        CHECK (ok (run (p)) < 1.0e-6f, "toutes les couches muettes : silence");
+        p = def; p[(size_t) (1 * k::numLayerParams + k::lSolo)] = 1;
+        const auto solo = run (p);
+        CHECK (ok (solo) > 0.45f && solo.length < (int) (0.08 * 48000.0), "solo du clic seul");
+        p = def;
+        for (int l = 0; l < 3; ++l)
+        {
+            const auto b = (size_t) (l * k::numLayerParams);
+            p[b + k::lReverse] = 1; p[b + k::lStretch] = l == 0 ? 4.0f : 0.25f; p[b + k::lPitch] = l == 1 ? 24.0f : -24.0f;
+            p[b + k::lFiLen] = 1000; p[b + k::lFiCurve] = 100; p[b + k::lFoLen] = 2000; p[b + k::lFoCurve] = -100; p[b + k::lOffset] = 1000;
+            p[b + k::lDrv] = 36; p[b + k::lTrAtk] = 100; p[b + k::lTrSus] = -100; p[b + k::lEqLo] = 18; p[b + k::lEqHi] = 18;
+        }
+        CHECK (ok (run (p)) > 0.45f, "r\xC3\xA9glages extr\xC3\xAA" "mes stables");
+    }
+    // l'instrument : fil de calcul, premier coup, hauteur qui suit la note
+    {
+        auto inst = createInstrument ("kickforge");
+        inst->prepare (48000.0, 32);
+        inst->setTempo (150.0);
+        std::vector<float> p ((size_t) grv::engine::instrumentSlots, 0.0f);
+        std::copy (def.begin(), def.end(), p.begin());
+        std::vector<float> L (32), R (32);
+        auto play = [&] (int note, int blocks)
+        {
+            inst->noteOn (note, 1.0f);
+            std::vector<float> out;
+            for (int b = 0; b < blocks; ++b)
+            {
+                std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+                inst->render (L.data(), R.data(), 32, p.data());
+                out.insert (out.end(), L.begin(), L.end());
+            }
+            return out;
+        };
+        auto first = play (36, 600); // premier coup sans attendre le fil : calcul immédiat
+        float pk = 0.0f; for (auto v : first) pk = std::max (pk, std::abs (v));
+        CHECK (pk > 0.4f, "premier coup jou\xC3\xA9");
+        auto* kfi = dynamic_cast<grv::instruments::KickForge*> (inst.get());
+        CHECK (kfi != nullptr && kfi->waitReady (5000), "fil de calcul");
+        CHECK (kfi != nullptr && kfi->viewJson().find ("\"layers\"") != std::string::npos, "vue de l'afficheur");
+        auto zc = [] (const std::vector<float>& x, int a, int b) { int n = 0; for (int i = a + 1; i < b; ++i) if ((x[(size_t) i - 1] < 0.0f) != (x[(size_t) i] < 0.0f)) ++n; return n; };
+        p[k::gPitchMode] = 1;
+        for (int b = 0; b < 4; ++b) inst->render (L.data(), R.data(), 32, p.data());
+        kfi->waitReady (5000);
+        const auto low = play (29, 600), high = play (35, 600); // fa (tonalité), puis si : +6 demi-tons
+        const auto a = zc (low, 4800, 14400), b = zc (high, 4800, 14400);
+        CHECK (b > a * 1.25 && b < a * 1.6, "la hauteur suit la note");
+    }
+}
+
+static void testMicroTonnerre()
+{
+    const std::string name = "micro tonnerre : canaux, modes, kits, relance, \xC3\xA9touffement";
+    namespace m = grv::instruments::mt;
+    const auto& d = *[] { for (const auto* x : instrumentCatalog()) if (x->type == "microton") return x; return (const ModuleDesc*) nullptr; }();
+    CHECK (d.drumKit && d.padNames.size() == 8 && d.padKinds.size() == 8, "batterie \xC3\xA0 8 canaux");
+    CHECK ((int) d.params.size() == m::numSlots && d.indexOf ("volume") == m::volumeIndex, "positions des r\xC3\xA9glages");
+    for (int c = 0; c < 8; ++c)
+        for (int k = 0; k < m::numCh; ++k)
+            CHECK (d.indexOf (m::prefix (c) + m::chIds[k]) == c * m::numCh + k, "bloc d'un canal");
+    CHECK (d.presets.size() >= 60, "kits d'usine");
+    // rend un canal ; renvoie la crête (0 si invalide)
+    auto play = [&] (const std::vector<float>& p, int ch, int blocks, std::vector<float>* keep = nullptr, int retrigAt = -1, int otherAt = -1, int other = -1) {
+        auto inst = createInstrument ("microton");
+        inst->prepare (48000.0, 32);
+        std::vector<float> L (32), R (32);
+        inst->noteOn (ch, 1.0f);
+        float peak = 0.0f; bool finite = true;
+        for (int k = 0; k < blocks; ++k)
+        {
+            if (k == retrigAt) inst->noteOn (ch, 1.0f);
+            if (k == otherAt) inst->noteOn (other, 1.0f);
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (int i = 0; i < 32; ++i)
+            {
+                finite = finite && std::isfinite (L[(size_t) i]) && std::isfinite (R[(size_t) i]);
+                peak = std::max (peak, std::max (std::abs (L[(size_t) i]), std::abs (R[(size_t) i])));
+                if (keep) keep->push_back (L[(size_t) i]);
+            }
+        }
+        return finite ? peak : 0.0f;
+    };
+    auto params = [&] (std::initializer_list<std::pair<std::string, float>> set) {
+        auto p = defaults (d);
+        for (const auto& [id, v] : set) p[(size_t) d.indexOf (id)] = v;
+        return p;
+    };
+    // chaque forme, chaque modulation, chaque filtre et chaque enveloppe du bruit, résonance au maximum
+    for (int w = 0; w < 3; ++w)
+        for (int mm = 0; mm < 3; ++mm)
+        {
+            const auto pk = play (params ({ { "p01_wave", (float) w }, { "p01_mmode", (float) mm }, { "p01_mamt", 48.0f }, { "p01_mrate", 1500.0f }, { "p01_freq", 3000.0f } }), 0, 600);
+            CHECK (pk > 0.05f && pk < 2.0f, "oscillateur : forme et modulation");
+        }
+    for (int f = 0; f < 3; ++f)
+        for (int e = 0; e < 3; ++e)
+        {
+            const auto pk = play (params ({ { "p02_mix", 100.0f }, { "p02_nfilt", (float) f }, { "p02_nenv", (float) e }, { "p02_nq", 100.0f }, { "p02_natk", 30.0f }, { "p02_nstereo", 1.0f } }), 1, 600);
+            CHECK (pk > 0.02f && pk < 2.0f, "bruit : filtre et enveloppe");
+        }
+    CHECK (play (params ({ { "p01_dist", 100.0f }, { "p01_eqg", 40.0f }, { "p01_eqf", 60.0f } }), 0, 600) < 2.0f, "distorsion et \xC3\xA9galiseur au maximum");
+    CHECK (play (params ({ { "p01_level", -48.0f } }), 0, 300) == 0.0f, "niveau au minimum : silence");
+    // les pads 9 à 16 rejouent les canaux 1 à 8
+    CHECK (play (defaults (d), 8, 300) > 0.05f, "pad 9 = canal 1");
+    // relance d'une grosse caisse en plein son : pas de saut (l'ancien coup s'efface en 3 ms)
+    {
+        std::vector<float> a;
+        play (params ({ { "p01_odec", 3000.0f }, { "p01_mamt", 0.0f }, { "p01_mix", 0.0f }, { "p01_dist", 0.0f } }), 0, 200, &a, 40);
+        float jump = 0.0f, typical = 0.0f;
+        for (size_t i = 1; i < a.size(); ++i)
+        {
+            const auto dlt = std::abs (a[i] - a[i - 1]);
+            if (i >= 40 * 32 && i < 40 * 32 + 8) jump = std::max (jump, dlt);
+            else if (i > 600 && i < 40 * 32) typical = std::max (typical, dlt);
+        }
+        CHECK (jump < 1.5f * typical + 0.01f, "relance sans saut");
+    }
+    // étouffement : le charley fermé coupe le charley ouvert (groupe 1)
+    {
+        std::vector<float> a, b;
+        play (defaults (d), 3, 400, &a);
+        play (defaults (d), 3, 400, &b, -1, 20, 2);
+        double ea = 0.0, eb = 0.0;
+        for (size_t i = 200 * 32; i < 400 * 32; ++i) { ea += a[i] * a[i]; eb += b[i] * b[i]; }
+        CHECK (eb < ea * 0.01, "\xC3\xA9touffement du charley ouvert");
+    }
+    // tous les kits : chaque canal sonne, s'éteint, ne donne aucune valeur invalide
+    for (const auto& pr : d.presets)
+    {
+        auto p = defaults (d);
+        for (const auto& [id, v] : pr.values) if (const auto i = d.indexOf (id); i >= 0) p[(size_t) i] = v;
+        for (int c = 0; c < 8; ++c)
+        {
+            std::vector<float> a;
+            const auto pk = play (p, c, 48000 * 12 / 32, &a);
+            float tail = 0.0f;
+            for (size_t i = a.size() - 48000; i < a.size(); ++i) tail = std::max (tail, std::abs (a[i]));
+            CHECK (pk > 0.03f && pk < 1.0f && tail < 1.0e-4f, (pr.name + " : canal " + std::to_string (c + 1)).c_str());
+        }
+    }
+}
+
+static void testGoodDoctor2()
+{
+    const std::string name = "good doctor 2 : modes, d\xC3\xA9" "formations, filtres, effets, tables perso";
+    namespace g2 = grv::instruments::gd2;
+    const auto& d = *[] { for (const auto* x : instrumentCatalog()) if (x->type == "gooddoc2") return x; return (const ModuleDesc*) nullptr; }();
+    CHECK (d.hubSlots == 32 && d.hubMacros == 8 && d.hubEnvs == 1 && d.hubLfos == 2 && d.hubExtEnvs == 4 && d.hubExtLfos == 3, "description");
+    CHECK (d.waveShapes.size() == 192, "16 tables de 12 ondes");
+    CHECK (d.indexOf ("rv_mix") == g2::numSlots - 1 && d.indexOf ("c_sscan") == g2::subOn - 1 && d.indexOf ("f2vel") == g2::envBase - 1
+           && d.indexOf ("pamt") == g2::pAmt && d.indexOf ("l3phase") == g2::hyOn - 1, "positions des r\xC3\xA9glages");
+    CHECK (d.sampleRuntime == "gooddoc2", "analyse des \xC3\xA9" "chantillons");
+    auto render = [&] (std::initializer_list<std::pair<const char*, float>> set, int blocks, std::vector<float>* keep = nullptr,
+                       const std::array<const SampleBuffer*, 4>* smp = nullptr, int n1 = 36, int n2 = 60) {
+        auto inst = createInstrument ("gooddoc2");
+        inst->prepare (48000.0, 32);
+        if (smp != nullptr) for (int i = 0; i < 4; ++i) inst->setSample (i, (*smp)[(size_t) i]);
+        auto p = defaults (d);
+        for (const auto& [id, v] : set) p[(size_t) d.indexOf (id)] = v;
+        std::vector<float> L (32), R (32);
+        inst->noteOn (n1, 1.0f); if (n2 >= 0) inst->noteOn (n2, 1.0f);
+        float peak = 0.0f; bool finite = true;
+        for (int k = 0; k < blocks; ++k)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (int i = 0; i < 32; ++i) { finite = finite && std::isfinite (L[(size_t) i]) && std::isfinite (R[(size_t) i]); peak = std::max (peak, std::max (std::abs (L[(size_t) i]), std::abs (R[(size_t) i]))); if (keep) keep->push_back (L[(size_t) i]); }
+        }
+        return finite && peak > 0.01f && peak < 2.5f;
+    };
+    auto run = [&] (std::initializer_list<std::pair<const char*, float>> set) { return render (set, 900); };
+    for (int t = 0; t < g2::builtinTables; ++t)
+        for (float pos : { 0.0f, 60.0f, 100.0f }) CHECK (run ({ { "a_tab", (float) t }, { "a_pos", pos } }), (std::string ("table ") + std::to_string (t)).c_str());
+    for (int w = 1; w < g2::numWarps; ++w)
+    {
+        CHECK (run ({ { "a_w1", (float) w }, { "a_w1amt", 90.0f }, { "b_on", 1.0f }, { "sub_on", 1.0f }, { "noise_on", 1.0f }, { "noise", 10.0f } }), (std::string ("d\xC3\xA9" "formation 1 : ") + std::to_string (w)).c_str());
+        CHECK (run ({ { "a_w1", 1.0f }, { "a_w1amt", 50.0f }, { "a_w2", (float) w }, { "a_w2amt", 90.0f }, { "a_uni", 7.0f } }), (std::string ("d\xC3\xA9" "formation 2 : ") + std::to_string (w)).c_str());
+    }
+    for (int f = 0; f < 18; ++f)
+    {
+        CHECK (run ({ { "f1type", (float) f }, { "f1res", 98.0f }, { "f1drive", 20.0f }, { "f1shape", 60.0f } }), (std::string ("filtre 1 : ") + std::to_string (f)).c_str());
+        CHECK (run ({ { "f2on", 1.0f }, { "f2type", (float) f }, { "f2cut", 900.0f }, { "f2res", 90.0f }, { "route", 1.0f } }), (std::string ("filtre 2 parall\xC3\xA8le : ") + std::to_string (f)).c_str());
+    }
+    for (int s = 0; s < 7; ++s)
+        CHECK (run ({ { "a_mode", 1.0f }, { "a_gsrc", (float) s }, { "a_gdens", 120.0f }, { "a_gspray", 60.0f }, { "a_grev", 50.0f }, { "a_gpitch", 5.0f } }), (std::string ("granulaire, source ") + std::to_string (s)).c_str());
+    for (int s = 0; s < 8; ++s)
+        CHECK (run ({ { "a_mode", 2.0f }, { "a_ssrc", (float) s }, { "a_sstretch", 40.0f }, { "a_sshift", 50.0f }, { "a_stilt", -6.0f }, { "a_sodd", 70.0f }, { "a_sblur", 50.0f }, { "a_sscan", 30.0f } }),
+               (std::string ("spectral, source ") + std::to_string (s)).c_str());
+    for (int t = 0; t < 5; ++t) CHECK (run ({ { "noise_on", 1.0f }, { "ntype", (float) t }, { "a_lvl", 0.0f } }), (std::string ("bruit ") + std::to_string (t)).c_str());
+    for (const char* fx : { "hy_on", "ds_on", "fl_on", "ph_on", "ch_on", "dl_on", "cp_on", "fi_on", "eq_on", "rv_on" })
+        CHECK (run ({ { fx, 1.0f } }), (std::string ("effet ") + fx).c_str());
+    for (int t = 0; t < 10; ++t) CHECK (run ({ { "ds_on", 1.0f }, { "ds_type", (float) t }, { "ds_drive", 44.0f }, { "ds_pre", (float) (t % 4) } }), (std::string ("distorsion ") + std::to_string (t)).c_str());
+    CHECK (run ({ { "cp_on", 1.0f }, { "cp_mode", 0.0f }, { "cp_ratio", 20.0f }, { "cp_thr", -40.0f } }), "compresseur simple");
+    CHECK (run ({ { "cp_on", 1.0f }, { "cp_depth", 100.0f }, { "cp_in", 12.0f }, { "cp_time", 10.0f } }), "compresseur 3 bandes pouss\xC3\xA9");
+    CHECK (run ({ { "hy_on", 1.0f }, { "ds_on", 1.0f }, { "fl_on", 1.0f }, { "ph_on", 1.0f }, { "ch_on", 1.0f }, { "dl_on", 1.0f }, { "cp_on", 1.0f }, { "fi_on", 1.0f },
+                 { "eq_on", 1.0f }, { "rv_on", 1.0f }, { "rv_ord", 1.0f }, { "hy_ord", 10.0f } }), "rack complet, ordre chang\xC3\xA9");
+    CHECK (run ({ { "a_uni", 7.0f }, { "b_on", 1.0f }, { "b_uni", 7.0f }, { "c_on", 1.0f }, { "c_uni", 7.0f }, { "a_udet", 100.0f } }), "unisson 7 sur trois oscillateurs");
+    CHECK (run ({ { "vmode", 1.0f }, { "a_tab", 12.0f }, { "pamt", 60.0f }, { "e3d", 30.0f }, { "e3cd", -80.0f } }), "kick : enveloppe de hauteur");
+    for (int s = 0; s < 9; ++s) CHECK (run ({ { "l1shape", (float) s }, { "l1mode", (float) (s % 3) }, { "l1smooth", 30.0f } }), (std::string ("LFO forme ") + std::to_string (s)).c_str());
+    // retard et polarité : un oscillateur retardé de 50 ms se tait au début
+    {
+        std::vector<float> x;
+        render ({ { "a_delay", 50.0f }, { "a_rand", 0.0f } }, 120, &x, nullptr, 48, -1);
+        float early = 0.0f, late = 0.0f;
+        for (size_t i = 0; i < x.size(); ++i) (i < 2000 ? early : late) = std::max (i < 2000 ? early : late, std::abs (x[i]));
+        CHECK (early < 1.0e-4f && late > 0.01f, "retard de d\xC3\xA9part");
+        std::vector<float> y1, y2;
+        render ({ { "a_rand", 0.0f } }, 40, &y1, nullptr, 48, -1);
+        render ({ { "a_rand", 0.0f }, { "a_inv", 1.0f } }, 40, &y2, nullptr, 48, -1);
+        bool opposite = y1.size() == y2.size();
+        for (size_t i = 0; i < y1.size() && opposite; ++i) opposite = std::abs (y1[i] + y2[i]) < 1.0e-5f;
+        CHECK (opposite, "polarit\xC3\xA9 invers\xC3\xA9" "e");
+    }
+    // tables perso : une table de 4 ondes de 2048 points (format courant), analysée au chargement ; source d'échantillon
+    {
+        SampleBuffer tab;
+        tab.sampleRate = 48000.0;
+        for (int f = 0; f < 4; ++f) for (int i = 0; i < 2048; ++i) tab.data.push_back ((float) std::sin (grv::dsp::kTwoPi * i / 2048.0 * (f + 1)));
+        tab.runtime = g2::buildRuntime (1, tab);
+        const auto* rt = static_cast<const g2::SampleRuntime*> (tab.runtime.get());
+        CHECK (rt != nullptr && rt->tableFrames == 4, "table perso : 4 ondes");
+        SampleBuffer raw = tab; raw.runtime.reset();
+        SampleBuffer src;
+        src.sampleRate = 44100.0;
+        for (int i = 0; i < 44100; ++i) src.data.push_back ((float) (std::sin (grv::dsp::kTwoPi * 220.0 * i / 44100.0) * 0.8));
+        src.runtime = g2::buildRuntime (0, src);
+        const auto* srt = static_cast<const g2::SampleRuntime*> (src.runtime.get());
+        CHECK (srt != nullptr && std::abs (srt->spec.rootHz - 220.0) < 6.0, "spectre de l'\xC3\xA9" "chantillon : fondamentale");
+        const std::array<const SampleBuffer*, 4> with { &src, &tab, nullptr, nullptr }, rawTab { nullptr, &raw, nullptr, nullptr };
+        CHECK (render ({ { "a_tab", (float) g2::builtinTables }, { "a_pos", 70.0f } }, 600, nullptr, &with), "table perso jou\xC3\xA9" "e");
+        CHECK (render ({ { "a_tab", (float) g2::builtinTables }, { "a_pos", 70.0f } }, 600, nullptr, &rawTab), "table perso sans analyse (lecture directe)");
+        CHECK (render ({ { "a_mode", 1.0f }, { "a_gsrc", 0.0f } }, 600, nullptr, &with), "granulaire sur l'\xC3\xA9" "chantillon");
+        CHECK (render ({ { "a_mode", 2.0f }, { "a_ssrc", 1.0f } }, 600, nullptr, &with), "spectral sur l'\xC3\xA9" "chantillon");
+        std::vector<float> e;
+        render ({ { "a_tab", (float) g2::builtinTables + 1 } }, 100, &e); // table perso vide : silence, pas d'erreur
+        bool quiet = true;
+        for (auto v : e) quiet = quiet && std::isfinite (v);
+        CHECK (quiet, "table perso vide");
+    }
+    // queue : délai et réverbération s'éteignent après le relâchement
+    {
+        auto inst = createInstrument ("gooddoc2");
+        inst->prepare (48000.0, 32);
+        auto p = defaults (d);
+        p[(size_t) d.indexOf ("dl_on")] = 1.0f; p[(size_t) d.indexOf ("rv_on")] = 1.0f; p[(size_t) d.indexOf ("dl_feed")] = 50.0f;
+        std::vector<float> L (32), R (32);
+        inst->noteOn (60, 1.0f);
+        for (int k = 0; k < 600; ++k) { std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f); inst->render (L.data(), R.data(), 32, p.data()); }
+        inst->noteOff (60);
+        double e1 = 0.0, eEnd = 0.0;
+        for (int k = 0; k < 48000 * 16 / 32; ++k)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            if (inst->isActive()) inst->render (L.data(), R.data(), 32, p.data());
+            for (int i = 0; i < 32; ++i) { const auto x = (double) L[(size_t) i] * L[(size_t) i]; if (k < 1500) e1 += x; if (k >= 48000 * 15 / 32) eEnd += x; }
+        }
+        CHECK (e1 > 1.0e-4 && 10.0 * std::log10 (eEnd / 1500.0 + 1.0e-30) < -70.0 && ! inst->isActive(), "traînes des effets puis silence");
+    }
+    for (const auto& pr : d.presets)
+    {
+        auto inst = createInstrument ("gooddoc2");
+        inst->prepare (48000.0, 32);
+        auto p = defaults (d);
+        for (const auto& [id, v] : pr.values) { const auto i = d.indexOf (id); if (i >= 0) p[(size_t) i] = v; }
+        std::vector<float> L (32), R (32);
+        inst->noteOn (43, 0.9f); inst->noteOn (55, 0.9f);
+        float peak = 0.0f; bool finite = true;
+        for (int k = 0; k < 2500; ++k)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); }
+        }
+        CHECK (finite && peak > 0.005f && peak < 2.5f, (std::string ("son d'usine ") + pr.name).c_str());
     }
 }
 
@@ -3568,6 +3907,9 @@ int main (int argc, char** argv)
     testHybridMatrix();
     testGlutamake();
     testGoodDoctor();
+    testGoodDoctor2();
+    testMicroTonnerre();
+    testKickForge();
     testFmPlayer();
     testMorphModes();
     testOcta();

@@ -17,6 +17,7 @@
 #include "instruments/Octa.h"
 #include "instruments/Vocoders.h"
 #include "instruments/FmPlayer.h"
+#include "instruments/gd2/Gd2Sources.h" // après la 1.1 : analyse des échantillons de Good Doctor 2
 #include "effects/Distortion.h"
 #if ! GROOVEBOX_NO_EDITOR
  #include "PluginEditor.h"
@@ -2759,6 +2760,9 @@ juce::String GrooveboxProcessor::loadSampleBytes (int track, int index, const ju
     s->name = name.toStdString();
     s->original = std::move (bytes); // partagé avec l'historique : pas de copie du fichier
     s->onsets = synth::computeOnsets (*s, 64); // découpes « attaques » du sampler de performance
+    // après la 1.1 : Good Doctor 2 — table perso (emplacements 2 à 4) ou spectre (emplacement 1), calculés ici
+    if (const auto* inst = engine.instrumentAt (track); inst != nullptr && inst->desc().sampleRuntime == "gooddoc2")
+        s->runtime = instruments::gd2::buildRuntime (index, *s);
     engine.setSample (track, index, std::move (s), nowMs());
     projectVersion.fetch_add (1);
     return {};
@@ -4316,7 +4320,10 @@ void GrooveboxProcessor::restoreSnapshot (const juce::ValueTree& snap)
             for (const auto* r : reuseSamples) if (r->original == w->bytes && r->name == w->name && ! r->firmware) { known = r; break; } // v0.49 : un firmware a sa propre machine
             if (known != nullptr)
             {
-                engine.setSample (tr, i, std::make_unique<SampleBuffer> (*known), nowMs());
+                auto copy = std::make_unique<SampleBuffer> (*known);
+                if (const auto* inst = engine.instrumentAt (tr); inst != nullptr && inst->desc().sampleRuntime == "gooddoc2" && copy->runtime == nullptr)
+                    copy->runtime = instruments::gd2::buildRuntime (i, *copy); // après la 1.1 : Good Doctor 2
+                engine.setSample (tr, i, std::move (copy), nowMs());
                 sampleRefs[(size_t) tr][(size_t) i] = w;
                 continue;
             }

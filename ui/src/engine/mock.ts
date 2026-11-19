@@ -5,6 +5,7 @@
 // Il n'est installé que si la page ne tourne PAS dans le plugin (window.__JUCE__ absent).
 
 import catalogJson from "./catalog.json";
+import kfLibrary from "./kfLibrary.json";
 import type { Catalog, ModuleDesc, ParamDesc } from "./protocol";
 import { lastChannel, mixerFor, numGroups, toNorm, toPlain } from "./params";
 
@@ -303,6 +304,88 @@ export function installMockBackend() {
   };
   const pattern = (fn: (p: (typeof patterns)[number], a: number[]) => void) => (t: number, ...a: number[]) => { fn(patterns[t], a); return patternJson(t); };
 
+
+  // 1.2 : Kick Forge — maquette de l'afficheur : chaque couche dessinée à partir de ses réglages (sinus balayé,
+  // bruit, queue), sans le vrai calcul du moteur
+  const kfVer = new Map<number, number>();
+  const kickViewJson = (t: number, known: number) => {
+    const d = instDesc(t);
+    if (!d || d.type !== "kickforge") return "null";
+    // captures de la documentation : vue et réglages d'un vrai calcul du moteur, posés par le script de captures
+    const shot = (window as unknown as { __kfShot?: { view: { v: number } } }).__kfShot;
+    if (shot) return known === shot.view.v ? JSON.stringify({ v: known }) : JSON.stringify(shot.view);
+    const pv = (id: string) => { const i = d.params.findIndex((p) => p.id === id); return i >= 0 ? toPlain(d.params[i], values[t][L.instrumentBase + i]) : 0; };
+    let hash = 0;
+    for (let i = 0; i < d.params.length; ++i) hash = (hash * 31 + Math.round(values[t][L.instrumentBase + i] * 1e5)) | 0;
+    const v = Math.abs(hash) % 1000000;
+    if (known === v) return JSON.stringify({ v });
+    kfVer.set(t, v);
+    const sr = 48000, cols = 1200;
+    const keyHz = 440 * Math.pow(2, (24 + Math.round(pv("key")) - 69) / 12);
+    const lens = [0.22, 0.32, 0.4, 0.015, 0.05, 0.07, 0.4, 0.4, 0.3, 0.12, 0.5, 0.25, 0.3];
+    type LV = { name: string; start: number; n: number; wave: Float32Array };
+    const layers: (LV | null)[] = [];
+    let total = 0.05 * sr;
+    const anySolo = Array.from({ length: 8 }, (_, l) => pv(`l${l + 1}_on`) > 0.5 && pv(`l${l + 1}_solo`) > 0.5).some(Boolean);
+    for (let l = 0; l < 8; ++l) {
+      const p = (id: string) => pv(`l${l + 1}_${id}`);
+      if (p("on") < 0.5) { layers.push(null); continue; }
+      const fam = Math.round(p("fam")), part = Math.round(p("part"));
+      const fi = kfLibrary.families[fam];
+      const len0 = lens[fam] * (1 + ((part * 37) % 10) / 20) * p("stretch");
+      const n = Math.max(16, Math.min(len0 * sr, p("len") * 0.001 * sr));
+      const fiN = p("filen") * 0.001 * sr, foN = p("folen") * 0.001 * sr;
+      const g = Math.pow(10, p("vol") / 20) * (p("phase") > 0.5 ? -1 : 1);
+      const w = new Float32Array(Math.round(n));
+      let ph = 0;
+      const pitch = Math.pow(2, (p("pitch") + p("fine") / 100) / 12);
+      for (let i = 0; i < w.length; ++i) {
+        const tt = i / sr;
+        let y = 0;
+        if (fam === 3 || fam === 4 || fam === 5 || fam === 9) y = (Math.random() * 2 - 1) * Math.exp(-tt / (len0 * 0.3));
+        else if (fam === 2 || fam === 7) { ph += keyHz * pitch / sr; const pos = (tt % (60 / 150 / 4)) / (60 / 150 / 4); y = Math.sin(2 * Math.PI * ph) * (0.3 + 0.7 * Math.min(1, pos * 4)) * Math.exp(-tt / len0 * 2); }
+        else if (fam === 11) { ph += keyHz * pitch / sr; y = Math.sin(2 * Math.PI * ph) * Math.pow((tt % (60 / 150 / 4)) / (60 / 150 / 4), 2); }
+        else { const f = keyHz * pitch * (1 + 6 * Math.exp(-tt / 0.02)); ph += f / sr; y = Math.tanh(Math.sin(2 * Math.PI * ph) * (fam === 1 || fam === 8 ? 4 : 1.3)) * Math.exp(-tt / (len0 * 0.6)); }
+        let e = 1;
+        if (fiN > 0 && i < fiN) e *= i / fiN;
+        if (foN > 0 && i >= w.length - foN) e *= (w.length - i) / foN;
+        w[i] = y * e * g * 0.9;
+      }
+      if (p("rev") > 0.5) w.reverse();
+      const start = Math.round(p("offset") * 0.001 * sr);
+      total = Math.max(total, start + w.length);
+      layers.push({ name: fam === 12 ? (samples[t][l] ?? "(glissez un sample)") : fi.parts[Math.min(fi.parts.length - 1, part)] ?? "", start, n: w.length, wave: (p("mute") > 0.5 || (anySolo && p("solo") < 0.5)) ? w.map((x) => x * 0.999) : w });
+    }
+    const sum = new Float32Array(Math.ceil(total));
+    layers.forEach((x, l) => {
+      if (!x) return;
+      const audible = pv(`l${l + 1}_mute`) < 0.5 && (!anySolo || pv(`l${l + 1}_solo`) > 0.5);
+      if (audible) x.wave.forEach((y, i) => { if (x.start + i >= 0 && x.start + i < sum.length) sum[x.start + i] += y; });
+    });
+    let pk = 1e-9;
+    sum.forEach((y) => { pk = Math.max(pk, Math.abs(y)); });
+    const gain = pv("autogain") > 0.5 ? 0.5 / pk : 1;
+    const reduce = (w: Float32Array, start: number, sc: number) => {
+      const out = new Int16Array(cols);
+      for (let c = 0; c < cols; ++c) {
+        const a = Math.floor((c / cols) * total) - start, b = Math.floor(((c + 1) / cols) * total) - start;
+        let best = 0;
+        for (let i = Math.max(0, a); i < Math.min(w.length, Math.max(a + 1, b)); ++i) if (Math.abs(w[i]) > Math.abs(best)) best = w[i];
+        out[c] = Math.round(Math.max(-1, Math.min(1, best * sc)) * 32767);
+      }
+      let bin = "";
+      const b8 = new Uint8Array(out.buffer);
+      for (let i = 0; i < b8.length; i++) bin += String.fromCharCode(b8[i]);
+      return btoa(bin);
+    };
+    const post = sum.map((y) => Math.tanh(y * gain * 1.4) / 1.1);
+    const gr = new Float32Array(sum.length).map((_, i) => Math.min(0, (Math.abs(post[i]) - Math.abs(sum[i] * gain)) * 2));
+    return JSON.stringify({
+      v, sr, len: Math.ceil(total), bpm: 150, key: keyHz, peak: 20 * Math.log10(pk), gain,
+      layers: layers.map((x) => (x ? { name: x.name, start: x.start, n: x.n, hz: 0, w: reduce(x.wave, x.start, gain) } : null)),
+      sum: reduce(sum, 0, gain), post: reduce(post, 0, 1), gr: reduce(gr, 0, 1 / 24),
+    });
+  };
   const fns: Record<string, (...a: any[]) => unknown> = {
     getCatalog: () => JSON.stringify(cat),
     getTracks: tracksJson,
@@ -315,6 +398,14 @@ export function installMockBackend() {
     getPattern: (t: number) => patternJson(t),
     getExtras: (t: number) => extrasJson(t),
     getScenes: scenesJson,
+    getTableFrames: () => "null", // après la 1.1 : Good Doctor 2 (tables perso)
+    getKickView: (t: number, known: number) => kickViewJson(t, known), // 1.2 : Kick Forge
+    getKickLibrary: () => JSON.stringify(kfLibrary),
+    kickRandomize: (t: number) => {
+      const d = instDesc(t);
+      if (d) for (let l = 0; l < 8; ++l) { const i = d.params.findIndex((p) => p.id === `l${l + 1}_vol`); if (i >= 0) values[t][L.instrumentBase + i] = Math.min(1, Math.max(0, values[t][L.instrumentBase + i] + (Math.random() - 0.5) * 0.08)); }
+      return channelJson(t);
+    },
     getWave: (t: number, i: number) => samples[t]?.[i] ? JSON.stringify({ name: samples[t][i], seconds: 2, stereo: true, peaks: Array.from({ length: 800 }, (_, k) => (k % 2 ? 1 : -1) * Math.abs(Math.sin(k * 0.05)) * Math.exp(-((k / 2) % 50) / 20)), onsets: Array.from({ length: 8 }, (_, k) => k / 8) }) : "null",
     uiLog: () => null,
     setFocus: (ch: number) => { focus = ch; return channelJson(ch); },
@@ -328,7 +419,11 @@ export function installMockBackend() {
       for (let i = 0; i < L.insertSlots; ++i) { const x = L.insertBase + a * L.insertSlots + i, y = L.insertBase + b * L.insertSlots + i; [values[ch][x], values[ch][y]] = [values[ch][y], values[ch][x]]; }
       return channelJson(ch);
     },
-    applyPreset: (ch: number, slot: number, name: string) => { if (slot < 0 && ch < L.numTracks) tracks[ch].preset = name; else if (slot >= 0) insertPresets[ch][slot] = name; return channelJson(ch); },
+    applyPreset: (ch: number, slot: number, name: string) => { // captures de la documentation : réglages d'un son d'usine posés par le script de captures
+      const w = window as unknown as { __kfShot?: { values: number[]; name?: string }; __shot?: { type: string; values: number[]; name?: string } };
+      const ty = instDesc(ch)?.type;
+      const sh = ty === "kickforge" ? w.__kfShot : w.__shot && w.__shot.type === ty ? w.__shot : undefined;
+      if (sh && slot < 0) { sh.values.forEach((v, i) => { values[ch][L.instrumentBase + i] = v; }); if (sh.name) name = sh.name; } if (slot < 0 && ch < L.numTracks) tracks[ch].preset = name; else if (slot >= 0) insertPresets[ch][slot] = name; return channelJson(ch); },
     setTrackName: (t: number, n: string) => { tracks[t].name = String(n).slice(0, 40); return tracksJson(); },
     trackSoundNames: (t: number) => { const ty = (tracks[t] as { instrument?: string })?.instrument; const m = cat.instruments.find((i: ModuleDesc) => i.type === ty); return JSON.stringify(m ? m.presets : []); },
     setTrackLabels: (t: number, n: string) => { const v = String(n).slice(0, 200); if (v) (tracks[t] as { labels?: string }).labels = v; else delete (tracks[t] as { labels?: string }).labels; return tracksJson(); },

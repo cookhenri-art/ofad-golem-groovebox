@@ -204,6 +204,9 @@ struct ModuleDesc
     std::vector<std::vector<std::string>> machineLabels;
     /** Tables d'ondes (wave morph) : allure de chaque onde de la bibliothèque (64 points, -1..1), pour l'interface. */
     std::vector<std::vector<float>> waveShapes;
+    /** Après la 1.1 (Good Doctor 2) : analyse des échantillons chargés propre à l'instrument
+        (tables perso, spectre), calculée au chargement hors du fil audio (SampleBuffer::runtime). */
+    std::string sampleRuntime;
 
     int indexOf (const std::string& id) const noexcept
     {

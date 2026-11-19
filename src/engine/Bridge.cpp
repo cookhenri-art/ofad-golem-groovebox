@@ -412,6 +412,39 @@ std::string scenesJson (const Engine& e)
     return o + "]";
 }
 
+/** Après la 1.1 (Good Doctor 2) : les ondes d'une table perso (2048 points, 64 ondes au plus), en entiers
+    16 bits petit-boutistes encodés en base 64 (l'éditeur de tables repart de la table enregistrée). */
+std::string tableFramesJson (const Engine& e, int track, int index)
+{
+    const auto* s = e.getSample (track, index);
+    if (s == nullptr || s->data.size() < 16 || s->firmware) return "null";
+    constexpr int size = 2048;
+    const auto n = (int) s->data.size();
+    const auto frames = n >= size ? std::min (64, n / size) : 1;
+    std::vector<unsigned char> bytes ((size_t) frames * size * 2);
+    for (int f = 0; f < frames; ++f)
+        for (int i = 0; i < size; ++i)
+        {
+            float x;
+            if (n >= size) x = s->data[(size_t) (f * size + i)];
+            else { const auto p = (double) i / size * n; const auto i0 = (int) p; const auto fr = p - i0; x = (float) (s->data[(size_t) (i0 % n)] * (1.0 - fr) + s->data[(size_t) ((i0 + 1) % n)] * fr); }
+            const auto v = (int) std::lround (std::clamp (x, -1.0f, 1.0f) * 32767.0f);
+            const auto k = (size_t) (f * size + i) * 2;
+            bytes[k] = (unsigned char) (v & 0xFF); bytes[k + 1] = (unsigned char) ((v >> 8) & 0xFF);
+        }
+    static const char* tbl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string b64;
+    b64.reserve ((bytes.size() + 2) / 3 * 4);
+    for (size_t i = 0; i < bytes.size(); i += 3)
+    {
+        const unsigned a = bytes[i], b = i + 1 < bytes.size() ? bytes[i + 1] : 0u, c = i + 2 < bytes.size() ? bytes[i + 2] : 0u;
+        b64 += tbl[a >> 2]; b64 += tbl[((a & 3) << 4) | (b >> 4)];
+        b64 += i + 1 < bytes.size() ? tbl[((b & 15) << 2) | (c >> 6)] : '=';
+        b64 += i + 2 < bytes.size() ? tbl[c & 63] : '=';
+    }
+    return "{\"frames\":" + std::to_string (frames) + ",\"size\":" + std::to_string (size) + ",\"data\":\"" + b64 + "\"}";
+}
+
 std::string waveJson (const Engine& e, int track, int index, int points)
 {
     const auto* s = e.getSample (track, index);

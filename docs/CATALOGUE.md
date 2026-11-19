@@ -4,7 +4,7 @@ Fichier écrit par `scripts/gen-docs.py` à partir du catalogue du moteur (`groo
 Les noms sont propres au Groovebox ; chaque module reprend le **principe** d'une famille de machines, jamais son nom,
 sa façade ni ses sons.
 
-**38 instruments** (2432 sons d'usine) et **54 effets**.
+**41 instruments** (2673 sons d'usine) et **54 effets**.
 
 ## Instruments
 
@@ -18,6 +18,8 @@ sa façade ni ses sons.
 | <img src="../ui/public/thumbs/drumImp.webp" width="120" alt=""> | **Dragon Fist** | Boîte analogique compacte et agressive : dix voix, une couleur par voix, distorsion de sortie | — |
 | <img src="../ui/public/thumbs/drumNrv.webp" width="120" alt=""> | **Cut of the Beat** | Batterie à échantillons : pads à déposer, précalcul par pad (synthèse ajoutée, sous-harmonique, résolution, écrêtage), GATE, compresseur interne | — |
 | <img src="../ui/public/thumbs/dfam.webp" width="120" alt=""> | **Kick Killer** | Percussion analogique semi-modulaire : 2 VCO, bruit, filtre en échelle, 3 enveloppes à déclin, séquenceur 8 pas hauteur et vélocité | 91 (Basses 11, Effets 11, Percussions 45, Séquences 24) |
+| <img src="../ui/public/thumbs/microton.webp" width="120" alt=""> | **Micro Tonnerre** | Générateur de rythmes à synthèse universelle : 8 canaux, oscillateur à modulation de hauteur et bruit filtré, égaliseur et distorsion | 64 (Classiques 7, Électro 7, Techno 7, House 7, Hip-hop 7, Minimal 7, Rave 96 8, Dur 7, Expérimental 7) |
+| <img src="../ui/public/thumbs/kickforge.webp" width="120" alt=""> | **Kick Forge** | Constructeur de kicks par couches : morceaux calculés ou samples, fondus à la souris, rack de 9 effets, styles et tirage au hasard | 78 (Rumble 6, Reverse bass 6, Industriel 6, Psy 6, Schranz 6, Rumble propre 6, Newstyle 6, Rawstyle 6, Hard techno 6, Gabber 6, Frenchcore 6, Hardstyle 6, Techno 6) |
 
 ### Basses
 
@@ -40,6 +42,7 @@ sa façade ni ses sons.
 | <img src="../ui/public/thumbs/gluta.webp" width="120" alt=""> | **Glutamake** | Tables d'ondes à morphs, bille sur une surface (physique de mouvement) et séquence à couloirs | 89 (Basses 20, Leads 16, Nappes 17, Plucks 10, Claviers 6, Cordes 4, Cuivres 3, Arpèges 4, Effets 4, Synthés 4, Séquences 1) |
 | <img src="../ui/public/thumbs/gooddoc.webp" width="120" alt=""> | **Good Doctor** | Trois oscillateurs à tables d'ondes à double déformation, deux filtres en série ou parallèle, distorsion, matrice | 90 (Basses 26, Leads 12, Nappes 12, Plucks 8, Claviers 7, Cordes 5, Cuivres 5, Arpèges 6, Effets 5, Acide 4) |
 | <img src="../ui/public/thumbs/fmplayer.webp" width="120" alt=""> | **FM Player** | Lecteur de firmwares du boîtier de synthèse FM-1 (processeur émulé) : chaque firmware .fwsc devient un instrument | — |
+| <img src="../ui/public/thumbs/gooddoc2.webp" width="120" alt=""> | **Good Doctor 2** | Trois oscillateurs hybrides (tables d'ondes, granulaire, spectral) à double déformation et unisson, deux filtres, 4 enveloppes à courbes, LFO, matrice, rack de 10 effets dont compresseur trois bandes | 99 (Basses 42, Leads 12, Nappes 10, Plucks 8, Claviers 4, Cordes 3, Cuivres 3, Arpèges 4, Effets 11, Acide 2) |
 
 ### Nappes
 

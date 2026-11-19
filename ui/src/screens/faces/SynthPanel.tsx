@@ -23,7 +23,11 @@ import { OctaPanel } from "./OctaPanel";
 import { WaveScanPanel } from "./WaveScanPanel";
 import { OrbiterPanel, OrbWavesPanel } from "./OrbiterPanel";
 import { GlutaLane, GlutaOsc, GlutaPad } from "./GlutaPanel";
-import { GoodDocOsc, GoodDocRoute } from "./GoodDocPanel";
+import { GoodDocMix, GoodDocOsc, GoodDocRoute } from "./GoodDocPanel";
+import { Gd2Chain, Gd2Env, Gd2Lfo, Gd2Mix, Gd2ModeKnobs, Gd2Osc } from "./Gd2Panel";
+import { Gd2TableEditor } from "./Gd2TableEditor";
+import { MtChannels, MtKit, MtShape } from "./MtPanel";
+import { KfBrowser, KfDisplay, KfLayers, KfModule, KfRack, KfTop } from "./KfPanel";
 import { DfamSeqPanel, DfamTransport } from "./DfamPanel";
 import { ImpactOut, ImpactStrips } from "./ImpactPanel";
 import { NervePads } from "./NervePanel";
@@ -57,6 +61,28 @@ const CUSTOM: Record<string, (p: { channel: number; module: ModuleDesc; args: st
   // v0.47 (maj. 5 nov.) : Good Doctor — écran d'un oscillateur (« gdosc:a »), schéma des sorties
   gdosc: ({ channel, module, args }) => <GoodDocOsc channel={channel} module={module} osc={args[0] ?? "a"} />,
   gdroute: ({ channel, module }) => <GoodDocRoute channel={channel} module={module} />,
+  // 18 nov. : mélangeur de Good Doctor (A, B, C, sous-oscillateur, bruit côte à côte)
+  gdmix: ({ channel, module }) => <GoodDocMix channel={channel} module={module} />,
+  // après la 1.1 : Good Doctor 2 — écran et réglages du mode de l'oscillateur, enveloppes et LFO dessinés,
+  // mélangeur, chaîne d'effets, éditeur de tables
+  gd2osc: ({ channel, module, args }) => <Gd2Osc channel={channel} module={module} osc={args[0] ?? "a"} />,
+  gd2modes: ({ channel, module, args }) => <Gd2ModeKnobs channel={channel} module={module} osc={args[0] ?? "a"} />,
+  gd2env: ({ channel, module, args }) => <Gd2Env channel={channel} module={module} env={args[0] ?? "1"} />,
+  gd2lfo: ({ channel, module, args }) => <Gd2Lfo channel={channel} module={module} lfo={args[0] ?? "1"} />,
+  gd2mix: ({ channel, module }) => <Gd2Mix channel={channel} module={module} />,
+  gd2chain: ({ channel, module }) => <Gd2Chain channel={channel} module={module} />,
+  gd2editor: ({ channel, module }) => <Gd2TableEditor channel={channel} module={module} />,
+  // après la 1.1 : Micro Tonnerre — les 8 canaux, l'allure du canal choisi, le kit en colonnes
+  mtchans: ({ channel, module }) => <MtChannels channel={channel} module={module} />,
+  mtshape: ({ channel, module }) => <MtShape channel={channel} module={module} />,
+  mtkit: ({ channel, module }) => <MtKit channel={channel} module={module} />,
+  // 1.2 : Kick Forge — bandeau, afficheur, couches, bibliothèque, rack et module choisi
+  kftop: ({ channel, module }) => <KfTop channel={channel} module={module} />,
+  kfdisplay: ({ channel, module, args }) => <KfDisplay channel={channel} module={module} top={args[0] === "top"} />,
+  kflayers: ({ channel, module }) => <KfLayers channel={channel} module={module} />,
+  kfbrowser: ({ channel, module }) => <KfBrowser channel={channel} module={module} />,
+  kfrack: ({ channel, module }) => <KfRack channel={channel} module={module} />,
+  kfmodule: ({ channel, module }) => <KfModule channel={channel} module={module} />,
   // v0.49 : FM Player — la machine émulée (écran, commandes, clavier) et la section du firmware
   fm1: ({ channel }) => <Fm1Panel channel={channel} />,
   fm1fw: ({ channel }) => <Fm1Firmware channel={channel} />,
@@ -231,7 +257,7 @@ function PanelSection({ channel, module: m, panel, lane }: { channel: number; mo
   const visual = panel.visual ? m.sections.find((s) => s.id === panel.visual) : undefined;
   // v0.32.1 : copier / coller / remettre à zéro la section (enveloppes, LFO, oscillateurs, filtres)
   const bankLabel = panel.banks?.[Math.min(bank, panel.banks.length - 1)]?.label;
-  const sectionTitle = bankLabel && !all ? `${panel.title} · ${bankLabel}` : panel.title;
+  const sectionTitle = bankLabel && !all ? `${panel.title} · ${bankLabel}` : panel.title.replace("{n}", n);
   const idsOf = (f: (c: Ctl) => Ctl) => panel.ctl.flatMap((c) => (typeof c === "object" && "gap" in c ? [] : typeof c === "object" && "stack" in c ? c.stack.map((x) => f(normCtl(x)).id) : [f(normCtl(c as string | Ctl)).id]));
   const ctlIds = all ? panel.banks!.flatMap((x) => idsOf(subB(x.value))) : idsOf(sub);
   if (panel.copyExtra) ctlIds.push(...panel.copyExtra.map((id) => id.replace("{b}", b)));
@@ -248,7 +274,7 @@ function PanelSection({ channel, module: m, panel, lane }: { channel: number; mo
       // le bandeau (titre + banques) est posé au-dessus du cadre : la section garde assez de largeur pour lui
       ...(panel.banks && !all ? { minWidth: `${36 + panel.title.length * 9 + panel.banks.reduce((n, x) => n + 30 + x.label.length * 7, 0)}px` } : {}) } as React.CSSProperties}>
       <header className="fp-head">
-        <h3 className="fp-title">{panel.title}</h3>
+        <h3 className="fp-title">{panel.title.replace("{n}", n)}</h3>
         {panel.banks && !all && (
           <span className="fp-banks" role="tablist" aria-label={`${panel.title} : banque`}>
             {panel.banks.map((x, i) => (
@@ -312,7 +338,8 @@ function SectionCopyButton({ open, setOpen }: { open: boolean; setOpen: (v: bool
   );
 }
 
-function Control({ channel, module: m, ctl }: { channel: number; module: ModuleDesc; ctl: Ctl }) {
+/** Une commande de façade (aussi utilisée par les panneaux particuliers : Good Doctor 2). */
+export function Control({ channel, module: m, ctl }: { channel: number; module: ModuleDesc; ctl: Ctl }) {
   const index = m.params.findIndex((p) => p.id === ctl.id);
   if (index < 0) return null;
   const global = paramAddress(channel, "inst", 0, index);
@@ -348,11 +375,16 @@ function Menu({ global, ctl }: { global: number; ctl: Ctl }) {
   const count = e.choices ? e.choices.length : Math.round(e.max - e.min) + 1;
   const cur = Math.round(e.choices ? e.plain : e.plain - e.min);
   const go = (d: number) => { const n = (cur + d + count) % count; e.pick(e.choices ? n : e.min + n); };
+  // après la 1.1 : largeur fixée sur le choix le plus long — l'afficheur ne change plus de taille d'un choix à
+  // l'autre, et les sections voisines ne passent plus à la ligne (ni ne remontent) en faisant défiler les noms
+  const names: readonly string[] = ctl.short ?? e.choices ?? [];
+  const longest = names.reduce((n, x) => Math.max(n, String(x).length), 0);
+  const boxWidth = longest > 0 ? `min(300px, max(150px, calc(${(longest * 0.6).toFixed(1)}em + 64px)))` : undefined;
   return (
     <ParamMenuZone binding={b}>
     <div className={`fc fc-menu${b.locked ? ` fc--lock-${b.locked}` : ""}`}>
       <span className="fc-menu-label">{ctl.label ?? b.label}</span>
-      <div className="fc-menu-box">
+      <div className="fc-menu-box" style={boxWidth ? { width: boxWidth, fontSize: 15 } : undefined}>
         <button type="button" onClick={() => go(-1)} aria-label={`${b.label} : précédent`}>◀</button>
         <span className="fc-menu-value" aria-live="polite">{ctl.short?.[cur] ?? b.text}</span>
         <button type="button" onClick={() => go(1)} aria-label={`${b.label} : suivant`}>▶</button>

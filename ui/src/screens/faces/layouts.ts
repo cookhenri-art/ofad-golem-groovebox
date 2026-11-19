@@ -1708,15 +1708,19 @@ const gooddoc: FaceLayout = {
       id: "sound", label: "Son",
       rows: [
         [
-          { title: "Oscillateur", banks: [{ label: "A", value: "a" }, { label: "B", value: "b" }, { label: "C", value: "c" }], cols: 7, grow: 2.5, custom: "gdosc:{b}", ctl: [
+          { title: "Oscillateur", banks: [{ label: "A", value: "a" }, { label: "B", value: "b" }, { label: "C", value: "c" }], cols: 7, grow: 2.3, custom: "gdosc:{b}", ctl: [
             { id: "{b}_on", label: "Marche", on: 1 }, { id: "{b}_tab", k: "menu", label: "Table" }, { id: "{b}_w1", k: "menu", label: "Déform. 1" }, { id: "{b}_w2", k: "menu", label: "Déform. 2" },
             { id: "{b}_dest", k: "menu", label: "Sortie" }, { id: "{b}_oct", k: "small", label: "Octave" }, { id: "{b}_semi", k: "small", label: "Demi-tons" },
             { id: "{b}_pos", k: "big", label: "Position" }, { id: "{b}_w1amt", k: "big", label: "Intens. 1" }, { id: "{b}_w2amt", label: "Intens. 2" },
             { id: "{b}_lvl", k: "big", label: "Niveau" }, { id: "{b}_fine", k: "small", label: "Fin" }, { id: "{b}_phase", k: "small", label: "Phase" }, { id: "{b}_rand", k: "small", label: "Hasard" },
           ] },
-          { title: "Sous-osc. et bruit", cols: 2, grow: 0.8, custom: "gdroute", ctl: [
-            { id: "sub", k: "big", label: "Sous-osc." }, { id: "subshape", k: "menu", label: "Forme" }, { id: "suboct", k: "small", label: "Octave" }, { id: "subdest", k: "menu", label: "Sortie" },
-            { id: "noise", label: "Bruit" }, { id: "ncolor", k: "small", label: "Couleur" }, { id: "ndest", k: "menu", label: "Sortie bruit" },
+          // 18 nov. : mélangeur — les cinq sources côte à côte (marche, niveau, sortie), comme sur les grands
+          // synthés à tables d'ondes ; monter le niveau d'un oscillateur éteint l'allume (GoodDocMix)
+          { title: "Mélangeur", cols: 5, grow: 1.5, custom: "gdmix", ctl: [
+            { id: "a_on", label: "A", on: 1 }, { id: "b_on", label: "B", on: 1 }, { id: "c_on", label: "C", on: 1 }, { id: "subshape", k: "menu", label: "Forme sous-osc." }, { id: "ncolor", k: "small", label: "Couleur" },
+            { id: "a_lvl", k: "fader", label: "A" }, { id: "b_lvl", k: "fader", label: "B" }, { id: "c_lvl", k: "fader", label: "C" }, { id: "sub", k: "fader", label: "Sous-osc." }, { id: "noise", k: "fader", label: "Bruit" },
+            { id: "a_dest", k: "menu", label: "Sortie A" }, { id: "b_dest", k: "menu", label: "Sortie B" }, { id: "c_dest", k: "menu", label: "Sortie C" }, { id: "subdest", k: "menu", label: "Sortie sous-osc." }, { id: "ndest", k: "menu", label: "Sortie bruit" },
+            { gap: true }, { gap: true }, { gap: true }, { id: "suboct", k: "small", label: "Octave" }, { gap: true },
           ] },
           { title: "Filtre", banks: [{ label: "1", value: "1" }, { label: "2", value: "2" }], cols: 4, grow: 1.4, ctl: [
             { id: "f{b}on", label: "Marche", on: 1 }, { id: "f{b}type", k: "menu", label: "Type" }, { id: "route", k: "vswitch", label: "Filtres", short: ["Série", "Parallèle"] }, { id: "f{b}mix", k: "small", label: "Mélange" },
@@ -1776,6 +1780,155 @@ const gooddoc: FaceLayout = {
   ],
 };
 
+/** Après la 1.1 : Good Doctor 2 — principe des grands synthés hybrides de 2025 : pages Oscillateurs, Mélangeur,
+    Effets, Modulation, Matrice et Éditeur de tables ; écrans verts sur fond graphite (dessin propre à GOLEM). */
+const GD2_OSC = [{ label: "A", value: "a" }, { label: "B", value: "b" }, { label: "C", value: "c" }];
+const gooddoc2: FaceLayout = {
+  theme: "docteur2",
+  wheels: true,
+  pages: [
+    {
+      id: "osc", label: "Oscillateurs",
+      rows: [
+        [
+          { title: "Oscillateur", banks: GD2_OSC, bankGroup: "gd2osc", cols: 7, grow: 2.3, custom: "gd2osc:{b}", ctl: [
+            { id: "{b}_on", label: "Marche", on: 1 }, { id: "{b}_mode", k: "vswitch", label: "Mode", short: ["Tables", "Grains", "Spectral"] },
+            { id: "{b}_tab", k: "menu", label: "Table" }, { id: "{b}_dest", k: "menu", label: "Sortie" },
+            { id: "{b}_oct", k: "small", label: "Octave" }, { id: "{b}_semi", k: "small", label: "Demi-tons" }, { id: "{b}_fine", k: "small", label: "Fin" },
+            { id: "{b}_pos", k: "big", label: "Position" }, { id: "{b}_lvl", k: "big", label: "Niveau" }, { id: "{b}_pan", label: "Pan" },
+            { id: "{b}_phase", k: "small", label: "Phase" }, { id: "{b}_rand", k: "small", label: "Hasard" },
+            { id: "{b}_inv", label: "Inversé", on: 1 }, { id: "{b}_delay", k: "small", label: "Retard" },
+          ] },
+          { title: "Déformations · grains · partiels", banks: GD2_OSC, bankGroup: "gd2osc", ctl: [], custom: "gd2modes:{b}", grow: 1.5 },
+          { title: "Filtre", banks: [{ label: "1", value: "1" }, { label: "2", value: "2" }], cols: 4, grow: 1.4, ctl: [
+            { id: "f{b}on", label: "Marche", on: 1 }, { id: "f{b}type", k: "menu", label: "Type" }, { id: "route", k: "vswitch", label: "Filtres", short: ["Série", "Parallèle"] }, { id: "f{b}mix", k: "small", label: "Mélange" },
+            { id: "f{b}cut", k: "big", label: "Coupure" }, { id: "f{b}res", label: "Résonance" }, { id: "f{b}drive", k: "small", label: "Gain" }, { id: "f{b}shape", k: "small", label: "Forme" },
+            { id: "f{b}env", label: "Env. 2" }, { id: "f{b}key", k: "small", label: "Clavier" }, { id: "f{b}vel", k: "small", label: "Vélocité" },
+          ] },
+        ],
+        [
+          { title: "Sous-osc. et bruit", cols: 3, grow: 0.9, ctl: [
+            { id: "sub_on", label: "Sous-osc.", on: 1 }, { id: "subshape", k: "menu", label: "Forme" }, { id: "suboct", k: "small", label: "Octave" },
+            { id: "noise_on", label: "Bruit", on: 1 }, { id: "ntype", k: "menu", label: "Type" }, { id: "ncolor", k: "small", label: "Couleur" },
+          ] },
+          { title: "Enveloppe", banks: [{ label: "1 ampli", value: "1" }, { label: "2 filtres", value: "2" }, { label: "3 hauteur", value: "3" }, { label: "4", value: "4" }],
+            cols: 8, grow: 1.8, custom: "gd2env:{b}", tone: "oklch(0.84 0.17 140)", ctl: [
+            { id: "e{b}a", k: "fader", label: "A" }, { id: "e{b}h", k: "fader", label: "T" }, { id: "e{b}d", k: "fader", label: "D" }, { id: "e{b}s", k: "fader", label: "S" },
+            { id: "e{b}r", k: "fader", label: "R" }, { id: "e{b}ca", k: "small", label: "Courbe A" }, { id: "e{b}cd", k: "small", label: "Courbe D" }, { id: "e{b}cr", k: "small", label: "Courbe R" },
+            { id: "pamt", k: "small", label: "Hauteur (3)" },
+          ] },
+          { title: "LFO", banks: [{ label: "1", value: "1" }, { label: "2", value: "2" }, { label: "3", value: "3" }], cols: 4, grow: 1.2, custom: "gd2lfo:{b}", ctl: [
+            { id: "l{b}rate", k: "big", label: "Vitesse" }, { id: "l{b}shape", k: "menu", label: "Forme" }, { id: "l{b}sync", k: "small", label: "Synchro" },
+            { id: "l{b}mode", k: "vswitch", label: "Mode", short: ["Libre", "Redécl.", "1 coup"] },
+            { id: "l{b}delay", k: "small", label: "Retard" }, { id: "l{b}smooth", k: "small", label: "Lissage" }, { id: "l{b}phase", k: "small", label: "Phase" },
+          ] },
+          { title: "Macros", cols: 4, grow: 0.9, ctl: [
+            { id: "macro1", label: "1" }, { id: "macro2", label: "2" }, { id: "macro3", label: "3" }, { id: "macro4", label: "4" },
+            { id: "macro5", label: "5" }, { id: "macro6", label: "6" }, { id: "macro7", label: "7" }, { id: "macro8", label: "8" },
+          ] },
+          { title: "Voix et sortie", cols: 3, grow: 0.9, ctl: [
+            { id: "vmode", k: "vswitch", label: "Jeu", short: ["Poly", "Mono", "Legato"] }, { id: "level", k: "big", label: "Volume" }, { id: "glide", k: "small", label: "Glisse" },
+            { id: "voices", k: "small", label: "Voix" }, { id: "tune", k: "small", label: "Accord" }, { id: "spread", k: "small", label: "Largeur" },
+            { id: "velamp", k: "small", label: "Vél. ampli" },
+          ] },
+        ],
+      ],
+    },
+    {
+      id: "mix", label: "Mélangeur",
+      rows: [
+        [
+          { title: "Mélangeur · A, B, C, sous-oscillateur, bruit", cols: 5, grow: 2.2, custom: "gd2mix", ctl: [
+            { id: "a_on", label: "A", on: 1 }, { id: "b_on", label: "B", on: 1 }, { id: "c_on", label: "C", on: 1 }, { id: "sub_on", label: "Sous-osc.", on: 1 }, { id: "noise_on", label: "Bruit", on: 1 },
+            { id: "a_lvl", k: "fader", label: "A" }, { id: "b_lvl", k: "fader", label: "B" }, { id: "c_lvl", k: "fader", label: "C" }, { id: "sub", k: "fader", label: "Sous-osc." }, { id: "noise", k: "fader", label: "Bruit" },
+            { id: "a_pan", label: "Pan A" }, { id: "b_pan", label: "Pan B" }, { id: "c_pan", label: "Pan C" }, { id: "subpan", label: "Pan sous-osc." }, { id: "npan", label: "Pan bruit" },
+            { id: "a_dest", k: "menu", label: "Sortie A" }, { id: "b_dest", k: "menu", label: "Sortie B" }, { id: "c_dest", k: "menu", label: "Sortie C" }, { id: "subdest", k: "menu", label: "Sortie sous-osc." }, { id: "ndest", k: "menu", label: "Sortie bruit" },
+            { id: "a_inv", label: "Inv. A", on: 1 }, { id: "b_inv", label: "Inv. B", on: 1 }, { id: "c_inv", label: "Inv. C", on: 1 }, { id: "subinv", label: "Inv. sous-osc.", on: 1 }, { gap: true },
+            { id: "a_delay", k: "small", label: "Retard A" }, { id: "b_delay", k: "small", label: "Retard B" }, { id: "c_delay", k: "small", label: "Retard C" }, { id: "suboct", k: "small", label: "Octave" }, { id: "ncolor", k: "small", label: "Couleur" },
+          ] },
+          { title: "Filtres", cols: 2, grow: 0.7, ctl: [
+            { id: "route", k: "vswitch", label: "Filtres", short: ["Série", "Parallèle"] }, { id: "level", k: "big", label: "Volume" },
+            { id: "f1on", label: "F1", on: 1 }, { id: "f2on", label: "F2", on: 1 }, { id: "f1cut", label: "Coupure 1" }, { id: "f2cut", label: "Coupure 2" },
+          ] },
+        ],
+      ],
+    },
+    {
+      id: "fx", label: "Effets",
+      rows: [
+        [
+          { title: "Chaîne · ordre et marche", ctl: [], custom: "gd2chain", grow: 1.1 },
+          { title: "Élargisseur", cols: 2, grow: 0.8, ctl: [
+            { id: "hy_on", label: "Marche", on: 1 }, { id: "hy_mix", k: "big", label: "Mélange" }, { id: "hy_rate", label: "Vitesse" }, { id: "hy_depth", label: "Désaccord" }, { id: "hy_dim", label: "Espace" },
+          ] },
+          { title: "Distorsion", cols: 3, grow: 1, ctl: [
+            { id: "ds_on", label: "Marche", on: 1 }, { id: "ds_type", k: "menu", label: "Type" }, { id: "ds_pre", k: "menu", label: "Préfiltre" },
+            { id: "ds_drive", k: "big", label: "Poussée" }, { id: "ds_freq", label: "Fréquence" }, { id: "ds_mix", label: "Mélange" },
+          ] },
+          { title: "Compresseur · 3 bandes", cols: 5, grow: 1.6, ctl: [
+            { id: "cp_on", label: "Marche", on: 1 }, { id: "cp_mode", k: "vswitch", label: "Mode", short: ["Simple", "3 bandes"] }, { id: "cp_depth", k: "big", label: "Profondeur" },
+            { id: "cp_time", label: "Temps" }, { id: "cp_in", k: "small", label: "Entrée" },
+            { id: "cp_up", label: "Vers le haut" }, { id: "cp_down", label: "Vers le bas" }, { id: "cp_out", k: "small", label: "Sortie" },
+            { id: "cp_thr", k: "small", label: "Seuil (simple)" }, { id: "cp_ratio", k: "small", label: "Rapport" },
+            { id: "cp_low", k: "small", label: "Grave" }, { id: "cp_mid", k: "small", label: "Médium" }, { id: "cp_high", k: "small", label: "Aigu" },
+          ] },
+        ],
+        [
+          { title: "Flanger", cols: 3, grow: 0.8, ctl: [{ id: "fl_on", label: "Marche", on: 1 }, { id: "fl_rate", label: "Vitesse" }, { id: "fl_depth", label: "Profondeur" }, { id: "fl_feed", label: "Réinjection" }, { id: "fl_mix", label: "Mélange" }] },
+          { title: "Phaser", cols: 3, grow: 0.8, ctl: [{ id: "ph_on", label: "Marche", on: 1 }, { id: "ph_rate", label: "Vitesse" }, { id: "ph_depth", label: "Profondeur" }, { id: "ph_freq", label: "Centre" }, { id: "ph_feed", label: "Réinjection" }, { id: "ph_mix", label: "Mélange" }] },
+          { title: "Chorus", cols: 3, grow: 0.8, ctl: [{ id: "ch_on", label: "Marche", on: 1 }, { id: "ch_rate", label: "Vitesse" }, { id: "ch_depth", label: "Profondeur" }, { id: "ch_delay", label: "Retard" }, { id: "ch_feed", label: "Réinjection" }, { id: "ch_mix", label: "Mélange" }] },
+          { title: "Délai", cols: 4, grow: 1.1, ctl: [
+            { id: "dl_on", label: "Marche", on: 1 }, { id: "dl_mode", k: "vswitch", label: "Mode", short: ["Simple", "Ping-pong", "Bande"] }, { id: "dl_sync", label: "Tempo", on: 1 }, { id: "dl_div", k: "menu", label: "Division" },
+            { id: "dl_time", label: "Temps" }, { id: "dl_feed", label: "Réinjection" }, { id: "dl_mix", k: "big", label: "Mélange" }, { id: "dl_low", k: "small", label: "Coupe-bas" }, { id: "dl_high", k: "small", label: "Coupe-haut" },
+          ] },
+        ],
+        [
+          { title: "Filtre", cols: 3, grow: 0.8, ctl: [{ id: "fi_on", label: "Marche", on: 1 }, { id: "fi_type", k: "menu", label: "Type" }, { id: "fi_cut", k: "big", label: "Coupure" }, { id: "fi_res", label: "Résonance" }, { id: "fi_drive", label: "Gain" }, { id: "fi_mix", label: "Mélange" }] },
+          { title: "Égaliseur", cols: 4, grow: 1, ctl: [
+            { id: "eq_on", label: "Marche", on: 1 }, { id: "eq_lf", k: "small", label: "Grave (Hz)" }, { id: "eq_mf", k: "small", label: "Médium (Hz)" }, { id: "eq_hf", k: "small", label: "Aigu (Hz)" },
+            { id: "eq_mq", k: "small", label: "Largeur" }, { id: "eq_lg", label: "Grave" }, { id: "eq_mg", label: "Médium" }, { id: "eq_hg", label: "Aigu" },
+          ] },
+          { title: "Réverbération", cols: 4, grow: 1, ctl: [
+            { id: "rv_on", label: "Marche", on: 1 }, { id: "rv_size", k: "big", label: "Taille" }, { id: "rv_mix", k: "big", label: "Mélange" }, { id: "rv_pre", k: "small", label: "Pré-délai" },
+            { id: "rv_bright", label: "Brillance" }, { id: "rv_low", k: "small", label: "Coupe-bas" }, { id: "rv_width", label: "Largeur" },
+          ] },
+        ],
+      ],
+    },
+    {
+      id: "mod", label: "Modulation",
+      rows: [
+        [
+          { title: "Env. 5", cols: 4, grow: 1.1, ctl: [
+            { id: "me1_att", label: "Attaque" }, { id: "me1_dec", label: "Déclin" }, { id: "me1_sus", label: "Niveau" }, { id: "me1_rel", label: "Relâch." },
+            { id: "me1_dly", k: "small", label: "Retard" }, { id: "me1_hld", k: "small", label: "Tenue" },
+            { stack: [{ id: "me1_loop", label: "Boucle" }, { id: "me1_sync", label: "Tempo" }] }, { id: "me1_vel", k: "small", label: "Vélocité" },
+          ] },
+          { title: "LFO à pas (dessinables)", banks: [{ label: "4", value: "4" }, { label: "5", value: "5" }], cols: 4, grow: 1.6, custom: "steps:lf{b}_s:lf{b}_steps", ctl: [
+            { id: "lf{b}_shape", label: "Forme" }, { id: "lf{b}_rate", label: "Vitesse" }, { id: "lf{b}_steps", k: "small", label: "Pas" }, { id: "lf{b}_sync", k: "small", label: "Synchro" },
+            { id: "lf{b}_mode", k: "small", label: "Mode" }, { id: "lf{b}_delay", k: "small", label: "Retard" },
+          ] },
+        ],
+        [
+          { title: "Arpège", cols: 4, grow: 1, ctl: [
+            { stack: [{ id: "arp_on", label: "En marche" }, { id: "arp_mode", label: "Mode" }] }, { id: "arp_rate", label: "Division" }, { id: "arp_gate", k: "small", label: "Durée" }, { id: "arp_swing", k: "small", label: "Swing" },
+            { id: "arp_hold", label: "Maintien" }, { id: "arp_oct", k: "switch", label: "Octaves" }, { id: "arp_steps", k: "small", label: "Pas" },
+          ] },
+          { title: "Pas de l'arpège", banks: [{ label: "Transposition", value: "t" }, { label: "Vélocité", value: "v" }], ctl: [], custom: "steps:arp_{b}:arp_steps", grow: 1.4 },
+        ],
+      ],
+    },
+    {
+      id: "matrix", label: "Matrice",
+      rows: [[{ title: "Matrice de modulation · 32 routages (4 enveloppes, 5 LFO, macros, jeu → n'importe quel réglage, effets compris)", ctl: [], custom: "matrix", grow: 2 }]],
+    },
+    {
+      id: "editor", label: "Éditeur de tables",
+      rows: [[{ title: "Éditeur de tables d'ondes · Perso 1 à 3 (emplacements d'échantillon 2 à 4)", ctl: [], custom: "gd2editor", grow: 2 }]],
+    },
+  ],
+};
+
 /** v0.49 : FM Player — la machine émulée en grand (écran au milieu, ses commandes de part et d'autre, son
     clavier dessous), puis le firmware et la sortie. Dessin propre à GOLEM. */
 const fmplayer: FaceLayout = {
@@ -1796,4 +1949,106 @@ const fmplayer: FaceLayout = {
   ],
 };
 
-export const FACE_LAYOUTS: Record<string, FaceLayout> = { mono, acid, drumA, drum80, drum90, poly5, polyj, hybrid, morph, pads, octa, ms20, sh101, blo, ob6, orbit, fm6, fm4, fmx, muse, hots, lyra, bitm, drumImp, drumNrv, dfam, voc16, vocstr, vocspec, vocsyn, sampler, keys, sp, gluta, gooddoc, fmplayer };
+/** Micro Tonnerre (après la 1.1) : générateur de rythmes à synthèse universelle — à gauche les
+    8 canaux (jouer, choisir), l'allure du canal choisi et son mélange ; en dessous son
+    oscillateur, son bruit et sa vélocité (« {z} » = canal choisi) ; les pas du canal en bas. Le kit
+    en colonnes dans la page « Le kit ». Le morphing entre deux kits : scènes et crossfader. */
+const microton: FaceLayout = {
+  theme: "tonnerre",
+  pages: [
+    {
+      id: "sound", label: "Canaux",
+      rows: [
+        [
+          { title: "Canaux · numéro : jouer · nom : régler", ctl: [], custom: "mtchans", grow: 1.05 },
+          { title: "Allure du canal", ctl: [], custom: "mtshape", grow: 1.25, tone: "oklch(0.88 0.17 95)" },
+          { title: "Mélange", cols: 4, grow: 1.5, ctl: [
+            { id: "p{z}_mix", k: "big", label: "Osc. / bruit" }, { id: "p{z}_eqf", label: "Fréq. EQ" }, { id: "p{z}_eqg", label: "Gain EQ" }, { id: "p{z}_dist", k: "big", label: "Distorsion" },
+            { id: "p{z}_level", k: "big", label: "Niveau" }, { id: "p{z}_pan", label: "Pan" }, { id: "p{z}_choke", k: "vswitch", label: "Étouffement", short: ["—", "1", "2", "3", "4"] },
+          ] },
+        ],
+        [
+          { title: "Oscillateur", cols: 5, grow: 1.9, tone: "oklch(0.8 0.15 240)", ctl: [
+            { id: "p{z}_wave", k: "vswitch", label: "Forme", short: ["Sinus", "Triangle", "Scie"] }, { id: "p{z}_freq", k: "big", label: "Fréquence" },
+            { id: "p{z}_mmode", k: "vswitch", label: "Modulation", short: ["Déclin", "Sinus", "Aléa."] }, { id: "p{z}_mamt", k: "big", label: "Quantité" },
+            { stack: [{ id: "p{z}_mtime", k: "small", label: "Durée" }, { id: "p{z}_mrate", k: "small", label: "Vitesse" }] },
+            { id: "p{z}_oatk", k: "fader", label: "Attaque" }, { id: "p{z}_odec", k: "fader", label: "Déclin" },
+          ] },
+          { title: "Bruit", cols: 5, grow: 1.8, tone: "oklch(0.8 0.13 30)", ctl: [
+            { id: "p{z}_nfilt", k: "vswitch", label: "Filtre", short: ["P.-bas", "P.-bande", "P.-haut"] }, { id: "p{z}_nfreq", k: "big", label: "Fréquence" },
+            { id: "p{z}_nq", label: "Résonance" }, { id: "p{z}_nenv", k: "vswitch", label: "Enveloppe", short: ["Expo.", "Lin.", "Claquée"] },
+            { id: "p{z}_nstereo", label: "Stéréo", on: 1 },
+            { id: "p{z}_natk", k: "fader", label: "Attaque" }, { id: "p{z}_ndec", k: "fader", label: "Déclin" },
+          ] },
+          { title: "Vélocité", cols: 1, grow: 0.5, ctl: [
+            { id: "p{z}_vosc", k: "small", label: "Osc." }, { id: "p{z}_vnoise", k: "small", label: "Bruit" }, { id: "p{z}_vmod", k: "small", label: "Modul." },
+          ] },
+        ],
+        [
+          { title: "Envois · kit", cols: 3, grow: 0.8, ctl: [
+            { id: "p{z}_sendA", label: "Envoi A" }, { id: "p{z}_sendB", label: "Envoi B" }, { id: "volume", k: "big", label: "Volume du kit" },
+          ] },
+          { title: "Accent", ctl: [], custom: "accent", grow: 0 },
+          { title: "Pas du canal choisi", ctl: [], custom: "stepkeysR", grow: 3 },
+        ],
+      ],
+    },
+    {
+      id: "kit", label: "Le kit",
+      rows: [
+        [{ title: "Le kit · toucher un nom pour choisir le canal", ctl: [], custom: "mtkit" }],
+        [{ title: "Accent", ctl: [], custom: "accent", grow: 0 }, { title: "Pas du canal choisi", ctl: [], custom: "stepkeysR" }],
+      ],
+    },
+  ],
+};
+
+/** Kick Forge (1.2) : constructeur de kicks par couches. Page « Kick » : bandeau (style, tonalité,
+    hasard), grand afficheur réglable à la souris, couches comme des pistes, réglages de la couche
+    choisie (« {n} » = couche choisie, 1 à 8) ; page « Effets du kick » : rack de 9 modules et
+    réglages du module choisi ; page « Bibliothèque » : familles et morceaux. */
+const kickforge: FaceLayout = {
+  theme: "forge",
+  pages: [
+    {
+      id: "sound", label: "Kick",
+      rows: [
+        [{ title: "Kick · cliquer sur le nom d'une couche pour ouvrir la bibliothèque", ctl: [], custom: "kfdisplay:top", grow: 1 }],
+        [{ title: "Couches · cliquer pour choisir · glisser un sample sur une couche", ctl: [], custom: "kflayers", grow: 1 }],
+        [
+          { title: "Couche {n} · source", cols: 7, grow: 2.1, tone: "oklch(0.78 0.17 55)", ctl: [
+            { id: "l{n}_vol", k: "big", label: "Volume" }, { id: "l{n}_pitch", label: "Transpos." }, { id: "l{n}_fine", k: "small", label: "Accord fin" }, { id: "l{n}_stretch", label: "Étirement" },
+            { id: "l{n}_offset", label: "Décalage" }, { id: "l{n}_len", label: "Longueur" }, { id: "l{n}_keytrk", label: "Sample accordé" },
+          ] },
+          { title: "Fondus", cols: 4, grow: 1.1, tone: "oklch(0.82 0.12 200)", ctl: [
+            { id: "l{n}_filen", label: "Entrée" }, { id: "l{n}_ficurve", k: "small", label: "Courbe" }, { id: "l{n}_folen", label: "Sortie" }, { id: "l{n}_focurve", k: "small", label: "Courbe" },
+          ] },
+          { title: "Tranche · filtres et égaliseur", cols: 6, grow: 1.7, tone: "oklch(0.78 0.15 145)", ctl: [
+            { id: "l{n}_hp", label: "Passe-haut" }, { id: "l{n}_lp", label: "Passe-bas" }, { id: "l{n}_eqlo", k: "small", label: "Grave" },
+            { id: "l{n}_eqmidf", k: "small", label: "Fréq. médium" }, { id: "l{n}_eqmidg", k: "small", label: "Médium" }, { id: "l{n}_eqhi", k: "small", label: "Aigu" },
+          ] },
+          { title: "Tranche · attaque et distorsion", cols: 5, grow: 1.6, tone: "oklch(0.68 0.2 25)", ctl: [
+            { id: "l{n}_tratk", label: "Attaque" }, { id: "l{n}_trsus", label: "Maintien" }, { id: "l{n}_drvtype", k: "menu", label: "Distorsion" },
+            { id: "l{n}_drv", k: "big", label: "Poussée" }, { id: "l{n}_drvmix", k: "small", label: "Mélange" },
+          ] },
+          { title: "Jeu", cols: 4, grow: 1.1, ctl: [
+            { id: "volume", k: "big", label: "Volume" }, { id: "velsens", k: "small", label: "Vélocité" },
+            { id: "pitchmode", k: "vswitch", label: "Note jouée", short: ["Fixe", "Suivie"] }, { id: "autogain", label: "Gain auto." },
+          ] },
+        ],
+      ],
+    },
+    {
+      id: "fx", label: "Effets du kick",
+      rows: [
+        [
+          { title: "Rack · ordre des effets", ctl: [], custom: "kfrack", grow: 0.8 },
+          { title: "Module choisi", ctl: [], custom: "kfmodule", grow: 2.2 },
+        ],
+        [{ title: "Kick", ctl: [], custom: "kfdisplay", grow: 1 }],
+      ],
+    },
+  ],
+};
+
+export const FACE_LAYOUTS: Record<string, FaceLayout> = { mono, acid, drumA, drum80, drum90, poly5, polyj, hybrid, morph, pads, octa, ms20, sh101, blo, ob6, orbit, fm6, fm4, fmx, muse, hots, lyra, bitm, drumImp, drumNrv, dfam, voc16, vocstr, vocspec, vocsyn, sampler, keys, sp, gluta, gooddoc, gooddoc2, fmplayer, microton, kickforge };

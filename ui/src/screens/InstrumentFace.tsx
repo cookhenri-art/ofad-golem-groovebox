@@ -23,6 +23,7 @@ import { FolderBrowser } from "../controls/FolderBrowser";
 import { ModSources, SectionVisual, TAB_LABELS, moduleTabs, sectionsFor, useModSourceEncoders } from "./ModuleView";
 import { ModeBar } from "./ScreenFrame";
 import { MacroPage } from "./MacroPage";
+import { KfKeys } from "./faces/KfPanel";
 import { FACE_LAYOUTS } from "./faces/layouts";
 import { PanelPage, Wheels } from "./faces/SynthPanel";
 import { faceSkinStyle, fm1FondStyle, useFm1Fond } from "../skin/skins";
@@ -52,7 +53,10 @@ const FACES: Record<string, { accent: string; panel: string; cheeks?: boolean; t
   orbit:   { accent: "oklch(0.78 0.15 230)", panel: "oklch(0.15 0.012 260)", tag: "Synthèse vectorielle à orbite" },
   gluta:   { accent: "oklch(0.72 0.19 42)",  panel: "oklch(0.14 0.004 40)",  tag: "Tables d'ondes et physique de mouvement" },
   gooddoc: { accent: "oklch(0.8 0.13 195)",  panel: "oklch(0.15 0.02 245)",  tag: "Tables d'ondes hybrides, double déformation" },
+  gooddoc2: { accent: "oklch(0.86 0.19 140)", panel: "oklch(0.2 0.006 250)",  tag: "Hybride : tables d'ondes, granulaire, spectral, rack d'effets" },
   fmplayer: { accent: "oklch(0.8 0.15 70)",  panel: "oklch(0.2 0.008 250)",  tag: "Lecteur de firmwares FM-1" },
+  microton: { accent: "oklch(0.88 0.17 95)", panel: "oklch(0.18 0.03 275)", tag: "Générateur de rythmes à synthèse universelle" },
+  kickforge: { accent: "oklch(0.78 0.17 55)", panel: "oklch(0.16 0.01 40)", tag: "Constructeur de kicks par couches" },
   fm6:     { accent: "oklch(0.8 0.12 175)",  panel: "oklch(0.16 0.008 40)",  cheeks: true, tag: "FM à 6 opérateurs" },
   fm4:     { accent: "oklch(0.82 0.15 300)", panel: "oklch(0.17 0.012 290)", tag: "FM à 4 opérateurs" },
   fmx:     { accent: "oklch(0.8 0.16 55)",   panel: "oklch(0.16 0.01 50)",   tag: "FM à 6 opérateurs, matrice libre" },
@@ -216,7 +220,7 @@ function PadStrip({ track, module: m, lane }: { track: number; module: ModuleDes
   const lit = useStore((s) => s.litLanes);
   return (
     <div className="face-pads">
-      {Array.from({ length: 16 }, (_, i) => (
+      {Array.from({ length: m.padNames.length > 0 ? Math.min(16, m.padNames.length) : 16 }, (_, i) => ( // après la 1.1 : Micro Tonnerre, 8 canaux
         <button key={i} type="button" className={`face-pad kind--${m.padKinds[i] ?? "sample"}${i === lane ? " is-selected" : ""}${(lit[i] ?? 0) > 0 ? " is-lit" : ""}`}
           onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); setUi({ lane: i }); const r = e.currentTarget.getBoundingClientRect(); actions.noteOn(track, i, Math.min(1, Math.max(0.2, (r.bottom - e.clientY) / r.height + 0.2)), false); }}
           onPointerUp={() => actions.noteOff(track, i)} onPointerCancel={() => actions.noteOff(track, i)}>
@@ -447,9 +451,9 @@ export function InstrumentFace() {
   const slotIdx = m.params.findIndex((p) => p.id === `t${Math.min(7, lane) + 1}_slot`);
   const octaRaw = octa && slotIdx >= 0 ? Math.round(toPlain(m.params[slotIdx], instValues?.[slotIdx] ?? 0)) : 0;
   const octaSlot = octaRaw >= 1 && octaRaw <= 16 ? Math.min(7, lane) * 16 + octaRaw - 1 : octaRaw >= 17 && octaRaw < 145 ? octaRaw - 17 : Math.min(7, lane) * 16;
-  const sampleIndex = m.type === "sampler" || m.type === "keys" || m.type === "fmplayer" ? 0 : m.type === "octa" ? octaSlot : lane;
+  const sampleIndex = m.type === "sampler" || m.type === "keys" || m.type === "fmplayer" || m.type === "gooddoc2" ? 0 : m.type === "octa" ? octaSlot : lane; // après la 1.1 : Good Doctor 2, source des grains et du spectre
   const fmp = m.type === "fmplayer"; // v0.49 : FM Player — son « échantillon » est le firmware (.fwsc)
-  const takesSamples = m.drumKit || m.type === "keys" || m.type === "octa" || fmp;
+  const takesSamples = (m.drumKit && m.type !== "microton") || m.type === "keys" || m.type === "octa" || fmp || m.type === "gooddoc2"; // Micro Tonnerre : synthèse seule
   const factoryIdx = track.preset ? m.presets.indexOf(track.preset) : -1;
   const presetIdx = factoryIdx >= 0 ? factoryIdx : userNum > 0 ? userNum - 1 : -1;
   const stepPreset = (d: number) => {
@@ -504,7 +508,7 @@ export function InstrumentFace() {
         <div className="face-head-row face-head-row--tools">
           {takesSamples && (
             <span className="face-sample">
-              <span>{samples?.[sampleIndex] ?? (fmp ? "Aucun firmware" : "Voix de synthèse")}</span>
+              <span>{samples?.[sampleIndex] ?? (fmp ? "Aucun firmware" : m.type === "gooddoc2" ? "Grains et spectre : sources calculées" : "Voix de synthèse")}</span>
               {fmp
                 ? <button type="button" onClick={() => actions.chooseFirmware(focus)} disabled={!hasNative("chooseSample")}>Firmware…</button>
                 : <button type="button" onClick={() => (hasNative("chooseSample") ? actions.chooseSample(focus, sampleIndex) : setUi({ face: false, screen: "sound" }))}>Échantillon…</button>}
@@ -575,7 +579,8 @@ export function InstrumentFace() {
       {fmp && <StepsDock lanes />}
 
       <footer className="face-foot">
-        {(m.drumKit && !octa && !fmp) || m.type === "sampler" ? <PadStrip track={focus} module={m} lane={lane} />
+        {m.type === "kickforge" ? <KfKeys track={focus} module={m} /> /* 1.2 : une octave depuis la tonalité */
+          : (m.drumKit && !octa && !fmp) || m.type === "sampler" ? <PadStrip track={focus} module={m} lane={lane} />
           : <div className={layout?.wheels ? "face-play face-play--wheels" : "face-play"}>{layout?.wheels && <Wheels track={focus} />}<Keyboard track={focus} color={layout ? "var(--fp-led)" : face.accent} /></div>}
       </footer>
     </div>

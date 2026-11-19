@@ -34,7 +34,12 @@ PrivilegesRequired=admin
 WizardStyle=modern
 UninstallDisplayIcon={app}\Groovebox.exe
 ; v0.46 fix6 : l'installateur porte la mascotte OFAD GOLEM (l'application, elle, l'a dans son .exe)
+; 1.1.1 : installateur avec l icone par defaut d Inno (choix du 18/11/2026 : Bitdefender bloque le
+; changement d icone, faux positif declare). Programme, raccourcis et desinstallation gardent l icone GOLEM.
+; Pour remettre la mascotte sur l installateur : ISCC /DAvecIcone
+#ifdef AvecIcone
 SetupIconFile={#Root}\resources\golem\golem.ico
+#endif
 UninstallDisplayName=Groovebox {#AppVersion}
 CloseApplications=yes
 ; v0.46 fix30 : l'installateur demande la langue (Français / English) au départ ; l'application et le

@@ -217,6 +217,12 @@ function call(name: string, ...args: unknown[]): Promise<unknown> {
   if (!f) { f = getNativeFunction(name) as (...a: unknown[]) => Promise<unknown>; nativeCache.set(name, f); }
   return f(...args);
 }
+/** 1.2 : Kick Forge — vues de l'afficheur et bibliothèque des morceaux. */
+interface KickViewRaw { v: number; sr: number; len: number; bpm: number; key: number; peak: number; gain: number; layers: ({ name: string; start: number; n: number; hz: number; w: string } | null)[]; sum: string; post: string; gr: string }
+export interface KickView { v: number; sr: number; len: number; bpm: number; key: number; peak: number; gain: number; layers: ({ name: string; start: number; n: number; hz: number; w: Float32Array } | null)[]; sum: Float32Array; post: Float32Array; gr: Float32Array }
+export interface KickLibrary { families: { name: string; tag: string; per: number; flavors: string[]; parts: string[] }[]; irs: [string, string][] }
+let kickLib: KickLibrary | null = null;
+
 async function callJson<T>(name: string, ...args: unknown[]): Promise<T> {
   const r = await call(name, ...args);
   return (typeof r === "string" ? JSON.parse(r) : r) as T;
@@ -957,16 +963,18 @@ export const actions = {
   },
 
   // Échantillons ---------------------------------------------------------------------------
-  async loadSample(track: number, index: number, file: File) {
-    if (file.size > 64 * 1024 * 1024) { showMessage("Fichier trop lourd (64 Mo au plus)"); return; }
+  /** Renvoie vrai si l'échantillon est chargé (après la 1.1 : l'éditeur de tables sait si l'enregistrement a marché). */
+  async loadSample(track: number, index: number, file: File): Promise<boolean> {
+    if (file.size > 64 * 1024 * 1024) { showMessage("Fichier trop lourd (64 Mo au plus)"); return false; }
     showMessage(`Chargement de ${file.name}…`);
     const bytes = new Uint8Array(await file.arrayBuffer());
     let binary = "";
     for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     const r = await callJson<ChannelData | string>("loadSample", track, index, file.name, btoa(binary));
-    if (typeof r === "string") { showMessage(r); return; }
+    if (typeof r === "string") { showMessage(r); return false; }
     set({ channels: { ...state.channels, [track]: r }, waves: { ...state.waves, [`${track}:${index}`]: undefined as unknown as null } });
     showMessage(`${file.name} chargé`);
+    return true;
   },
   /** v0.40 : les données d'une autre piste (réserve commune de Pieuvre 8 : noms et attributs de ses emplacements). */
   async refreshChannel(ch: number) { await refreshChannel(ch); },
@@ -1019,6 +1027,48 @@ export const actions = {
   async clearSample(track: number, index: number) {
     const c = await callJson<ChannelData>("clearSample", track, index);
     set({ channels: { ...state.channels, [track]: c }, waves: { ...state.waves, [`${track}:${index}`]: null } });
+  },
+  /** Après la 1.1 (Good Doctor 2) : ondes d'une table perso (emplacement d'échantillon), 2048 points chacune. */
+  async tableFrames(track: number, index: number): Promise<{ frames: Float32Array[] } | null> {
+    const r = await callJson<{ frames: number; size: number; data: string } | null>("getTableFrames", track, index);
+    if (!r || !r.frames || !r.data) return null;
+    const bin = atob(r.data);
+    const all = new Int16Array(bin.length >> 1);
+    for (let i = 0; i < all.length; i++) all[i] = (bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8)) << 16 >> 16;
+    const frames: Float32Array[] = [];
+    for (let f = 0; f < r.frames; f++) {
+      const fr = new Float32Array(r.size);
+      for (let i = 0; i < r.size; i++) fr[i] = all[f * r.size + i] / 32767;
+      frames.push(fr);
+    }
+    return { frames };
+  },
+  /** 1.2 : Kick Forge — vues de l'afficheur (null si rien de neuf depuis « known »). */
+  async kickView(track: number, known: number): Promise<KickView | null> {
+    const r = await callJson<KickViewRaw | null>("getKickView", track, known);
+    if (!r || !r.layers) return null;
+    const dec = (b64: string) => {
+      const bin = atob(b64);
+      const out = new Float32Array(bin.length >> 1);
+      for (let i = 0; i < out.length; i++) out[i] = ((bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8)) << 16 >> 16) / 32767;
+      return out;
+    };
+    return {
+      v: r.v, sr: r.sr, len: r.len, bpm: r.bpm, key: r.key, peak: r.peak, gain: r.gain,
+      layers: r.layers.map((l) => (l ? { name: l.name, start: l.start, n: l.n, hz: l.hz, w: dec(l.w) } : null)),
+      sum: dec(r.sum), post: dec(r.post), gr: dec(r.gr),
+    };
+  },
+  async kickLibrary(): Promise<KickLibrary | null> {
+    if (kickLib) return kickLib;
+    kickLib = await callJson<KickLibrary | null>("getKickLibrary");
+    return kickLib;
+  },
+  /** 1.2 : Kick Forge — hasard (0 : tout le kick dans le style, 1 : une couche, 2 : vider). */
+  async kickRandomize(track: number, mode: number, layer: number, bpm: number, keepFades: boolean) {
+    const seed = Math.floor(Math.random() * 0x7ffffff0) + 1;
+    const c = await callJson<ChannelData | null>("kickRandomize", track, mode, layer, seed, bpm, keepFades);
+    if (c) set({ channels: { ...state.channels, [track]: c } });
   },
   async wave(track: number, index: number) {
     const w = await callJson<WaveData | null>("getWave", track, index, 400);

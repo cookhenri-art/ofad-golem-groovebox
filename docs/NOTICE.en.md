@@ -238,6 +238,12 @@ crossfader, scenes, vector pad and macros always respond.
 - Sound card: **Options** (top left of the window) › Audio/MIDI Settings. For the lowest latency: the
   sound card's ASIO driver or "Windows Audio (Low Latency Mode)", buffer of 128 to 256 samples.
 
+> **On Mac**: **⌘** replaces **Ctrl** in the shortcuts (⌘ Z, ⌘ Y…); **right-click** is **Ctrl + click** or a
+> **two-finger click** on the trackpad. Install the app by **dragging it to Applications** (the VST3 plugin to
+> `~/Library/Audio/Plug-Ins/VST3`, the AU to `~/Library/Audio/Plug-Ins/Components`); at first launch,
+> **right-click › Open** (unsigned app). Choose the sound card in Options › Audio/MIDI Settings (**Core Audio**);
+> the language is chosen at first launch.
+
 <figure><img src="img/accueil.jpg" alt="The home screen at launch: resume, new project, demo, open, projects in the folder"><figcaption>The home screen at launch: resume, new project, demo, open, projects in the folder</figcaption></figure>
 
 ## The device: a single view
@@ -912,6 +918,94 @@ locks, scenes, modulations, launching, song, piano, pads and controller.
 <figure><img src="img/v110/pc-midi-reglage-bouton.jpg" alt="Settings of knob 2: Learn, CC 71, channel"><figcaption>A knob's ⚙ wheel: Learn, CC number, channel</figcaption></figure>
 
 <figure><img src="img/v110/pc-midi-son-du-pas.jpg" alt="MIDI track: step 5 plays the device's sound 12"><figcaption>Step sound: step 5 sends sound 12 to the device just before its note</figcaption></figure>
+
+### 15. Kick Forge: build your kick layer by layer (1.2)
+
+**Kick Forge** (**Drum kits** family) builds **the kick drum** the way it is built in the studio: you **stack parts**
+(a punch, a click, a body, a rumble, a crunch…) and set each one like a track. The whole kick is **recalculated at
+every change, at maximum quality**, then played back as is: what you hear is exactly what the display shows, and it
+costs almost nothing to the processor while playing.
+
+- **The library** (☰ Library, or click a layer's name): **680 parts calculated by GOLEM**, all **in the kick's
+  key**: Punches (clean, techno, hard, hollow, industrial, oldschool, distorted, zaag), Crunches, Rumbles, Clicks,
+  Percs, Punch tops, Punch reverbs, Layers (rumble, schranz, top), Bodies (sub) and Reverse bass. Rumbles, chopped
+  crunches and reverse basses **follow the tempo**. **My samples**: drop a sound file on a layer; it is **tuned**
+  to the kick's key (its pitch is detected), and "Use this key" does the opposite.
+- **Layers** (up to **8**, "+ Add"): each one has its part (◀ ▶ for the next one), its **volume**, **pitch**,
+  **stretch** (longer or shorter without changing the pitch) and its buttons **⚄** (another part of the same
+  family), **lock**, **M** (mute), **S** (solo), **Ø** (polarity), **⇆** (reversed), **✕** (remove).
+- **The big display** (views **Layers**, **Sum**, **After effects**, **Clipping**, sixteenth-note grid):
+  everything is set **with the mouse or a finger** on the selected layer — the **circles** are the fade-in and
+  fade-out (left-right: length, up-down: curve; **Shift** for fine moves), the **end bar** is the length, and
+  **the layer's body moves** in time (**Ctrl**: snaps to sixteenths).
+- **Under the layers**, every setting of the selected layer: source (volume, pitch, fine, stretch, offset,
+  length, tuned sample), fades, **strip** (high-pass, low-pass, 3-band EQ, attack, sustain, distortion with 10
+  types) and play (volume, velocity, **fixed pitch or following the note**, automatic gain: peak at −6 dB).
+- **Kick effects**: a **rack of 9 modules** in the order you choose (▲ ▼, ✕, "+ Add a module"): EQ, M/S EQ,
+  distortion, **kick shaper** (8-point volume curve drawn with the mouse), transients (tempo-synced),
+  **convolution** (27 calculated responses: clicks, boxes, reverbs, rumble tails, sub drops, textures, tonal bodies;
+  3-point wet curve), **finalizer** (bass boost, mono bass, clipping, with a view of what it squashes),
+  multiband and resonant filters. Each module has its own mix.
+- **Styles and randomize**: 14 styles (Rumble, Reverse bass, Industrial, Psy, Schranz, Clean rumble, Newstyle,
+  Rawstyle, Hard techno, Gabber, Frenchcore, Hardstyle, Techno, and **Free build**). **⚄ Randomize** draws a
+  complete kick in the chosen style; in **free build**, it keeps your parts and only varies their settings.
+  **Keep fades** protects them, a **locked** layer is never touched, **→ Free build** keeps the drawn kick to
+  tweak it, **Clear** starts from scratch. **78 factory kicks** (6 per style).
+- **At the bottom**, one octave of notes from the key: to play the kick (and make it follow the note in
+  "Played note: Follows" mode).
+
+<figure><img src="img/v120/en/pc-kickforge.jpg" alt="Kick Forge: style, key, tempo, randomize; the display; the five layers of the Hardstyle 01 kick; the selected layer's settings"><figcaption>Kick Forge: the display, the kick's layers, the selected layer's settings</figcaption></figure>
+
+<figure><img src="img/v120/en/pc-kickforge-bibliotheque.jpg" alt="The library open over the display: families, flavors, parts"><figcaption>The library: families, flavors and parts, all in the kick's key</figcaption></figure>
+
+<figure><img src="img/v120/en/pc-kickforge-effets.jpg" alt="Kick effects: the rack, the finalizer and the Clipping view"><figcaption>Kick effects: the 9-module rack in the chosen order; the finalizer and what it squashes (Clipping view)</figcaption></figure>
+
+### 16. Good Doctor 2: wavetables, grains and spectrum (1.2)
+
+**Good Doctor 2** (**Polys** family) joins Good Doctor (which stays as it is). It is a large hybrid synth made for
+today's sounds, from **hard basses** (gabber kick-bass, "suction" reverse bass, off-beat bass) to pads and leads.
+
+- **Three oscillators A, B, C**, each in one of **three modes**: **Tables** (16 calculated tables, two warps in a
+  row out of 25), **Grains** (granular: size, density, spray, scan, reversed share…) or **Spectral** (partials,
+  stretch, shift, tilt, odd / even, blur, scan). For each: unison up to 7 voices, **inversion**, **delay**
+  (0 to 100 ms), output to the filters or **Direct**.
+- **Sub-oscillator** and **noise**; **two filters** (18 types) in series or parallel; **4 envelopes** (the 3rd for
+  pitch: kicks), **5 LFOs** (including *pump* and *suction*, and two drawable step LFOs), **32-slot matrix**,
+  **8 macros** and arpeggiator.
+- **Mixer**: A, B, C, sub-oscillator and noise side by side (level, pan, output, inversion, delay).
+- **Effects rack** of 10 modules: dimension, distortion (10 types), flanger, phaser, chorus, delay, **single or
+  3-band upward and downward compressor**, filter, EQ, reverb.
+- **Table editor**: draw your own waves (line, curves, ramps, sine, noise, formula, harmonics), import a wavetable
+  WAV, save to **Custom 1 to 3**.
+- **Granular** and **spectral** read the **track's sample** (slot 1), otherwise 6 calculated sources (choir, breath,
+  bells, voice, strings, rumble).
+- **100 factory sounds**: acid, basses (gabber, frenchcore, hardstyle, rawstyle kicks, reverse bass, reese,
+  hoover, wobble…), leads, pads, plucks, keys, strings, brass, arpeggios, effects.
+
+<figure><img src="img/v120/en/pc-gooddoc2.jpg" alt="Good Doctor 2: three oscillators, two filters, drawn envelopes and LFOs"><figcaption>Good Doctor 2: oscillators, filters, envelopes and LFOs</figcaption></figure>
+
+<figure><img src="img/v120/en/pc-gooddoc2-editeur.jpg" alt="Good Doctor 2 table editor"><figcaption>The table editor: draw, calculate or import your waves</figcaption></figure>
+
+### 17. Micro Tonnerre: one synthesis for the whole drum kit (1.2)
+
+**Micro Tonnerre** (**Drum kits** family) is a drum machine with **universal synthesis**: its **8 channels** all share
+the same simple, quick-to-set architecture, which makes a kick as well as a cymbal, a clap or a metallic
+percussion.
+
+- **One channel**: an **oscillator** (sine, triangle, saw; pitch modulation by decay, sine or random; attack and
+  decay) and a **noise** (low-pass, band-pass or high-pass filter, resonance, mono or **stereo**; exponential,
+  linear or **clapped** envelope for claps), then the **oscillator / noise mix**, an **EQ**, **distortion**, level,
+  pan, **choke** (4 groups) and two sends.
+- **The channel list**: the **number** plays the channel, the **name** selects it; the **channel shape** shows its
+  envelopes and pitch live. **The kit** page: the 8 channels in columns, like a mixing desk.
+- **Pads 9 to 16** replay channels 1 to 8 (16-pad controllers). Everything can be locked per step, and
+  **morphing** from one kit to another is done with **scenes and the crossfader**.
+- **64 factory kits** in 9 banks: Classics, Electro, Techno, House, Hip-hop, Minimal, **Rave 96** (in the spirit of
+  late-90s groove boxes), **Hard** (gabber, frenchcore, hardstyle, tekno…) and Experimental.
+
+<figure><img src="img/v120/en/pc-microton.jpg" alt="Micro Tonnerre: the 8 channels, the selected channel's shape, mix, oscillator and noise"><figcaption>Micro Tonnerre: the channels, the selected channel's shape, oscillator and noise</figcaption></figure>
+
+<figure><img src="img/v120/en/pc-microton-kit.jpg" alt="Micro Tonnerre, The kit page: the 8 channels in columns"><figcaption>"The kit" page: the 8 channels in columns</figcaption></figure>
 
 ## MIDI controller
 

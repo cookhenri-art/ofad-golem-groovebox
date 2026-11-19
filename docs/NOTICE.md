@@ -222,6 +222,13 @@ tempo, le swing, le crossfader, les scènes, le pavé et les macros répondent t
 - Carte son : **Options** (en haut à gauche de la fenêtre) › Audio/MIDI Settings. Pour la latence la plus faible :
   pilote ASIO de la carte son ou « Windows Audio (Low Latency Mode) », tampon de 128 à 256 échantillons.
 
+> **Sur Mac** : **⌘** remplace **Ctrl** dans les raccourcis (⌘ Z, ⌘ Y…) ; le **clic droit** se fait par
+> **Ctrl + clic** ou par un **clic à deux doigts** sur le pavé tactile. On installe l'application en la
+> **glissant dans Applications** (le plugin VST3 dans `~/Library/Audio/Plug-Ins/VST3`, l'AU dans
+> `~/Library/Audio/Plug-Ins/Components`) ; au premier lancement, **clic droit › Ouvrir** (application non
+> signée). La carte son se choisit dans Options › Audio/MIDI Settings (**Core Audio**), et la langue au premier
+> lancement.
+
 <figure><img src="img/accueil.jpg" alt="L'accueil au lancement : reprendre, nouveau projet, démonstration, ouvrir, projets du dossier"><figcaption>L'accueil au lancement : reprendre, nouveau projet, démonstration, ouvrir, projets du dossier</figcaption></figure>
 
 ## L'appareil : une seule vue
@@ -912,6 +919,98 @@ SÉQUENCE), verrous, scènes, modulations, lancement, morceau, piano, pads et co
 <figure><img src="img/v110/pc-midi-reglage-bouton.jpg" alt="Réglage du bouton 2 : Apprendre, CC 71, canal"><figcaption>La roue ⚙ d'un bouton : Apprendre, numéro de CC, canal</figcaption></figure>
 
 <figure><img src="img/v110/pc-midi-son-du-pas.jpg" alt="Piste MIDI : le pas 5 joue le son 12 de l'appareil"><figcaption>Son du pas : le pas 5 envoie le son 12 à l'appareil juste avant sa note</figcaption></figure>
+
+### 15. Kick Forge : construire son kick couche par couche (1.2)
+
+**Kick Forge** (famille **Batteries**) fabrique **la grosse caisse** comme on la fabrique en studio : on
+**empile des morceaux** (un punch, un clic, un corps, un rumble, un crunch…) et on règle chacun comme une piste.
+Le kick entier est **recalculé à chaque réglage, en qualité maximale**, puis rejoué tel quel : ce qu'on entend
+est exactement ce que montre l'afficheur, et il ne coûte presque rien au processeur pendant le jeu.
+
+- **La bibliothèque** (☰ Bibliothèque, ou un clic sur le nom d'une couche) : **680 morceaux calculés par GOLEM**,
+  tous **dans la tonalité du kick** : Punchs (propre, techno, dur, creux, industriel, oldschool, distordu, zaag),
+  Crunchs, Rumbles, Clics, Percs, Tops de punch, Réverbérations de punch, Renforts (rumble, schranz, top), Corps
+  (sub) et Reverse bass. Les rumbles, les crunchs hachés et les reverse bass **suivent le tempo**.
+  **Mes samples** : glissez un fichier son sur une couche ; il est **accordé** sur la tonalité du kick (sa
+  hauteur est détectée), et « Prendre cette tonalité » fait l'inverse.
+- **Les couches** (jusqu'à **8**, « + Ajouter ») : chacune a son morceau (◀ ▶ pour passer au suivant), son
+  **volume**, sa **hauteur**, son **étirement** (plus long ou plus court sans changer la hauteur) et ses boutons
+  **⚄** (autre morceau de la même famille), **verrou**, **M** (muet), **S** (solo), **Ø** (polarité), **⇆** (à
+  l'envers), **✕** (retirer).
+- **Le grand afficheur** (vues **Couches**, **Somme**, **Après effets**, **Écrêtage**, grille en double-croches) :
+  tout se règle **à la souris ou au doigt** sur la couche choisie — les **ronds** sont les fondus d'entrée et de
+  sortie (gauche-droite : longueur, haut-bas : courbe ; **Maj** pour un réglage fin), la **barre de fin** est la
+  longueur, et **le corps de la couche se déplace** dans le temps (**Ctrl** : aimanté à la double-croche).
+- **Sous les couches**, tous les réglages de la couche choisie : source (volume, hauteur, fin, étirement,
+  décalage, longueur, sample accordé), fondus, **tranche** (passe-haut, passe-bas, égaliseur 3 bandes, attaque,
+  maintien, distorsion à 10 types) et le jeu (volume, vélocité, **hauteur fixe ou qui suit la note**, gain
+  automatique : crête à −6 dB).
+- **Effets du kick** : un **rack de 9 modules** dans l'ordre qu'on veut (▲ ▼, ✕, « + Ajouter un module ») :
+  égaliseur, égaliseur M/S, distorsion, **façonneur de kick** (courbe de volume à 8 points, tirée à la souris),
+  transitoires (au tempo), **convolution** (27 réponses calculées : clics, boîtes, réverbérations, queues de rumble,
+  chutes de sub, textures, corps tonals ; courbe du mouillé à 3 points), **finaliseur** (grave relevé, grave en
+  mono, écrêtage, avec la vue de ce qu'il écrase), multibande et filtres résonants. Chaque module a son mélange.
+- **Styles et hasard** : 14 styles (Rumble, Reverse bass, Industriel, Psy, Schranz, Rumble propre, Newstyle,
+  Rawstyle, Hard techno, Gabber, Frenchcore, Hardstyle, Techno, et **Construction libre**). **⚄ Hasard** tire un
+  kick complet dans le style choisi ; en **construction libre**, il garde vos morceaux et ne fait que varier leurs
+  réglages. **Garder les fondus** les protège, une couche **verrouillée** n'est jamais touchée, **→ Construction
+  libre** garde le kick tiré pour le retoucher, **Vider** repart de zéro. **78 kicks d'usine** (6 par style).
+- **En bas**, une octave de notes à partir de la tonalité : pour jouer le kick (et le faire suivre la note en
+  mode « Note jouée : Suivie »).
+
+<figure><img src="img/v120/pc-kickforge.jpg" alt="Kick Forge : le style, la tonalité, le tempo, le hasard ; l'afficheur ; les cinq couches du kick Hardstyle 01 ; les réglages de la couche choisie"><figcaption>Kick Forge : l'afficheur, les couches du kick, les réglages de la couche choisie</figcaption></figure>
+
+<figure><img src="img/v120/pc-kickforge-bibliotheque.jpg" alt="La bibliothèque ouverte sur l'afficheur : familles, saveurs, morceaux"><figcaption>La bibliothèque : familles, saveurs et morceaux, tous dans la tonalité du kick</figcaption></figure>
+
+<figure><img src="img/v120/pc-kickforge-effets.jpg" alt="Effets du kick : le rack, le finaliseur, et la vue Écrêtage"><figcaption>Effets du kick : le rack de 9 modules dans l'ordre choisi ; le finaliseur et ce qu'il écrase (vue Écrêtage)</figcaption></figure>
+
+### 16. Good Doctor 2 : tables d'ondes, grains et spectre (1.2)
+
+**Good Doctor 2** (famille **Polys**) s'ajoute à Good Doctor (qui reste tel quel). C'est un grand synthé hybride
+pensé pour les sons d'aujourd'hui, des **basses dures** (kick-basse gabber, reverse bass « aspiration »,
+contretemps) aux nappes et aux leads.
+
+- **Trois oscillateurs A, B, C**, chacun dans un des **trois modes** : **Tables** (16 tables calculées, deux
+  déformations à la suite parmi 25), **Grains** (granulaire : taille, densité, éparpillement, balayage, part à
+  l'envers…) ou **Spectral** (partiels, étirement, décalage, pente, pair / impair, flou, balayage). Pour chacun :
+  unisson jusqu'à 7 voix, **inversion**, **retard** (0 à 100 ms), sortie vers les filtres ou en **Direct**.
+- **Sous-oscillateur** et **bruit** ; **deux filtres** (18 types) en série ou en parallèle ; **4 enveloppes**
+  (la 3ᵉ pour la hauteur : les kicks), **5 LFO** (dont *pompe* et *aspiration*, et deux à pas dessinables),
+  **matrice de 32 routages**, **8 macros** et arpège.
+- **Mélangeur** : A, B, C, sous-oscillateur et bruit côte à côte (niveau, pan, sortie, inversion, retard).
+- **Rack d'effets** de 10 modules : dimension, distorsion (10 types), flanger, phaser, chorus, délai, **compresseur
+  simple ou 3 bandes vers le haut et vers le bas**, filtre, égaliseur, réverbération.
+- **Éditeur de tables** : on dessine ses propres ondes (ligne, courbes, rampes, sinus, bruit, formule, harmoniques),
+  on importe un WAV de table d'ondes, on enregistre dans **Perso 1 à 3**.
+- Le **granulaire** et le **spectral** lisent l'**échantillon de la piste** (emplacement 1), sinon 6 sources
+  calculées (chœur, souffle, cloches, voix, cordes, grondement).
+- **100 sons d'usine** : acide, basses (kicks gabber, frenchcore, hardstyle, rawstyle, reverse bass, reese,
+  hoover, wobble…), leads, nappes, plucks, claviers, cordes, cuivres, arpèges, effets.
+
+<figure><img src="img/v120/pc-gooddoc2.jpg" alt="Good Doctor 2 : les trois oscillateurs, les deux filtres, les enveloppes et LFO dessinés"><figcaption>Good Doctor 2 : oscillateurs, filtres, enveloppes et LFO</figcaption></figure>
+
+<figure><img src="img/v120/pc-gooddoc2-editeur.jpg" alt="Éditeur de tables de Good Doctor 2"><figcaption>L'éditeur de tables : dessiner, calculer ou importer ses ondes</figcaption></figure>
+
+### 17. Micro Tonnerre : une seule synthèse pour toute la batterie (1.2)
+
+**Micro Tonnerre** (famille **Batteries**) est une boîte à rythmes à **synthèse universelle** : ses **8 canaux**
+ont tous la même architecture, simple et rapide à régler, qui fait aussi bien une grosse caisse qu'une cymbale,
+un clap ou une percussion métallique.
+
+- **Un canal** : un **oscillateur** (sinus, triangle, scie ; modulation de hauteur en déclin, sinus ou aléatoire ;
+  attaque et déclin) et un **bruit** (filtre passe-bas, passe-bande ou passe-haut, résonance, mono ou **stéréo** ;
+  enveloppe exponentielle, linéaire ou **claquée** pour les claps), puis le **mélange oscillateur / bruit**,
+  un **égaliseur**, la **distorsion**, niveau, pan, **étouffement** (4 groupes) et deux envois.
+- **La liste des canaux** : le **numéro** joue le canal, le **nom** le choisit ; l'**allure du canal** montre ses
+  enveloppes et sa hauteur en direct. Page **Le kit** : les 8 canaux en colonnes, comme une table de mixage.
+- **Pads 9 à 16** : ils rejouent les canaux 1 à 8 (contrôleurs à 16 pads). Tout se verrouille par pas, et le
+  **morphing** d'un kit à l'autre se fait avec les **scènes et le crossfader**.
+- **64 kits d'usine** en 9 banques : Classiques, Électro, Techno, House, Hip-hop, Minimal, **Rave 96** (esprit des
+  boîtes de groove de la fin des années 90), **Dur** (gabber, frenchcore, hardstyle, tekno…) et Expérimental.
+
+<figure><img src="img/v120/pc-microton.jpg" alt="Micro Tonnerre : les 8 canaux, l'allure du canal choisi, son mélange, son oscillateur et son bruit"><figcaption>Micro Tonnerre : les canaux, l'allure du canal choisi, l'oscillateur et le bruit</figcaption></figure>
+
+<figure><img src="img/v120/pc-microton-kit.jpg" alt="Micro Tonnerre, page Le kit : les 8 canaux en colonnes"><figcaption>Page « Le kit » : les 8 canaux en colonnes</figcaption></figure>
 
 ## Contrôleur MIDI
 

@@ -1,0 +1,670 @@
+/*
+    Groovebox — OFAD — AGPL-3.0-or-later
+
+    Kick Forge (1.2) — calcul du kick, hors du fil audio (fil de calcul de l'instrument).
+    Chaîne d'une couche :
+        morceau calculé ou sample  →  inversion  →  hauteur (rééchantillonnage)  →  étirement
+        (WSOLA, garde la hauteur)  →  longueur, fondus d'entrée et de sortie à courbe  →  filtres
+        passe-haut / passe-bas  →  égaliseur 3 bandes  →  transitoires  →  distorsion
+        (suréchantillonnée ×2)  →  polarité, volume  →  décalage dans le temps.
+    Somme des couches → rack de 9 modules dans l'ordre choisi (égaliseur, égaliseur M/S,
+    distorsion, façonneur de kick, transitoires, convolution, finaliseur, multibande, filtres) →
+    gain automatique (crête à -6 dBFS, comme les grosses caisses de GOLEM).
+    Comme le calcul n'est pas fait en temps réel, tout est pris en qualité maximale ; ce qu'on
+    entend est exactement ce que l'afficheur montre.
+*/
+
+#pragma once
+
+#include "KfParts.h"
+#include "../gd2/Gd2Sources.h"
+#include "../gd2/Gd2Fx.h"
+#include "../../dsp/Fft.h"
+#include "../../engine/Module.h"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <complex>
+#include <string>
+#include <vector>
+
+namespace grv::instruments::kf
+{
+
+constexpr int numLayers = 8;
+constexpr double maxSeconds = 4.0;
+
+enum LayerParam
+{
+    lOn = 0, lFam, lPart, lVol, lPitch, lFine, lStretch, lOffset, lLen, lFiLen, lFiCurve, lFoLen, lFoCurve,
+    lMute, lSolo, lPhase, lReverse, lLock, lKeyTrack, lHp, lLp, lEqLo, lEqMidF, lEqMidG, lEqHi, lTrAtk, lTrSus,
+    lDrvType, lDrv, lDrvMix,
+    numLayerParams
+};
+inline const char* layerIds[numLayerParams] { "on", "fam", "part", "vol", "pitch", "fine", "stretch", "offset", "len", "filen", "ficurve", "folen", "focurve",
+                                              "mute", "solo", "phase", "rev", "lock", "keytrk", "hp", "lp", "eqlo", "eqmidf", "eqmidg", "eqhi", "tratk", "trsus",
+                                              "drvtype", "drv", "drvmix" };
+inline std::string layerPrefix (int l) { return "l" + std::to_string (l + 1) + "_"; }
+
+constexpr int gBase = numLayers * numLayerParams; // 240
+enum GlobalParam { gStyle = gBase, gKey, gPitchMode, gVelSens, gVolume, gAutogain, gEnd };
+
+/** Modules du rack (positions figées). */
+enum Module { mEq = 0, mMs, mDist, mShaper, mTrans, mConv, mFinal, mMulti, mFilt, numModules };
+inline const char* moduleNames[numModules] { "\xC3\x89galiseur", "\xC3\x89galiseur M/S", "Distorsion", "Fa\xC3\xA7onneur de kick", "Transitoires",
+                                            "Convolution", "Finaliseur", "Multibande", "Filtres" };
+inline const char* modulePrefix[numModules] { "eq", "ms", "ds", "ks", "tr", "cv", "fn", "mb", "fl" };
+// réglages propres à chaque module (après sa marche et son rang)
+inline const std::vector<std::vector<const char*>>& moduleParams()
+{
+    static const std::vector<std::vector<const char*>> m {
+        { "lsf", "lsg", "b1f", "b1g", "b1q", "b2f", "b2g", "b2q", "hsf", "hsg", "mix" },
+        { "midlo", "midhi", "sidehp", "sideg", "width", "mix" },
+        { "type", "drive", "pre", "pref", "tone", "mix" },
+        { "amount", "n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "mix" },
+        { "attack", "duck", "speed", "mix" },
+        { "ir", "wet", "stereo", "tone", "speed", "c1", "c2t", "c2", "c3", "mix" },
+        { "boostf", "boost", "mono", "clip", "mix" },
+        { "depth", "time", "up", "down", "low", "mid", "high", "mix" },
+        { "hp", "hpres", "lp", "lpres", "mix" },
+    };
+    return m;
+}
+/** Index du premier réglage de chaque module (sa marche), puis rang, puis réglages propres. */
+inline const std::array<int, numModules + 1>& moduleBase()
+{
+    static const std::array<int, numModules + 1> b = []
+    {
+        std::array<int, numModules + 1> r {};
+        int at = gEnd;
+        for (int m = 0; m < numModules; ++m) { r[(size_t) m] = at; at += 2 + (int) moduleParams()[(size_t) m].size(); }
+        r[numModules] = at;
+        return r;
+    }();
+    return b;
+}
+inline int numSlots() { return moduleBase()[numModules]; }
+inline int modParam (int module, const char* id)
+{
+    const auto& ids = moduleParams()[(size_t) module];
+    for (size_t i = 0; i < ids.size(); ++i) if (std::string (ids[i]) == id) return moduleBase()[(size_t) module] + 2 + (int) i;
+    return -1;
+}
+
+//==============================================================================
+/** Réponses impulsionnelles calculées de la convolution (catégories, comme une banque d'IR). */
+inline const std::vector<std::pair<const char*, const char*>>& irList()
+{
+    static const std::vector<std::pair<const char*, const char*>> l {
+        { "Clics et claquements", "Claquement sec" }, { "Clics et claquements", "Claquement double" }, { "Clics et claquements", "Clic de bois" }, { "Clics et claquements", "Clic m\xC3\xA9tallique" },
+        { "Impulsions diverses", "Bo\xC3\xAEte" }, { "Impulsions diverses", "Tube" }, { "Impulsions diverses", "Ressort" }, { "Impulsions diverses", "T\xC3\xB4le" },
+        { "R\xC3\xA9verb\xC3\xA9rations", "Pi\xC3\xA8" "ce" }, { "R\xC3\xA9verb\xC3\xA9rations", "Petite salle" }, { "R\xC3\xA9verb\xC3\xA9rations", "Grande salle" },
+        { "R\xC3\xA9verb\xC3\xA9rations", "Plaque brillante" }, { "R\xC3\xA9verb\xC3\xA9rations", "Plaque sombre" }, { "R\xC3\xA9verb\xC3\xA9rations", "Hangar" },
+        { "Queues de rumble", "Rumble court" }, { "Queues de rumble", "Rumble long" }, { "Queues de rumble", "Rumble sombre" }, { "Queues de rumble", "Rumble granuleux" },
+        { "Chutes de sub", "Chute courte" }, { "Chutes de sub", "Chute longue" }, { "Chutes de sub", "Chute profonde" },
+        { "Textures", "Grain" }, { "Textures", "Souffle" }, { "Textures", "Cr\xC3\xA9pitement" },
+        { "Corps tonals", "Corps bois" }, { "Corps tonals", "Corps m\xC3\xA9tal" }, { "Corps tonals", "Corps verre" },
+    };
+    return l;
+}
+
+namespace detail
+{
+    using Buf = std::vector<float>;
+
+    /** Fondamentale d'un kick (autocorrélation normalisée, 25–500 Hz) ; 0 si rien de net. */
+    inline double kickPitch (const float* x, int n, double sr)
+    {
+        const auto minLag = (int) (sr / 500.0), maxLag = std::min (n / 2, (int) (sr / 25.0));
+        if (maxLag <= minLag + 2) return 0.0;
+        std::vector<double> r ((size_t) (maxLag + 2), 0.0);
+        double best = 0.0;
+        for (int lag = minLag; lag <= maxLag; ++lag)
+        {
+            double num = 0.0, e1 = 0.0, e2 = 0.0;
+            for (int i = 0; i + lag < n; i += 2) { num += (double) x[i] * x[i + lag]; e1 += (double) x[i] * x[i]; e2 += (double) x[i + lag] * x[i + lag]; }
+            r[(size_t) lag] = num / std::sqrt (e1 * e2 + 1.0e-12);
+            best = std::max (best, r[(size_t) lag]);
+        }
+        if (best <= 0.5) return 0.0;
+        for (int lag = minLag + 1; lag < maxLag; ++lag)
+        {
+            const auto a = r[(size_t) lag - 1], b = r[(size_t) lag], c = r[(size_t) lag + 1];
+            if (b >= 0.9 * best && b >= a && b >= c)
+            {
+                const auto den = a - 2.0 * b + c;
+                const auto d = std::abs (den) > 1.0e-12 ? 0.5 * (a - c) / den : 0.0;
+                return sr / ((double) lag + std::clamp (d, -0.5, 0.5));
+            }
+        }
+        return 0.0;
+    }
+
+    /** Rééchantillonnage d'un rapport donné (interpolation de Hermite) : rate > 1 = plus aigu et plus court. */
+    inline Buf resample (const Buf& in, double rate)
+    {
+        if (in.empty() || std::abs (rate - 1.0) < 1.0e-6) return in;
+        const auto n = (int) in.size();
+        const auto outN = std::max (1, (int) std::floor ((n - 1) / rate));
+        Buf out ((size_t) outN);
+        auto at = [&] (int i) { return in[(size_t) std::clamp (i, 0, n - 1)]; };
+        for (int k = 0; k < outN; ++k)
+        {
+            const auto pos = k * rate;
+            const auto i = (int) pos;
+            const auto f = pos - i;
+            const double y0 = at (i - 1), y1 = at (i), y2 = at (i + 1), y3 = at (i + 2);
+            const auto c1 = 0.5 * (y2 - y0), c2 = y0 - 2.5 * y1 + 2.0 * y2 - 0.5 * y3, c3 = 0.5 * (y3 - y0) + 1.5 * (y1 - y2);
+            out[(size_t) k] = (float) (((c3 * f + c2) * f + c1) * f + y1);
+        }
+        return out;
+    }
+
+    /** Étirement temporel WSOLA (garde la hauteur) : factor > 1 = plus long. */
+    inline Buf stretch (const Buf& in, double factor, double sr)
+    {
+        if (in.size() < 64 || std::abs (factor - 1.0) < 1.0e-3) return in;
+        const int N = std::max (256, (int) (sr * 0.03)) & ~1, H = N / 2, tol = N / 4;
+        const auto inN = (int) in.size();
+        const auto outN = (int) (inN * factor);
+        Buf out ((size_t) outN + (size_t) N, 0.0f), wsum ((size_t) outN + (size_t) N, 0.0f);
+        Buf win ((size_t) N);
+        for (int i = 0; i < N; ++i) win[(size_t) i] = (float) (0.5 - 0.5 * std::cos (dsp::kTwoPi * i / N));
+        auto in0 = [&] (int i) { return i >= 0 && i < inN ? in[(size_t) i] : 0.0f; };
+        int prevIn = 0; // début du bloc d'entrée précédent
+        for (int outPos = 0; outPos < outN; outPos += H)
+        {
+            const int nominal = (int) (outPos / factor);
+            int best = nominal;
+            if (outPos > 0)
+            {
+                // cherche autour de la position nominale le bloc qui prolonge le mieux le précédent
+                double bestC = -1.0e30;
+                const int target = prevIn + H;
+                for (int d = -tol; d <= tol; d += 2)
+                {
+                    const int c = nominal + d;
+                    double s = 0.0;
+                    for (int i = 0; i < H; i += 4) s += (double) in0 (target + i) * in0 (c + i);
+                    if (s > bestC) { bestC = s; best = c; }
+                }
+            }
+            prevIn = best;
+            for (int i = 0; i < N; ++i)
+            {
+                out[(size_t) (outPos + i)] += in0 (best + i) * win[(size_t) i];
+                wsum[(size_t) (outPos + i)] += win[(size_t) i];
+            }
+        }
+        // le tout début reste l'attaque d'origine (pas de fenêtre qui monte au départ)
+        for (int i = 0; i < std::min (H, inN); ++i) { out[(size_t) i] = in[(size_t) i]; wsum[(size_t) i] = 1.0f; }
+        out.resize ((size_t) outN);
+        for (int i = 0; i < outN; ++i) if (wsum[(size_t) i] > 1.0e-3f) out[(size_t) i] /= std::max (wsum[(size_t) i], 0.5f);
+        return out;
+    }
+
+    /** Forme de fondu : x 0..1, courbe -1..1 (0 linéaire, >0 lent au départ, <0 rapide au départ). */
+    inline double fadeShape (double x, double c) noexcept
+    {
+        x = std::clamp (x, 0.0, 1.0);
+        if (c >= 0.0) return std::pow (x, 1.0 + 4.0 * c);
+        return 1.0 - std::pow (1.0 - x, 1.0 - 4.0 * c);
+    }
+
+    /** Façonneur de transitoires : attack -1..1 (relève ou adoucit l'attaque), duck 0..1 (creuse le
+        maintien juste après l'attaque), temps en secondes. */
+    inline void transient (float* x, int n, double sr, double attack, double duck, double timeS)
+    {
+        if (std::abs (attack) < 1.0e-3 && duck < 1.0e-3) return;
+        const auto fa = std::exp (-1.0 / (0.0008 * sr)), fr = std::exp (-1.0 / (std::max (0.003, timeS * 0.5) * sr));
+        const auto sa = std::exp (-1.0 / (std::max (0.003, timeS) * sr)), sr2 = std::exp (-1.0 / (std::max (0.01, timeS * 3.0) * sr));
+        double ef = 0.0, es = 0.0;
+        for (int i = 0; i < n; ++i)
+        {
+            const auto a = std::abs ((double) x[i]);
+            ef = a > ef ? a + (ef - a) * fa : a + (ef - a) * fr;
+            es = a > es ? a + (es - a) * sa : a + (es - a) * sr2;
+            const auto tr = std::clamp ((ef - es) / (es + 1.0e-4), 0.0, 4.0); // part transitoire
+            auto gDb = attack * 12.0 * std::min (1.0, tr);
+            gDb -= duck * 18.0 * std::clamp (1.0 - tr, 0.0, 1.0) * std::min (1.0, es * 8.0);
+            x[i] = (float) (x[i] * dsp::dbToGain (gDb));
+        }
+    }
+
+    /** Convolution par FFT (une seule transformée, hors temps réel). */
+    inline Buf convolve (const Buf& x, const Buf& h)
+    {
+        if (x.empty() || h.empty()) return Buf (x.size(), 0.0f);
+        const auto total = x.size() + h.size() - 1;
+        int order = 1;
+        while ((size_t) (1 << order) < total) ++order;
+        dsp::Fft fft; fft.prepare (order);
+        const auto N = (size_t) fft.size();
+        std::vector<std::complex<float>> a (N), b (N);
+        for (size_t i = 0; i < x.size(); ++i) a[i] = { x[i], 0.0f };
+        for (size_t i = 0; i < h.size(); ++i) b[i] = { h[i], 0.0f };
+        fft.forward (a.data()); fft.forward (b.data());
+        for (size_t i = 0; i < N; ++i) a[i] *= b[i];
+        fft.inverse (a.data());
+        Buf y (total);
+        for (size_t i = 0; i < total; ++i) y[i] = a[i].real();
+        return y;
+    }
+
+    /** Réponse impulsionnelle n° ir (calculée), côté 0 ou 1 (deux tirages différents pour la stéréo). */
+    inline Buf makeIr (int ir, int side, double keyHz, double sr)
+    {
+        Rng R ((std::uint32_t) (ir * 31337 + side * 977 + 5));
+        const int cat = ir < 4 ? 0 : ir < 8 ? 1 : ir < 14 ? 2 : ir < 18 ? 3 : ir < 21 ? 4 : ir < 24 ? 5 : 6;
+        double len = 0.3;
+        switch (cat)
+        {
+            case 0: len = 0.04 + 0.03 * (ir % 4); break;
+            case 1: len = 0.15 + 0.1 * (ir % 4); break;
+            case 2: { static const double l[6] { 0.45, 0.8, 1.8, 1.2, 1.0, 2.6 }; len = l[ir - 8]; break; }
+            case 3: len = ir == 15 ? 1.4 : 0.7; break;
+            case 4: len = ir == 19 ? 1.2 : ir == 20 ? 1.6 : 0.6; break;
+            case 5: len = 0.6; break;
+            default: len = 0.5; break;
+        }
+        Buf h ((size_t) std::max (32.0, len * sr), 0.0f);
+        const auto n = (int) h.size();
+        F lp (0, cat == 2 && ir == 11 ? 12000.0 : cat == 2 && ir == 12 ? 2500.0 : cat == 3 ? 220.0 : cat == 4 ? 180.0 : 7000.0, 0.7, sr);
+        F bp (1, cat == 6 ? (ir == 24 ? 700.0 : ir == 25 ? 2200.0 : 4200.0) : 1500.0, cat == 6 ? 18.0 : 2.0, sr);
+        double ph = 0.0;
+        for (int i = 0; i < n; ++i)
+        {
+            const auto t = (double) i / sr;
+            const auto tn = t / len;
+            double y = 0.0;
+            switch (cat)
+            {
+                case 0: y = (i == 0 ? 1.0 : 0.0) + (ir == 1 && i == (int) (0.012 * sr) ? 0.7 : 0.0) + R.noise() * std::exp (-tn * 9.0) * 0.4; y = bp (y) * (ir == 2 || ir == 3 ? 3.0 : 1.0) + (ir == 0 ? (i == 0 ? 1.0 : 0.0) : 0.0); break;
+                case 1:
+                {
+                    // résonances courtes : peigne (tube), boîte (modes), ressort (dispersion), tôle (métal)
+                    const auto per = sr / (ir == 5 ? 180.0 : ir == 6 ? 95.0 : 330.0);
+                    y = (std::fmod ((double) i, per) < 1.0 ? 1.0 : 0.0) * std::exp (-tn * 5.0) + R.noise() * 0.15 * std::exp (-tn * 7.0);
+                    if (ir == 7) y = bp (R.noise()) * std::exp (-tn * 4.0) * 3.0;
+                    break;
+                }
+                case 2: y = R.noise() * std::exp (-tn * 6.9) * (t < 0.002 ? t / 0.002 : 1.0) * (1.0 + (R.u() < 0.002 && t < 0.08 ? 4.0 : 0.0)); break;
+                case 3:
+                {
+                    ph += keyHz * (1.0 + 0.002 * R.noise()) / sr;
+                    const auto pos = std::fmod (t, 0.1) / 0.1;
+                    y = (0.5 * std::sin (dsp::kTwoPi * ph) + R.noise() * (ir == 17 ? 0.9 : 0.4)) * std::exp (-tn * 4.0) * (1.0 - 0.6 * std::exp (-pos * 6.0));
+                    break;
+                }
+                case 4:
+                {
+                    const auto f = keyHz * (1.0 + 2.0 * std::exp (-t / (ir == 20 ? 0.25 : 0.08)));
+                    ph += f / sr;
+                    y = std::sin (dsp::kTwoPi * ph) * std::exp (-tn * 5.0);
+                    break;
+                }
+                case 5: y = (ir == 23 ? (R.u() < 0.01 ? R.noise() * 3.0 : 0.0) : R.noise() * (ir == 22 ? 0.6 : 1.0) * (0.5 + 0.5 * std::sin (t * 40.0 + side))) * std::exp (-tn * 4.0); break;
+                default: y = bp (R.noise()) * std::exp (-tn * 5.0) * 4.0 + (i == 0 ? 0.5 : 0.0); break;
+            }
+            h[(size_t) i] = (float) lp (y);
+        }
+        double e = 0.0;
+        for (auto v : h) e += (double) v * v;
+        const auto g = 1.0 / std::sqrt (e + 1.0e-12) * 0.7;
+        for (auto& v : h) v = (float) (v * g);
+        return h;
+    }
+} // namespace detail
+
+//==============================================================================
+/** Ce que le calcul rend : le kick (stéréo) et les vues de l'afficheur. */
+struct Result
+{
+    std::vector<float> L, R;
+    int length = 0;
+    struct LayerView { bool on = false; int fam = 0, part = 0; std::string name; int start = 0, len = 0; std::vector<float> wave; };
+    std::array<LayerView, numLayers> layers;
+    std::vector<float> sum, post, gr; // somme avant effets, après effets, réduction du finaliseur (dB, ≤ 0)
+    double peakDb = -120.0, keyHz = 43.65, bpm = 120.0, gain = 1.0;
+    std::array<double, numLayers> detectedHz {}; // tonalité détectée des samples
+};
+
+struct Input
+{
+    std::vector<float> p;                                  // réglages (valeurs réelles)
+    std::array<const engine::SampleBuffer*, numLayers> samples {};
+    double bpm = 120.0, sr = 48000.0;
+};
+
+inline double keyToHz (int midi) noexcept { return 440.0 * std::pow (2.0, (midi - 69) / 12.0); }
+
+/** Calcule le kick entier. */
+inline Result render (const Input& in)
+{
+    using namespace detail;
+    Result r;
+    const auto& p = in.p;
+    const auto sr = in.sr;
+    if ((int) p.size() < numSlots() || sr <= 0.0) return r;
+    const auto keyMidi = 24 + std::clamp ((int) std::lround (p[gKey]), 0, 23);
+    r.keyHz = keyToHz (keyMidi);
+    r.bpm = in.bpm;
+    const auto maxN = (int) (maxSeconds * sr);
+    std::vector<double> mixL ((size_t) maxN, 0.0), mixR ((size_t) maxN, 0.0);
+    int used = 0;
+
+    bool anySolo = false;
+    for (int l = 0; l < numLayers; ++l)
+        if (p[(size_t) (l * numLayerParams + lOn)] > 0.5f && p[(size_t) (l * numLayerParams + lSolo)] > 0.5f) anySolo = true;
+
+    for (int l = 0; l < numLayers; ++l)
+    {
+        const float* q = p.data() + l * numLayerParams;
+        auto& view = r.layers[(size_t) l];
+        if (q[lOn] < 0.5f) continue;
+        const int fam = std::clamp ((int) std::lround (q[lFam]), 0, numFamilies - 1);
+        const int part = std::max (0, (int) std::lround (q[lPart]));
+        view.on = true; view.fam = fam; view.part = part;
+        // 1. source
+        Buf x;
+        if (fam == fSample)
+        {
+            const auto* s = in.samples[(size_t) l];
+            if (s != nullptr && ! s->data.empty() && ! s->firmware)
+            {
+                const auto n = std::min ((int) s->data.size(), (int) (maxSeconds * s->sampleRate));
+                Buf mono ((size_t) n);
+                for (int i = 0; i < n; ++i) mono[(size_t) i] = s->right.empty() ? s->data[(size_t) i] : 0.5f * (s->data[(size_t) i] + s->right[(size_t) i]);
+                x = resample (mono, s->sampleRate / sr);
+                view.name = s->name;
+                // tonalité détectée : la plus forte période dans le premier tiers après l'attaque
+                const auto a = std::min ((int) x.size() - 1, (int) (0.03 * sr));
+                const auto len = std::min ((int) x.size() - a, (int) (0.25 * sr));
+                const auto f0 = len > 512 ? kickPitch (x.data() + a, len, sr) : 0.0;
+                r.detectedHz[(size_t) l] = f0;
+                if (q[lKeyTrack] > 0.5f && f0 > 20.0)
+                {
+                    // ramène le sample sur la tonalité du kick (l'octave la plus proche)
+                    auto d = 12.0 * std::log2 (r.keyHz / f0);
+                    d -= 12.0 * std::round (d / 12.0);
+                    x = resample (x, std::pow (2.0, d / 12.0));
+                }
+            }
+            else view.name = "(glissez un sample)";
+        }
+        else
+        {
+            x = renderPart (fam, part, r.keyHz, in.bpm, sr);
+            view.name = partName (fam, part);
+        }
+        if (x.empty()) continue;
+        // 2. inversion, hauteur, étirement
+        if (q[lReverse] > 0.5f) std::reverse (x.begin(), x.end());
+        const auto semis = (double) q[lPitch] + q[lFine] / 100.0;
+        if (std::abs (semis) > 1.0e-3) x = resample (x, std::pow (2.0, semis / 12.0));
+        x = stretch (x, std::clamp ((double) q[lStretch], 0.25, 4.0), sr);
+        // 3. longueur et fondus
+        const auto lenN = std::min ((int) x.size(), std::max (16, (int) (q[lLen] * 0.001 * sr)));
+        x.resize ((size_t) lenN);
+        const auto fi = (int) (std::max (0.0f, q[lFiLen]) * 0.001 * sr), fo = (int) (std::max (0.0f, q[lFoLen]) * 0.001 * sr);
+        for (int i = 0; i < lenN; ++i)
+        {
+            double g = 1.0;
+            if (fi > 0 && i < fi) g *= fadeShape ((double) i / fi, q[lFiCurve] / 100.0);
+            if (fo > 0 && i >= lenN - fo) g *= fadeShape ((double) (lenN - i) / fo, q[lFoCurve] / 100.0);
+            x[(size_t) i] = (float) (x[(size_t) i] * g);
+        }
+        // 4. tranche de la couche : filtres, égaliseur, transitoires, distorsion
+        {
+            dsp::SvfEq hp1, hp2, lp1, lp2, lo, mid, hi;
+            const auto hpF = (double) q[lHp], lpF = (double) q[lLp];
+            const bool useHp = hpF > 21.0, useLp = lpF < 19900.0;
+            if (useHp) { hp1.set (dsp::SvfEq::highpass, hpF, 0.54, 0.0, sr); hp2.set (dsp::SvfEq::highpass, hpF, 1.31, 0.0, sr); }
+            if (useLp) { lp1.set (dsp::SvfEq::lowpass, lpF, 0.54, 0.0, sr); lp2.set (dsp::SvfEq::lowpass, lpF, 1.31, 0.0, sr); }
+            const bool eqOn = std::abs (q[lEqLo]) > 0.05f || std::abs (q[lEqMidG]) > 0.05f || std::abs (q[lEqHi]) > 0.05f;
+            lo.set (dsp::SvfEq::lowShelf, 100.0, 0.7, q[lEqLo], sr);
+            mid.set (dsp::SvfEq::bell, std::clamp ((double) q[lEqMidF], 40.0, 16000.0), 1.0, q[lEqMidG], sr);
+            hi.set (dsp::SvfEq::highShelf, 6000.0, 0.7, q[lEqHi], sr);
+            for (auto& s : x)
+            {
+                double y = s;
+                if (useHp) y = hp2.process (hp1.process (y));
+                if (useLp) y = lp2.process (lp1.process (y));
+                if (eqOn) y = hi.process (mid.process (lo.process (y)));
+                s = (float) y;
+            }
+            transient (x.data(), (int) x.size(), sr, q[lTrAtk] / 100.0, q[lTrSus] < 0.0f ? -q[lTrSus] / 100.0 : 0.0, 0.02);
+            if (q[lTrSus] > 0.0f) transient (x.data(), (int) x.size(), sr, -q[lTrSus] / 200.0, 0.0, 0.03); // maintien relevé = attaque adoucie
+            if (q[lDrv] > 0.05f && q[lDrvMix] > 0.5f)
+            {
+                gd2::Gd2Dist d; d.prepare (sr);
+                Buf r2 (x);
+                d.process (x.data(), r2.data(), (int) x.size(), std::clamp ((int) std::lround (q[lDrvType]), 0, 9), q[lDrv], 0, 1000.0, q[lDrvMix] / 100.0);
+            }
+        }
+        // 5. polarité, volume, décalage
+        const auto g = (q[lVol] <= -47.9f ? 0.0 : dsp::dbToGain (q[lVol])) * (q[lPhase] > 0.5f ? -1.0 : 1.0);
+        const auto start = (int) std::lround (q[lOffset] * 0.001 * sr);
+        view.start = start; view.len = (int) x.size();
+        const bool audible = q[lMute] < 0.5f && (! anySolo || q[lSolo] > 0.5f);
+        // vue de la couche : la couche telle qu'elle sonne (avant les effets du rack)
+        view.wave.assign (x.size(), 0.0f);
+        for (size_t i = 0; i < x.size(); ++i) view.wave[i] = (float) (x[i] * g);
+        if (! audible) continue;
+        for (int i = 0; i < (int) x.size(); ++i)
+        {
+            const auto t = start + i;
+            if (t < 0 || t >= maxN) continue;
+            mixL[(size_t) t] += x[(size_t) i] * g; mixR[(size_t) t] += x[(size_t) i] * g;
+            used = std::max (used, t + 1);
+        }
+    }
+    used = std::max (used, (int) (0.05 * sr));
+    // longueur : la fin du dernier son audible (et les queues du rack)
+    Buf L ((size_t) used), R ((size_t) used);
+    for (int i = 0; i < used; ++i) { L[(size_t) i] = (float) mixL[(size_t) i]; R[(size_t) i] = (float) mixR[(size_t) i]; }
+    r.sum = L;
+    Buf gr ((size_t) used, 0.0f);
+
+    // rack : modules allumés, dans l'ordre de leur rang
+    std::vector<std::pair<int, int>> order;
+    for (int m = 0; m < numModules; ++m)
+        if (p[(size_t) moduleBase()[(size_t) m]] > 0.5f) order.push_back ({ (int) std::lround (p[(size_t) moduleBase()[(size_t) m] + 1]) * 16 + m, m });
+    std::sort (order.begin(), order.end());
+    auto P = [&] (int m, const char* id) { return (double) p[(size_t) modParam (m, id)]; };
+    auto mixBack = [] (Buf& a, const Buf& dry, double mix) { if (mix >= 0.999) return; for (size_t i = 0; i < a.size() && i < dry.size(); ++i) a[i] = (float) (dry[i] + (a[i] - dry[i]) * mix); };
+    for (const auto& [rank, m] : order)
+    {
+        (void) rank;
+        const Buf dryL = L, dryR = R;
+        const auto mix = std::clamp (P (m, "mix") / 100.0, 0.0, 1.0);
+        switch (m)
+        {
+            case mEq:
+            {
+                std::array<dsp::SvfEqStereo, 4> e;
+                e[0].set (dsp::SvfEq::lowShelf, P (m, "lsf"), 0.7, P (m, "lsg"), sr);
+                e[1].set (dsp::SvfEq::bell, P (m, "b1f"), P (m, "b1q"), P (m, "b1g"), sr);
+                e[2].set (dsp::SvfEq::bell, P (m, "b2f"), P (m, "b2q"), P (m, "b2g"), sr);
+                e[3].set (dsp::SvfEq::highShelf, P (m, "hsf"), 0.7, P (m, "hsg"), sr);
+                for (size_t i = 0; i < L.size(); ++i)
+                {
+                    double l = L[i], rr = R[i];
+                    for (auto& f : e) { l = f.l.process (l); rr = f.r.process (rr); }
+                    L[i] = (float) l; R[i] = (float) rr;
+                }
+                break;
+            }
+            case mMs:
+            {
+                dsp::SvfEq lo, hi, shp1, shp2;
+                lo.set (dsp::SvfEq::lowShelf, 120.0, 0.7, P (m, "midlo"), sr);
+                hi.set (dsp::SvfEq::highShelf, 3000.0, 0.7, P (m, "midhi"), sr);
+                shp1.set (dsp::SvfEq::highpass, P (m, "sidehp"), 0.54, 0.0, sr);
+                shp2.set (dsp::SvfEq::highpass, P (m, "sidehp"), 1.31, 0.0, sr);
+                const auto sg = dsp::dbToGain (P (m, "sideg")) * P (m, "width") / 100.0;
+                for (size_t i = 0; i < L.size(); ++i)
+                {
+                    auto mm = 0.5 * (L[i] + R[i]), s = 0.5 * (L[i] - R[i]);
+                    mm = hi.process (lo.process (mm));
+                    s = shp2.process (shp1.process (s)) * sg;
+                    L[i] = (float) (mm + s); R[i] = (float) (mm - s);
+                }
+                break;
+            }
+            case mDist:
+            {
+                gd2::Gd2Dist d; d.prepare (sr);
+                d.process (L.data(), R.data(), (int) L.size(), std::clamp ((int) std::lround (P (m, "type")), 0, 9), P (m, "drive"),
+                           std::clamp ((int) std::lround (P (m, "pre")), 0, 3), P (m, "pref"), 1.0);
+                if (P (m, "tone") < 19900.0)
+                {
+                    dsp::SvfEqStereo t; t.set (dsp::SvfEq::lowpass, P (m, "tone"), 0.707, 0.0, sr);
+                    for (size_t i = 0; i < L.size(); ++i) { L[i] = (float) t.l.process (L[i]); R[i] = (float) t.r.process (R[i]); }
+                }
+                break;
+            }
+            case mShaper:
+            {
+                // courbe de gain en 8 points répartis sur la longueur du kick
+                const auto amt = std::clamp (P (m, "amount") / 100.0, 0.0, 1.0);
+                const char* ids[8] { "n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8" };
+                std::array<double, 8> nodes {};
+                for (int k = 0; k < 8; ++k) nodes[(size_t) k] = std::clamp (P (m, ids[k]) / 100.0, 0.0, 1.0);
+                const auto n = (int) L.size();
+                for (int i = 0; i < n; ++i)
+                {
+                    const auto pos = (double) i / std::max (1, n - 1) * 7.0;
+                    const auto k = std::min (6, (int) pos);
+                    const auto f = pos - k;
+                    const auto c = nodes[(size_t) k] + (nodes[(size_t) k + 1] - nodes[(size_t) k]) * (0.5 - 0.5 * std::cos (dsp::kPi * f));
+                    const auto g = 1.0 + (c - 1.0) * amt;
+                    L[(size_t) i] = (float) (L[(size_t) i] * g); R[(size_t) i] = (float) (R[(size_t) i] * g);
+                }
+                break;
+            }
+            case mTrans:
+            {
+                static const double div[4] { 1.0 / 16.0, 1.0 / 32.0, 1.0 / 48.0, 1.0 / 64.0 };
+                const auto timeS = 4.0 * 60.0 / in.bpm * div[std::clamp ((int) std::lround (P (m, "speed")), 0, 3)];
+                transient (L.data(), (int) L.size(), sr, P (m, "attack") / 100.0, P (m, "duck") / 100.0, timeS);
+                transient (R.data(), (int) R.size(), sr, P (m, "attack") / 100.0, P (m, "duck") / 100.0, timeS);
+                break;
+            }
+            case mConv:
+            {
+                const int ir = std::clamp ((int) std::lround (P (m, "ir")), 0, (int) irList().size() - 1);
+                auto h0 = makeIr (ir, 0, r.keyHz, sr), h1 = makeIr (ir, 1, r.keyHz, sr);
+                const auto speed = std::pow (2.0, P (m, "speed") / 100.0); // -100..100 % : une octave de chaque côté
+                h0 = resample (h0, speed); h1 = resample (h1, speed);
+                // courbe du mouillé dans le temps (3 points : départ, milieu réglable, fin)
+                auto curve = [&] (Buf& h)
+                {
+                    const auto n = (int) h.size();
+                    const auto c1 = P (m, "c1") / 100.0, c2 = P (m, "c2") / 100.0, c3 = P (m, "c3") / 100.0, t2 = std::clamp (P (m, "c2t") / 100.0, 0.01, 0.99);
+                    for (int i = 0; i < n; ++i)
+                    {
+                        const auto x = (double) i / std::max (1, n - 1);
+                        const auto g = x < t2 ? c1 + (c2 - c1) * x / t2 : c2 + (c3 - c2) * (x - t2) / (1.0 - t2);
+                        h[(size_t) i] = (float) (h[(size_t) i] * g);
+                    }
+                };
+                curve (h0); curve (h1);
+                const auto st = std::clamp (P (m, "stereo") / 100.0, 0.0, 1.0);
+                const auto monoIn = [&] { Buf mono (L.size()); for (size_t i = 0; i < L.size(); ++i) mono[i] = 0.5f * (L[i] + R[i]); return mono; }();
+                auto wl = convolve (monoIn, h0), wr = convolve (monoIn, h1);
+                // ton : -100 sombre … +100 brillant
+                const auto tone = P (m, "tone");
+                dsp::SvfEq tl, tr;
+                tl.set (tone < 0.0 ? dsp::SvfEq::lowpass : dsp::SvfEq::highShelf, tone < 0.0 ? 18000.0 * std::pow (0.05, -tone / 100.0) : 3000.0, 0.7, tone > 0.0 ? tone * 0.12 : 0.0, sr);
+                tr = tl;
+                const auto wet = P (m, "wet") / 100.0;
+                const auto n = std::min ((int) wl.size(), maxN);
+                if (n > (int) L.size()) { L.resize ((size_t) n, 0.0f); R.resize ((size_t) n, 0.0f); }
+                Buf dl = L, dr = R;
+                for (int i = 0; i < n; ++i)
+                {
+                    const auto a = tl.process (wl[(size_t) i]), b = tr.process (wr[(size_t) i]);
+                    const auto mid = 0.5 * (a + b), side = 0.5 * (a - b) * st;
+                    L[(size_t) i] = (float) (dl[(size_t) i] + wet * (mid + side));
+                    R[(size_t) i] = (float) (dr[(size_t) i] + wet * (mid - side));
+                }
+                gr.resize (L.size(), 0.0f);
+                break;
+            }
+            case mFinal:
+            {
+                // grave relevé, grave en mono sous la fréquence choisie, écrêtage doux
+                dsp::SvfEqStereo b; b.set (dsp::SvfEq::lowShelf, P (m, "boostf"), 0.7, P (m, "boost"), sr);
+                dsp::SvfEq s1, s2; s1.set (dsp::SvfEq::highpass, P (m, "mono"), 0.54, 0.0, sr); s2.set (dsp::SvfEq::highpass, P (m, "mono"), 1.31, 0.0, sr);
+                const auto drive = 1.0 + 3.0 * std::clamp (P (m, "clip") / 100.0, 0.0, 1.0);
+                for (size_t i = 0; i < L.size(); ++i)
+                {
+                    auto l = b.l.process (L[i]), rr = b.r.process (R[i]);
+                    const auto mm = 0.5 * (l + rr), s = s2.process (s1.process (0.5 * (l - rr)));
+                    l = mm + s; rr = mm - s;
+                    const auto pre = std::max (std::abs (l), std::abs (rr)) * drive;
+                    auto clipOne = [] (double x) { const auto a = std::abs (x); return a < 0.7 ? x : std::copysign (0.7 + 0.3 * std::tanh ((a - 0.7) / 0.3), x); };
+                    l = clipOne (l * drive); rr = clipOne (rr * drive);
+                    const auto post = std::max (std::abs (l), std::abs (rr));
+                    if (i < gr.size() && pre > 1.0e-6) gr[i] = (float) std::min ((double) gr[i], 20.0 * std::log10 (std::max (1.0e-6, post / pre)));
+                    L[i] = (float) l; R[i] = (float) rr;
+                }
+                break;
+            }
+            case mMulti:
+            {
+                gd2::Gd2Comp c; c.prepare (sr);
+                const double bands[3] { P (m, "low"), P (m, "mid"), P (m, "high") };
+                c.process (L.data(), R.data(), (int) L.size(), true, P (m, "depth") / 100.0, P (m, "time") / 100.0, P (m, "up") / 100.0, P (m, "down") / 100.0,
+                           0.0, 0.0, bands, -12.0, 4.0);
+                break;
+            }
+            case mFilt:
+            {
+                dsp::SvfEqStereo h1, h2, l1, l2;
+                const auto hq = 0.707 + P (m, "hpres") / 100.0 * 6.0, lq = 0.707 + P (m, "lpres") / 100.0 * 6.0;
+                h1.set (dsp::SvfEq::highpass, P (m, "hp"), 0.54, 0.0, sr); h2.set (dsp::SvfEq::highpass, P (m, "hp"), hq, 0.0, sr);
+                l1.set (dsp::SvfEq::lowpass, P (m, "lp"), 0.54, 0.0, sr); l2.set (dsp::SvfEq::lowpass, P (m, "lp"), lq, 0.0, sr);
+                const bool hp = P (m, "hp") > 21.0, lp = P (m, "lp") < 19900.0;
+                for (size_t i = 0; i < L.size(); ++i)
+                {
+                    double l = L[i], rr = R[i];
+                    if (hp) { l = h2.l.process (h1.l.process (l)); rr = h2.r.process (h1.r.process (rr)); }
+                    if (lp) { l = l2.l.process (l1.l.process (l)); rr = l2.r.process (l1.r.process (rr)); }
+                    L[i] = (float) l; R[i] = (float) rr;
+                }
+                break;
+            }
+            default: break;
+        }
+        // les modules qui allongent (convolution) : le direct garde sa longueur, complété par du silence
+        Buf dl2 = dryL, dr2 = dryR;
+        dl2.resize (L.size(), 0.0f); dr2.resize (R.size(), 0.0f);
+        mixBack (L, dl2, mix); mixBack (R, dr2, mix);
+    }
+    // fin du son : coupe le silence final (sous -80 dB), petit fondu
+    int end = (int) L.size();
+    while (end > (int) (0.02 * sr) && std::max (std::abs (L[(size_t) end - 1]), std::abs (R[(size_t) end - 1])) < 1.0e-4f) --end;
+    end = std::min ((int) L.size(), end + (int) (0.002 * sr));
+    L.resize ((size_t) end); R.resize ((size_t) end); gr.resize ((size_t) end, 0.0f);
+    for (int i = 0; i < std::min (end, (int) (0.003 * sr)); ++i)
+    {
+        const auto g = (float) i / (float) (0.003 * sr);
+        L[(size_t) (end - 1 - i)] *= g; R[(size_t) (end - 1 - i)] *= g;
+    }
+    // gain automatique : crête à -6 dBFS (comme les grosses caisses des batteries de GOLEM)
+    double pk = 0.0;
+    for (int i = 0; i < end; ++i) pk = std::max ({ pk, (double) std::abs (L[(size_t) i]), (double) std::abs (R[(size_t) i]) });
+    r.peakDb = 20.0 * std::log10 (pk + 1.0e-12);
+    r.gain = p[gAutogain] > 0.5f && pk > 1.0e-6 ? dsp::dbToGain (-6.0) / pk : 1.0;
+    if (r.gain != 1.0) for (int i = 0; i < end; ++i) { L[(size_t) i] = (float) (L[(size_t) i] * r.gain); R[(size_t) i] = (float) (R[(size_t) i] * r.gain); }
+    r.post = L;
+    r.gr = gr;
+    r.L = std::move (L); r.R = std::move (R);
+    r.length = end;
+    return r;
+}
+
+} // namespace grv::instruments::kf

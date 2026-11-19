@@ -20,11 +20,11 @@ export const TAB_LABELS: Record<string, string> = {
   global: "Global", osc: "Oscillateur", filter: "Filtre", env: "Enveloppe", amp: "Amplitude", mod: "Modulation",
   engines: "Moteurs", filters: "Filtres", dynamics: "Dynamique", feedback: "Réinjection", time: "Temps", tone: "Couleur",
   space: "Espace", algo: "Algorithme", main: "Réglages", bands: "Bandes", pad: "Pad", zone: "Zone", modsrc: "Modulation",
-  padfx: "Effet · envois", padfilter: "Filtre", padamp: "Amplitude", padsmp: "Échantillon", padlfo: "LFO", padpc: "Précalcul", kit: "Kit",
+  padfx: "Effet · envois", padfilter: "Filtre", padamp: "Amplitude", padsmp: "Échantillon", padlfo: "LFO", padpc: "Précalcul", kit: "Kit", padnoise: "Bruit", padmix: "Mélange",
   matrix: "Matrice", arp: "Arpège", modenv: "Env. mod", modlfo: "LFO",
 };
 /** Onglets dont les sections existent une fois par pad (batteries). */
-export const PER_PAD_TABS = ["padfilter", "padamp", "padfx", "padsmp", "padlfo", "padpc"];
+export const PER_PAD_TABS = ["padfilter", "padamp", "padfx", "padsmp", "padlfo", "padpc", "padnoise", "padmix"]; // après la 1.1 : Micro Tonnerre (bruit, mélange)
 const INSTRUMENT_TABS = ["global", "osc", "filter", "env", "amp"];
 
 export type Area = "inst" | "fx";

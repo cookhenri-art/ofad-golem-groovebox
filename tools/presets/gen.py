@@ -11,6 +11,7 @@ import bank_acid, bank_mono, bank_poly5, bank_polyj, bank_hybrid, bank_morph, ba
 import bank_fm6, bank_fm4, bank_muse, bank_fmx
 import bank_hots, bank_lyra, bank_bitm
 import bank_gooddoc
+import bank_gooddoc2  # après la 1.1
 import bank_ms20, bank_sh101, bank_ob6, bank_dfam, bank_blo, bank_orbit, bank_gluta
 import bank_voc16, bank_vocstr, bank_vocspec, bank_vocsyn
 
@@ -30,12 +31,13 @@ LEVEL_PARAM = {
     "hots": ("level", -15, -30, 6), "lyra": ("level", -14, -30, 6), "bitm": ("level", -16, -30, 6),
     # v0.47 (maj. 5 nov.) : Good Doctor, puis les banques portées à 90 sons
     "gooddoc": ("level", -5.5, -30, 6),
+    "gooddoc2": ("level", -6, -30, 6),  # après la 1.1
     "ms20": ("level", -6, -24, 6), "sh101": ("level", -6, -24, 6), "ob6": ("level", -6, -24, 6), "dfam": ("volume", -6, -24, 6),
     "blo": ("level", -8, -24, 6), "orbit": ("level", -8, -24, 6), "gluta": ("level", -5.5, -24, 6),
     "voc16": ("level", -6, -30, 6), "vocstr": ("level", -6, -30, 6), "vocspec": ("level", -6, -30, 6), "vocsyn": ("level", -6, -30, 6),
 }
 # v0.47 (maj. 5 nov.) : au moins 90 sons par synthé — sons déjà dans la description de l'instrument (Init compris)
-OWN_PRESETS = {"acid": 5, "mono": 9, "poly5": 7, "polyj": 7, "hybrid": 10, "morph": 11, "pads": 9, "gooddoc": 1,
+OWN_PRESETS = {"acid": 5, "mono": 9, "poly5": 7, "polyj": 7, "hybrid": 10, "morph": 11, "pads": 9, "gooddoc": 1, "gooddoc2": 1,
                "ms20": 16, "sh101": 12, "ob6": 15, "dfam": 12, "blo": 17, "orbit": 19, "gluta": 13,
                "voc16": 10, "vocstr": 10, "vocspec": 12, "vocsyn": 10}
 MIN_TOTAL = 90
@@ -62,7 +64,8 @@ CLASSIC = {
 }
 
 BANKS = [bank_acid, bank_mono, bank_poly5, bank_polyj, bank_hybrid, bank_morph, bank_pads, bank_fm6, bank_fm4, bank_muse, bank_fmx, bank_hots, bank_lyra, bank_bitm, bank_gooddoc,
-         bank_ms20, bank_sh101, bank_ob6, bank_dfam, bank_blo, bank_orbit, bank_gluta, bank_voc16, bank_vocstr, bank_vocspec, bank_vocsyn]
+         bank_ms20, bank_sh101, bank_ob6, bank_dfam, bank_blo, bank_orbit, bank_gluta, bank_voc16, bank_vocstr, bank_vocspec, bank_vocsyn,
+         bank_gooddoc2]
 
 
 def main():

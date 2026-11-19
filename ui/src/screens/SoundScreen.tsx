@@ -43,9 +43,9 @@ export function SoundScreen() {
   const modEncoders = useModSourceEncoders(focus, "sound");
   const encoders = showMods ? modEncoders : sectionEncoders;
 
-  const sampleIndex = module?.type === "sampler" || module?.type === "keys" ? 0 : ui.lane;
+  const sampleIndex = module?.type === "sampler" || module?.type === "keys" || module?.type === "gooddoc2" ? 0 : ui.lane;
   const sampleName = channel?.samples?.[sampleIndex] ?? null;
-  const takesSamples = !!module && (module.drumKit || module.type === "keys");
+  const takesSamples = !!module && ((module.drumKit && module.type !== "microton") || module.type === "keys" || module.type === "gooddoc2"); // Micro Tonnerre : synthèse seule
   const padKind = module?.drumKit ? module.padKinds[ui.lane] : undefined;
 
   if (!isTrack || !module) {
@@ -118,7 +118,7 @@ export function SoundScreen() {
         )}
         {(tab === "pad" || tab === "zone" || PER_PAD_TABS.includes(tab)) && (
           <div className="section-chips section-chips--pads" role="tablist" aria-label="Pad édité">
-            {Array.from({ length: 16 }, (_, i) => (
+            {Array.from({ length: module.padNames.length > 0 ? Math.min(16, module.padNames.length) : 16 }, (_, i) => ( // après la 1.1 : Micro Tonnerre, 8 canaux
               <button key={i} type="button" role="tab" aria-selected={i === ui.lane} className={i === ui.lane ? "on" : ""}
                 onClick={() => setUi({ lane: i })} title={module.padNames[i]}>{i + 1}</button>
             ))}

@@ -2,8 +2,10 @@
 // Good Doctor (v0.47 (maj. 5 nov.)) : l'écran de chaque oscillateur (l'onde lue à sa position, avec ses deux
 // déformations, comme le moteur les applique — GoodDoctor.h) et le schéma des sorties vers les filtres.
 
-import { useStore } from "../../engine/store";
-import { toPlain } from "../../engine/params";
+import { useEffect, useRef } from "react";
+import { actions, useStore } from "../../engine/store";
+import { toNorm, toPlain } from "../../engine/params";
+import { paramAddress } from "../../controls/bindings";
 import type { ModuleDesc } from "../../engine/protocol";
 
 const FRAMES = 12;
@@ -117,4 +119,26 @@ export function GoodDocRoute({ channel, module: m }: { channel: number; module: 
       <span className="gd-route-chain">{par ? "F1 ‖ F2 (parallèle)" : "F1 → F2 (série)"} · {f1 ? "F1" : "F1 éteint"} · {f2 ? "F2" : "F2 éteint"}</span>
     </div>
   );
+}
+
+/** Mélangeur (18 nov.) : schéma des sorties, et monter le niveau d'un oscillateur éteint l'allume
+    (seulement quand c'est la main qui bouge ce niveau : ni une scène, ni un préréglage, ni un verrou). */
+export function GoodDocMix({ channel, module: m }: { channel: number; module: ModuleDesc }) {
+  const values = useStore((s) => s.channels[channel]?.inst);
+  const last = useStore((s) => s.lastParam);
+  const prev = useRef<Record<string, number>>({});
+  useEffect(() => {
+    if (!values) return;
+    for (const k of ["a", "b", "c"]) {
+      const li = m.params.findIndex((p) => p.id === `${k}_lvl`), oi = m.params.findIndex((p) => p.id === `${k}_on`);
+      if (li < 0 || oi < 0) continue;
+      const lv = values[li] ?? 0, before = prev.current[k];
+      prev.current[k] = lv;
+      if (before === undefined || lv <= before) continue;
+      if (last !== paramAddress(channel, "inst", 0, li)) continue;
+      if (toPlain(m.params[oi], values[oi] ?? 0) > 0.5) continue;
+      actions.setParam(paramAddress(channel, "inst", 0, oi), toNorm(m.params[oi], 1));
+    }
+  }, [values, last, channel, m]);
+  return <GoodDocRoute channel={channel} module={m} />;
 }

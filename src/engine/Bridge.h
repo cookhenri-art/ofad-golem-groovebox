@@ -43,5 +43,6 @@ std::string scenesJson (const Engine& e);
 
 /** Forme d'onde réduite d'un échantillon (points min/max) pour l'affichage. */
 std::string waveJson (const Engine& e, int track, int index, int points);
+std::string tableFramesJson (const Engine& e, int track, int index); // après la 1.1 : Good Doctor 2
 
 } // namespace grv::engine::bridge

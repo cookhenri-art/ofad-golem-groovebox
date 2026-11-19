@@ -30,6 +30,9 @@
 #include "../instruments/Orbit.h"
 #include "../instruments/Glutamake.h"
 #include "../instruments/GoodDoctor.h"
+#include "../instruments/GoodDoctor2.h"
+#include "../instruments/KickForge.h"
+#include "../instruments/MicroTonnerre.h"
 #include "../instruments/Dfam.h"
 #include "../instruments/Vocoders.h"
 #include "../instruments/FmPlayer.h"
@@ -110,6 +113,9 @@ namespace
             { [] { return &gdoc::desc(); },    [] { return std::make_unique<GoodDoctor>(); } }, // v0.47 (maj. 5 nov.) : à la fin (ordre des instruments inchangé)
             { [] { return &fmplayer::desc(); }, [] { return std::make_unique<FmPlayer>(); } }, // v0.49 : lecteur de firmwares FM-1, à la fin
             { [] { return &midit::desc(); },   [] { return std::make_unique<MidiTrack>(); } },  // après la 1.1 : piste MIDI (appareil externe), à la fin
+            { [] { return &gd2::desc(); },     [] { return std::make_unique<GoodDoctor2>(); } }, // après la 1.1 : Good Doctor 2, à la fin
+            { [] { return &mt::desc(); },      [] { return std::make_unique<MicroTonnerre>(); } }, // après la 1.1 : Micro Tonnerre, à la fin
+            { [] { return &kf::desc(); },      [] { return std::make_unique<KickForge>(); } },     // 1.2 : Kick Forge, à la fin
         };
         return e;
     }

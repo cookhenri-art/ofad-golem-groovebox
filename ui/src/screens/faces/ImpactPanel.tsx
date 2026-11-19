@@ -13,14 +13,16 @@ import { BigKnob, BigKnobView } from "./BigKnob";
 type K = [pad: number, id: string, label: string];
 interface Strip { name: string; pads: number[]; knobs: K[]; levels: K[]; color: number[] }
 
+// après la 1.1 : comme sur la machine d'origine, la grosse caisse montre son attaque, la caisse claire 1 son
+// déclin, et le tambour FM sa hauteur de modulateur (4 boutons : porteuse, modulateur, quantité FM, déclin)
 const STRIPS: Strip[] = [
-  { name: "Grosse caisse", pads: [0], knobs: [[0, "tune", "Accord"], [0, "decay", "Déclin"], [0, "tone", "Balayage"]], levels: [[0, "level", "Niveau"]], color: [0] },
-  { name: "Caisse claire 1", pads: [1], knobs: [[1, "tune", "Accord"], [1, "tone", "Timbre"], [1, "snap", "Claquant"]], levels: [[1, "level", "Niveau"]], color: [1] },
+  { name: "Grosse caisse", pads: [0], knobs: [[0, "tune", "Accord"], [0, "decay", "Déclin"], [0, "snap", "Attaque"], [0, "tone", "Balayage"]], levels: [[0, "level", "Niveau"]], color: [0] },
+  { name: "Caisse claire 1", pads: [1], knobs: [[1, "tune", "Accord"], [1, "decay", "Déclin"], [1, "tone", "Timbre"], [1, "snap", "Claquant"]], levels: [[1, "level", "Niveau"]], color: [1] },
   { name: "Caisse claire 2", pads: [2], knobs: [[2, "decay", "Déclin"], [2, "tone", "Filtre"], [2, "snap", "Netteté"]], levels: [[2, "level", "Niveau"]], color: [2] },
   { name: "Toms", pads: [3, 4], knobs: [[3, "tune", "Aigu"], [4, "tune", "Grave"], [3, "decay", "Déclin"]], levels: [[3, "level", "Aigu"], [4, "level", "Grave"]], color: [3, 4] },
   { name: "Cymbale · cloche", pads: [5, 6], knobs: [[5, "decay", "Cymbale"], [5, "tone", "Timbre"], [6, "tune", "Cloche"]], levels: [[5, "level", "Cymb."], [6, "level", "Cloche"]], color: [5] },
   { name: "Charleys", pads: [7, 8], knobs: [[7, "tone", "Timbre"], [7, "decay", "Fermé"], [8, "decay", "Ouvert"]], levels: [[7, "level", "Fermé"], [8, "level", "Ouvert"]], color: [7, 8] },
-  { name: "Tambour FM", pads: [9], knobs: [[9, "tune", "Porteuse"], [9, "tone", "Qté FM"], [9, "decay", "Déclin"]], levels: [[9, "level", "Niveau"]], color: [9] },
+  { name: "Tambour FM", pads: [9], knobs: [[9, "tune", "Porteuse"], [9, "x1", "Modulateur"], [9, "tone", "Qté FM"], [9, "decay", "Déclin"]], levels: [[9, "level", "Niveau"]], color: [9] },
   { name: "Colorés · éch.", pads: [10, 11, 12, 13, 14, 15], knobs: [[10, "level", "G.C. col."], [11, "level", "C.C. col."], [12, "level", "FM col."]], levels: [[13, "level", "Éch. 1"], [14, "level", "Éch. 2"], [15, "level", "Éch. 3"]], color: [] },
 ];
 

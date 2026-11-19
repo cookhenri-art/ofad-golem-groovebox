@@ -1,4 +1,4 @@
-# OFAD GOLEM 1.1 — MIDI implementation
+# OFAD GOLEM 1.2 — MIDI implementation
 
 This document describes what GOLEM receives over MIDI, how it picks the track that plays, how to call
 a sound by its number, what the remote (GOLEM on a phone) sends and what a MIDI track sends to an
@@ -44,7 +44,7 @@ reports it.
 
 | Message | Received | Effect |
 |---|---|---|
-| Note On / Note Off | Yes | Plays the track, with velocity. Drum kits: notes 36 to 51 = pads 1 to 16. Pieuvre 8 and FM Player: the selected T over all octaves |
+| Note On / Note Off | Yes | Plays the track, with velocity. Drum kits: notes 36 to 51 = pads 1 to 16. Pieuvre 8 and FM Player: the selected T over all octaves. Micro Tonnerre: pads 9 to 16 = channels 1 to 8. Kick Forge (1.2): any note plays the kick, at the set key or at the played note |
 | Notes 36 to 51 in Scenes / Mute / Solo / Steps pad mode | Yes | Like the on-screen pads: launch a scene, mute or solo a track, place a step |
 | Pitch bend | Yes | Playing track |
 | Channel pressure | Yes | Playing track (depending on the instrument) |
