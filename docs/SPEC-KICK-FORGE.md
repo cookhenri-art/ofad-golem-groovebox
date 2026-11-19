@@ -22,7 +22,21 @@ calculée par GOLEM).
   courbe du mouillé à 3 points, vitesse, stéréo, ton), finaliseur (grave relevé, grave en mono,
   écrêtage, vue de la réduction), multibande (OTT 3 bandes), filtres résonants. Chaque module a son
   mélange.
-- **Gain automatique** : crête à -6 dBFS (comme les grosses caisses des batteries de GOLEM).
+- **Gain automatique** (1.2, son revu) : à l'intensité perçue (pondération K, BS.1770) : -15 LUFS en boucle de
+  4 temps à 140 BPM, comme les grosses caisses des batteries de GOLEM (-14 à -19 LUFS) ; limiteur de crête à
+  anticipation hors temps réel (plafond -1 dBFS, 6 dB de réduction au plus, au-delà c'est le gain qui baisse).
+  Avant : crête à -6 dBFS, ce qui laissait le corps 4 à 10 dB trop bas quand la crête venait du clic.
+- **Alignement de phase** (réglage « phasealign », après le rack) : la couche au grave le plus fort sert de
+  référence ; le grave (< 160 Hz) de chaque autre couche est tourné de l'angle qui l'ajoute le mieux au grave déjà
+  là (transformée de Hilbert par FFT, angle optimal = atan2(<S,H(x)>, <S,x>)). La rotation entre en 16 ms après
+  les 4 premières ms : l'attaque reste intacte. Mesure sur les 78 kicks d'usine : grave de la somme +0,5 dB en
+  moyenne, jusqu'à +6 dB là où les couches s'annulaient, jamais moins.
+- **Morceaux** (1.2, son revu) : fins de punch et de corps JUSTE sur la tonalité ou son octave (avant : rapport
+  tiré entre 0,98 et 2,05, qui battait avec le corps) ; saturations calculées à 4 × sr puis décimées (sinus
+  cardinal fenêtré, coupure 0,45 sr) ; réglages de chaque morceau répartis sur toute la fourchette de sa saveur
+  (suite à faible écart) ; punch : balayage en deux temps, « tok » de médium (dur, industriel, distordu, zaag),
+  creux (cloche négative), oldschool (triangle et clic), zaag (FM) ; corps : harmonique 2 (rond), maintien (long),
+  saturation asymétrique (saturé).
 - **Styles** (14) : Construction libre, Rumble, Reverse bass, Industriel, Psy, Schranz, Rumble propre,
   Newstyle, Rawstyle, Hard techno, Gabber, Frenchcore, Hardstyle, Techno. « Hasard » tire un kick
   complet dans le style ; en **construction libre**, il garde les morceaux choisis et varie seulement

@@ -7,9 +7,13 @@
         (WSOLA, garde la hauteur)  →  longueur, fondus d'entrée et de sortie à courbe  →  filtres
         passe-haut / passe-bas  →  égaliseur 3 bandes  →  transitoires  →  distorsion
         (suréchantillonnée ×2)  →  polarité, volume  →  décalage dans le temps.
+    Alignement de phase (réglable) : le grave de chaque couche est tourné en phase (après son
+    attaque, qui reste intacte) pour s'additionner au grave des autres au lieu de s'annuler.
     Somme des couches → rack de 9 modules dans l'ordre choisi (égaliseur, égaliseur M/S,
     distorsion, façonneur de kick, transitoires, convolution, finaliseur, multibande, filtres) →
-    gain automatique (crête à -6 dBFS, comme les grosses caisses de GOLEM).
+    gain automatique à l'INTENSITÉ perçue (pondération K, comme le bus de GOLEM : le kick sonne
+    aussi fort que les grosses caisses des batteries, quel que soit son clic) + limiteur de crête
+    à anticipation (crête sous -1 dBFS, 6 dB de réduction au plus).
     Comme le calcul n'est pas fait en temps réel, tout est pris en qualité maximale ; ce qu'on
     entend est exactement ce que l'afficheur montre.
 */
@@ -84,7 +88,9 @@ inline const std::array<int, numModules + 1>& moduleBase()
     }();
     return b;
 }
-inline int numSlots() { return moduleBase()[numModules]; }
+/** Réglages ajoutés après le rack (positions figées à la suite) : alignement de phase des couches. */
+inline int phaseAlignSlot() { return moduleBase()[numModules]; }
+inline int numSlots() { return moduleBase()[numModules] + 1; }
 inline int modParam (int module, const char* id)
 {
     const auto& ids = moduleParams()[(size_t) module];
@@ -315,6 +321,121 @@ namespace detail
         for (auto& v : h) v = (float) (v * g);
         return h;
     }
+    /** Intensité d'un coup, en LUFS équivalents d'une boucle de 4 temps à 140 BPM : énergie
+        pondérée K (norme BS.1770, deux canaux) sur les 0,43 s qui suivent le coup. Un kick plus
+        court compte son silence, comme dans une boucle ; un kick plus long n'est compté que sur
+        son premier temps. */
+    inline double hitLoudness (const Buf& L, const Buf& R, double sr)
+    {
+        struct Bq { double b0, b1, b2, a1, a2, z1 = 0, z2 = 0; double run (double x) { const auto y = b0 * x + z1; z1 = b1 * x - a1 * y + z2; z2 = b2 * x - a2 * y; return y; } };
+        auto design = [sr]
+        {
+            std::array<Bq, 2> st {};
+            {
+                const double f0 = 1681.974450955533, G = 3.999843853973347, Q = 0.7071752369554196;
+                const auto K = std::tan (dsp::kPi * f0 / sr), Vh = std::pow (10.0, G / 20.0), Vb = std::pow (Vh, 0.4996667741545416), a0 = 1.0 + K / Q + K * K;
+                st[0] = { (Vh + Vb * K / Q + K * K) / a0, 2.0 * (K * K - Vh) / a0, (Vh - Vb * K / Q + K * K) / a0, 2.0 * (K * K - 1.0) / a0, (1.0 - K / Q + K * K) / a0 };
+            }
+            {
+                const double f0 = 38.13547087602444, Q = 0.5003270373238773;
+                const auto K = std::tan (dsp::kPi * f0 / sr), a0 = 1.0 + K / Q + K * K;
+                st[1] = { 1.0, -2.0, 1.0, 2.0 * (K * K - 1.0) / a0, (1.0 - K / Q + K * K) / a0 };
+            }
+            return st;
+        };
+        auto kl = design(), kr = design();
+        const auto win = (int) (sr * 60.0 / 140.0);
+        double e = 0.0;
+        for (int i = 0; i < win; ++i)
+        {
+            const double l = i < (int) L.size() ? L[(size_t) i] : 0.0, r = i < (int) R.size() ? R[(size_t) i] : 0.0;
+            const auto a = kl[1].run (kl[0].run (l)), b = kr[1].run (kr[0].run (r));
+            e += a * a + b * b;
+        }
+        return -0.691 + 10.0 * std::log10 (e / win + 1.0e-20);
+    }
+
+    /** Limiteur de crête à anticipation, hors temps réel : la crête reste sous ceiling, sans
+        distorsion (gain lissé : maintien du minimum sur ±look, moyenne glissante, relâchement
+        exponentiel). Rend la réduction appliquée (dB, ≤ 0) dans gr (la plus forte des deux). */
+    inline void peakLimit (Buf& L, Buf& R, double ceiling, double sr, Buf& gr)
+    {
+        const auto n = (int) L.size();
+        if (n == 0) return;
+        const auto look = std::max (1, (int) (0.0015 * sr));
+        std::vector<double> a ((size_t) n), b ((size_t) n), g ((size_t) n);
+        bool any = false;
+        for (int i = 0; i < n; ++i)
+        {
+            const auto pk = std::max (std::abs ((double) L[(size_t) i]), std::abs ((double) R[(size_t) i]));
+            a[(size_t) i] = pk > ceiling ? ceiling / pk : 1.0;
+            any = any || pk > ceiling;
+        }
+        if (! any) return;
+        // minimum glissant sur [i - look, i + look] (file monotone)
+        {
+            std::vector<int> q; q.reserve ((size_t) n);
+            size_t head = 0;
+            int next = 0;
+            for (int i = 0; i < n; ++i)
+            {
+                for (; next <= std::min (n - 1, i + look); ++next)
+                {
+                    while (q.size() > head && a[(size_t) q.back()] >= a[(size_t) next]) q.pop_back();
+                    q.push_back (next);
+                }
+                while (q[head] < i - look) ++head;
+                b[(size_t) i] = a[(size_t) q[head]];
+            }
+        }
+        // moyenne glissante sur [i - look/2, i + look/2] : tous les termes ≤ a[i] (gain sûr)
+        {
+            const auto h = std::max (1, look / 2);
+            std::vector<double> pre ((size_t) n + 1, 0.0);
+            for (int i = 0; i < n; ++i) pre[(size_t) i + 1] = pre[(size_t) i] + b[(size_t) i];
+            for (int i = 0; i < n; ++i)
+            {
+                const auto lo = std::max (0, i - h), hi = std::min (n - 1, i + h);
+                g[(size_t) i] = (pre[(size_t) hi + 1] - pre[(size_t) lo]) / (hi - lo + 1);
+            }
+        }
+        // relâchement : remonte doucement (40 ms) sans jamais dépasser le gain sûr
+        const auto kRel = 1.0 - std::exp (-1.0 / (0.04 * sr));
+        double cur = g[0];
+        for (int i = 0; i < n; ++i)
+        {
+            cur = std::min (g[(size_t) i], cur + (1.0 - cur) * kRel);
+            L[(size_t) i] = (float) (L[(size_t) i] * cur); R[(size_t) i] = (float) (R[(size_t) i] * cur);
+            if (i < (int) gr.size()) gr[(size_t) i] = (float) std::min ((double) gr[(size_t) i], 20.0 * std::log10 (std::max (1.0e-6, cur)));
+        }
+    }
+
+    /** Grave d'un signal (sous fc, transition douce jusqu'à 2·fc) et sa transformée de Hilbert
+        (même grave tourné de 90°), par une FFT (hors temps réel). */
+    inline void lowBand (const Buf& x, double fc, double sr, Buf& lo, Buf& hb)
+    {
+        const auto n = (int) x.size();
+        int order = 1;
+        while ((1 << order) < 2 * n) ++order;
+        dsp::Fft fft; fft.prepare (order);
+        const auto N = fft.size();
+        std::vector<std::complex<float>> X ((size_t) N), H ((size_t) N);
+        for (int i = 0; i < n; ++i) X[(size_t) i] = { x[(size_t) i], 0.0f };
+        fft.forward (X.data());
+        for (int k = 0; k < N; ++k)
+        {
+            const auto f = (double) std::min (k, N - k) * sr / N;
+            const auto m = f <= fc ? 1.0 : f >= 2.0 * fc ? 0.0 : 0.5 + 0.5 * std::cos (dsp::kPi * (f - fc) / fc);
+            X[(size_t) k] *= (float) m;
+            // Hilbert : -j sur les fréquences positives, +j sur les négatives, 0 au continu et à Nyquist
+            if (k == 0 || k == N / 2) H[(size_t) k] = 0.0f;
+            else if (k < N / 2) H[(size_t) k] = X[(size_t) k] * std::complex<float> (0.0f, -1.0f);
+            else H[(size_t) k] = X[(size_t) k] * std::complex<float> (0.0f, 1.0f);
+        }
+        fft.inverse (X.data()); fft.inverse (H.data());
+        lo.assign ((size_t) n, 0.0f); hb.assign ((size_t) n, 0.0f);
+        for (int i = 0; i < n; ++i) { lo[(size_t) i] = X[(size_t) i].real(); hb[(size_t) i] = H[(size_t) i].real(); }
+    }
 } // namespace detail
 
 //==============================================================================
@@ -326,7 +447,7 @@ struct Result
     struct LayerView { bool on = false; int fam = 0, part = 0; std::string name; int start = 0, len = 0; std::vector<float> wave; };
     std::array<LayerView, numLayers> layers;
     std::vector<float> sum, post, gr; // somme avant effets, après effets, réduction du finaliseur (dB, ≤ 0)
-    double peakDb = -120.0, keyHz = 43.65, bpm = 120.0, gain = 1.0;
+    double peakDb = -120.0, keyHz = 43.65, bpm = 120.0, gain = 1.0, loudness = -100.0;
     std::array<double, numLayers> detectedHz {}; // tonalité détectée des samples
 };
 
@@ -353,6 +474,7 @@ inline Result render (const Input& in)
     const auto maxN = (int) (maxSeconds * sr);
     std::vector<double> mixL ((size_t) maxN, 0.0), mixR ((size_t) maxN, 0.0);
     int used = 0;
+    std::vector<std::pair<int, int>> layerSig; // couches audibles : (couche, début)
 
     bool anySolo = false;
     for (int l = 0; l < numLayers; ++l)
@@ -451,12 +573,66 @@ inline Result render (const Input& in)
         // vue de la couche : la couche telle qu'elle sonne (avant les effets du rack)
         view.wave.assign (x.size(), 0.0f);
         for (size_t i = 0; i < x.size(); ++i) view.wave[i] = (float) (x[i] * g);
-        if (! audible) continue;
-        for (int i = 0; i < (int) x.size(); ++i)
+        if (audible) layerSig.push_back ({ l, start });
+    }
+
+    // alignement de phase : la couche au grave le plus fort sert de référence ; chaque autre
+    // couche tourne son grave (sous 160 Hz) de l'angle qui l'ajoute le mieux au grave déjà là.
+    // L'attaque de la couche (ses 4 premières ms) reste intacte : la rotation entre en 16 ms.
+    if (p[(size_t) phaseAlignSlot()] > 0.5f && layerSig.size() > 1)
+    {
+        struct Low { int idx; Buf lo, hb; double e; };
+        std::vector<Low> lows;
+        for (size_t k = 0; k < layerSig.size(); ++k)
+        {
+            const auto& w = r.layers[(size_t) layerSig[k].first].wave;
+            Low a; a.idx = (int) k; lowBand (w, 160.0, sr, a.lo, a.hb);
+            double eLo = 0.0, eAll = 0.0;
+            for (size_t i = 0; i < w.size(); ++i) { eLo += (double) a.lo[i] * a.lo[i]; eAll += (double) w[i] * w[i]; }
+            a.e = eLo;
+            if (eAll > 1.0e-12 && eLo > 0.1 * eAll) lows.push_back (std::move (a)); // couches sans grave : rien à aligner
+        }
+        std::sort (lows.begin(), lows.end(), [] (const Low& a, const Low& b) { return a.e > b.e; });
+        std::vector<double> S ((size_t) maxN, 0.0);
+        const auto ramp0 = (int) (0.004 * sr), ramp1 = (int) (0.020 * sr), span = (int) (0.4 * sr);
+        auto weight = [&] (int i) { return i <= ramp0 ? 0.0 : i >= ramp1 ? 1.0 : 0.5 - 0.5 * std::cos (dsp::kPi * (i - ramp0) / (double) (ramp1 - ramp0)); };
+        for (size_t o = 0; o < lows.size(); ++o)
+        {
+            auto& a = lows[o];
+            const auto [layer, start] = layerSig[(size_t) a.idx];
+            auto& w = r.layers[(size_t) layer].wave;
+            double c = 1.0, sn = 0.0;
+            if (o > 0 && a.e > 1.0e-4 * lows[0].e)
+            {
+                double pa = 0.0, pb = 0.0;
+                for (int i = 0; i < std::min ((int) w.size(), span); ++i)
+                {
+                    const auto t = start + i;
+                    if (t < 0 || t >= maxN) continue;
+                    const auto wt = weight (i);
+                    pa += wt * S[(size_t) t] * a.lo[(size_t) i]; pb += wt * S[(size_t) t] * a.hb[(size_t) i];
+                }
+                const auto th = std::atan2 (pb, pa);
+                if (std::abs (th) > 0.15) { c = std::cos (th); sn = std::sin (th); }
+            }
+            for (int i = 0; i < (int) w.size(); ++i)
+            {
+                const auto wt = weight (i);
+                const auto rot = wt * ((c - 1.0) * a.lo[(size_t) i] + sn * a.hb[(size_t) i]);
+                w[(size_t) i] = (float) (w[(size_t) i] + rot);
+                const auto t = start + i;
+                if (t >= 0 && t < maxN) S[(size_t) t] += a.lo[(size_t) i] + rot;
+            }
+        }
+    }
+    for (const auto& [layer, start] : layerSig)
+    {
+        const auto& w = r.layers[(size_t) layer].wave;
+        for (int i = 0; i < (int) w.size(); ++i)
         {
             const auto t = start + i;
             if (t < 0 || t >= maxN) continue;
-            mixL[(size_t) t] += x[(size_t) i] * g; mixR[(size_t) t] += x[(size_t) i] * g;
+            mixL[(size_t) t] += w[(size_t) i]; mixR[(size_t) t] += w[(size_t) i];
             used = std::max (used, t + 1);
         }
     }
@@ -654,12 +830,23 @@ inline Result render (const Input& in)
         const auto g = (float) i / (float) (0.003 * sr);
         L[(size_t) (end - 1 - i)] *= g; R[(size_t) (end - 1 - i)] *= g;
     }
-    // gain automatique : crête à -6 dBFS (comme les grosses caisses des batteries de GOLEM)
+    // gain automatique à l'intensité : le kick sonne comme les grosses caisses des batteries de
+    // GOLEM (cible -15 LUFS en boucle de 4 temps), puis le limiteur garde la crête sous -1 dBFS
+    // (6 dB de réduction au plus : au-delà, c'est le gain qui baisse, pour garder l'attaque)
     double pk = 0.0;
     for (int i = 0; i < end; ++i) pk = std::max ({ pk, (double) std::abs (L[(size_t) i]), (double) std::abs (R[(size_t) i]) });
     r.peakDb = 20.0 * std::log10 (pk + 1.0e-12);
-    r.gain = p[gAutogain] > 0.5f && pk > 1.0e-6 ? dsp::dbToGain (-6.0) / pk : 1.0;
-    if (r.gain != 1.0) for (int i = 0; i < end; ++i) { L[(size_t) i] = (float) (L[(size_t) i] * r.gain); R[(size_t) i] = (float) (R[(size_t) i] * r.gain); }
+    r.loudness = hitLoudness (L, R, sr);
+    r.gain = 1.0;
+    if (p[gAutogain] > 0.5f && pk > 1.0e-6)
+    {
+        constexpr double target = -15.0, ceiling = 0.8913, maxGr = 0.5; // -1 dBFS, -6 dB
+        auto g = dsp::dbToGain (std::clamp (target - r.loudness, -40.0, 40.0));
+        if (pk * g * maxGr > ceiling) g = ceiling / (pk * maxGr);
+        r.gain = g;
+        for (int i = 0; i < end; ++i) { L[(size_t) i] = (float) (L[(size_t) i] * g); R[(size_t) i] = (float) (R[(size_t) i] * g); }
+        peakLimit (L, R, ceiling, sr, gr);
+    }
     r.post = L;
     r.gr = gr;
     r.L = std::move (L); r.R = std::move (R);

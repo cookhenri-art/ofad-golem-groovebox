@@ -943,8 +943,10 @@ est exactement ce que montre l'afficheur, et il ne coûte presque rien au proces
   longueur, et **le corps de la couche se déplace** dans le temps (**Ctrl** : aimanté à la double-croche).
 - **Sous les couches**, tous les réglages de la couche choisie : source (volume, hauteur, fin, étirement,
   décalage, longueur, sample accordé), fondus, **tranche** (passe-haut, passe-bas, égaliseur 3 bandes, attaque,
-  maintien, distorsion à 10 types) et le jeu (volume, vélocité, **hauteur fixe ou qui suit la note**, gain
-  automatique : crête à −6 dB).
+  maintien, distorsion à 10 types) et le jeu (volume, vélocité, **hauteur fixe ou qui suit la note**, **gain
+  automatique** : le kick sort au **même niveau perçu** que les grosses caisses des batteries, −15 LUFS, avec un
+  limiteur qui garde la crête sous −1 dB ; **phase auto.** : le grave de chaque couche est calé en phase sur les
+  autres, pour que les couches s'additionnent au lieu de se brouiller — l'attaque n'est pas touchée).
 - **Effets du kick** : un **rack de 9 modules** dans l'ordre qu'on veut (▲ ▼, ✕, « + Ajouter un module ») :
   égaliseur, égaliseur M/S, distorsion, **façonneur de kick** (courbe de volume à 8 points, tirée à la souris),
   transitoires (au tempo), **convolution** (27 réponses calculées : clics, boîtes, réverbérations, queues de rumble,

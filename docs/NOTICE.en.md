@@ -940,7 +940,10 @@ costs almost nothing to the processor while playing.
   **the layer's body moves** in time (**Ctrl**: snaps to sixteenths).
 - **Under the layers**, every setting of the selected layer: source (volume, pitch, fine, stretch, offset,
   length, tuned sample), fades, **strip** (high-pass, low-pass, 3-band EQ, attack, sustain, distortion with 10
-  types) and play (volume, velocity, **fixed pitch or following the note**, automatic gain: peak at −6 dB).
+  types) and play (volume, velocity, **fixed pitch or following the note**, **automatic gain**: the kick comes out
+  at the **same perceived level** as the drum machines' kicks, −15 LUFS, with a limiter keeping the peak under
+  −1 dB; **auto phase**: each layer's low end is phase-aligned with the others, so the layers add up instead of
+  blurring — the attack is left untouched).
 - **Kick effects**: a **rack of 9 modules** in the order you choose (▲ ▼, ✕, "+ Add a module"): EQ, M/S EQ,
   distortion, **kick shaper** (8-point volume curve drawn with the mouse), transients (tempo-synced),
   **convolution** (27 calculated responses: clicks, boxes, reverbs, rumble tails, sub drops, textures, tonal bodies;

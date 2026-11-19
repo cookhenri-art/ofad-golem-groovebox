@@ -2031,9 +2031,10 @@ const kickforge: FaceLayout = {
             { id: "l{n}_tratk", label: "Attaque" }, { id: "l{n}_trsus", label: "Maintien" }, { id: "l{n}_drvtype", k: "menu", label: "Distorsion" },
             { id: "l{n}_drv", k: "big", label: "Poussée" }, { id: "l{n}_drvmix", k: "small", label: "Mélange" },
           ] },
-          { title: "Jeu", cols: 4, grow: 1.1, ctl: [
+          { title: "Jeu", cols: 5, grow: 1.3, ctl: [
             { id: "volume", k: "big", label: "Volume" }, { id: "velsens", k: "small", label: "Vélocité" },
             { id: "pitchmode", k: "vswitch", label: "Note jouée", short: ["Fixe", "Suivie"] }, { id: "autogain", label: "Gain auto." },
+            { id: "phasealign", label: "Phase auto." },
           ] },
         ],
       ],

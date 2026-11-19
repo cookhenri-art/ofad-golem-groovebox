@@ -5125,5 +5125,8 @@
 "Suivie": "Follows",
 "Hauteur fixe (tonalité) · « Note jouée : Suivie » pour jouer la note": "Fixed pitch (key) · “Played note: Follows” to play the note",
 "Écouter": "Listen",
-"Style": "Style"
+"Style": "Style",
+"Alignement de phase": "Phase alignment",
+"Phase auto.": "Auto phase",
+"· gain auto. {1}{2} dB": "· auto gain {1}{2} dB"
 }

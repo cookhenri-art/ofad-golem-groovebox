@@ -20,6 +20,8 @@
 Le kick se fabrique comme en studio : on **empile des morceaux** (punch, clic, corps, rumble, crunch, reverse bass…) et on règle chacun **comme une piste**. Le kick entier est **recalculé à chaque réglage, en qualité maximale**, puis rejoué tel quel : ce que vous entendez est exactement ce que montre l'afficheur, pour presque rien en processeur.
 
 - **680 morceaux calculés par GOLEM**, tous **dans la tonalité du kick** : Punchs (propre, techno, dur, creux, industriel, oldschool, distordu, zaag), Crunchs, Rumbles, Clics, Percs, Tops, Réverbérations de punch, Renforts, Corps et Reverse bass. Rumbles, crunchs hachés et reverse bass **suivent le tempo**.
+- **Des couches qui s'additionnent** : chaque morceau finit **juste sur la tonalité**, et la **phase auto.** cale le grave de chaque couche sur les autres (l'attaque n'est pas touchée) : le grave se renforce au lieu de se brouiller. Saturations calculées **suréchantillonnées** (pas de repliement qui durcit le son).
+- **Le bon niveau tout de suite** : le gain automatique règle le kick sur l'**intensité perçue** (−15 LUFS, comme les grosses caisses des batteries de GOLEM), avec un limiteur qui garde la crête sous −1 dB.
 - **Vos samples** : glissez un fichier sur une couche, il est **accordé automatiquement** sur la tonalité du kick.
 - **Jusqu'à 8 couches** : volume, transposition, **étirement** (sans changer la hauteur), décalage, longueur, fondus, filtres, égaliseur, attaque, distorsion ; **muet, solo, polarité, à l'envers, verrou**.
 - **Le grand afficheur** se règle **à la souris ou au doigt** : on tire les **fondus** (longueur et courbe), la **fin** du morceau, et on **déplace la couche** dans le temps (aimantée à la double-croche). Vues **Couches, Somme, Après effets, Écrêtage**.
@@ -262,6 +264,8 @@ Toutes les nouveautés de la 1.1 : voir la [page de la 1.1.0](https://github.com
 Build the kick like in the studio: **stack parts** (punch, click, body, rumble, crunch, reverse bass…) and set each one **like a track**. The whole kick is **recalculated at every change, at maximum quality**, then played back as is: what you hear is exactly what the display shows, at almost no CPU cost.
 
 - **680 parts calculated by GOLEM**, all **in the kick's key**: Punches (clean, techno, hard, hollow, industrial, oldschool, distorted, zaag), Crunches, Rumbles, Clicks, Percs, Tops, Punch reverbs, Layers, Bodies and Reverse bass. Rumbles, chopped crunches and reverse basses **follow the tempo**.
+- **Layers that add up**: every part ends **right on the key**, and **auto phase** aligns each layer's low end with the others (the attack is left untouched): the low end gets stronger instead of blurring. Saturations are computed **oversampled** (no aliasing hardening the sound).
+- **The right level straight away**: automatic gain sets the kick to its **perceived loudness** (−15 LUFS, like GOLEM's drum machine kicks), with a limiter keeping the peak under −1 dB.
 - **Your samples**: drop a file on a layer, it is **automatically tuned** to the kick's key.
 - **Up to 8 layers**: volume, transpose, **stretch** (pitch kept), offset, length, fades, filters, EQ, attack, distortion; **mute, solo, polarity, reverse, lock**.
 - **The big display** works **with the mouse or a finger**: drag the **fades** (length and curve), the part's **end**, and **move the layer** in time (snaps to sixteenths). Views **Layers, Sum, After effects, Clipping**.

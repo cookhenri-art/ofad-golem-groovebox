@@ -58,6 +58,8 @@ Free and open source. Try it and tell me what you think 👇
 **Kick Forge** is new in OFAD GOLEM 1.2:
 ✅ Up to **8 layers** per kick, each like a track: volume, transpose, stretch (pitch kept), offset, length, fades, filters, EQ, attack, distortion, mute / solo / polarity / reverse / lock
 ✅ **680 parts** calculated in your kick's key: punches (clean, techno, hard, industrial, distorted, zaag…), crunches, rumbles, clicks, tops, reverb tails, bodies, reverse bass — rumbles and reverse bass follow the tempo
+✅ **Layers that add up**: every part ends right on the key and **auto phase** aligns the low end of each layer — fat, clean sub instead of mud
+✅ **Loud from the start**: auto gain sets every kick to the same perceived loudness, with a peak limiter
 ✅ **Drop your own samples**: their pitch is detected and tuned to the key
 ✅ **Edit right on the waveform**: drag the fade-in / fade-out (length AND curve), the end, and slide the layer in time (snaps to 1/16)
 ✅ **9-module rack** in any order: EQ, M/S EQ, distortion, 8-point kick shaper, transients, convolution, finalizer (bass boost, mono bass, clipping), multiband, filters

@@ -71,14 +71,14 @@ namespace styles
             { { L (fPunch, { 6, 2 }, { 0, 0 }), L (fCrunch, { 0, 3 }, { -4, -1 }), L (fPunchTop, { 1, 2 }, { -8, -4 }), L (fEnhTop, { 0, 2 }, { -12, -8 }), L (fBody, { 3 }, { -6, -3 }) },
               { { mDist, { { "type", { 0, 2 } }, { "drive", { 12, 20 } } } }, { mConv, { { "ir", { 8, 10 } }, { "wet", { 10, 20 } } } }, { mFinal, { { "clip", { 30, 60 } } } }, { mMs, { { "width", { 60, 100 } } } } } },
             // 8 Rawstyle
-            { { L (fPunch, { 7, 6 }, { 0, 0 }), L (fCrunch, { 0, 4 }, { -3, 0 }), L (fPunchTop, { 1 }, { -6, -3 }), L (fEnhSchranz, { 1 }, { -12, -8 }) },
+            { { L (fPunch, { 7, 6 }, { 0, 0 }), L (fCrunch, { 0, 4 }, { -3, 0 }), L (fPunchTop, { 1 }, { -6, -3 }), L (fEnhSchranz, { 1 }, { -12, -8 }), L (fBody, { 3 }, { -5, -2 }) },
               { { mDist, { { "type", { 2, 3 } }, { "drive", { 18, 28 } } } }, { mMulti, { { "depth", { 50, 80 } } } }, { mFinal, { { "clip", { 50, 80 } } } }, { mFilt, { { "lp", { 8000, 14000 } } } } } },
             // 9 Hard techno
             { { L (fPunch, { 1, 2 }, { 0, 0 }), L (fCrunch, { 0, 1 }, { -6, -2 }), L (fRumble, { 0, 5 }, { -12, -8 }, { 0, 0.25f }, {}, { 20, 60 }), L (fClick, { 1, 3 }, { -9, -5 }) },
               { { mDist, { { "type", { 0, 1 } }, { "drive", { 6, 14 } } } }, { mFinal, { { "boost", { 2, 4 } }, { "clip", { 20, 40 } } } }, { mTrans, { { "attack", { 10, 30 } } } } } },
             // 10 Gabber
-            { { L (fPunch, { 6, 2 }, { 0, 0 }, {}, { 250, 400 }, { 20, 60 }), L (fCrunch, { 3, 0 }, { -4, -1 }), L (fClick, { 1, 0 }, { -6, -2 }) },
-              { { mDist, { { "type", { 2, 3 } }, { "drive", { 24, 34 } } } }, { mFinal, { { "clip", { 60, 90 } } } }, { mFilt, { { "hp", { 35, 50 } } } }, { mEq, { { "b1f", { 900, 1600 } }, { "b1g", { 3, 6 } } } } } },
+            { { L (fPunch, { 6, 2 }, { 0, 0 }, {}, { 250, 400 }, { 20, 60 }), L (fCrunch, { 3, 0 }, { -4, -1 }), L (fClick, { 1, 0 }, { -6, -2 }), L (fBody, { 3, 2 }, { -5, -2 }) },
+              { { mDist, { { "type", { 2, 3 } }, { "drive", { 24, 34 } } } }, { mFinal, { { "clip", { 60, 90 } } } }, { mFilt, { { "hp", { 20, 28 } } } }, { mEq, { { "b1f", { 900, 1600 } }, { "b1g", { 3, 6 } } } } } },
             // 11 Frenchcore
             { { L (fPunch, { 2, 6 }, { 0, 0 }), L (fCrunch, { 0, 3 }, { -3, 0 }), L (fPunchTop, { 1, 2 }, { -6, -3 }), L (fBody, { 3 }, { -8, -4 }, {}, { 300, 600 }, { 40, 120 }) },
               { { mDist, { { "type", { 2, 2 } }, { "drive", { 20, 30 } } } }, { mMulti, { { "depth", { 40, 70 } } } }, { mFinal, { { "clip", { 50, 80 } } } } } },
@@ -144,7 +144,7 @@ inline void randomize (std::vector<float>& p, int mode, int layer, std::uint32_t
     auto clearRack = [&]
     {
         const auto def = defaults();
-        for (int s = moduleBase()[0]; s < numSlots(); ++s) p[(size_t) s] = def[(size_t) s];
+        for (int s = moduleBase()[0]; s < moduleBase()[numModules]; ++s) p[(size_t) s] = def[(size_t) s];
     };
 
     if (mode == 2)

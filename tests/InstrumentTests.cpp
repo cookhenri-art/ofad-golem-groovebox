@@ -678,6 +678,14 @@ static void testKickForge()
         }
         return pk;
     };
+    // 1.2 (son) : gain automatique à l'intensité (-15 LUFS en boucle), sinon crête au plafond (-1 dBFS)
+    auto levelOk = [&] (const k::Result& r)
+    {
+        const auto pk = ok (r);
+        if (pk < 0.0f || pk > 0.895f) return false;
+        const auto lu = k::detail::hitLoudness (r.L, r.R, 48000.0);
+        return std::abs (lu + 15.0) < 1.0 || pk > 0.85f;
+    };
     // chaque famille de la bibliothèque (premier et dernier morceau) sur la couche 1 seule
     for (int f = 0; f < k::numFamilies; ++f)
     {
@@ -687,8 +695,7 @@ static void testKickForge()
             auto p = def;
             for (int l = 1; l < k::numLayers; ++l) p[(size_t) (l * k::numLayerParams + k::lOn)] = 0;
             p[k::lFam] = (float) f; p[k::lPart] = (float) part;
-            const auto pk = ok (run (p));
-            CHECK (pk > 0.45f && pk < 0.52f, "morceau jouable, gain automatique \xC3\xA0 -6 dB");
+            CHECK (levelOk (run (p)), "morceau jouable, gain automatique \xC3\xA0 l'intensit\xC3\xA9 (ou cr\xC3\xAA" "te au plafond)");
         }
     }
     // chaque module du rack, puis tous ensemble, au maximum de leurs réglages
@@ -702,7 +709,7 @@ static void testKickForge()
                 for (int s = k::moduleBase()[(size_t) x] + 2; s < k::moduleBase()[(size_t) x + 1] - 1; ++s) p[(size_t) s] = d.params[(size_t) s].max;
             }
         const auto r = run (p);
-        CHECK (ok (r) > 0.45f && ok (r) < 0.52f && r.length < (int) (k::maxSeconds * 48000.0) + 1, "module du rack stable");
+        CHECK (levelOk (r) && r.length < (int) (k::maxSeconds * 48000.0) + 1, "module du rack stable");
     }
     // muet, solo, inversion, étirement, fondus extrêmes
     {
@@ -721,6 +728,45 @@ static void testKickForge()
             p[b + k::lDrv] = 36; p[b + k::lTrAtk] = 100; p[b + k::lTrSus] = -100; p[b + k::lEqLo] = 18; p[b + k::lEqHi] = 18;
         }
         CHECK (ok (run (p)) > 0.45f, "r\xC3\xA9glages extr\xC3\xAA" "mes stables");
+    }
+    // 1.2 (son) : sons d'usine au même niveau perçu ; l'alignement de phase ne retire jamais de grave
+    {
+        double worstAlign = 99.0, sumAlign = 0.0; int nAlign = 0, levelBad = 0;
+        auto lowE = [] (const std::vector<float>& w)
+        {
+            grv::dsp::Svf a, b; a.set (150.0, 0.54, 48000.0); b.set (150.0, 1.31, 48000.0);
+            double e = 0.0;
+            for (int i = 0; i < std::min ((int) w.size(), 19200); ++i) { const auto y = b.process (a.process (w[(size_t) i]).low).low; if (i >= 960) e += y * y; }
+            return e;
+        };
+        for (const auto& pr : d.presets)
+        {
+            auto p = def;
+            for (const auto& [id, v] : pr.values) { const auto i = d.indexOf (id); if (i >= 0) p[(size_t) i] = v; }
+            p[(size_t) k::phaseAlignSlot()] = 0;
+            const auto off = run (p);
+            p[(size_t) k::phaseAlignSlot()] = 1;
+            const auto on = run (p);
+            if (! levelOk (on)) ++levelBad;
+            const auto g = 10.0 * std::log10 ((lowE (on.sum) + 1.0e-20) / (lowE (off.sum) + 1.0e-20));
+            worstAlign = std::min (worstAlign, g); sumAlign += g; ++nAlign;
+        }
+        std::printf ("  kick forge : alignement de phase, grave de la somme %+.2f dB en moyenne (pire %+.2f dB)\n", sumAlign / std::max (1, nAlign), worstAlign);
+        CHECK (levelBad == 0, "sons d'usine \xC3\xA0 -15 LUFS (ou cr\xC3\xAA" "te au plafond)");
+        CHECK (worstAlign > -0.5 && sumAlign / std::max (1, nAlign) > 0.2, "alignement de phase : plus de grave, jamais moins");
+        // les morceaux d'une même saveur ne se ressemblent pas : durée à -20 dB et aigu bien répartis
+        for (const int f : { (int) k::fPunch, (int) k::fBody })
+        {
+            double t20lo = 1.0e9, t20hi = 0.0;
+            for (int i = 0; i < k::families()[(size_t) f].perFlavor; ++i)
+            {
+                const auto x = k::renderPart (f, i, 43.65, 150.0, 48000.0);
+                float pkx = 0.0f; for (auto v : x) pkx = std::max (pkx, std::abs (v));
+                int t20 = 0; for (int j = 0; j < (int) x.size(); ++j) if (std::abs (x[(size_t) j]) > 0.1f * pkx) t20 = j;
+                t20lo = std::min (t20lo, (double) t20); t20hi = std::max (t20hi, (double) t20);
+            }
+            CHECK (t20hi > 1.5 * t20lo, "morceaux d'une saveur vari\xC3\xA9s");
+        }
     }
     // l'instrument : fil de calcul, premier coup, hauteur qui suit la note
     {
@@ -753,8 +799,12 @@ static void testKickForge()
         for (int b = 0; b < 4; ++b) inst->render (L.data(), R.data(), 32, p.data());
         kfi->waitReady (5000);
         const auto low = play (29, 600), high = play (35, 600); // fa (tonalité), puis si : +6 demi-tons
-        const auto a = zc (low, 4800, 14400), b = zc (high, 4800, 14400);
-        CHECK (b > a * 1.25 && b < a * 1.6, "la hauteur suit la note");
+        // le kick joué 6 demi-tons plus haut est lu 2^(6/12) fois plus vite : même portion du kick sur une
+        // fenêtre raccourcie d'autant ; le rythme des passages par zéro doit être 1,41 fois plus rapide
+        const auto rr = std::pow (2.0, 6.0 / 12.0);
+        const auto a = zc (low, 1440, 7200), b = zc (high, (int) (1440 / rr), (int) (7200 / rr));
+        const auto rate = rr * b / std::max (1, a);
+        CHECK (rate > 1.25 && rate < 1.6, "la hauteur suit la note");
     }
 }
 

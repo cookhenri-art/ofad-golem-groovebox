@@ -225,7 +225,7 @@ export function KfDisplay({ channel, module: m, top = false }: { channel: number
         ))}
         {top && <button type="button" className={`kf-libbtn${browser ? " on" : ""}`} onClick={() => browserOpen.set(!browser)} aria-expanded={browser}>☰ Bibliothèque · couche {lane + 1}</button>}
         <span className="kf-views-info tabular">
-          {ms(view.len)} · tonalité {view.key.toFixed(1)} Hz · crête avant gain {view.peak.toFixed(1)} dB{kf.get("autogain") > 0.5 ? " → -6 dB" : ""}
+          {ms(view.len)} · tonalité {view.key.toFixed(1)} Hz · crête avant gain {view.peak.toFixed(1)} dB{kf.get("autogain") > 0.5 ? ` · gain auto. ${view.gain >= 1 ? "+" : ""}${(20 * Math.log10(Math.max(1e-6, view.gain))).toFixed(1)} dB` : ""}
         </span>
       </div>
       <div className="kf-screen-wrap">

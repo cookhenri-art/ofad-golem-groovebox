@@ -381,7 +381,7 @@ namespace kf
             for (const auto& f : families()) famNames.push_back (f.name);
             const int defFam[numLayers] { fPunch, fClick, fBody, fRumble, fCrunch, fPunchTop, fEnhReverb, fReverse };
             const int defPart[numLayers] { 16, 0, 0, 0, 0, 0, 0, 0 };
-            const float defVol[numLayers] { 0.0f, -6.0f, -5.0f, -12.0f, -6.0f, -9.0f, -12.0f, -8.0f };
+            const float defVol[numLayers] { 0.0f, -9.0f, 0.0f, -12.0f, -6.0f, -9.0f, -12.0f, -8.0f };
             for (int l = 0; l < numLayers; ++l)
             {
                 const auto px = layerPrefix (l);
@@ -482,6 +482,8 @@ namespace kf
                 }
                 add (P (px + "mix", N + "m\xC3\xA9lange", "%", 0, 100, 100));
             }
+            // après le rack (positions figées à la suite) : alignement de phase du grave des couches
+            m.params.push_back (C ("phasealign", "Alignement de phase", { "Non", "Oui" }, 1));
             // sections (écran SON générique) : une par couche, le kit, le rack
             for (int l = 0; l < numLayers; ++l)
             {
@@ -492,7 +494,7 @@ namespace kf
             }
             {
                 SectionDesc s; s.id = "kfmain"; s.name = "Kick"; s.visual = "kfmain";
-                s.params = { "style", "key", "pitchmode", "velsens", "volume", "autogain" };
+                s.params = { "style", "key", "pitchmode", "velsens", "volume", "autogain", "phasealign" };
                 m.sections.push_back (s);
             }
             for (int mo = 0; mo < numModules; ++mo)
