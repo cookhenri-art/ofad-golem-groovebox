@@ -805,6 +805,35 @@ static void testKickForge()
         const auto a = zc (low, 1440, 7200), b = zc (high, (int) (1440 / rr), (int) (7200 / rr));
         const auto rate = rr * b / std::max (1, a);
         CHECK (rate > 1.25 && rate < 1.6, "la hauteur suit la note");
+
+        // 1.2 (régularité) : un LFO de 4 temps sur le fondu de sortie de la couche 1 ; un coup par temps.
+        // Le fil de calcul a le temps de calculer entre deux temps (attente) ; dès le 3e tour, un même
+        // endroit du LFO redonne exactement le même kick, même si le LFO bouge entre les coups.
+        p[k::gPitchMode] = 0;
+        const int fo = d.indexOf ("l1_folen");
+        const auto& pd = d.params[(size_t) fo];
+        std::vector<std::vector<float>> hits;
+        for (int beat = 0; beat < 24; ++beat)
+        {
+            std::vector<float> h;
+            for (int bl = 0; bl < 16; ++bl)
+            {
+                const auto ph = (beat + bl / 16.0) / 4.0;
+                p[(size_t) fo] = pd.toPlain (0.5f + 0.4f * (float) std::sin (6.283185307 * ph));
+                if (bl == 0) inst->noteOn (36, 1.0f);
+                std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+                inst->render (L.data(), R.data(), 32, p.data());
+                h.insert (h.end(), L.begin(), L.end());
+                if (bl == 0) kfi->waitIdle (5000);
+            }
+            hits.push_back (std::move (h));
+        }
+        double worst = 0.0;
+        for (int beat = 12; beat < 24; ++beat)
+            for (size_t i = 0; i < hits[(size_t) beat].size(); ++i)
+                worst = std::max (worst, (double) std::abs (hits[(size_t) beat][i] - hits[(size_t) beat - 4][i]));
+        std::printf ("  kick forge : LFO sur un fondu, plus grand \xC3\xA9" "cart entre deux tours %.2e\n", worst);
+        CHECK (worst < 1.0e-6, "m\xC3\xAAme endroit du LFO, m\xC3\xAAme kick");
     }
 }
 

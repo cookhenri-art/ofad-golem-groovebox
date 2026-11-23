@@ -30,6 +30,9 @@
 #include <array>
 #include <cmath>
 #include <complex>
+#include <cstdint>
+#include <cstring>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -117,6 +120,16 @@ inline const std::vector<std::pair<const char*, const char*>>& irList()
 
 namespace detail
 {
+    /** FFT préparée de l'ordre demandé, gardée par le fil qui calcule (sa préparation coûte plus que la
+        transformée elle-même). */
+    inline dsp::Fft& fftFor (int order)
+    {
+        thread_local std::array<std::unique_ptr<dsp::Fft>, 26> ffts;
+        auto& f = ffts[(size_t) std::clamp (order, 1, 25)];
+        if (f == nullptr) { f = std::make_unique<dsp::Fft>(); f->prepare (std::clamp (order, 1, 25)); }
+        return *f;
+    }
+
     using Buf = std::vector<float>;
 
     /** Fondamentale d'un kick (autocorrélation normalisée, 25–500 Hz) ; 0 si rien de net. */
@@ -238,6 +251,28 @@ namespace detail
         }
     }
 
+    /** Deux convolutions du même signal réel x par h0 et h1 en trois transformées : h0 + j·h1 est
+        transformé d'un coup, et la partie réelle et imaginaire du résultat sont x∗h0 et x∗h1. */
+    inline std::pair<Buf, Buf> convolve2 (const Buf& x, const Buf& h0, const Buf& h1)
+    {
+        if (x.empty() || (h0.empty() && h1.empty())) return { Buf (x.size(), 0.0f), Buf (x.size(), 0.0f) };
+        const auto hn = std::max (h0.size(), h1.size());
+        const auto total = x.size() + hn - 1;
+        int order = 1;
+        while ((size_t) (1 << order) < total) ++order;
+        auto& fft = fftFor (order);
+        const auto N = (size_t) fft.size();
+        std::vector<std::complex<float>> a (N), b (N);
+        for (size_t i = 0; i < x.size(); ++i) a[i] = { x[i], 0.0f };
+        for (size_t i = 0; i < hn; ++i) b[i] = { i < h0.size() ? h0[i] : 0.0f, i < h1.size() ? h1[i] : 0.0f };
+        fft.forward (a.data()); fft.forward (b.data());
+        for (size_t i = 0; i < N; ++i) a[i] *= b[i];
+        fft.inverse (a.data());
+        Buf y0 (total), y1 (total);
+        for (size_t i = 0; i < total; ++i) { y0[i] = a[i].real(); y1[i] = a[i].imag(); }
+        return { std::move (y0), std::move (y1) };
+    }
+
     /** Convolution par FFT (une seule transformée, hors temps réel). */
     inline Buf convolve (const Buf& x, const Buf& h)
     {
@@ -245,7 +280,7 @@ namespace detail
         const auto total = x.size() + h.size() - 1;
         int order = 1;
         while ((size_t) (1 << order) < total) ++order;
-        dsp::Fft fft; fft.prepare (order);
+        auto& fft = fftFor (order);
         const auto N = (size_t) fft.size();
         std::vector<std::complex<float>> a (N), b (N);
         for (size_t i = 0; i < x.size(); ++i) a[i] = { x[i], 0.0f };
@@ -417,24 +452,26 @@ namespace detail
         const auto n = (int) x.size();
         int order = 1;
         while ((1 << order) < 2 * n) ++order;
-        dsp::Fft fft; fft.prepare (order);
+        auto& fft = fftFor (order);
         const auto N = fft.size();
-        std::vector<std::complex<float>> X ((size_t) N), H ((size_t) N);
+        std::vector<std::complex<float>> X ((size_t) N);
         for (int i = 0; i < n; ++i) X[(size_t) i] = { x[(size_t) i], 0.0f };
         fft.forward (X.data());
+        // grave (G) et sa transformée de Hilbert (H = -j·signe(f)·G), tous deux réels : une seule
+        // transformée inverse de G + j·H donne le grave en partie réelle et Hilbert en partie imaginaire
         for (int k = 0; k < N; ++k)
         {
             const auto f = (double) std::min (k, N - k) * sr / N;
             const auto m = f <= fc ? 1.0 : f >= 2.0 * fc ? 0.0 : 0.5 + 0.5 * std::cos (dsp::kPi * (f - fc) / fc);
-            X[(size_t) k] *= (float) m;
+            const auto G = X[(size_t) k] * (float) m;
             // Hilbert : -j sur les fréquences positives, +j sur les négatives, 0 au continu et à Nyquist
-            if (k == 0 || k == N / 2) H[(size_t) k] = 0.0f;
-            else if (k < N / 2) H[(size_t) k] = X[(size_t) k] * std::complex<float> (0.0f, -1.0f);
-            else H[(size_t) k] = X[(size_t) k] * std::complex<float> (0.0f, 1.0f);
+            const std::complex<float> H = (k == 0 || k == N / 2) ? std::complex<float> (0.0f, 0.0f)
+                                        : k < N / 2 ? G * std::complex<float> (0.0f, -1.0f) : G * std::complex<float> (0.0f, 1.0f);
+            X[(size_t) k] = G + std::complex<float> (0.0f, 1.0f) * H;
         }
-        fft.inverse (X.data()); fft.inverse (H.data());
+        fft.inverse (X.data());
         lo.assign ((size_t) n, 0.0f); hb.assign ((size_t) n, 0.0f);
-        for (int i = 0; i < n; ++i) { lo[(size_t) i] = X[(size_t) i].real(); hb[(size_t) i] = H[(size_t) i].real(); }
+        for (int i = 0; i < n; ++i) { lo[(size_t) i] = X[(size_t) i].real(); hb[(size_t) i] = X[(size_t) i].imag(); }
     }
 } // namespace detail
 
@@ -451,12 +488,50 @@ struct Result
     std::array<double, numLayers> detectedHz {}; // tonalité détectée des samples
 };
 
+/** Mémoire du fil de calcul (1.2, régularité sous LFO) : les morceaux de la bibliothèque et les couches
+    déjà traitées (avec leur grave pour l'alignement de phase) sont gardés ; un nouveau calcul ne refait
+    que ce qui a changé. Le son est identique, au bit près, à un calcul sans mémoire. Un seul fil à la fois. */
+struct RenderCache
+{
+    struct Part { std::uint64_t key = 0; std::vector<float> x; unsigned tick = 0; };
+    struct Layer
+    {
+        std::uint64_t key = 0; unsigned tick = 0;
+        std::vector<float> wave; int start = 0; std::string name; double detected = 0.0;
+        bool lowDone = false; std::vector<float> lo, hb; double eLo = 0.0, eAll = 0.0;
+    };
+    std::vector<Part> parts;
+    std::vector<Layer> layers;
+    unsigned tick = 0;
+    static constexpr size_t maxParts = 48, maxLayers = 40;
+    // capacité fixée d'avance : les adresses des entrées ne bougent pas pendant un calcul
+    RenderCache() { parts.reserve (maxParts); layers.reserve (maxLayers); }
+
+    template <typename T> static T* find (std::vector<T>& v, std::uint64_t key) { for (auto& e : v) if (e.key == key) return &e; return nullptr; }
+    template <typename T> T& slot (std::vector<T>& v, size_t maxN, std::uint64_t key)
+    {
+        if (v.size() < maxN) { v.emplace_back(); v.back().key = key; return v.back(); }
+        auto* old = &v[0];
+        for (auto& e : v) if (e.tick < old->tick) old = &e;
+        *old = T {}; old->key = key;
+        return *old;
+    }
+};
+
 struct Input
 {
     std::vector<float> p;                                  // réglages (valeurs réelles)
     std::array<const engine::SampleBuffer*, numLayers> samples {};
     double bpm = 120.0, sr = 48000.0;
+    RenderCache* cache = nullptr;                          // mémoire du fil de calcul (facultative)
 };
+
+namespace detail
+{
+    inline std::uint64_t hashMix (std::uint64_t h, std::uint64_t v) noexcept { h ^= v; h *= 1099511628211ull; return h; }
+    inline std::uint64_t hashDouble (std::uint64_t h, double d) noexcept { std::uint64_t b; std::memcpy (&b, &d, 8); return hashMix (h, b); }
+    inline std::uint64_t hashFloats (std::uint64_t h, const float* p, int n) noexcept { for (int i = 0; i < n; ++i) { std::uint32_t u; std::memcpy (&u, p + i, 4); h = hashMix (h, u); } return h; }
+}
 
 inline double keyToHz (int midi) noexcept { return 440.0 * std::pow (2.0, (midi - 69) / 12.0); }
 
@@ -480,6 +555,10 @@ inline Result render (const Input& in)
     for (int l = 0; l < numLayers; ++l)
         if (p[(size_t) (l * numLayerParams + lOn)] > 0.5f && p[(size_t) (l * numLayerParams + lSolo)] > 0.5f) anySolo = true;
 
+    auto* cache = in.cache;
+    if (cache != nullptr) ++cache->tick;
+    std::array<RenderCache::Layer*, numLayers> cached {};   // couches de ce calcul en mémoire
+
     for (int l = 0; l < numLayers; ++l)
     {
         const float* q = p.data() + l * numLayerParams;
@@ -488,6 +567,28 @@ inline Result render (const Input& in)
         const int fam = std::clamp ((int) std::lround (q[lFam]), 0, numFamilies - 1);
         const int part = std::max (0, (int) std::lround (q[lPart]));
         view.on = true; view.fam = fam; view.part = part;
+        const bool audibleL = q[lMute] < 0.5f && (! anySolo || q[lSolo] > 0.5f);
+        // couche déjà traitée avec ces réglages (coupure et solo exceptés), cette tonalité, ce tempo
+        std::uint64_t lkey = 0;
+        if (cache != nullptr)
+        {
+            float qq[numLayerParams];
+            std::memcpy (qq, q, sizeof (qq));
+            qq[lMute] = qq[lSolo] = 0.0f;
+            lkey = hashFloats (1469598103934665603ull, qq, numLayerParams);
+            lkey = hashDouble (hashDouble (hashDouble (lkey, r.keyHz), in.bpm), sr);
+            lkey = hashMix (lkey, (std::uint64_t) (std::uintptr_t) (fam == fSample ? in.samples[(size_t) l] : nullptr));
+            lkey = hashMix (lkey, (std::uint64_t) l + 1);
+            if (auto* e = RenderCache::find (cache->layers, lkey))
+            {
+                e->tick = cache->tick;
+                view.name = e->name; view.start = e->start; view.len = (int) e->wave.size(); view.wave = e->wave;
+                r.detectedHz[(size_t) l] = e->detected;
+                cached[(size_t) l] = e;
+                if (audibleL) layerSig.push_back ({ l, e->start });
+                continue;
+            }
+        }
         // 1. source
         Buf x;
         if (fam == fSample)
@@ -517,7 +618,14 @@ inline Result render (const Input& in)
         }
         else
         {
-            x = renderPart (fam, part, r.keyHz, in.bpm, sr);
+            if (cache != nullptr)
+            {
+                auto pk = hashMix (hashMix (1469598103934665603ull, (std::uint64_t) fam), (std::uint64_t) part);
+                pk = hashDouble (hashDouble (hashDouble (pk, r.keyHz), in.bpm), sr);
+                if (auto* e = RenderCache::find (cache->parts, pk)) { e->tick = cache->tick; x = e->x; }
+                else { x = renderPart (fam, part, r.keyHz, in.bpm, sr); auto& n = cache->slot (cache->parts, RenderCache::maxParts, pk); n.x = x; n.tick = cache->tick; }
+            }
+            else x = renderPart (fam, part, r.keyHz, in.bpm, sr);
             view.name = partName (fam, part);
         }
         if (x.empty()) continue;
@@ -537,7 +645,7 @@ inline Result render (const Input& in)
             if (fo > 0 && i >= lenN - fo) g *= fadeShape ((double) (lenN - i) / fo, q[lFoCurve] / 100.0);
             x[(size_t) i] = (float) (x[(size_t) i] * g);
         }
-        // 4. tranche de la couche : filtres, égaliseur, transitoires, distorsion
+        // 4. tranche de la couche : égaliseur, transitoires, distorsion, puis filtres
         {
             dsp::SvfEq hp1, hp2, lp1, lp2, lo, mid, hi;
             const auto hpF = (double) q[lHp], lpF = (double) q[lLp];
@@ -548,14 +656,7 @@ inline Result render (const Input& in)
             lo.set (dsp::SvfEq::lowShelf, 100.0, 0.7, q[lEqLo], sr);
             mid.set (dsp::SvfEq::bell, std::clamp ((double) q[lEqMidF], 40.0, 16000.0), 1.0, q[lEqMidG], sr);
             hi.set (dsp::SvfEq::highShelf, 6000.0, 0.7, q[lEqHi], sr);
-            for (auto& s : x)
-            {
-                double y = s;
-                if (useHp) y = hp2.process (hp1.process (y));
-                if (useLp) y = lp2.process (lp1.process (y));
-                if (eqOn) y = hi.process (mid.process (lo.process (y)));
-                s = (float) y;
-            }
+            if (eqOn) for (auto& s : x) s = (float) hi.process (mid.process (lo.process ((double) s)));
             transient (x.data(), (int) x.size(), sr, q[lTrAtk] / 100.0, q[lTrSus] < 0.0f ? -q[lTrSus] / 100.0 : 0.0, 0.02);
             if (q[lTrSus] > 0.0f) transient (x.data(), (int) x.size(), sr, -q[lTrSus] / 200.0, 0.0, 0.03); // maintien relevé = attaque adoucie
             if (q[lDrv] > 0.05f && q[lDrvMix] > 0.5f)
@@ -564,6 +665,16 @@ inline Result render (const Input& in)
                 Buf r2 (x);
                 d.process (x.data(), r2.data(), (int) x.size(), std::clamp ((int) std::lround (q[lDrvType]), 0, 9), q[lDrv], 0, 1000.0, q[lDrvMix] / 100.0);
             }
+            // 1.2 : passe-haut et passe-bas EN DERNIER (après la distorsion, qui recréait les aigus
+            // qu'un passe-bas placé avant avait coupés : le réglage semblait sans effet)
+            if (useHp || useLp)
+                for (auto& s : x)
+                {
+                    double y = s;
+                    if (useHp) y = hp2.process (hp1.process (y));
+                    if (useLp) y = lp2.process (lp1.process (y));
+                    s = (float) y;
+                }
         }
         // 5. polarité, volume, décalage
         const auto g = (q[lVol] <= -47.9f ? 0.0 : dsp::dbToGain (q[lVol])) * (q[lPhase] > 0.5f ? -1.0 : 1.0);
@@ -574,6 +685,12 @@ inline Result render (const Input& in)
         view.wave.assign (x.size(), 0.0f);
         for (size_t i = 0; i < x.size(); ++i) view.wave[i] = (float) (x[i] * g);
         if (audible) layerSig.push_back ({ l, start });
+        if (cache != nullptr)
+        {
+            auto& e = cache->slot (cache->layers, RenderCache::maxLayers, lkey);
+            e.tick = cache->tick; e.wave = view.wave; e.start = start; e.name = view.name; e.detected = r.detectedHz[(size_t) l];
+            cached[(size_t) l] = &e;
+        }
     }
 
     // alignement de phase : la couche au grave le plus fort sert de référence ; chaque autre
@@ -585,10 +702,18 @@ inline Result render (const Input& in)
         std::vector<Low> lows;
         for (size_t k = 0; k < layerSig.size(); ++k)
         {
-            const auto& w = r.layers[(size_t) layerSig[k].first].wave;
-            Low a; a.idx = (int) k; lowBand (w, 160.0, sr, a.lo, a.hb);
+            const auto layer = layerSig[k].first;
+            const auto& w = r.layers[(size_t) layer].wave;
+            Low a; a.idx = (int) k;
             double eLo = 0.0, eAll = 0.0;
-            for (size_t i = 0; i < w.size(); ++i) { eLo += (double) a.lo[i] * a.lo[i]; eAll += (double) w[i] * w[i]; }
+            auto* ce = cached[(size_t) layer];
+            if (ce != nullptr && ce->lowDone) { a.lo = ce->lo; a.hb = ce->hb; eLo = ce->eLo; eAll = ce->eAll; }
+            else
+            {
+                lowBand (w, 160.0, sr, a.lo, a.hb);
+                for (size_t i = 0; i < w.size(); ++i) { eLo += (double) a.lo[i] * a.lo[i]; eAll += (double) w[i] * w[i]; }
+                if (ce != nullptr) { ce->lo = a.lo; ce->hb = a.hb; ce->eLo = eLo; ce->eAll = eAll; ce->lowDone = true; }
+            }
             a.e = eLo;
             if (eAll > 1.0e-12 && eLo > 0.1 * eAll) lows.push_back (std::move (a)); // couches sans grave : rien à aligner
         }
@@ -749,7 +874,7 @@ inline Result render (const Input& in)
                 curve (h0); curve (h1);
                 const auto st = std::clamp (P (m, "stereo") / 100.0, 0.0, 1.0);
                 const auto monoIn = [&] { Buf mono (L.size()); for (size_t i = 0; i < L.size(); ++i) mono[i] = 0.5f * (L[i] + R[i]); return mono; }();
-                auto wl = convolve (monoIn, h0), wr = convolve (monoIn, h1);
+                auto [wl, wr] = convolve2 (monoIn, h0, h1);
                 // ton : -100 sombre … +100 brillant
                 const auto tone = P (m, "tone");
                 dsp::SvfEq tl, tr;

@@ -1,0 +1,45 @@
+OFAD GOLEM sur Akai Force / MPC autonome — greffons d'essai
+==========================================================
+
+Contenu (un dossier par greffon, à copier tel quel) :
+  OFAD - VST - Acid Lover   (instrument : basse acide)
+  OFAD - VST - Kick Forge   (instrument : kick à couches)
+  OFAD - VST - Grinder      (effet : distorsion multibande)
+
+1. Mettre la Force à jour
+   - Version 3.10.1 ou plus récente (Menu > Preferences > ... mise à jour, ou inMusic Software Center).
+   - Puis Menu > Preferences > Enhancements : activer les améliorations et « External Plugin Support ».
+
+2. Copier les greffons
+   - Sur la carte SD / le disque USB de la Force, créer un dossier nommé exactement :  VST2 Plugins
+   - Copier dedans les dossiers « OFAD - VST - ... » sans les renommer.
+   - Redémarrer la Force : les greffons apparaissent dans la liste des plugins (fabricant OFAD).
+
+3. Habillage graphique (Kick Forge et Acid Lover)
+   - Touches sous l'écran : KICK (table de mixage des 8 couches + jeu), COUCHES, TIMBRE, IMPACT.
+   - Appuyer de nouveau sur la même touche passe à la sous-page suivante :
+       COUCHES : couche 1 → 2 → … → 8 ; TIMBRE : égaliseur, M/S, distorsion, filtres ;
+       IMPACT : façonneur, transitoires, multibande, finaliseur, convolution.
+   - Toucher un réglage le sélectionne : la grosse molette le modifie et les Q-Links passent sur
+     son groupe de quatre. Double toucher : grande fenêtre de réglage. Menus : double toucher.
+   - Enveloppe d'une couche : toucher un point et faire glisser.
+   - Si l'écran du greffon n'affiche AUCUN onglet : l'enveloppe n'est pas acceptée par la Force.
+     Remplacer alors le dossier « Plugin Skins » de « OFAD - VST - Kick Forge » par celui du dossier
+     _secours/Kick Forge sans enveloppe/ (même contenu, sans le dessin d'enveloppe) et redémarrer.
+
+4. Jouer
+   - Kick Forge et Acid Lover : piste plugin, les pads ou le clavier jouent les notes.
+     Kick Forge suit la hauteur des notes (réglage « Hauteur jouee »).
+   - Grinder : effet d'insert sur n'importe quelle piste.
+   - Programmes : les sons d'usine de GOLEM (le programme 0 « Init » = réglages par défaut).
+   - « Volume » (dernière page) : volume de sortie du greffon.
+
+5. À mesurer et à me renvoyer
+   - Charge processeur : SHIFT + MENU > Developer > moniteur de ressources
+     (ce panneau active aussi l'accès SSH de la machine : le refermer après).
+   - Les pages au-delà de la 6e s'affichent-elles bien ?
+   - Les noms et les valeurs sont-ils lisibles ?
+
+Avertissement : les greffons tiers tournent dans le même programme que la Force ; un défaut peut
+la figer ou la redémarrer. Sauvegarder le projet avant l'essai. inMusic n'assure pas le support
+des greffons tiers. Licence AGPL-3.0-or-later (sources : dépôt OFAD GOLEM, dossier mpc/).

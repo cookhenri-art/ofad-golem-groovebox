@@ -14,7 +14,13 @@
       - le kick suit la tonalité réglée ou la note jouée.
     Le kick est CALCULÉ par un fil de calcul à chaque changement de réglage (qualité maximale, sans
     limite de charge) puis rejoué tel quel : ce qu'on entend est exactement ce qu'on voit. Le fil
-    audio n'alloue rien, ne bloque jamais : il lit le dernier kick publié (trois tampons tournants).
+    audio n'alloue rien, ne bloque jamais.
+    1.2 (régularité sous LFO) : les kicks calculés sont GARDÉS (24 sur ordinateur, 10 sur téléphone),
+    rangés avec leurs réglages. À chaque coup, le fil audio joue le kick gardé des réglages de cet
+    instant (au 1/128 de la course près pour les réglages continus, exactement pour les crans) ; s'il
+    n'existe pas encore, il joue le plus proche et le demande en priorité au fil de calcul. Un LFO
+    repassant par les mêmes valeurs donne donc toujours le même kick. Volume, vélocité et hauteur
+    jouée sont appliqués en direct (ils ne relancent aucun calcul).
 */
 
 #pragma once
@@ -23,8 +29,13 @@
 
 #include <atomic>
 #include <chrono>
+#include <climits>
+#include <cstdint>
 #include <mutex>
 #include <thread>
+#if defined (__APPLE__)
+ #include <TargetConditionals.h>
+#endif
 
 namespace grv::instruments
 {
@@ -64,11 +75,28 @@ public:
         stopWorker();
         sr = s > 0.0 ? s : 48000.0;
         const auto cap = (size_t) (kf::maxSeconds * sr * 1.05) + 64;
-        for (auto& b : bufs) { b.L.assign (cap, 0.0f); b.R.assign (cap, 0.0f); b.length.store (0); }
+        const auto ns = (size_t) kf::numSlots();
+        for (int k = 0; k < numCache; ++k)
+        {
+            auto& b = bufs[(size_t) k];
+            // le dernier emplacement sert au tout premier coup (calcul dans le fil audio) : réservé d'avance
+            if (k == numCache - 1) { b.L.assign (cap, 0.0f); b.R.assign (cap, 0.0f); }
+            else { b.L.clear(); b.R.clear(); }
+            b.length.store (0); b.gen.store (0); b.played.store (0); b.written = 0;
+            b.q.assign (ns, 0); b.bpm = 0.0; b.samples = {};
+        }
         published.store (-1);
+        usedMask.store (0);
         for (auto& v : voices) v = {};
-        req.p.assign ((size_t) kf::numSlots(), 0.0f);
-        lastHash = 0; lastBpm = -1.0;
+        req.p.assign (ns, 0.0f); preq.p.assign (ns, 0.0f);
+        qNow.assign (ns, 0); qWork.assign (ns, 0);
+        stepped.assign (ns, 0);
+        realtime.assign (ns, 0);
+        const auto& d = kf::desc();
+        for (size_t i = 0; i < ns && i < d.params.size(); ++i) stepped[i] = d.params[i].stepped() ? 1 : 0;
+        for (const int i : { (int) kf::gVolume, (int) kf::gVelSens, (int) kf::gPitchMode }) realtime[(size_t) i] = 1;
+        lastHash = 0; lastBpm = -1.0; hitClock = 0; writeClock = 0;
+        rcache = std::make_unique<kf::RenderCache>();
         startWorker();
     }
 
@@ -99,6 +127,7 @@ public:
         {
             if (! v.active) continue;
             const auto& b = bufs[(size_t) v.buf];
+            if (b.L.empty()) { v.active = false; continue; }
             const auto len = v.len;
             for (int i = 0; i < n; ++i)
             {
@@ -136,40 +165,161 @@ public:
         return false;
     }
 
+    /** Tests : attend que le fil de calcul n'ait plus rien à faire (au plus ms millisecondes). */
+    bool waitIdle (int ms) const
+    {
+        for (int t = 0; t < ms; t += 2)
+        {
+            if (doneSeq.load() == reqSeq.load() && pdoneSeq.load() == preqSeq.load()) return true;
+            std::this_thread::sleep_for (std::chrono::milliseconds (2));
+        }
+        return false;
+    }
+
 private:
-    struct Buffer { std::vector<float> L, R; std::atomic<int> length { 0 }; };
+    /** Kick gardé. Écrit par le fil de calcul quand gen est impair ; lu par le fil audio quand gen
+        est pair et n'a pas bougé pendant la lecture ; un kick joué est épinglé (usedMask). */
+    struct Buffer
+    {
+        std::vector<float> L, R;
+        std::atomic<int> length { 0 };
+        std::atomic<unsigned> gen { 0 };
+        std::atomic<unsigned> played { 0 };          // dernier coup qui l'a joué (0 : jamais)
+        unsigned written = 0;                         // ordre de calcul (fil de calcul seulement)
+        std::vector<std::int16_t> q;                  // réglages quantifiés
+        double bpm = 0.0;
+        std::array<const SampleBuffer*, kf::numLayers> samples {};
+    };
+    struct Request { std::vector<float> p; double bpm = 120.0; std::array<const SampleBuffer*, kf::numLayers> samples {}; };
+#if defined (__ANDROID__) || (defined (TARGET_OS_IPHONE) && TARGET_OS_IPHONE) || defined (GRV_LOW_MEMORY) // GRV_LOW_MEMORY : greffon MPC
+    static constexpr int numCache = 10;
+#else
+    static constexpr int numCache = 24;
+#endif
+    static constexpr int tolerance = 16; // 1/128 de la course (quantification au 1/2048)
+
+    /** Réglages quantifiés : crans tels quels, continus au 1/2048 de leur course (forme normalisée) ;
+        volume, vélocité et hauteur jouée à 0 (appliqués en direct). Pur : appelé par les deux fils. */
+    void quantize (const float* p, std::int16_t* out) const noexcept
+    {
+        const auto& d = kf::desc();
+        const auto ns = kf::numSlots();
+        for (int i = 0; i < ns; ++i)
+        {
+            if (realtime[(size_t) i] != 0) { out[i] = 0; continue; }
+            if (stepped[(size_t) i] != 0) { out[i] = (std::int16_t) std::clamp ((int) std::lround (p[i]), -32768, 32767); continue; }
+            out[i] = (std::int16_t) std::lround (d.params[(size_t) i].toNorm (p[i]) * 2048.0f);
+        }
+    }
+    /** Écart entre deux jeux de réglages quantifiés : -1 si un cran diffère, sinon le plus grand écart. */
+    int distance (const std::int16_t* a, const std::int16_t* b) const noexcept
+    {
+        const auto ns = kf::numSlots();
+        int dmax = 0;
+        for (int i = 0; i < ns; ++i)
+        {
+            const auto dd = std::abs ((int) a[i] - (int) b[i]);
+            if (dd == 0) continue;
+            if (stepped[(size_t) i] != 0) return -1;
+            dmax = std::max (dmax, dd);
+        }
+        return dmax;
+    }
+
+    /** Fil audio : épingle l'emplacement k (lu à la génération g) ; échoue si le fil de calcul l'a pris. */
+    bool pin (int k, unsigned g) noexcept
+    {
+        usedMask.fetch_or (1u << k);
+        if (bufs[(size_t) k].gen.load() != g) { usedMask.fetch_and (~(1u << k)); return false; }
+        return true;
+    }
+
+    /** Fil audio : le kick gardé le plus proche des réglages q (même tempo, mêmes samples), épinglé. */
+    int findCached (const std::int16_t* q, int& dist) noexcept
+    {
+        // dans la tolérance, le kick déjà joué le plus récemment l'emporte (un même endroit du LFO garde
+        // son kick, même si un kick encore plus proche a été calculé depuis) ; sinon le plus proche
+        int best = -1, bestD = INT_MAX;
+        unsigned bestGen = 0, bestPlayed = 0;
+        for (int k = 0; k < numCache; ++k)
+        {
+            auto& b = bufs[(size_t) k];
+            const auto g = b.gen.load (std::memory_order_acquire);
+            if ((g & 1u) != 0 || b.length.load (std::memory_order_relaxed) <= 0) continue;
+            if (b.bpm != bpm || b.samples != samples) continue;
+            const auto dd = distance (q, b.q.data());
+            const auto pl = b.played.load (std::memory_order_relaxed);
+            std::atomic_thread_fence (std::memory_order_acquire);
+            if (b.gen.load (std::memory_order_relaxed) != g || dd < 0) continue; // réécrit pendant la lecture, ou autre cran
+            const bool in = dd <= tolerance, bestIn = bestD <= tolerance;
+            const bool better = best < 0 ? true
+                              : in && ! bestIn ? true
+                              : ! in && bestIn ? false
+                              : in ? (pl != bestPlayed ? pl > bestPlayed : dd < bestD)
+                              : dd < bestD;
+            if (better) { best = k; bestD = dd; bestGen = g; bestPlayed = pl; }
+        }
+        if (best < 0 || ! pin (best, bestGen)) return -1;
+        dist = bestD;
+        return best;
+    }
     struct Voice { bool active = false; int buf = 0, len = 0; double pos = 0.0, rate = 1.0; float gain = 1.0f, fade = 1.0f, fadeStep = 0.0f; };
 
     void startVoice (const float* p) noexcept
     {
-        auto pub = published.load (std::memory_order_acquire);
-        if (pub < 0)
+        quantize (p, qNow.data());
+        ++hitClock;
+        int dist = INT_MAX;
+        auto pub = findCached (qNow.data(), dist);
+        if (pub < 0 || dist > tolerance)
+        {
+            // pas encore de kick pour ces réglages : demandé en priorité au fil de calcul
+            postPriority (p);
+            if (pub < 0)
+            {
+                // rien de proche : le dernier publié (épinglé), sinon le tout premier calcul
+                const auto last = published.load (std::memory_order_acquire);
+                if (last >= 0)
+                {
+                    const auto g = bufs[(size_t) last].gen.load();
+                    if ((g & 1u) == 0 && pin (last, g)) pub = last;
+                }
+            }
+        }
+        if (pub < 0 && published.load (std::memory_order_acquire) < 0)
         {
             // rien de calculé encore (premier coup juste après l'ouverture, rendu hors temps réel) :
-            // calcul immédiat, une seule fois dans la vie de l'instrument, dans le tampon 2 (le fil de
-            // calcul, qui n'a rien publié, écrit d'abord dans le tampon 0)
+            // calcul immédiat, une seule fois dans la vie de l'instrument, dans le dernier emplacement
+            // (réservé d'avance ; le fil de calcul, qui n'a rien publié, prend d'abord les premiers)
             kf::Input in;
             in.p.assign (p, p + kf::numSlots());
             in.bpm = bpm; in.samples = samples; in.sr = sr;
             const auto res = kf::render (in);
-            auto& b = bufs[2];
+            const int k = numCache - 1;
+            auto& b = bufs[(size_t) k];
             const auto n = std::min ((int) res.L.size(), (int) b.L.size() - 2);
             if (n <= 0) return;
+            b.gen.fetch_add (1);
             std::copy (res.L.begin(), res.L.begin() + n, b.L.begin());
             std::copy (res.R.begin(), res.R.begin() + n, b.R.begin());
             b.L[(size_t) n] = b.R[(size_t) n] = 0.0f;
+            std::copy (qNow.begin(), qNow.end(), b.q.begin());
+            b.bpm = bpm; b.samples = samples;
             b.length.store (n);
+            b.gen.fetch_add (1);
             int expected = -1;
-            if (published.compare_exchange_strong (expected, 2)) pub = 2;
-            else pub = expected; // le fil de calcul a publié entre-temps : son kick est aussi celui des réglages
+            published.compare_exchange_strong (expected, k);
+            if (! pin (k, b.gen.load())) return;
+            pub = k;
         }
+        if (pub < 0) return;
+        bufs[(size_t) pub].played.store (hitClock, std::memory_order_relaxed);
         // l'ancien coup s'efface en 3 ms pendant que le nouveau part
         auto& old = voices[(size_t) cur];
         if (old.active && old.fadeStep == 0.0f) old.fadeStep = 1.0f / (float) std::max (1.0, 0.003 * sr);
         cur ^= 1;
         auto& v = voices[(size_t) cur];
         v.active = true; v.buf = pub; v.len = bufs[(size_t) pub].length.load(); v.pos = 0.0; v.fade = 1.0f; v.fadeStep = 0.0f;
-        usedMask.fetch_or (1u << pub);
         // hauteur : fixe (tonalité réglée) ou suit la note jouée (classe de note, à moins d'une demi-octave)
         v.rate = 1.0;
         if (p[kf::gPitchMode] > 0.5f)
@@ -183,11 +333,11 @@ private:
         v.gain = 1.0f - sens * (1.0f - std::clamp (pendingVel, 0.0f, 1.0f));
     }
 
-    static std::uint64_t hashOf (const float* p, int n, double bpm, const std::array<const SampleBuffer*, kf::numLayers>& s) noexcept
+    std::uint64_t hashOf (const float* p, int n, double bpm, const std::array<const SampleBuffer*, kf::numLayers>& s) const noexcept
     {
         std::uint64_t h = 1469598103934665603ull;
         auto mix = [&] (std::uint64_t v) { h ^= v; h *= 1099511628211ull; };
-        for (int i = 0; i < n; ++i) { std::uint32_t u; std::memcpy (&u, p + i, 4); mix (u); }
+        for (int i = 0; i < n; ++i) { if (realtime[(size_t) i] != 0) continue; std::uint32_t u; std::memcpy (&u, p + i, 4); mix (u); }
         std::uint64_t b; std::memcpy (&b, &bpm, 8); mix (b);
         for (auto* x : s) mix ((std::uint64_t) (std::uintptr_t) x);
         return h;
@@ -209,6 +359,19 @@ private:
         reqSeq.store (s + 1, std::memory_order_release);    // pair : demande complète
     }
 
+    /** Fil audio : demande prioritaire (le kick des réglages d'un coup joué), sans verrou. */
+    void postPriority (const float* p) noexcept
+    {
+        const auto n = kf::numSlots();
+        const auto s = preqSeq.load (std::memory_order_relaxed) + 1;
+        preqSeq.store (s, std::memory_order_release);
+        std::atomic_thread_fence (std::memory_order_release);
+        std::memcpy (preq.p.data(), p, sizeof (float) * (size_t) n);
+        preq.bpm = bpm; preq.samples = samples;
+        std::atomic_thread_fence (std::memory_order_release);
+        preqSeq.store (s + 1, std::memory_order_release);
+    }
+
     void startWorker()
     {
         quit.store (false);
@@ -220,34 +383,91 @@ private:
         if (worker.joinable()) worker.join();
     }
 
+    /** Fil de calcul : copie une demande (seqlock) ; faux si elle a été réécrite pendant la copie. */
+    static bool readRequest (const Request& r, const std::atomic<unsigned>& seq, unsigned s1, kf::Input& in) noexcept
+    {
+        std::memcpy (in.p.data(), r.p.data(), sizeof (float) * in.p.size());
+        in.bpm = r.bpm; in.samples = r.samples;
+        std::atomic_thread_fence (std::memory_order_acquire);
+        return seq.load (std::memory_order_acquire) == s1;
+    }
+
+    /** Fil de calcul : emplacement à réécrire (jamais le publié ni un kick en lecture) : un vide, sinon
+        le plus ancien jamais joué, sinon le joué le plus anciennement. Rendu impair (pris), ou -1. */
+    int claimSlot() noexcept
+    {
+        const auto pub = published.load();
+        std::array<int, numCache> order {};
+        for (int k = 0; k < numCache; ++k) order[(size_t) k] = k;
+        auto score = [&] (int k) -> std::uint64_t
+        {
+            const auto& b = bufs[(size_t) k];
+            if (b.length.load() <= 0) return 0;
+            const auto pl = b.played.load (std::memory_order_relaxed);
+            return pl == 0 ? (1ull << 32) + b.written : (2ull << 32) + pl;
+        };
+        std::sort (order.begin(), order.end(), [&] (int a, int b) { return score (a) < score (b); });
+        for (const auto k : order)
+        {
+            if (k == pub) continue;
+            if (published.load() < 0 && k == numCache - 1) continue; // réservé au tout premier coup
+            auto& b = bufs[(size_t) k];
+            b.gen.fetch_add (1);                                   // impair : pris
+            if ((usedMask.load() >> k) & 1u) { b.gen.fetch_add (1); continue; } // en lecture : on le laisse
+            return k;
+        }
+        return -1;
+    }
+
     void workLoop()
     {
         kf::Input in;
         in.p.resize ((size_t) kf::numSlots());
+        in.cache = rcache.get();
         while (! quit.load())
         {
-            const auto s1 = reqSeq.load (std::memory_order_acquire);
-            if ((s1 & 1u) != 0 || s1 == doneSeq.load())
+            // 1. demande prioritaire (un coup joué sans son kick), 2. demande ordinaire (réglages changés)
+            bool prio = false;
+            unsigned s1 = 0;
+            const auto ps = preqSeq.load (std::memory_order_acquire);
+            if ((ps & 1u) == 0 && ps != pdoneSeq.load())
             {
-                std::this_thread::sleep_for (std::chrono::milliseconds (3));
-                continue;
+                if (! readRequest (preq, preqSeq, ps, in)) continue;
+                prio = true; s1 = ps;
             }
-            std::memcpy (in.p.data(), req.p.data(), sizeof (float) * in.p.size());
-            in.bpm = req.bpm; in.samples = req.samples; in.sr = sr;
-            std::atomic_thread_fence (std::memory_order_acquire);
-            if (reqSeq.load (std::memory_order_acquire) != s1) continue; // réécrite pendant la copie : on relit
+            else
+            {
+                s1 = reqSeq.load (std::memory_order_acquire);
+                if ((s1 & 1u) != 0 || s1 == doneSeq.load())
+                {
+                    std::this_thread::sleep_for (std::chrono::milliseconds (2));
+                    continue;
+                }
+                if (! readRequest (req, reqSeq, s1, in)) continue;
+            }
+            in.sr = sr;
+            quantize (in.p.data(), qWork.data());
+            if (prio)
+            {
+                // déjà gardé exactement (calculé entre-temps par une demande ordinaire) : rien à refaire
+                bool have = false;
+                for (auto& b : bufs)
+                    if ((b.gen.load() & 1u) == 0 && b.length.load() > 0 && b.bpm == in.bpm && b.samples == in.samples && distance (qWork.data(), b.q.data()) == 0) { have = true; break; }
+                if (have) { pdoneSeq.store (s1); continue; }
+            }
             auto res = kf::render (in);
-            // tampon libre : ni publié, ni lu par une voix
-            const int pub = published.load(); const unsigned used = usedMask.load();
-            int slot = -1;
-            for (int b = 0; b < 3; ++b) if (b != pub && ((used >> b) & 1u) == 0) { slot = b; break; }
+            const auto slot = claimSlot();
             if (slot < 0) { std::this_thread::sleep_for (std::chrono::milliseconds (2)); continue; }
             auto& b = bufs[(size_t) slot];
-            const auto n = std::min ((int) res.L.size(), (int) b.L.size() - 2);
-            std::copy (res.L.begin(), res.L.begin() + n, b.L.begin());
-            std::copy (res.R.begin(), res.R.begin() + n, b.R.begin());
-            b.L[(size_t) n] = b.R[(size_t) n] = 0.0f;
+            const auto n = std::min ((int) res.L.size(), (int) (kf::maxSeconds * sr * 1.05));
+            b.L.assign (res.L.begin(), res.L.begin() + n); b.L.push_back (0.0f); b.L.push_back (0.0f);
+            b.R.assign (res.R.begin(), res.R.begin() + n); b.R.push_back (0.0f); b.R.push_back (0.0f);
+            std::copy (qWork.begin(), qWork.end(), b.q.begin());
+            b.bpm = in.bpm; b.samples = in.samples;
+            b.written = ++writeClock;
+            b.played.store (0, std::memory_order_relaxed);
             b.length.store (n);
+            b.gen.fetch_add (1);                                       // pair : prêt
             published.store (slot, std::memory_order_release);
             {
                 std::lock_guard<std::mutex> lock (viewMutex);
@@ -255,12 +475,12 @@ private:
                 view.L.clear(); view.R.clear();
             }
             viewVer.fetch_add (1);
-            doneSeq.store (s1);
+            if (prio) pdoneSeq.store (s1); else doneSeq.store (s1);
         }
     }
 
     double sr = 48000.0, bpm = 120.0, lastBpm = -1.0;
-    std::array<Buffer, 3> bufs;
+    std::array<Buffer, numCache> bufs;
     std::atomic<int> published { -1 };
     std::atomic<unsigned> usedMask { 0 };
     std::array<Voice, 2> voices {};
@@ -270,10 +490,13 @@ private:
     float pendingVel = 1.0f;
     std::array<const SampleBuffer*, kf::numLayers> samples {};
 
-    struct Request { std::vector<float> p; double bpm = 120.0; std::array<const SampleBuffer*, kf::numLayers> samples {}; };
-    Request req;
-    std::atomic<unsigned> reqSeq { 0 }, doneSeq { 0 };
+    Request req, preq;
+    std::atomic<unsigned> reqSeq { 0 }, doneSeq { 0 }, preqSeq { 0 }, pdoneSeq { 0 };
     std::uint64_t lastHash = 0;
+    std::vector<std::int16_t> qNow, qWork;               // réglages quantifiés (fil audio / fil de calcul)
+    std::vector<std::uint8_t> stepped, realtime;         // réglage à crans ; joué en direct
+    unsigned hitClock = 0, writeClock = 0;
+    std::unique_ptr<kf::RenderCache> rcache;
 
     std::thread worker;
     std::atomic<bool> quit { false };

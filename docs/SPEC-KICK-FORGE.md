@@ -49,10 +49,31 @@ calculée par GOLEM).
 Le kick est **calculé entier** par un fil de calcul propre à l'instrument à chaque changement de
 réglage, de tempo ou de sample (≈ 4 à 30 ms), en qualité maximale, puis rejoué tel quel : ce qu'on
 entend est exactement ce que montre l'afficheur. Le fil audio n'alloue rien et ne bloque jamais : il
-dépose la demande (verrou de séquence), lit le dernier kick publié (trois tampons tournants, jamais
-réécrits pendant qu'une voix les lit), deux voix en alternance avec fondu de 3 ms. Premier coup
+dépose la demande (verrou de séquence), deux voix en alternance avec fondu de 3 ms. Premier coup
 avant tout calcul (ouverture, rendu hors temps réel) : calcul immédiat, une seule fois. Charge
 mesurée : 0,12 % d'un cœur par piste.
+
+**Régularité sous modulation (1.2, après la sortie)** — avant, chaque coup jouait le dernier kick
+terminé : sous un LFO, le calcul courait derrière la valeur et un même endroit du LFO sonnait chaque
+fois autrement. Maintenant :
+- **mémoire de kicks** : 24 kicks gardés (10 sur téléphone), rangés avec leurs réglages quantifiés
+  (crans exacts, continus au 1/2048 de la course ; volume, vélocité et hauteur jouée exclus : ils
+  sont appliqués en direct et ne relancent aucun calcul) ;
+- **à chaque coup**, le fil audio prend le kick gardé dont les réglages sont à moins de 1/128 de la
+  course (le dernier joué l'emporte : un endroit du LFO garde son kick) ; sinon le plus proche, et
+  il **demande en priorité** le kick exact au fil de calcul ; éviction : vides, puis jamais joués,
+  puis le joué le plus ancien ; un kick lu par une voix est épinglé (génération impaire pendant
+  l'écriture, masque des kicks en lecture) ;
+- **calcul accéléré** (`RenderCache`) : morceaux de la bibliothèque, couches traitées et leur grave
+  (alignement de phase) gardés ; FFT préparées gardées par le fil ; deux convolutions et le
+  grave + Hilbert en une seule transformée inverse. Son identique au bit près avec ou sans mémoire.
+  Temps moyen par kick : 49 → 33 ms (premier calcul), 9 ms sous LFO sur un fondu, 7 ms quand seul
+  le rack change.
+- Mesure (simulation d'un LFO de 4 temps, un coup par temps) : avant, aucun tour identique ; après,
+  chaque endroit du LFO redonne exactement le même kick dès le 2e ou 3e tour.
+
+**Tranche d'une couche** : égaliseur → transitoires → distorsion → passe-haut / passe-bas (1.2 :
+filtres placés en dernier ; placés avant, la distorsion recréait les aigus coupés).
 
 ## Interface
 

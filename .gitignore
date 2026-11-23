@@ -16,3 +16,5 @@ __pycache__/
 *.p12
 *.pfx
 keystore.properties
+# greffons MPC : constructions locales
+mpc/out/
