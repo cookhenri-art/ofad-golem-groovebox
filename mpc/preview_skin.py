@@ -42,8 +42,27 @@ def render(skin_dir, out_dir, params_path=None, plugin_name=""):
         return cache[name]
 
     def norm(h):
+        if h.startswith("Local/"):
+            return 0.0
         p = params.get(h)
         return p["default"] if p else 0.66
+
+    def visible(e):
+        for inv in e["bounds"].get("additionalInvalidatingHandles", []):
+            if inv.startswith("IndexedEnabling/"):
+                _, i, n, h = inv.split("/", 3)
+                if round(norm(h) * (int(n) - 1)) != int(i):
+                    return False
+        return True
+
+    def TF(ts):
+        f = ts["font"]
+        if f.get("name") == "Titillium Web":
+            st = f.get("style", "Regular")
+            st = st if st in ("SemiBold", "Bold") else "SemiBold"
+            return ImageFont.truetype(os.path.join(os.path.dirname(os.path.abspath(__file__)), "mockskin", "fonts",
+                                                   "TitilliumWeb-%s.ttf" % st), max(8, int(f["height"] / 1.521)))
+        return F(f["height"] * 0.86, "Medium")
 
     def display(h):
         p = params.get(h)
@@ -56,6 +75,8 @@ def render(skin_dir, out_dir, params_path=None, plugin_name=""):
 
     def draw_entry(img, e, ox, oy, handle):
         cd = e["componentData"]
+        if not visible(e):
+            return
         for kv in e.get("handle remapping", {}).get("map", []):
             if kv["key"] == "Data":
                 handle = kv["value"]
@@ -77,20 +98,33 @@ def render(skin_dir, out_dir, params_path=None, plugin_name=""):
             d.text((x + (w) / 2, y + h / 2), display(handle), font=F(ts["font"]["height"] * 0.9, "Bold"), fill=col(ts["colour"]), anchor="mm")
         elif t == "Button":
             n = max(2, data["numButtonsInGroup"])
-            step = round(norm(handle) * (n - 1))
+            hn = data.get("handleName", "Data")
+            step = round(norm(handle if hn == "Data" else hn) * (n - 1))
             lit = step == data["buttonId"]
             im = image(data["onImage"] if lit else data["offImage"])
             img.alpha_composite(im, (int(x + (w - im.width) / 2), int(y + (h - im.height) / 2)))
+        elif t == "Image" and data.get("imageType") == "FilmStrip":
+            st = image(data["image"])
+            n = data["numFrames"]
+            fh = st.height // n
+            k = max(0, min(n - 1, round(norm(handle) * (n - 1))))
+            img.alpha_composite(st.crop((0, fh * k, st.width, fh * k + fh)).resize((int(w), int(h))), (int(x), int(y)))
         elif t == "Image":
             img.alpha_composite(image(data["image"]).resize((int(w), int(h))), (int(x), int(y)))
+        elif t == "XYPad":
+            pk = image(data["image"])
+            vx, vy = norm(data["xPositionHandle"]), norm(data["yPositionHandle"])
+            img.alpha_composite(pk, (int(x + w * vx - pk.width / 2), int(y + h * (1 - vy) - pk.height / 2)))
         elif t == "Label" and data["type"] == "Value":
             ts = data["textStyle"]
-            f = F(ts["font"]["height"] * 0.86, "Medium")
+            f = TF(ts)
             txt = display(handle)
             while len(txt) > 3 and d.textlength(txt, font=f) > w:
                 txt = txt[:-2] + "."
             if "left" in ts["justification"]:
                 d.text((x, y + h / 2), txt, font=f, fill=col(ts["colour"]), anchor="lm")
+            elif "right" in ts["justification"]:
+                d.text((x + w, y + h / 2), txt, font=f, fill=col(ts["colour"]), anchor="rm")
             else:
                 d.text((x + w / 2, y + h / 2), txt, font=f, fill=col(ts["colour"]), anchor="mm")
         elif t == "Slider":

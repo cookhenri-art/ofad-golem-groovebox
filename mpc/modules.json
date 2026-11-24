@@ -1,762 +1,976 @@
 {
- "_comment": "Modules GOLEM portés en greffons MPC. uid : code à 4 caractères PERMANENT (ne jamais le changer une fois publié). Ajouter les nouveaux modules à la fin. Exclus : échantillonneurs à fichiers (Cutsample, Chromasample, Poussière de Vinyle, Pieuvre 8), lecteur de firmwares, entrée audio, piste MIDI, vocodeurs (à faire).",
+ "_comment": "Modules GOLEM portés en greffons MPC. uid : code à 4 caractères PERMANENT (ne jamais le changer une fois publié). Ajouter les nouveaux modules à la fin. Non portables : entrée audio et piste MIDI (un greffon instrument ne reçoit pas d'audio et n'envoie pas de MIDI). FM Player retiré : l'émulation du firmware demande environ 2 cœurs de la Force (son haché), il reste dans GOLEM sur PC, Mac et mobiles.",
  "manufacturer": "OFAD",
  "modules": [
   {
    "key": "drumA",
    "kind": "instrument",
-   "name": "Machine electronique",
+   "name": "Drum - Machine electronique",
    "uid": "OIdr",
    "category": "Drum",
    "header": "instruments/DrumKit.h",
-   "make": "std::make_unique<grv::instruments::DrumKit> (grv::instruments::kitAnalogDesc(), grv::instruments::kitAnalogPads())"
+   "make": "std::make_unique<grv::instruments::DrumKit> (grv::instruments::kitAnalogDesc(), grv::instruments::kitAnalogPads())",
+   "base_name": "Machine electronique"
   },
   {
    "key": "drum80",
    "kind": "instrument",
-   "name": "Boum 80",
+   "name": "Drum - Boum 80",
    "uid": "OId0",
    "category": "Drum",
    "header": "instruments/DrumKit.h",
-   "make": "std::make_unique<grv::instruments::DrumKit> (grv::instruments::kit80Desc(), grv::instruments::kit80Pads())"
+   "make": "std::make_unique<grv::instruments::DrumKit> (grv::instruments::kit80Desc(), grv::instruments::kit80Pads())",
+   "base_name": "Boum 80"
   },
   {
    "key": "drum90",
    "kind": "instrument",
-   "name": "Club 90",
+   "name": "Drum - Club 90",
    "uid": "OIdu",
    "category": "Drum",
    "header": "instruments/DrumKit.h",
-   "make": "std::make_unique<grv::instruments::DrumKit> (grv::instruments::kit90Desc(), grv::instruments::kit90Pads())"
+   "make": "std::make_unique<grv::instruments::DrumKit> (grv::instruments::kit90Desc(), grv::instruments::kit90Pads())",
+   "base_name": "Club 90"
   },
   {
    "key": "drumImp",
    "kind": "instrument",
-   "name": "Dragon Fist",
+   "name": "Drum - Dragon Fist",
    "uid": "OIdp",
    "category": "Drum",
    "header": "instruments/DrumKit.h",
-   "make": "std::make_unique<grv::instruments::DrumKit> (grv::instruments::kitImpactDesc(), grv::instruments::kitImpactPads())"
+   "make": "std::make_unique<grv::instruments::DrumKit> (grv::instruments::kitImpactDesc(), grv::instruments::kitImpactPads())",
+   "base_name": "Dragon Fist"
   },
   {
    "key": "drumNrv",
    "kind": "instrument",
-   "name": "Cut of the Beat",
+   "name": "Drum - Cut of the Beat",
    "uid": "OIdv",
    "category": "Drum",
    "header": "instruments/DrumKit.h",
-   "make": "std::make_unique<grv::instruments::DrumKit> (grv::instruments::kitNerveDesc(), grv::instruments::kitNervePads())"
+   "make": "std::make_unique<grv::instruments::DrumKit> (grv::instruments::kitNerveDesc(), grv::instruments::kitNervePads())",
+   "base_name": "Cut of the Beat"
   },
   {
    "key": "acid",
    "kind": "instrument",
-   "name": "Acid Lover",
+   "name": "Basse - Acid Lover",
    "uid": "OGac",
    "category": "Synth",
    "header": "instruments/AcidBass.h",
-   "make": "std::make_unique<grv::instruments::AcidBass>()"
+   "make": "std::make_unique<grv::instruments::AcidBass>()",
+   "base_name": "Acid Lover"
   },
   {
    "key": "mono",
    "kind": "instrument",
-   "name": "Fatsub",
+   "name": "Basse - Fatsub",
    "uid": "OImo",
    "category": "Synth",
    "header": "instruments/MonoBass.h",
-   "make": "std::make_unique<grv::instruments::MonoBass>()"
+   "make": "std::make_unique<grv::instruments::MonoBass>()",
+   "base_name": "Fatsub"
   },
   {
    "key": "poly5",
    "kind": "instrument",
-   "name": "Poly Five",
+   "name": "Poly - Poly Five",
    "uid": "OIpo",
    "category": "Synth",
    "header": "instruments/Poly5.h",
-   "make": "std::make_unique<grv::instruments::Poly5>()"
+   "make": "std::make_unique<grv::instruments::Poly5>()",
+   "base_name": "Poly Five"
   },
   {
    "key": "polyj",
    "kind": "instrument",
-   "name": "Chorus 80",
+   "name": "Poly - Chorus 80",
    "uid": "OIpj",
    "category": "Synth",
    "header": "instruments/PolyChorus.h",
-   "make": "std::make_unique<grv::instruments::PolyChorus>()"
+   "make": "std::make_unique<grv::instruments::PolyChorus>()",
+   "base_name": "Chorus 80"
   },
   {
    "key": "hybrid",
    "kind": "instrument",
-   "name": "Micropointe",
+   "name": "Poly - Micropointe",
    "uid": "OIhy",
    "category": "Synth",
    "header": "instruments/HybridPoly.h",
-   "make": "std::make_unique<grv::instruments::HybridPoly>()"
+   "make": "std::make_unique<grv::instruments::HybridPoly>()",
+   "base_name": "Micropointe"
   },
   {
    "key": "morph",
    "kind": "instrument",
-   "name": "Synthonde",
+   "name": "Poly - Synthonde",
    "uid": "OImh",
    "category": "Synth",
    "header": "instruments/WaveMorph.h",
-   "make": "std::make_unique<grv::instruments::WaveMorph>()"
+   "make": "std::make_unique<grv::instruments::WaveMorph>()",
+   "base_name": "Synthonde"
   },
   {
    "key": "pads",
    "kind": "instrument",
-   "name": "Bignappe One",
+   "name": "Nappe - Bignappe One",
    "uid": "OIpa",
    "category": "Synth",
    "header": "instruments/Pads.h",
-   "make": "std::make_unique<grv::instruments::Pads>()"
+   "make": "std::make_unique<grv::instruments::Pads>()",
+   "base_name": "Bignappe One"
   },
   {
    "key": "ms20",
    "kind": "instrument",
-   "name": "Hurleur 200",
+   "name": "Basse - Hurleur 200",
    "uid": "OIms",
    "category": "Synth",
    "header": "instruments/MS20.h",
-   "make": "std::make_unique<grv::instruments::Ms20Synth>()"
+   "make": "std::make_unique<grv::instruments::Ms20Synth>()",
+   "base_name": "Hurleur 200"
   },
   {
    "key": "sh101",
    "kind": "instrument",
-   "name": "Mono First",
+   "name": "Basse - Mono First",
    "uid": "OIsh",
    "category": "Synth",
    "header": "instruments/SH101.h",
-   "make": "std::make_unique<grv::instruments::Sh101Synth>()"
+   "make": "std::make_unique<grv::instruments::Sh101Synth>()",
+   "base_name": "Mono First"
   },
   {
    "key": "blo",
    "kind": "instrument",
-   "name": "Ondes Bretzel",
+   "name": "Nappe - Ondes Bretzel",
    "uid": "OIbl",
    "category": "Synth",
    "header": "instruments/Blofeld.h",
-   "make": "std::make_unique<grv::instruments::BloSynth>()"
+   "make": "std::make_unique<grv::instruments::BloSynth>()",
+   "base_name": "Ondes Bretzel"
   },
   {
    "key": "ob6",
    "kind": "instrument",
-   "name": "Etat de Grace",
+   "name": "Nappe - Etat de Grace",
    "uid": "OIob",
    "category": "Synth",
    "header": "instruments/Ob6.h",
-   "make": "std::make_unique<grv::instruments::Ob6Synth>()"
+   "make": "std::make_unique<grv::instruments::Ob6Synth>()",
+   "base_name": "Etat de Grace"
   },
   {
    "key": "orbit",
    "kind": "instrument",
-   "name": "Orbiteur",
+   "name": "Nappe - Orbiteur",
    "uid": "OIor",
    "category": "Synth",
    "header": "instruments/Orbit.h",
-   "make": "std::make_unique<grv::instruments::OrbitSynth>()"
+   "make": "std::make_unique<grv::instruments::OrbitSynth>()",
+   "base_name": "Orbiteur"
   },
   {
    "key": "fm6",
    "kind": "instrument",
-   "name": "Old Metal",
+   "name": "FM - Old Metal",
    "uid": "OIfm",
    "category": "Synth",
    "header": "instruments/Fm6.h",
-   "make": "std::make_unique<grv::instruments::Fm6Synth>()"
+   "make": "std::make_unique<grv::instruments::Fm6Synth>()",
+   "base_name": "Old Metal"
   },
   {
    "key": "fm4",
    "kind": "instrument",
-   "name": "New Metal",
+   "name": "FM - New Metal",
    "uid": "OIf4",
    "category": "Synth",
    "header": "instruments/Fm4.h",
-   "make": "std::make_unique<grv::instruments::Fm4Synth>()"
+   "make": "std::make_unique<grv::instruments::Fm4Synth>()",
+   "base_name": "New Metal"
   },
   {
    "key": "fmx",
    "kind": "instrument",
-   "name": "Komodo Fuel",
+   "name": "FM - Komodo Fuel",
    "uid": "OIfx",
    "category": "Synth",
    "header": "instruments/FmX.h",
-   "make": "std::make_unique<grv::instruments::FmxSynth>()"
+   "make": "std::make_unique<grv::instruments::FmxSynth>()",
+   "base_name": "Komodo Fuel"
   },
   {
    "key": "hots",
    "kind": "instrument",
-   "name": "Hot Sauce",
+   "name": "Drone - Hot Sauce",
    "uid": "OIho",
    "category": "Synth",
    "header": "instruments/HotSauce.h",
-   "make": "std::make_unique<grv::instruments::HotsSynth>()"
+   "make": "std::make_unique<grv::instruments::HotsSynth>()",
+   "base_name": "Hot Sauce"
   },
   {
    "key": "lyra",
    "kind": "instrument",
-   "name": "Octo Lyma",
+   "name": "Drone - Octo Lyma",
    "uid": "OIly",
    "category": "Synth",
    "header": "instruments/Lyra.h",
-   "make": "std::make_unique<grv::instruments::LyraSynth>()"
+   "make": "std::make_unique<grv::instruments::LyraSynth>()",
+   "base_name": "Octo Lyma"
   },
   {
    "key": "bitm",
    "kind": "instrument",
-   "name": "Komodo Dragon",
+   "name": "Drone - Komodo Dragon",
    "uid": "OIbi",
    "category": "Synth",
    "header": "instruments/Bitmask.h",
-   "make": "std::make_unique<grv::instruments::BitmSynth>()"
+   "make": "std::make_unique<grv::instruments::BitmSynth>()",
+   "base_name": "Komodo Dragon"
   },
   {
    "key": "muse",
    "kind": "instrument",
-   "name": "World Tour",
+   "name": "Poly - World Tour",
    "uid": "OImu",
    "category": "Synth",
    "header": "instruments/Muse.h",
-   "make": "std::make_unique<grv::instruments::MuseSynth>()"
+   "make": "std::make_unique<grv::instruments::MuseSynth>()",
+   "base_name": "World Tour"
   },
   {
    "key": "dfam",
    "kind": "instrument",
-   "name": "Kick Killer",
+   "name": "Kick - Kick Killer",
    "uid": "OIdf",
    "category": "Drum",
    "header": "instruments/Dfam.h",
-   "make": "std::make_unique<grv::instruments::DfamSynth>()"
+   "make": "std::make_unique<grv::instruments::DfamSynth>()",
+   "base_name": "Kick Killer"
   },
   {
    "key": "gluta",
    "kind": "instrument",
-   "name": "Glutamake",
+   "name": "Poly - Glutamake",
    "uid": "OIgl",
    "category": "Synth",
    "header": "instruments/Glutamake.h",
-   "make": "std::make_unique<grv::instruments::Glutamake>()"
+   "make": "std::make_unique<grv::instruments::Glutamake>()",
+   "base_name": "Glutamake",
+   "extras": {"ballOut": true}
+  },
+  {
+   "key": "gamer",
+   "kind": "instrument",
+   "name": "Retro - Gamer Lover",
+   "uid": "OIgm",
+   "category": "Synth",
+   "header": "instruments/GamerLover.h",
+   "make": "std::make_unique<grv::instruments::GamerLover>()",
+   "base_name": "Gamer Lover",
+   "mpc_only": true
   },
   {
    "key": "gooddoc",
    "kind": "instrument",
-   "name": "Good Doctor",
+   "name": "Poly - Good Doctor",
    "uid": "OIgo",
    "category": "Synth",
    "header": "instruments/GoodDoctor.h",
-   "make": "std::make_unique<grv::instruments::GoodDoctor>()"
+   "make": "std::make_unique<grv::instruments::GoodDoctor>()",
+   "base_name": "Good Doctor"
   },
   {
    "key": "gooddoc2",
    "kind": "instrument",
-   "name": "Good Doctor 2",
+   "name": "Poly - Good Doctor 2",
    "uid": "OIg2",
    "category": "Synth",
    "header": "instruments/GoodDoctor2.h",
-   "make": "std::make_unique<grv::instruments::GoodDoctor2>()"
+   "make": "std::make_unique<grv::instruments::GoodDoctor2>()",
+   "base_name": "Good Doctor 2"
   },
   {
    "key": "microton",
    "kind": "instrument",
-   "name": "Micro Tonnerre",
+   "name": "Drum - Micro Tonnerre",
    "uid": "OImi",
    "category": "Drum",
    "header": "instruments/MicroTonnerre.h",
-   "make": "std::make_unique<grv::instruments::MicroTonnerre>()"
+   "make": "std::make_unique<grv::instruments::MicroTonnerre>()",
+   "base_name": "Micro Tonnerre"
   },
   {
    "key": "kickforge",
    "kind": "instrument",
-   "name": "Kick Forge",
+   "name": "Kick - Kick Forge",
    "uid": "OGkf",
    "category": "Drum",
    "header": "instruments/KickForge.h",
-   "make": "std::make_unique<grv::instruments::KickForge>()"
+   "make": "std::make_unique<grv::instruments::KickForge>()",
+   "base_name": "Kick Forge"
   },
   {
    "key": "eq",
    "kind": "effect",
-   "name": "Prism",
+   "name": "EQ - Prism",
    "uid": "OEeq",
    "category": "EQ",
    "header": "effects/Eq.h",
-   "make": "std::make_unique<grv::effects::Equalizer>()"
+   "make": "std::make_unique<grv::effects::Equalizer>()",
+   "base_name": "Prism"
   },
   {
    "key": "opto",
    "kind": "effect",
-   "name": "Lumen",
+   "name": "Compresseur - Lumen",
    "uid": "OEop",
    "category": "Dynamics",
    "header": "effects/Dynamics.h",
-   "make": "std::make_unique<grv::effects::OptoCompressor>()"
+   "make": "std::make_unique<grv::effects::OptoCompressor>()",
+   "base_name": "Lumen"
   },
   {
    "key": "fet",
    "kind": "effect",
-   "name": "Thunder",
+   "name": "Compresseur - Thunder",
    "uid": "OEfe",
    "category": "Dynamics",
    "header": "effects/Dynamics.h",
-   "make": "std::make_unique<grv::effects::FetCompressor>()"
+   "make": "std::make_unique<grv::effects::FetCompressor>()",
+   "base_name": "Thunder"
   },
   {
    "key": "bus",
    "kind": "effect",
-   "name": "Cement",
+   "name": "Compresseur - Cement",
    "uid": "OEbu",
    "category": "Dynamics",
    "header": "effects/Dynamics.h",
-   "make": "std::make_unique<grv::effects::BusCompressor>()"
+   "make": "std::make_unique<grv::effects::BusCompressor>()",
+   "base_name": "Cement"
   },
   {
    "key": "comp",
    "kind": "effect",
-   "name": "Scalpel",
+   "name": "Compresseur - Scalpel",
    "uid": "OEco",
    "category": "Dynamics",
    "header": "effects/Dynamics.h",
-   "make": "std::make_unique<grv::effects::ModernCompressor>()"
+   "make": "std::make_unique<grv::effects::ModernCompressor>()",
+   "base_name": "Scalpel"
   },
   {
    "key": "limiter",
    "kind": "effect",
-   "name": "Ceiling",
+   "name": "Limiteur - Ceiling",
    "uid": "OEli",
    "category": "Dynamics",
    "header": "effects/Dynamics.h",
-   "make": "std::make_unique<grv::effects::Limiter>()"
+   "make": "std::make_unique<grv::effects::Limiter>()",
+   "base_name": "Ceiling"
   },
   {
    "key": "master",
    "kind": "effect",
-   "name": "Varnish",
+   "name": "Mastering - Varnish",
    "uid": "OEma",
    "category": "Dynamics",
    "header": "effects/Mastering.h",
-   "make": "std::make_unique<grv::effects::Mastering>()"
+   "make": "std::make_unique<grv::effects::Mastering>()",
+   "base_name": "Varnish"
   },
   {
    "key": "gate",
    "kind": "effect",
-   "name": "Sentinel",
+   "name": "Gate - Sentinel",
    "uid": "OEga",
    "category": "Dynamics",
    "header": "effects/Gate.h",
-   "make": "std::make_unique<grv::effects::GateDeesser>()"
+   "make": "std::make_unique<grv::effects::GateDeesser>()",
+   "base_name": "Sentinel"
   },
   {
    "key": "mband",
    "kind": "effect",
-   "name": "Quartet",
+   "name": "Multibande - Quartet",
    "uid": "OEmb",
    "category": "Dynamics",
    "header": "effects/StudioFx.h",
-   "make": "std::make_unique<grv::effects::Multiband>()"
+   "make": "std::make_unique<grv::effects::Multiband>()",
+   "base_name": "Quartet"
   },
   {
    "key": "varimu",
    "kind": "effect",
-   "name": "Velvet",
+   "name": "Compresseur - Velvet",
    "uid": "OEva",
    "category": "Dynamics",
    "header": "effects/StudioFx.h",
-   "make": "std::make_unique<grv::effects::VariMuCompressor>()"
+   "make": "std::make_unique<grv::effects::VariMuCompressor>()",
+   "base_name": "Velvet"
   },
   {
    "key": "tubeeq",
    "kind": "effect",
-   "name": "Ember",
+   "name": "EQ - Ember",
    "uid": "OEtu",
    "category": "EQ",
    "header": "effects/StudioFx.h",
-   "make": "std::make_unique<grv::effects::TubeEq>()"
+   "make": "std::make_unique<grv::effects::TubeEq>()",
+   "base_name": "Ember"
   },
   {
    "key": "consoleeq",
    "kind": "effect",
-   "name": "Strip",
+   "name": "EQ - Strip",
    "uid": "OEcq",
    "category": "EQ",
    "header": "effects/StudioFx.h",
-   "make": "std::make_unique<grv::effects::ConsoleEq>()"
+   "make": "std::make_unique<grv::effects::ConsoleEq>()",
+   "base_name": "Strip"
   },
   {
    "key": "dist",
    "kind": "effect",
-   "name": "Furnace",
+   "name": "Distorsion - Furnace",
    "uid": "OEdi",
    "category": "Distortion",
    "header": "effects/Distortion.h",
-   "make": "std::make_unique<grv::effects::Distortion>()"
+   "make": "std::make_unique<grv::effects::Distortion>()",
+   "base_name": "Furnace"
   },
   {
    "key": "grinder",
    "kind": "effect",
-   "name": "Grinder",
+   "name": "Distorsion - Grinder",
    "uid": "OGgr",
    "category": "Distortion",
    "header": "effects/Grinder.h",
-   "make": "std::make_unique<grv::effects::Grinder>()"
+   "make": "std::make_unique<grv::effects::Grinder>()",
+   "base_name": "Grinder"
   },
   {
    "key": "tapesat",
    "kind": "effect",
-   "name": "Ferrite",
+   "name": "Saturation - Ferrite",
    "uid": "OEta",
    "category": "Distortion",
    "header": "effects/Fx38.h",
-   "make": "std::make_unique<grv::effects::TapeSaturator>()"
+   "make": "std::make_unique<grv::effects::TapeSaturator>()",
+   "base_name": "Ferrite"
   },
   {
    "key": "tubesat",
    "kind": "effect",
-   "name": "Glow",
+   "name": "Saturation - Glow",
    "uid": "OEtt",
    "category": "Distortion",
    "header": "effects/Fx38.h",
-   "make": "std::make_unique<grv::effects::TubeSaturator>()"
+   "make": "std::make_unique<grv::effects::TubeSaturator>()",
+   "base_name": "Glow"
   },
   {
    "key": "distcomp",
    "kind": "effect",
-   "name": "Bruiser",
+   "name": "Distorsion - Bruiser",
    "uid": "OEdp",
    "category": "Distortion",
    "header": "effects/Fx38.h",
-   "make": "std::make_unique<grv::effects::DistortionCompressor>()"
+   "make": "std::make_unique<grv::effects::DistortionCompressor>()",
+   "base_name": "Bruiser"
   },
   {
    "key": "transient",
    "kind": "effect",
-   "name": "Snap",
+   "name": "Transitoires - Snap",
    "uid": "OEtr",
    "category": "Dynamics",
    "header": "effects/Fx38.h",
-   "make": "std::make_unique<grv::effects::TransientShaper>()"
+   "make": "std::make_unique<grv::effects::TransientShaper>()",
+   "base_name": "Snap"
   },
   {
    "key": "delay",
    "kind": "effect",
-   "name": "Ricochet",
+   "name": "Delay - Ricochet",
    "uid": "OEde",
    "category": "Delay",
    "header": "effects/Delay.h",
-   "make": "std::make_unique<grv::effects::Delay>()"
+   "make": "std::make_unique<grv::effects::Delay>()",
+   "base_name": "Ricochet"
   },
   {
    "key": "tapeecho",
    "kind": "effect",
-   "name": "Reel",
+   "name": "Delay - Reel",
    "uid": "OEto",
    "category": "Delay",
    "header": "effects/SpaceFx.h",
-   "make": "std::make_unique<grv::effects::TapeEcho>()"
+   "make": "std::make_unique<grv::effects::TapeEcho>()",
+   "base_name": "Reel"
   },
   {
    "key": "reverb",
    "kind": "effect",
-   "name": "Nave",
+   "name": "Reverb - Nave",
    "uid": "OEre",
    "category": "Reverb",
    "header": "effects/Reverb.h",
-   "make": "std::make_unique<grv::effects::Reverb>()"
+   "make": "std::make_unique<grv::effects::Reverb>()",
+   "base_name": "Nave"
   },
   {
    "key": "vintverb",
    "kind": "effect",
-   "name": "Heirloom",
+   "name": "Reverb - Heirloom",
    "uid": "OEvi",
    "category": "Reverb",
    "header": "effects/SpaceFx.h",
-   "make": "std::make_unique<grv::effects::VintageReverb>()"
+   "make": "std::make_unique<grv::effects::VintageReverb>()",
+   "base_name": "Heirloom"
   },
   {
    "key": "plate",
    "kind": "effect",
-   "name": "Gold Leaf",
+   "name": "Reverb - Gold Leaf",
    "uid": "OEpl",
    "category": "Reverb",
    "header": "effects/SpaceFx.h",
-   "make": "std::make_unique<grv::effects::PlateReverb>()"
+   "make": "std::make_unique<grv::effects::PlateReverb>()",
+   "base_name": "Gold Leaf"
   },
   {
    "key": "spring",
    "kind": "effect",
-   "name": "Spiral",
+   "name": "Reverb - Spiral",
    "uid": "OEsp",
    "category": "Reverb",
    "header": "effects/SpaceFx.h",
-   "make": "std::make_unique<grv::effects::SpringReverb>()"
+   "make": "std::make_unique<grv::effects::SpringReverb>()",
+   "base_name": "Spiral"
   },
   {
    "key": "prestige",
    "kind": "effect",
-   "name": "Sovereign",
+   "name": "Reverb - Sovereign",
    "uid": "OEpr",
    "category": "Reverb",
    "header": "effects/Fx38.h",
-   "make": "std::make_unique<grv::effects::PrestigeReverb>()"
+   "make": "std::make_unique<grv::effects::PrestigeReverb>()",
+   "base_name": "Sovereign"
   },
   {
    "key": "chorus",
    "kind": "effect",
-   "name": "Moire",
+   "name": "Chorus - Moire",
    "uid": "OEch",
    "category": "Modulation",
    "header": "effects/ModFx.h",
-   "make": "std::make_unique<grv::effects::Chorus>()"
+   "make": "std::make_unique<grv::effects::Chorus>()",
+   "base_name": "Moire"
   },
   {
    "key": "phaser",
    "kind": "effect",
-   "name": "Whirl",
+   "name": "Phaser - Whirl",
    "uid": "OEph",
    "category": "Modulation",
    "header": "effects/ModFx.h",
-   "make": "std::make_unique<grv::effects::Phaser>()"
+   "make": "std::make_unique<grv::effects::Phaser>()",
+   "base_name": "Whirl"
   },
   {
    "key": "flanger",
    "kind": "effect",
-   "name": "Contrail",
+   "name": "Flanger - Contrail",
    "uid": "OEfl",
    "category": "Modulation",
    "header": "effects/ModFx36.h",
-   "make": "std::make_unique<grv::effects::Flanger>()"
+   "make": "std::make_unique<grv::effects::Flanger>()",
+   "base_name": "Contrail"
   },
   {
    "key": "phaser2",
    "kind": "effect",
-   "name": "Twinspin",
+   "name": "Phaser - Twinspin",
    "uid": "OEp2",
    "category": "Modulation",
    "header": "effects/ModFx36.h",
-   "make": "std::make_unique<grv::effects::DualPhaser>()"
+   "make": "std::make_unique<grv::effects::DualPhaser>()",
+   "base_name": "Twinspin"
   },
   {
    "key": "dimension",
    "kind": "effect",
-   "name": "Expanse",
+   "name": "Ensemble - Expanse",
    "uid": "OEdn",
    "category": "Modulation",
    "header": "effects/ModFx36.h",
-   "make": "std::make_unique<grv::effects::Dimension>()"
+   "make": "std::make_unique<grv::effects::Dimension>()",
+   "base_name": "Expanse"
   },
   {
    "key": "chorus3",
    "kind": "effect",
-   "name": "Trinity",
+   "name": "Chorus - Trinity",
    "uid": "OEc3",
    "category": "Modulation",
    "header": "effects/Fx38.h",
-   "make": "std::make_unique<grv::effects::TriChorus>()"
+   "make": "std::make_unique<grv::effects::TriChorus>()",
+   "base_name": "Trinity"
   },
   {
    "key": "stutter",
    "kind": "effect",
-   "name": "Staccato",
+   "name": "Stutter - Staccato",
    "uid": "OEst",
    "category": "Modulation",
    "header": "effects/ModFx.h",
-   "make": "std::make_unique<grv::effects::Stutter>()"
+   "make": "std::make_unique<grv::effects::Stutter>()",
+   "base_name": "Staccato"
   },
   {
    "key": "filter",
    "kind": "effect",
-   "name": "Iris",
+   "name": "Filtre - Iris",
    "uid": "OEfi",
    "category": "Filter",
    "header": "effects/ModFx.h",
-   "make": "std::make_unique<grv::effects::FilterFx>()"
+   "make": "std::make_unique<grv::effects::FilterFx>()",
+   "base_name": "Iris"
   },
   {
    "key": "atmos",
    "kind": "effect",
-   "name": "Atmosphere",
+   "name": "Reverb - Atmosphere",
    "uid": "OEat",
    "category": "Reverb",
    "header": "effects/Atmos.h",
-   "make": "std::make_unique<grv::effects::Atmos>()"
+   "make": "std::make_unique<grv::effects::Atmos>()",
+   "base_name": "Atmosphere"
   },
   {
    "key": "mdelay",
    "kind": "effect",
-   "name": "Comet",
+   "name": "Delay - Comet",
    "uid": "OEmd",
    "category": "Delay",
    "header": "effects/MultiDelay.h",
-   "make": "std::make_unique<grv::effects::MultiDelay>()"
+   "make": "std::make_unique<grv::effects::MultiDelay>()",
+   "base_name": "Comet"
   },
   {
    "key": "stepfx",
    "kind": "effect",
-   "name": "Hopscotch",
+   "name": "Step FX - Hopscotch",
    "uid": "OEsx",
    "category": "Modulation",
    "header": "effects/StepFx.h",
-   "make": "std::make_unique<grv::effects::StepFx>()"
+   "make": "std::make_unique<grv::effects::StepFx>()",
+   "base_name": "Hopscotch"
   },
   {
    "key": "sculptor",
    "kind": "effect",
-   "name": "Sculptor",
+   "name": "Spectral - Sculptor",
    "uid": "OEsc",
    "category": "Modulation",
    "header": "effects/Sculptor.h",
-   "make": "std::make_unique<grv::effects::Sculptor>()"
+   "make": "std::make_unique<grv::effects::Sculptor>()",
+   "base_name": "Sculptor"
   },
   {
    "key": "looper",
    "kind": "effect",
-   "name": "Infinity",
+   "name": "Looper - Infinity",
    "uid": "OElo",
    "category": "Delay",
    "header": "effects/Looper.h",
-   "make": "std::make_unique<grv::effects::Looper>()"
+   "make": "std::make_unique<grv::effects::Looper>()",
+   "base_name": "Infinity"
   },
   {
    "key": "rdenoise",
    "kind": "effect",
-   "name": "Debruiteur",
+   "name": "Resto - Debruiteur",
    "uid": "OErd",
    "category": "Restoration",
    "header": "effects/Restoration.h",
-   "make": "std::make_unique<grv::effects::Denoise>()"
+   "make": "std::make_unique<grv::effects::Denoise>()",
+   "base_name": "Debruiteur"
   },
   {
    "key": "rdehum",
    "kind": "effect",
-   "name": "Anti-ronflement",
+   "name": "Resto - Anti-ronflement",
    "uid": "OErm",
    "category": "Restoration",
    "header": "effects/Restoration.h",
-   "make": "std::make_unique<grv::effects::Dehum>()"
+   "make": "std::make_unique<grv::effects::Dehum>()",
+   "base_name": "Anti-ronflement"
   },
   {
    "key": "rdeclick",
    "kind": "effect",
-   "name": "Anti-clics",
+   "name": "Resto - Anti-clics",
    "uid": "OErk",
    "category": "Restoration",
    "header": "effects/Restoration.h",
-   "make": "std::make_unique<grv::effects::Declick>()"
+   "make": "std::make_unique<grv::effects::Declick>()",
+   "base_name": "Anti-clics"
   },
   {
    "key": "rdeess",
    "kind": "effect",
-   "name": "De-esseur spectral",
+   "name": "Resto - De-esseur spectral",
    "uid": "OErs",
    "category": "Restoration",
    "header": "effects/Restoration.h",
-   "make": "std::make_unique<grv::effects::SpectralDeesser>()"
+   "make": "std::make_unique<grv::effects::SpectralDeesser>()",
+   "base_name": "De-esseur spectral"
   },
   {
    "key": "rdeplosive",
    "kind": "effect",
-   "name": "Anti-plosives",
+   "name": "Resto - Anti-plosives",
    "uid": "OEra",
    "category": "Restoration",
    "header": "effects/Restoration.h",
-   "make": "std::make_unique<grv::effects::Deplosive>()"
+   "make": "std::make_unique<grv::effects::Deplosive>()",
+   "base_name": "Anti-plosives"
   },
   {
    "key": "rdeclip",
    "kind": "effect",
-   "name": "Anti-ecretage",
+   "name": "Resto - Anti-ecretage",
    "uid": "OErp",
    "category": "Restoration",
    "header": "effects/Restoration2.h",
-   "make": "std::make_unique<grv::effects::Declip>()"
+   "make": "std::make_unique<grv::effects::Declip>()",
+   "base_name": "Anti-ecretage"
   },
   {
    "key": "rdereverb",
    "kind": "effect",
-   "name": "De-reverb",
+   "name": "Resto - De-reverb",
    "uid": "OErb",
    "category": "Restoration",
    "header": "effects/Restoration2.h",
-   "make": "std::make_unique<grv::effects::Dereverb>()"
+   "make": "std::make_unique<grv::effects::Dereverb>()",
+   "base_name": "De-reverb"
   },
   {
    "key": "tvintage",
    "kind": "effect",
-   "name": "Titan Vintage",
+   "name": "Saturation - Titan Vintage",
    "uid": "OEtv",
    "category": "Effect",
    "header": "effects/Titan1.h",
-   "make": "std::make_unique<grv::effects::TitanVintage>()"
+   "make": "std::make_unique<grv::effects::TitanVintage>()",
+   "base_name": "Titan Vintage"
   },
   {
    "key": "tspace",
    "kind": "effect",
-   "name": "Titan Espace",
+   "name": "Reverb - Titan Espace",
    "uid": "OEts",
    "category": "Effect",
    "header": "effects/Titan1.h",
-   "make": "std::make_unique<grv::effects::TitanSpace>()"
+   "make": "std::make_unique<grv::effects::TitanSpace>()",
+   "base_name": "Titan Espace"
   },
   {
    "key": "tlimit",
    "kind": "effect",
-   "name": "Titan Limiteur",
+   "name": "Limiteur - Titan Limiteur",
    "uid": "OEtl",
    "category": "Effect",
    "header": "effects/Titan2.h",
-   "make": "std::make_unique<grv::effects::TitanLimiter>()"
+   "make": "std::make_unique<grv::effects::TitanLimiter>()",
+   "base_name": "Titan Limiteur"
   },
   {
    "key": "techo",
    "kind": "effect",
-   "name": "Titan Echo",
+   "name": "Delay - Titan Echo",
    "uid": "OEte",
    "category": "Effect",
    "header": "effects/Titan2.h",
-   "make": "std::make_unique<grv::effects::TitanEcho>()"
+   "make": "std::make_unique<grv::effects::TitanEcho>()",
+   "base_name": "Titan Echo"
   },
   {
    "key": "tdecap",
    "kind": "effect",
-   "name": "Titan Decapiteur",
+   "name": "Distorsion - Titan Decapiteur",
    "uid": "OEtd",
    "category": "Effect",
    "header": "effects/Titan3.h",
-   "make": "std::make_unique<grv::effects::TitanDecap>()"
+   "make": "std::make_unique<grv::effects::TitanDecap>()",
+   "base_name": "Titan Decapiteur"
   },
   {
    "key": "tsaturn",
    "kind": "effect",
-   "name": "Titan Saturne",
+   "name": "Saturation - Titan Saturne",
    "uid": "OEtn",
    "category": "Effect",
    "header": "effects/Titan3.h",
-   "make": "std::make_unique<grv::effects::TitanSaturn>()"
+   "make": "std::make_unique<grv::effects::TitanSaturn>()",
+   "base_name": "Titan Saturne"
   },
   {
    "key": "tphaser",
    "kind": "effect",
-   "name": "Titan Phaseur",
+   "name": "Phaser - Titan Phaseur",
    "uid": "OEtp",
    "category": "Effect",
    "header": "effects/Titan4.h",
-   "make": "std::make_unique<grv::effects::TitanPhaser>()"
+   "make": "std::make_unique<grv::effects::TitanPhaser>()",
+   "base_name": "Titan Phaseur"
   },
   {
    "key": "tflange",
    "kind": "effect",
-   "name": "Titan Flanger-Doubleur",
+   "name": "Flanger - Titan Doubleur",
    "uid": "OEtf",
    "category": "Effect",
    "header": "effects/Titan4.h",
-   "make": "std::make_unique<grv::effects::TitanFlanger>()"
+   "make": "std::make_unique<grv::effects::TitanFlanger>()",
+   "base_name": "Titan Doubleur"
   },
   {
    "key": "tfilter",
    "kind": "effect",
-   "name": "Titan Filtre",
+   "name": "Filtre - Titan Filtre",
    "uid": "OEti",
    "category": "Effect",
    "header": "effects/Titan4.h",
-   "make": "std::make_unique<grv::effects::TitanFilter>()"
+   "make": "std::make_unique<grv::effects::TitanFilter>()",
+   "base_name": "Titan Filtre"
+  },
+  {
+   "key": "sampler",
+   "kind": "instrument",
+   "name": "Sampler - Cutsample",
+   "uid": "OIcs",
+   "category": "Sampler",
+   "header": "instruments/Sampler.h",
+   "make": "std::make_unique<grv::instruments::SlicerSampler>()",
+   "extras": {
+    "folder": "Samples",
+    "exts": [
+     ".wav"
+    ],
+    "slots": 16,
+    "label": "Sample"
+   },
+   "base_name": "Cutsample"
+  },
+  {
+   "key": "keys",
+   "kind": "instrument",
+   "name": "Sampler - Chromasample",
+   "uid": "OIck",
+   "category": "Sampler",
+   "header": "instruments/Sampler.h",
+   "make": "std::make_unique<grv::instruments::KeysSampler>()",
+   "extras": {
+    "folder": "Samples",
+    "exts": [
+     ".wav"
+    ],
+    "slots": 1,
+    "label": "Sample"
+   },
+   "base_name": "Chromasample"
+  },
+  {
+   "key": "sp",
+   "kind": "instrument",
+   "name": "Sampler - Poussiere de Vinyle",
+   "uid": "OIsp",
+   "category": "Sampler",
+   "header": "instruments/SpSampler.h",
+   "make": "std::make_unique<grv::instruments::SpSampler>()",
+   "extras": {
+    "folder": "Samples",
+    "exts": [
+     ".wav"
+    ],
+    "slots": 16,
+    "label": "Sample"
+   },
+   "base_name": "Poussiere de Vinyle"
+  },
+  {
+   "key": "octa",
+   "kind": "instrument",
+   "name": "Sampler - Pieuvre 8",
+   "uid": "OIp8",
+   "category": "Sampler",
+   "header": "instruments/Octa.h",
+   "make": "std::make_unique<grv::instruments::OctaSampler>()",
+   "extras": {
+    "folder": "Samples",
+    "exts": [
+     ".wav"
+    ],
+    "slots": 16,
+    "label": "Sample",
+    "banks": 8,
+    "lanes": 8
+   },
+   "base_name": "Pieuvre 8"
+  },
+  {
+   "key": "voc16",
+   "kind": "effect",
+   "name": "Vocodeur - Robot 78",
+   "uid": "OIw1",
+   "category": "Effect",
+   "header": "instruments/Vocoders.h",
+   "make": "std::make_unique<grv::instruments::VocoderSynth> (grv::instruments::voc::m16)",
+   "base_name": "Robot 78",
+   "wrapper": "VocoderFxPlugin"
+  },
+  {
+   "key": "vocstr",
+   "kind": "effect",
+   "name": "Vocodeur - Robot Choral",
+   "uid": "OIw2",
+   "category": "Effect",
+   "header": "instruments/Vocoders.h",
+   "make": "std::make_unique<grv::instruments::VocoderSynth> (grv::instruments::voc::strings)",
+   "base_name": "Robot Choral",
+   "wrapper": "VocoderFxPlugin"
+  },
+  {
+   "key": "vocspec",
+   "kind": "effect",
+   "name": "Vocodeur - Spectral Vocal",
+   "uid": "OIw3",
+   "category": "Effect",
+   "header": "instruments/Vocoders.h",
+   "make": "std::make_unique<grv::instruments::VocoderSynth> (grv::instruments::voc::spectral)",
+   "base_name": "Spectral Vocal",
+   "wrapper": "VocoderFxPlugin"
+  },
+  {
+   "key": "vocsyn",
+   "kind": "effect",
+   "name": "Vocodeur - Speak Synth",
+   "uid": "OIw4",
+   "category": "Effect",
+   "header": "instruments/Vocoders.h",
+   "make": "std::make_unique<grv::instruments::VocoderSynth> (grv::instruments::voc::vsynth)",
+   "base_name": "Speak Synth",
+   "wrapper": "VocoderFxPlugin"
   }
  ]
 }

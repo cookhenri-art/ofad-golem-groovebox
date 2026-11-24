@@ -48,6 +48,12 @@ INSTRUMENTS = {
              "Two continuous-shape oscillators, a modulation oscillator, two ladder filters (series, parallel, stereo) and a diffusing delay."),
     "dfam": ("Kick Killer", "Semi-modular percussion",
              "Two VCOs, noise, ladder filter, three decay envelopes and an 8-step pitch and velocity sequencer: hypnotic percussion."),
+    "gamer": ("Gamer Lover", "Video game sound chips",
+              "One instrument, every console sound of the 85-2005 era: pick the chip — 8-bit (pulse with 4 widths, stepped "
+              "triangle, noise), handheld (pulse and free 4-bit wave), 16-bit FM (4 operators, 8 algorithms, DAC grain), 16-bit "
+              "samples (calculated 4-bit compressed instruments) or Drums (16 console drum sounds on the pads). Tables at 60/50 Hz "
+              "(fast arpeggio chords, stepped volume, moving pulse width, pitch drops, delayed vibrato) and a console output "
+              "stage: bit depth, sample rate, speaker filter, 8-tap filtered echo."),
     "gluta": ("Glutamake", "Physics wavetable synth",
               "Morphing wavetables played by a ball rolling on a surface (motion physics) and a lane sequencer."),
     "gooddoc": ("Good Doctor", "Wavetable synth",
@@ -67,6 +73,30 @@ INSTRUMENTS = {
                 "Compact and aggressive: ten voices, a colour control per voice and output distortion."),
     "drumNrv": ("Cut of the Beat", "Processed drum machine",
                 "Per-pad processing (added synthesis, sub-harmonic, resolution, clipping), gate and internal compressor."),
+    "sampler": ("Cutsample", "Slicing sampler",
+                "Cuts a sample into zones with retrigger, each zone with its own settings. Up to 16 of your WAV files "
+                "from the plugin's Content/Samples folder (Sample 1 to 16 settings)."),
+    "keys": ("Chromasample", "Chromatic sampler",
+             "One WAV from Content/Samples played across the keyboard, with filter, filter envelope and amp envelope."),
+    "sp": ("Poussiere de Vinyle", "Lo-fi pad sampler",
+           "Pad sampler with per-pad settings and two buses, for dusty beats. Up to 16 WAV files from Content/Samples."),
+    "octa": ("Pieuvre 8", "8-track performance sampler",
+             "Eight sample tracks with playback settings, amp, filter and lo-fi per track. Up to 16 WAV files from "
+             "Content/Samples; the 'Piste clavier' (keyboard track) setting chooses the track played by the keys."),
+    "fmplayer": ("FM Player", "Firmware player (experimental)",
+                 "Runs community firmwares made for a small open-source FM synth platform. 15 free firmwares are included "
+                 "in Content/Firmwares (GPL-3.0 / MPL-2.0, sources in the OFAD GOLEM 1.2.0 release); add your own .fwsc files "
+                 "there. The firmware's own screen is not shown, some firmwares need it to play. Heavy: one instance."),
+    "voc16": ("Robot 78", "16-band vocoder",
+              "Classic band vocoder with internal carrier, LFO, modulation matrix and arpeggiator. On MPC and Force it "
+              "is an effect: the sound of the track it is inserted on is the voice, the carrier plays the chosen note "
+              "and chord."),
+    "vocstr": ("Robot Choral", "String vocoder",
+               "Vocoder over a string-ensemble carrier, for choir-like pads. Effect: the track's sound is the voice."),
+    "vocspec": ("Spectral Vocal", "Spectral vocoder",
+                "Spectral vocoder with its own synth carrier and response controls. Effect: the track's sound is the voice."),
+    "vocsyn": ("Speak Synth", "Talking synthesizer",
+               "Modular synth voice through a vocoder: as an effect, the track's sound is the voice."),
 }
 
 EFFECT_FAMILIES = [
@@ -77,6 +107,7 @@ EFFECT_FAMILIES = [
     ("Modulation", ["chorus", "phaser", "flanger", "phaser2", "dimension", "chorus3"]),
     ("Performance & filters", ["stutter", "filter", "stepfx", "sculptor", "looper"]),
     ("Restoration", ["rdenoise", "rdehum", "rdeclick", "rdeess", "rdeplosive", "rdeclip", "rdereverb"]),
+    ("Vocoders", ["voc16", "vocstr", "vocspec", "vocsyn"]),
     ("Titan FX", ["tvintage", "tspace", "tlimit", "techo", "tdecap", "tsaturn", "tphaser", "tflange", "tfilter"]),
 ]
 

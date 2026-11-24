@@ -163,7 +163,7 @@ def text_button(path, w, h, word, on, colour, size=None):
         tc = DARK
     else:
         rounded(d, [S, S, w * S - S, h * S - S], r, fill=(28, 29, 33, 255), outline=(78, 80, 90, 255), width=S)
-        tc = MUTED
+        tc = (150, 153, 163, 255)   # fond sombre du bouton : texte clair quel que soit le thème
     word = safe(word)
     fs = size or min(h * 0.46, 20)
     f = font(fs * S, "Bold")
@@ -227,18 +227,18 @@ class Canvas:
         else:
             d.text((24 * S, height * S / 2), title, font=f, fill=colour, anchor="lm")
         if left and centred:
-            d.text((24 * S, height * S / 2), left, font=font(17 * S, "Medium"), fill=MUTED, anchor="lm")
+            d.text((24 * S, height * S / 2), left, font=font(17 * S, "Medium"), fill=(150, 153, 163, 255), anchor="lm")
         if right:
             fr = font(17 * S, "Medium")
-            d.text((self.W * S - 24 * S - d.textlength(right, font=fr), height * S / 2), right, font=fr, fill=MUTED, anchor="lm")
+            d.text((self.W * S - 24 * S - d.textlength(right, font=fr), height * S / 2), right, font=fr, fill=(150, 153, 163, 255), anchor="lm")
 
-    def panel(self, x, y, w, h, title="", colour=GOLD, title_right=""):
+    def panel(self, x, y, w, h, title="", colour=GOLD, title_right="", fill=None):
         S = SS
         d = self.d
         sh = Image.new("RGBA", self.img.size, (0, 0, 0, 0))
         ImageDraw.Draw(sh).rounded_rectangle([x * S, (y + 3) * S, (x + w) * S, (y + h + 3) * S], radius=12 * S, fill=(0, 0, 0, 140))
         self.img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(5 * S)))
-        rounded(d, [x * S, y * S, (x + w) * S, (y + h) * S], 12 * S, fill=PANEL, outline=PANEL_EDGE, width=S)
+        rounded(d, [x * S, y * S, (x + w) * S, (y + h) * S], 12 * S, fill=fill or PANEL, outline=PANEL_EDGE, width=S)
         title = safe(title)
         if title:
             # pastille de couleur + titre

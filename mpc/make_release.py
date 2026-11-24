@@ -61,6 +61,7 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--shots", default="/tmp/shots_all")
     ap.add_argument("--cpu", default="/tmp/simall.json")
+    ap.add_argument("--fwsrc", help="archive des sources des firmwares (celle de la version GOLEM)")
     a = ap.parse_args()
     v = a.version
     cfg = json.load(open(os.path.join(HERE, "modules.json"), encoding="utf-8"))
@@ -119,10 +120,28 @@ INSTALL
 PLAYING
 - Function keys under the screen = pages. Press the same key again for the next sub-page
   (the dots under the key name). Example: Kick Forge > COUCHES (layers) > layer 1, 2, ... 8.
-- Touch a control to select it: the big data wheel edits it and the Q-Links jump to its group of four.
+- First key = the main screen of the instrument, drawn like a front panel:
+  consoles (drum machines, samplers, Octo Lyma): one strip per sound, big knob = Q-Links 1-8, small
+  knob = Q-Links 9-16, press the key again for sounds 9-16 (or the next bank);
+  hero screens (synths): touch a module in the left column to show its 8 knobs in the bottom row (the
+  first module's 8 knobs are on Q-Links 1-8); FM: the diagram follows the Algorithm setting; Orbiteur:
+  drag the orbit centre; Glutamake: the ball moves live on the physics pad;
+  front panels (basses, polys, 80/90 drum machines): coloured caps = Q-Links 1-4, 5-8, 9-12, 13-16.
+- Other screens: one function key per function (OSC, FILTRE, ENV, LFO, MATRICE, JEU...), 12 keys at most.
+  When a key has several screens (OSC 1, 2, 3...), press it again for the next one.
+- Q-Links: every screen has 16 controls at most and fills the 16 Q-Links (two rows of 8 on the Force),
+  knobs first.
+- Touch a control to select it: the big data wheel edits it.
   Double-tap: large editor. Menus: double-tap. Envelopes: touch a point and drag.
 - Programs = GOLEM factory presets (program 0 "Init" = default settings).
-- Drum machines: pads play notes 36 to 51 (pads 1 to 16).
+- Drum machines: one function key per sound (1 GROSSE CAISSE, 2 CAISSE CLAIRE...; the key bar scrolls),
+  two screens per sound (press the key again). Notes 36 to 51 play sounds 1 to 16.
+  Force: plugin tracks always get the melodic keyboard (the 16-pad drum mode is kept for the Force's own
+  drum tracks). Either Shift + Note: scale Chromatic, Pad Rows Continuous, bottom-left pad on C1 (36),
+  so the two bottom rows play sounds 1-8 and 9-16 (the step sequencer then shows every sound); or
+  "Disposition pads" (first screen of sound 1) = "Do majeur" or "Do mineur", matching the
+  project scale (root C): one sound per scale note from C1, the bottom-left 4x4 square plays sounds 1-16
+  (Oct-/Oct+ until the bottom-left pad plays sound 1).
 - Last control "Volume" (plugin output).
 
 GOOD TO KNOW
@@ -130,7 +149,22 @@ GOOD TO KNOW
   Save your project first. inMusic does not support third-party plugins.
 - CPU: check SHIFT + MENU > Developer > resources (this panel also opens SSH access: close it after).
   "heavy" plugins in the list below: 1 or 2 instances on a 32-bit Force.
-- No sample loading in this version (file-based samplers are not included).
+
+YOUR SAMPLES, VOCODERS
+- Samplers (Cutsample, Chromasample, Poussiere de Vinyle, Pieuvre 8): WAV files (16/24/32-bit, mono or
+  stereo, up to 90 s) from ANY folder of the SD card, USB drive or internal drive. SAMPLES page, for each
+  slot: "Dossier N" = the folder (every folder holding WAV files is listed; the plugin's own
+  Content/Samples comes first), then "Sample N" = the file. Changing the folder keeps the loaded sample
+  ("= name") until you pick a new file. Projects remember the full path of each file.
+- Gamer Lover (video game music): pick the chip on the first screen (8 bits, Portable, 16 bits FM,
+  16 bits samples, Batterie). With "Batterie", notes 36 to 51 play the 16 console drum sounds.
+  The "Console" page sets the bit depth, sample rate, speaker filter and echo, for every chip.
+- Arpeggiators: off by default ("Arpege en marche" = Non); factory sounds that use one switch it on.
+  It follows the tempo and the transport of the machine.
+- Vocoders (Vocodeur - Robot 78, Robot Choral, Spectral Vocal, Speak Synth) are EFFECTS: insert one on
+  an audio track (microphone, voice, loop) or on the track to vocode; its sound is the voice. The carrier
+  plays the note and chord set on the PORTEUSE page (effects get no MIDI notes on the machine).
+- Not available on MPC / Force: the audio input track and the MIDI track of GOLEM.
 
 Source code: {REPO}
 """
@@ -150,10 +184,45 @@ INSTALLATION
 
 JEU
 - Touches sous l'écran = pages ; rappuyer sur la même touche = sous-page suivante (les points).
-- Toucher un réglage : la grosse molette le modifie, les Q-Links passent sur son groupe de quatre.
+- Toucher un réglage : la grosse molette le modifie.
   Double toucher : grande fenêtre ; menus : double toucher ; enveloppes : toucher un point et glisser.
 - Programmes = sons d'usine de GOLEM (programme 0 « Init » = réglages par défaut).
-- Batteries : pads = notes 36 à 51.
+- Batteries : une touche par son (1 GROSSE CAISSE, 2 CAISSE CLAIRE... ; la barre des touches défile),
+  deux écrans par son (rappuyer sur la touche). Les notes 36 à 51 jouent les sons 1 à 16.
+  Force : les pistes de greffon ont toujours le clavier mélodique (le mode batterie à 16 pads est réservé
+  aux pistes de batterie de la Force). Soit Shift + Note : gamme Chromatique, Pad Rows Continuous, pad en
+  bas à gauche sur C1 (36) : les deux rangées du bas = sons 1-8 et 9-16 (le séquenceur pas à pas montre
+  alors tous les sons) ; soit « Disposition pads » (premier écran du son 1) = « Do majeur » ou
+  « Do mineur », selon la gamme du projet (tonique Do) : un son par note de la gamme à partir de C1,
+  le carré 4x4 en bas à gauche = sons 1 à 16 (Oct-/Oct+ jusqu'à ce que le pad en bas à gauche joue le son 1).
+- Première touche = l'écran principal de l'instrument, dessiné comme une façade :
+  consoles (batteries, échantillonneurs, Octo Lyma) : une tranche par son, gros bouton = Q-Links 1 à 8,
+  petit bouton = Q-Links 9 à 16, rappuyer sur la touche pour les sons 9 à 16 (ou la banque suivante) ;
+  écrans héros (synthés) : toucher un module dans la colonne de gauche montre ses 8 boutons en bas (ceux
+  du premier module sont sur les Q-Links 1 à 8) ; FM : le schéma suit le réglage Algorithme ; Orbiteur :
+  faire glisser le centre de l'orbite ; Glutamake : la bille bouge en direct sur le pavé de la physique ;
+  façades (basses, polys, batteries 80/90) : capuchons de couleur = Q-Links 1-4, 5-8, 9-12, 13-16.
+- Autres écrans : une touche par fonction (OSC, FILTRE, ENV, LFO, MATRICE, JEU...), 12 touches au plus.
+  Une touche à plusieurs écrans (OSC 1, 2, 3...) : rappuyer dessus pour passer au suivant.
+- Q-Links : chaque écran a 16 réglages au plus et remplit les 16 Q-Links (deux rangées de 8 sur la Force),
+  boutons rotatifs d'abord.
+
+VOS SAMPLES, VOCODEURS
+- Échantillonneurs (Cutsample, Chromasample, Poussière de Vinyle, Pieuvre 8) : des WAV (16/24/32 bits,
+  mono ou stéréo, 90 s max.) pris dans N'IMPORTE QUEL dossier de la carte SD, de la clé USB ou du disque
+  interne. Page SAMPLES, pour chaque case : « Dossier N » = le dossier (tous les dossiers qui contiennent
+  des WAV sont proposés ; Content/Samples du greffon en premier), puis « Sample N » = le fichier.
+  Changer de dossier garde le sample chargé (« = nom ») jusqu'au choix d'un nouveau fichier.
+  Les projets retiennent le chemin complet de chaque fichier.
+- Gamer Lover (musique de jeux vidéo) : choisir la puce sur le premier écran (8 bits, Portable, 16 bits FM,
+  16 bits échantillons, Batterie). Avec « Batterie », les notes 36 à 51 jouent les 16 sons de console.
+  La page « Console » règle la résolution, la fréquence, le filtre de sortie et l'écho, pour toutes les puces.
+- Arpèges : arrêtés par défaut (« Arpège en marche » = Non) ; les sons d'usine qui en ont un le mettent
+  en marche. Ils suivent le tempo et la lecture de la machine.
+- Vocodeurs (Vocodeur - Robot 78, Robot Choral, Spectral Vocal, Speak Synth) : ce sont des EFFETS. En insert
+  sur une piste audio (micro, voix, boucle) ou sur la piste à vocoder : son son est la voix. La porteuse joue
+  la note et l'accord réglés sur la page PORTEUSE (un effet ne reçoit pas de notes sur la machine).
+- Impossibles sur MPC / Force : la piste Entrée audio et la piste MIDI de GOLEM.
 
 BON À SAVOIR
 - Les greffons tiers tournent dans le logiciel de la machine : un défaut peut la figer ou la redémarrer.
@@ -187,7 +256,7 @@ Code source : {REPO}
         lines.append("")
         for k in keys:
             if k in byk:
-                lines.append(f"- **{byk[k]['name']}** — {T.EFFECTS.get(k, '')} (CPU: {cpu_class(cpu.get(byk[k]['name']))})")
+                lines.append(f"- **{byk[k]['name']}** — {T.EFFECTS.get(k) or T.INSTRUMENTS.get(k, ("", "", ""))[2]} (CPU: {cpu_class(cpu.get(byk[k]['name']))})")
         lines.append("")
     open(os.path.join(out, "CATALOGUE-EN.md"), "w", encoding="utf-8").write("\n".join(lines))
 
@@ -208,10 +277,16 @@ Code source : {REPO}
         for f in sorted(os.listdir(HERE)):
             if f in ("out", "__pycache__"):
                 continue
-            t.add(os.path.join(HERE, f), "ofad-golem-mpc-%s/mpc/%s" % (v, f))
+            t.add(os.path.join(HERE, f), "ofad-golem-mpc-%s/mpc/%s" % (v, f),
+                  filter=lambda ti: None if "__pycache__" in ti.name else ti)
+        fm1 = os.path.join(ROOT, "third_party", "fm1emu")
+        t.add(fm1, "ofad-golem-mpc-%s/third_party/fm1emu" % v,
+              filter=lambda ti: None if ("/target" in ti.name or "/android" in ti.name) else ti)
         for f in ("LICENSE",):
             if os.path.isfile(os.path.join(ROOT, f)):
                 t.add(os.path.join(ROOT, f), "ofad-golem-mpc-%s/%s" % (v, f))
+    if a.fwsrc:
+        shutil.copy(a.fwsrc, os.path.join(out, "OFAD-GOLEM-MPC-%s-firmwares-sources.tar.gz" % v))
     # empreintes
     files = [p for p in sorted(os.listdir(out)) if os.path.isfile(os.path.join(out, p))]
     with open(os.path.join(out, "SHA256SUMS.txt"), "w") as f:

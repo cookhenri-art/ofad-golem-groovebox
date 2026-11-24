@@ -20,7 +20,19 @@
 #pragma once
 
 #include "mpc_plugin.h"
+#include "mpc_resources.h"
 #include "engine/Module.h"
+#include "engine/Speech.h"
+#include "engine/Arpeggiator.h"
+#include "synth/SamplePlayer.h"
+
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <dirent.h>
+#include <mutex>
+#include <sys/stat.h>
+#include <thread>
 
 #include <algorithm>
 #include <cmath>
@@ -202,6 +214,17 @@ inline std::vector<std::string> mpcNames (const ModuleDesc& d)
         auto n = fold (d.params[i].name);
         size_t c = n.find (" : "), w = 3;
         if (c == std::string::npos) { c = n.find (" - "); w = 3; }
+        // « : » entre parenthèses (« Canal de T1 (T2 a T4 : les suivants) ») : pas un préfixe, on ôte la parenthèse
+        if (c != std::string::npos && c > 0)
+        {
+            const auto head = n.substr (0, c);
+            if (std::count (head.begin(), head.end(), '(') > std::count (head.begin(), head.end(), ')'))
+            {
+                auto o = n.find (" (");
+                tail[i] = o != std::string::npos ? n.substr (0, o) : n;
+                continue;
+            }
+        }
         if (c != std::string::npos && c > 0)
         {
             pre[i] = n.substr (0, c);
@@ -350,6 +373,57 @@ inline std::string pageName (const std::string& folded)
 
 //==============================================================================
 /** Disposition des pages : sections en rangées de 4 (rangées = groupes de Q-Links), 4 rangées par page. */
+/** Fiche du module au format du catalogue de l'interface (ui/src/engine/catalog.json), pour l'habillage
+    des greffons propres à la MPC (pas encore dans GOLEM). */
+inline std::string catalogJson (const ModuleDesc& d)
+{
+    auto esc = [] (const std::string& s)
+    {
+        std::string o;
+        for (char c : s) { if (c == '"' || c == '\\') o += '\\'; o += c; }
+        return "\"" + o + "\"";
+    };
+    auto num = [] (float v) { char b[32]; std::snprintf (b, sizeof (b), "%g", (double) v); return std::string (b); };
+    std::string o = "{\"type\": " + esc (d.type) + ", \"name\": " + esc (d.name) + ", \"family\": " + esc (d.family)
+                  + ", \"principle\": " + esc (d.principle) + ", \"drumKit\": " + (d.drumKit ? "true" : "false") + ", \"params\": [";
+    for (size_t i = 0; i < d.params.size(); ++i)
+    {
+        const auto& p = d.params[i];
+        o += (i ? ", " : "") + std::string ("{\"id\": ") + esc (p.id) + ", \"name\": " + esc (p.name) + ", \"unit\": " + esc (p.unit)
+           + ", \"min\": " + num (p.min) + ", \"max\": " + num (p.max) + ", \"def\": " + num (p.def) + ", \"skew\": " + num (p.skew);
+        if (p.integer) o += ", \"integer\": true";
+        if (! p.choices.empty())
+        {
+            o += ", \"choices\": [";
+            for (size_t k = 0; k < p.choices.size(); ++k) o += (k ? ", " : "") + esc (p.choices[k]);
+            o += "]";
+        }
+        o += "}";
+    }
+    o += "], \"sections\": [";
+    for (size_t i = 0; i < d.sections.size(); ++i)
+    {
+        const auto& s = d.sections[i];
+        o += (i ? ", " : "") + std::string ("{\"id\": ") + esc (s.id) + ", \"name\": " + esc (s.name) + ", \"visual\": " + esc (s.visual)
+           + ", \"tab\": " + esc (s.tab) + ", \"params\": [";
+        bool first = true;
+        for (const auto& id : s.params)
+        {
+            const int k = d.indexOf (id);
+            if (k < 0) continue;
+            o += (first ? "" : ", ") + std::to_string (k);
+            first = false;
+        }
+        o += "]}";
+    }
+    o += "], \"presets\": [\"Init\"";
+    for (const auto& pr : d.presets) o += ", " + esc (pr.name);
+    o += "], \"padNames\": [";
+    for (size_t i = 0; i < d.padNames.size(); ++i) o += (i ? ", " : "") + esc (d.padNames[i]);
+    o += "], \"padKinds\": []}";
+    return o;
+}
+
 inline std::string layoutJson (const ModuleDesc& d, const std::vector<std::string>& names)
 {
     auto esc = [] (const std::string& s)
@@ -456,6 +530,400 @@ inline std::string layoutJson (const ModuleDesc& d, const std::vector<std::strin
     return json;
 }
 
+
+//==============================================================================
+/** Réglages en plus de ceux de GOLEM, propres à la MPC (fichiers, phrases, piste au clavier). */
+struct Extras
+{
+    // Fichiers lus dans Content/<folder>/ du greffon : WAV (échantillons) ou .fwsc (firmwares du FM Player).
+    std::string folder;
+    std::vector<std::string> exts;
+    int slots = 0;                 // emplacements (un réglage « Sample N » chacun)
+    std::string label = "Sample";
+    bool firmware = false;
+    int banks = 0;                 // Pieuvre 8 : l'emplacement k est copié dans chaque banque (b × 16 + k)
+    // Pieuvre 8 : notes 36 à 43 → pistes T1 à T8, les autres jouent la piste choisie (chromatique)
+    bool laneNotes = false;
+    int lanes = 0;
+    // FM Player : toutes les notes (16 à 127) jouent la piste choisie, comme un clavier
+    bool allNotes = false;
+    // Vocodeurs : phrases dites par la voix interne (texte GOLEM ; « @en » à la fin : anglais)
+    std::vector<std::pair<std::string, std::string>> phrases;
+    // Glutamake : position de la bille recopiée dans deux réglages en lecture seule (« Bille X / Y »),
+    // que l'écran tactile montre sur le pavé de la physique
+    bool ballOut = false;
+};
+
+constexpr int maxFiles = 200;
+constexpr int maxSlots = 16;
+constexpr double maxSeconds = 90.0; // échantillon coupé au-delà (mémoire de la machine)
+
+inline std::string lowerExt (const std::string& n)
+{
+    const auto dot = n.rfind ('.');
+    std::string e = dot == std::string::npos ? std::string() : n.substr (dot);
+    for (auto& c : e) c = (char) std::tolower ((unsigned char) c);
+    return e;
+}
+
+/** Fichiers du dossier (triés sans tenir compte de la casse). Hors du fil audio. */
+inline std::vector<std::string> listFiles (const std::string& dir, const std::vector<std::string>& exts)
+{
+    std::vector<std::string> out;
+    if (DIR* d = opendir (dir.c_str()))
+    {
+        while (auto* e = readdir (d))
+        {
+            std::string n = e->d_name;
+            if (n.empty() || n[0] == '.') continue;
+            const auto x = lowerExt (n);
+            if (std::find (exts.begin(), exts.end(), x) != exts.end()) out.push_back (n);
+        }
+        closedir (d);
+    }
+    std::sort (out.begin(), out.end(), [] (const std::string& a, const std::string& b)
+    {
+        std::string la = a, lb = b;
+        for (auto& c : la) c = (char) std::tolower ((unsigned char) c);
+        for (auto& c : lb) c = (char) std::tolower ((unsigned char) c);
+        return la < lb;
+    });
+    if ((int) out.size() > maxFiles) out.resize ((size_t) maxFiles);
+    return out;
+}
+
+/** Dossiers de la carte, de la clé et du disque interne où il y a des fichiers à charger.
+    Dossier 0 : Content/Samples du greffon. Les autres : trouvés en parcourant les disques montés à côté
+    de celui du greffon (« /media/<disque> » sur la machine), hors du fil audio, dans un fil à part. */
+struct SampleFolder { std::string path, label; std::vector<std::string> files; };
+struct SampleLibrary { std::vector<SampleFolder> folders; };
+constexpr int maxFolders = 1000;
+
+inline bool isDirectory (const std::string& p)
+{
+    struct stat st {};
+    return ::stat (p.c_str(), &st) == 0 && S_ISDIR (st.st_mode);
+}
+
+inline std::string parentOf (const std::string& p)
+{
+    const auto s = p.find_last_of ('/');
+    return s == std::string::npos || s == 0 ? std::string ("/") : p.substr (0, s);
+}
+
+inline std::string baseOf (const std::string& p)
+{
+    const auto s = p.find_last_of ('/');
+    return s == std::string::npos ? p : p.substr (s + 1);
+}
+
+/** Libellé court d'un dossier : chemin depuis le disque, la fin gardée si c'est long. */
+inline std::string folderLabel (const std::string& path, const std::string& mount)
+{
+    std::string l = path.compare (0, mount.size(), mount) == 0 ? path.substr (mount.size()) : path;
+    while (! l.empty() && l[0] == '/') l.erase (0, 1);
+    l = fold (l);
+    if (l.size() > 30) l = "..." + l.substr (l.size() - 27);
+    return l.empty() ? std::string ("/") : l;
+}
+
+/** Disques à parcourir : le dossier qui contient celui du greffon (« VST2 Plugins/<greffon> ») est la
+    racine d'un disque ; ses voisins sous le même point de montage (/media, /mnt...) sont les autres. */
+inline std::vector<std::string> sampleRoots (std::string& mount)
+{
+    std::vector<std::string> roots;
+    const std::string plug = mpc::pluginFolder();
+    const std::string vst = parentOf (plug);
+    const std::string drive = parentOf (vst);
+    mount = parentOf (drive);
+    const std::string mb = baseOf (mount);
+    if (mb == "media" || mb == "mnt" || mb == "Volumes" || mb == "run")
+    {
+        if (DIR* d = opendir (mount.c_str()))
+        {
+            while (auto* e = readdir (d))
+            {
+                const std::string n = e->d_name;
+                if (n.empty() || n[0] == '.') continue;
+                const std::string p = mount + "/" + n;
+                if (isDirectory (p)) roots.push_back (p);
+            }
+            closedir (d);
+        }
+        std::sort (roots.begin(), roots.end());
+    }
+    if (std::find (roots.begin(), roots.end(), drive) == roots.end()) roots.insert (roots.begin(), drive);
+    return roots;
+}
+
+/** Parcours borné (profondeur 7, 8000 dossiers vus, 1000 retenus) ; s'arrête dès que stop passe à vrai. */
+inline void scanFolders (const std::string& dir, int depth, const std::vector<std::string>& exts, const std::string& mount,
+                         const std::string& skip, std::vector<SampleFolder>& out, int& seen, const std::atomic<bool>& run)
+{
+    if (! run.load() || depth > 7 || ++seen > 8000 || (int) out.size() >= maxFolders) return;
+    if (dir == skip) return;
+    std::vector<std::string> subs;
+    if (DIR* d = opendir (dir.c_str()))
+    {
+        bool hasFile = false;
+        while (auto* e = readdir (d))
+        {
+            const std::string n = e->d_name;
+            if (n.empty() || n[0] == '.' || n == "System Volume Information" || n == "$RECYCLE.BIN" || n == "lost+found") continue;
+            const std::string p = dir + "/" + n;
+            const auto x = lowerExt (n);
+            if (std::find (exts.begin(), exts.end(), x) != exts.end()) hasFile = true;
+            else if (x.empty() || x.size() > 5) { if (isDirectory (p)) subs.push_back (p); }
+            else if (e->d_type == DT_DIR) subs.push_back (p);
+        }
+        closedir (d);
+        if (hasFile) out.push_back ({ dir, folderLabel (dir, mount), listFiles (dir, exts) });
+    }
+    std::sort (subs.begin(), subs.end());
+    for (const auto& p : subs) scanFolders (p, depth + 1, exts, mount, skip, out, seen, run);
+}
+
+/** WAV (PCM 8/16/24/32 bits, flottant 32/64 bits, mono ou stéréo ; au-delà : deux premières voies). */
+inline bool loadWav (const std::vector<std::uint8_t>& b, grv::engine::SampleBuffer& s)
+{
+    auto u16 = [&] (size_t p) { return (unsigned) b[p] | ((unsigned) b[p + 1] << 8); };
+    auto u32 = [&] (size_t p) { return (std::uint32_t) b[p] | ((std::uint32_t) b[p + 1] << 8) | ((std::uint32_t) b[p + 2] << 16) | ((std::uint32_t) b[p + 3] << 24); };
+    if (b.size() < 44 || std::memcmp (b.data(), "RIFF", 4) != 0 || std::memcmp (b.data() + 8, "WAVE", 4) != 0) return false;
+    unsigned fmt = 0, ch = 0, bits = 0; std::uint32_t rate = 0;
+    size_t dataPos = 0, dataLen = 0;
+    for (size_t p = 12; p + 8 <= b.size();)
+    {
+        const std::uint32_t len = u32 (p + 4);
+        if (std::memcmp (b.data() + p, "fmt ", 4) == 0 && p + 8 + 16 <= b.size())
+        {
+            fmt = u16 (p + 8); ch = u16 (p + 10); rate = u32 (p + 12); bits = u16 (p + 22);
+            if (fmt == 0xFFFE && len >= 26 && p + 8 + 26 <= b.size()) fmt = u16 (p + 8 + 24); // WAVE_FORMAT_EXTENSIBLE
+        }
+        else if (std::memcmp (b.data() + p, "data", 4) == 0) { dataPos = p + 8; dataLen = std::min<size_t> (len, b.size() - dataPos); break; }
+        p += 8 + len + (len & 1);
+    }
+    if (dataPos == 0 || ch == 0 || rate < 4000 || rate > 384000 || (fmt != 1 && fmt != 3)) return false;
+    const unsigned bytes = bits / 8;
+    if (bytes == 0 || (fmt == 3 && bits != 32 && bits != 64) || (fmt == 1 && bits > 32)) return false;
+    size_t frames = dataLen / (bytes * ch);
+    frames = std::min (frames, (size_t) (maxSeconds * rate));
+    s.data.assign (frames, 0.0f);
+    if (ch > 1) s.right.assign (frames, 0.0f); else s.right.clear();
+    auto sample = [&] (size_t p) -> float
+    {
+        if (fmt == 3)
+        {
+            if (bits == 32) { float f; std::memcpy (&f, b.data() + p, 4); return f; }
+            double d; std::memcpy (&d, b.data() + p, 8); return (float) d;
+        }
+        switch (bits)
+        {
+            case 8:  return ((int) b[p] - 128) / 128.0f;
+            case 16: return (float) (std::int16_t) u16 (p) / 32768.0f;
+            case 24: { std::int32_t v = (std::int32_t) ((std::uint32_t) b[p] << 8 | (std::uint32_t) b[p + 1] << 16 | (std::uint32_t) b[p + 2] << 24); return (float) (v >> 8) / 8388608.0f; }
+            default: return (float) (std::int32_t) u32 (p) / 2147483648.0f;
+        }
+    };
+    for (size_t i = 0; i < frames; ++i)
+    {
+        const size_t p = dataPos + i * bytes * ch;
+        const float l = sample (p);
+        if (! std::isfinite (l)) continue;
+        s.data[i] = std::clamp (l, -4.0f, 4.0f);
+        if (ch > 1) { const float r = sample (p + bytes); s.right[i] = std::isfinite (r) ? std::clamp (r, -4.0f, 4.0f) : 0.0f; }
+    }
+    s.sampleRate = (double) rate;
+    return ! s.data.empty();
+}
+
+/** Fichier → SampleBuffer, dans le fil de chargement. Défini par le greffon (firmware ou WAV). */
+using Loader = grv::engine::SampleBuffer* (*) (const std::string& path, const std::string& name, bool firmware);
+
+inline grv::engine::SampleBuffer* defaultLoader (const std::string& path, const std::string& name, bool firmware)
+{
+    std::vector<std::uint8_t> bytes;
+    if (! mpc::readFile (path, bytes)) return nullptr;
+    if (firmware) return nullptr; // le FM Player fournit son propre chargeur
+    auto* s = new grv::engine::SampleBuffer();
+    if (! loadWav (bytes, *s)) { delete s; return nullptr; }
+    s->name = name;
+    s->onsets = grv::synth::computeOnsets (*s, 64);
+    return s;
+}
+
+/** Chargement des fichiers hors du fil audio. Le fil audio ne fait que lire / écrire des atomiques. */
+class FileLoader
+{
+public:
+    std::vector<std::string> exts;
+    bool firmware = false;
+    Loader loader = &defaultLoader;
+    int slots = 0;
+
+    // Demande d'un emplacement (fil audio → fil de chargement) : dossier × 256 + fichier, -1 rien,
+    // HOLD : garder ce qui est chargé, -(10 + n) : fichier retrouvé par son chemin (état d'un projet)
+    static constexpr int HOLD = -2;
+    static int encode (int folder, int file) noexcept { return folder * 256 + file; }
+
+    ~FileLoader()
+    {
+        stop();
+        for (auto* l : libs) delete l;
+    }
+
+    /** Dossier 0 (Content/Samples du greffon), tout de suite ; les autres viennent du parcours. */
+    void init (const std::string& contentDir)
+    {
+        auto* l = new SampleLibrary();
+        l->folders.push_back ({ contentDir, "Greffon : Samples", listFiles (contentDir, exts) });
+        libs.push_back (l);
+        lib.store (l, std::memory_order_release);
+        ownDir = contentDir;
+    }
+    const SampleLibrary* library() const noexcept { return lib.load (std::memory_order_acquire); }
+    bool scanning() const noexcept { return scanBusy.load(); }
+
+    void start()
+    {
+        if (running.load()) return;
+        for (int k = 0; k < maxSlots; ++k) { want[(size_t) k].store (-1); have[(size_t) k] = -1; }
+        running.store (true);
+        worker = std::thread ([this] { loop(); });
+        if (! scanDone)
+        {
+            scanBusy.store (true);
+            scanner = std::thread ([this] { scan(); });
+        }
+    }
+    void stop()
+    {
+        running.store (false);
+        if (scanner.joinable()) scanner.join();
+        if (worker.joinable()) worker.join();
+        for (auto& r : ready) { auto* p = r.exchange (nullptr); if (p != nullptr && p != empty()) delete p; }
+        for (auto& t : trash) { auto* p = t.exchange (nullptr); if (p != nullptr && p != empty()) delete p; }
+        for (auto& a : applied) { if (a != nullptr && a != empty()) delete a; a = nullptr; }
+    }
+    static grv::engine::SampleBuffer* empty() { static grv::engine::SampleBuffer e; return &e; }
+
+    /** Fil audio : fichier voulu pour chaque emplacement ; renvoie le nouveau tampon à appliquer (ou nullptr). */
+    void request (int slot, int token) noexcept { want[(size_t) slot].store (token, std::memory_order_relaxed); }
+
+    /** Fil de l'interface (état d'un projet) : chemin à charger pour un emplacement, absent de la bibliothèque. */
+    int setOverride (int slot, const std::string& path)
+    {
+        std::lock_guard<std::mutex> g (pathLock);
+        override_[(size_t) slot] = path;
+        return -(10 + ++overrideGen[(size_t) slot]);
+    }
+    /** Chemin du fichier chargé dans l'emplacement ("" : rien). */
+    std::string loadedPath (int slot) const
+    {
+        std::lock_guard<std::mutex> g (pathLock);
+        return loaded[(size_t) slot];
+    }
+    grv::engine::SampleBuffer* take (int slot) noexcept { return ready[(size_t) slot].exchange (nullptr, std::memory_order_acq_rel); }
+    /** Fil audio : l'ancien tampon part à la corbeille (libéré par le fil de chargement). */
+    void retire (int slot, grv::engine::SampleBuffer* now) noexcept
+    {
+        auto* old = applied[(size_t) slot];
+        applied[(size_t) slot] = now;
+        if (old == nullptr || old == empty()) return;
+        for (auto& t : trash)
+        {
+            grv::engine::SampleBuffer* expected = nullptr;
+            if (t.compare_exchange_strong (expected, old)) return;
+        }
+        // corbeille pleine (très rare) : gardé en mémoire plutôt que libéré dans le fil audio
+    }
+
+private:
+    void loop()
+    {
+        while (running.load())
+        {
+            for (auto& t : trash) { auto* p = t.exchange (nullptr); if (p != nullptr && p != empty()) delete p; }
+            for (int k = 0; k < slots; ++k)
+            {
+                const int w = want[(size_t) k].load (std::memory_order_relaxed);
+                if (w == HOLD || w == have[(size_t) k] || ready[(size_t) k].load() != nullptr) continue;
+                grv::engine::SampleBuffer* sb = empty();
+                std::string path, name;
+                if (w >= 0)
+                {
+                    const auto* l = library();
+                    const int f = w / 256, i = w % 256;
+                    if (l != nullptr && f < (int) l->folders.size() && i < (int) l->folders[(size_t) f].files.size())
+                    {
+                        name = l->folders[(size_t) f].files[(size_t) i];
+                        path = l->folders[(size_t) f].path + "/" + name;
+                    }
+                }
+                else if (w <= -10)
+                {
+                    std::lock_guard<std::mutex> g (pathLock);
+                    path = override_[(size_t) k];
+                    name = baseOf (path);
+                }
+                if (! path.empty())
+                {
+                    auto* got = loader (path, name, firmware);
+                    if (got != nullptr) sb = got;
+                }
+                {
+                    std::lock_guard<std::mutex> g (pathLock);
+                    loaded[(size_t) k] = sb == empty() ? std::string() : path;
+                }
+                have[(size_t) k] = w;
+                if (std::getenv ("GOLEM_MPC_DEBUG")) std::fprintf (stderr, "[golem-mpc] emplacement %d : fichier %d -> %s\n", k, w, sb == empty() ? "vide" : "charge");
+                ready[(size_t) k].store (sb, std::memory_order_release);
+            }
+            std::this_thread::sleep_for (std::chrono::milliseconds (15));
+        }
+    }
+
+    /** Parcours des disques (fil à part) ; la bibliothèque complète remplace la première d'un coup. */
+    void scan()
+    {
+        std::string mount;
+        const auto roots = sampleRoots (mount);
+        std::vector<SampleFolder> found;
+        int seen = 0;
+        for (const auto& r : roots)
+        {
+            if (! running.load()) break;
+            scanFolders (r, 0, exts, mount, ownDir, found, seen, running);
+        }
+        if (running.load())
+        {
+            auto* l = new SampleLibrary (*library());
+            for (auto& f : found)
+                if ((int) l->folders.size() < maxFolders) l->folders.push_back (std::move (f));
+            libs.push_back (l);
+            lib.store (l, std::memory_order_release);
+            scanDone = true;
+        }
+        scanBusy.store (false);
+    }
+
+    std::vector<SampleLibrary*> libs;              // toutes les versions publiées (libérées à la fin)
+    std::atomic<const SampleLibrary*> lib { nullptr };
+    std::string ownDir;
+    std::thread scanner;
+    std::atomic<bool> scanBusy { false };
+    bool scanDone = false;
+    mutable std::mutex pathLock;
+    std::array<std::string, maxSlots> override_ {}, loaded {};
+    std::array<int, maxSlots> overrideGen {};
+    std::thread worker;
+    std::atomic<bool> running { false };
+    std::array<std::atomic<int>, maxSlots> want {};
+    std::array<int, maxSlots> have {};
+    std::array<std::atomic<grv::engine::SampleBuffer*>, maxSlots> ready {};
+    std::array<grv::engine::SampleBuffer*, maxSlots> applied {};
+    std::array<std::atomic<grv::engine::SampleBuffer*>, 32> trash {};
+};
+
 //==============================================================================
 /** Partie commune : réglages, programmes, volume. */
 class GolemBase : public mpc::Plugin
@@ -465,29 +933,50 @@ public:
     {
         names = mpcNames (d);
         addParam (mpc::floatParam ("mpcvol", "Volume", -60.0f, 6.0f, 0.0f, "dB", 1, 1.0f));
-        for (size_t i = 0; i < d.params.size(); ++i) addParam (mpcParam (d.params[i], names[i]));
+        // « Arpège en marche » : arrêté par défaut sur la machine (on joue avec son séquenceur) ; les sons
+        // d'usine qui ont un arpège le mettent en marche (plus bas)
+        const int arpOnIdx = d.indexOf ("arp_on"), arpModeIdx = d.indexOf ("arp_mode");
+        // Kick Forge : « Gain automatique » sur Non dans Init (le volume des couches agit tout de suite) ;
+        // les sons d'usine le gardent sur Oui (sans lui, certains dépassent 0 dBFS)
+        const int autoGainIdx = d.type == "kickforge" ? d.indexOf ("autogain") : -1;
+        const int kfVolIdx = d.type == "kickforge" ? d.indexOf ("volume") : -1;   // Init sans gain auto : -3 dB (crête sous 0 dBFS)
+        for (size_t i = 0; i < d.params.size(); ++i)
+        {
+            auto q = mpcParam (d.params[i], names[i]);
+            if ((int) i == arpOnIdx || (int) i == autoGainIdx) q.def = 0.0f;
+            if ((int) i == kfVolIdx) q.def = -3.0f;
+            addParam (q);
+        }
         plain.assign (d.params.size(), 0.0f);
         lastNorm.assign (d.params.size(), -1.0f);
-        for (size_t i = 0; i < d.params.size(); ++i) plain[i] = d.params[i].def;
+        for (size_t i = 0; i < d.params.size(); ++i) plain[i] = ((int) i == arpOnIdx || (int) i == autoGainIdx) ? 0.0f : ((int) i == kfVolIdx ? -3.0f : d.params[i].def);
 
         // programme 0 : réglages par défaut, puis les sons d'usine
         std::vector<float> defs (d.params.size() + 1, 0.0f);
         defs[0] = 0.0f;
-        for (size_t i = 0; i < d.params.size(); ++i) defs[i + 1] = param ((int) i + 1).toPlain (param ((int) i + 1).toNormalised (d.params[i].def));
+        for (size_t i = 0; i < d.params.size(); ++i) defs[i + 1] = param ((int) i + 1).toPlain (param ((int) i + 1).toNormalised (param ((int) i + 1).def));
         addProgram ("Init", defs);
         for (const auto& pr : d.presets)
         {
             auto v = defs;
+            bool arpSet = false, autoGainSet = false, volSet = false;
             for (const auto& kv : pr.values)
             {
                 const int i = d.indexOf (kv.first);
                 if (i >= 0) v[(size_t) i + 1] = kv.second;
+                if (i >= 0 && i == arpOnIdx) arpSet = true;
+                if (i >= 0 && i == autoGainIdx) autoGainSet = true;
+                if (i >= 0 && i == kfVolIdx) volSet = true;
             }
+            if (autoGainIdx >= 0 && ! autoGainSet && pr.name != "Init") v[(size_t) autoGainIdx + 1] = 1.0f;
+            if (kfVolIdx >= 0 && ! volSet && pr.name != "Init") v[(size_t) kfVolIdx + 1] = d.params[(size_t) kfVolIdx].def;
+            if (arpOnIdx >= 0 && arpModeIdx >= 0 && ! arpSet && v[(size_t) arpModeIdx + 1] >= 0.5f) v[(size_t) arpOnIdx + 1] = 1.0f;
             addProgram (cut (fold (pr.name), 24).c_str(), v);
         }
     }
 
     std::string layout() const { return layoutJson (desc, names); }
+    std::string catalog() const { return catalogJson (desc); }
 
     bool formatValue (int index, float plainValue, std::string& out) override
     {
@@ -530,12 +1019,171 @@ template <class Module>
 class InstrumentPlugin : public GolemBase
 {
 public:
-    explicit InstrumentPlugin (const mpc::PluginInfo& info, std::unique_ptr<Module> m = std::make_unique<Module>())
-        : GolemBase (info, m->desc()), module (std::move (m)) {}
+    explicit InstrumentPlugin (const mpc::PluginInfo& info, std::unique_ptr<Module> m = std::make_unique<Module>(), Extras x = {}, Loader ld = nullptr)
+        : GolemBase (info, m->desc()), module (std::move (m)), ex (std::move (x))
+    {
+        const int base = (int) desc.params.size() + 1;
+        for (auto& x : lastDir) x.store (-1);
+        // arpège de piste (dans GOLEM, c'est le moteur qui le joue ; ici, le greffon)
+        arpParam = desc.indexOf ("arp_mode");
+        arpOnParam = desc.indexOf ("arp_on");
+        arpStepsParam = arpParam >= 0 && arpParam + 6 < (int) desc.params.size() && desc.params[(size_t) arpParam + 6].id == "arp_steps" ? arpParam + 6 : -1;
+        if (ex.slots > 0)
+        {
+            files.exts = ex.exts;
+            files.init (mpc::contentPath (ex.folder));
+            files.firmware = ex.firmware;
+            files.slots = std::min (ex.slots, maxSlots);
+            if (ld != nullptr) files.loader = ld;
+            firstFile = base;
+            for (int k = 0; k < files.slots; ++k)
+            {
+                const auto id = "mpc_file" + std::to_string (k + 1);
+                const auto nm = files.slots == 1 ? ex.label : ex.label + " " + std::to_string (k + 1);
+                addParam (mpc::intParam (id.c_str(), nm.c_str(), 0, maxFiles, 0));
+            }
+        }
+        if (ex.lanes > 0)
+        {
+            laneParam = numParams();
+            addParam (mpc::intParam ("mpc_lane", "Piste clavier", 1, ex.lanes, 1));
+        }
+        if (! ex.phrases.empty())
+        {
+            phraseParam = numParams();
+            std::vector<std::string> labels;
+            for (const auto& ph : ex.phrases) { labels.push_back (cut (fold (ph.first), 20)); scripts.push_back (grv::engine::compileSpeech (ph.second)); }
+            mpc::Param q;
+            q.id = "mpc_phrase"; q.name = "Phrase"; q.kind = mpc::Param::Kind::Choice;
+            q.choices = labels; q.min = 0; q.max = (float) labels.size() - 1; q.def = 0;
+            addParam (q);
+        }
+        // Batteries : disposition des pads. La Force donne aux greffons tiers le clavier « mélodique »
+        // (pas le mode batterie à 16 pads de ses propres pistes) : en gamme de Do, le carré 4x4 en bas
+        // à gauche envoie 16 notes blanches à la suite, qu'on range alors sur les pads 1 à 16.
+        if (desc.drumKit && ex.lanes == 0 && ! ex.allNotes)
+        {
+            padParam = numParams();
+            mpc::Param q;
+            q.id = "mpc_pads"; q.name = "Disposition pads"; q.kind = mpc::Param::Kind::Choice;
+            q.choices = { "Notes 36-51", "Do majeur", "Do mineur" }; q.min = 0; q.max = 2; q.def = 0;
+            addParam (q);
+        }
+        // Réglages ajoutés à la fin (identifiants permanents) : le dossier de chaque emplacement de sample
+        // (n'importe quel dossier de la carte, de la clé ou du disque interne qui contient des fichiers)
+        if (files.slots > 0)
+        {
+            firstDir = numParams();
+            for (int k = 0; k < files.slots; ++k)
+            {
+                const auto id = "mpc_dir" + std::to_string (k + 1);
+                const auto nm = files.slots == 1 ? std::string ("Dossier") : "Dossier " + std::to_string (k + 1);
+                addParam (mpc::intParam (id.c_str(), nm.c_str(), 0, maxFolders - 1, 0));
+            }
+        }
+        // Réglages ajoutés à la fin (identifiants permanents) : la bille de Glutamake, écrite par le moteur
+        if (ex.ballOut)
+        {
+            ballParam = numParams();
+            auto bx = mpc::floatParam ("mpc_ballx", "Bille X", -1.0f, 1.0f, 0.0f, "", 2, 1.0f);
+            auto by = mpc::floatParam ("mpc_bally", "Bille Y", -1.0f, 1.0f, 0.0f, "", 2, 1.0f);
+            bx.automatable = false;
+            by.automatable = false;
+            addParam (bx);
+            addParam (by);
+        }
+    }
+
+    bool formatValue (int index, float plainValue, std::string& out) override
+    {
+        const auto* lib = files.library();
+        if (firstDir > 0 && index >= firstDir && index < firstDir + files.slots && lib != nullptr)
+        {
+            const int d = (int) std::lround (plainValue);
+            if (d < (int) lib->folders.size()) out = lib->folders[(size_t) d].label;
+            else out = files.scanning() ? "(recherche...)" : "-";
+            return true;
+        }
+        if (firstFile > 0 && index >= firstFile && index < firstFile + files.slots && lib != nullptr)
+        {
+            const int k = index - firstFile;
+            const int f = (int) std::lround (plainValue);
+            const int d = firstDir > 0 ? getInt (firstDir + k) : 0;
+            if (hold[(size_t) k].load() && f == holdVal[(size_t) k].load())
+            {
+                const auto p = files.loadedPath (k);
+                out = p.empty() ? std::string ("-") : "= " + cut (fold (baseOf (p)), 26);
+            }
+            else if (f <= 0) out = "-";
+            else if (d < (int) lib->folders.size() && f - 1 < (int) lib->folders[(size_t) d].files.size())
+                out = cut (fold (lib->folders[(size_t) d].files[(size_t) f - 1]), 28);
+            else out = "(absent)";
+            return true;
+        }
+        return GolemBase::formatValue (index, plainValue, out);
+    }
+
+    /** Fichiers retenus par leur chemin complet (l'ordre des dossiers peut changer d'un jour à l'autre).
+        Anciens projets : le nom seul, cherché dans Content/Samples du greffon. */
+    void saveExtraState (std::vector<std::uint8_t>& out) override
+    {
+        for (int k = 0; k < files.slots; ++k)
+        {
+            std::string n = files.loadedPath (k);
+            if (n.empty())
+            {
+                // pas encore chargé (projet ouvert à l'instant) : le choix des réglages
+                const auto* lib = files.library();
+                const int f = getInt (firstFile + k), d = firstDir > 0 ? getInt (firstDir + k) : 0;
+                if (lib != nullptr && f > 0 && d < (int) lib->folders.size() && f - 1 < (int) lib->folders[(size_t) d].files.size())
+                    n = lib->folders[(size_t) d].path + "/" + lib->folders[(size_t) d].files[(size_t) f - 1];
+            }
+            out.insert (out.end(), n.begin(), n.end());
+            out.push_back (0);
+        }
+    }
+    void loadExtraState (const std::uint8_t* data, size_t size) override
+    {
+        size_t pos = 0;
+        const auto* lib = files.library();
+        for (int k = 0; k < files.slots && pos < size; ++k)
+        {
+            std::string n;
+            while (pos < size && data[pos] != 0) n += (char) data[pos++];
+            ++pos;
+            if (n.empty() || lib == nullptr) continue;
+            const bool full = n.find ('/') != std::string::npos;
+            const std::string dir = full ? parentOf (n) : lib->folders[0].path;
+            const std::string name = full ? baseOf (n) : n;
+            bool found = false;
+            for (size_t d = 0; d < lib->folders.size() && ! found; ++d)
+            {
+                if (lib->folders[d].path != dir) continue;
+                const auto& fs = lib->folders[d].files;
+                const auto it = std::find (fs.begin(), fs.end(), name);
+                if (it == fs.end()) break;
+                if (firstDir > 0) { set (firstDir + k, (float) d); lastDir[(size_t) k].store ((int) d); }
+                set (firstFile + k, (float) (it - fs.begin() + 1));
+                hold[(size_t) k].store (false);
+                found = true;
+            }
+            if (! found && full)
+            {
+                // dossier pas (encore) dans la bibliothèque : chargé par son chemin, gardé jusqu'au prochain choix
+                overrideTok[(size_t) k].store (files.setOverride (k, n));
+                if (firstDir > 0) lastDir[(size_t) k].store (getInt (firstDir + k));
+                holdVal[(size_t) k].store (getInt (firstFile + k));
+                hold[(size_t) k].store (true);
+            }
+        }
+    }
 
     void prepare (double sampleRate, int maxBlockSize) override
     {
         pullParams();
+        sr = sampleRate > 0.0 ? sampleRate : 44100.0;
+        arp.clear();
+        arpWasOn = false;
         module->prepare (sampleRate, std::min (128, std::max (32, maxBlockSize)));
         tmpR.assign ((size_t) std::max (32, maxBlockSize) * 2, 0.0f);
         // Mise en route hors du fil audio (prepare vient du fil de l'interface) : une note jouée puis
@@ -546,20 +1194,26 @@ public:
         module->render (l.data(), r.data(), 64, plain.data());
         module->allNotesOff();
         module->reset();
+        if (files.slots > 0) files.start();
+        if (phraseParam >= 0) { appliedPhrase = -1; }
     }
 
-    void reset() override { module->allNotesOff(); module->reset(); }
+    void reset() override { arp.clear(); arpWasOn = false; numKeys = 0; direct.fill (false); module->allNotesOff(); module->reset(); }
 
     void process (mpc::ProcessContext& ctx) override
     {
         pullParams();
         const auto& tr = ctx.transport;
+        blockBpm = tr.tempoValid && tr.bpm > 0.0 ? tr.bpm : 120.0;
+        blockPpq = tr.valid && tr.ppqValid ? tr.ppqPos : 0.0;
+        blockPlaying = tr.valid && tr.playing && tr.ppqValid;
         if (tr.tempoValid && tr.bpm > 0.0) module->setTempo (tr.bpm);
         if (tr.valid)
         {
             if (tr.playing != wasPlaying) { if (tr.playing) module->transportStarted(); else module->transportStopped(); wasPlaying = tr.playing; }
             module->setPosition (tr.ppqValid ? tr.ppqPos : 0.0, tr.playing);
         }
+        applyExtras();
         float* L = ctx.numOutputs > 0 ? ctx.outputs[0] : nullptr;
         float* R = ctx.numOutputs > 1 ? ctx.outputs[1] : nullptr;
         if (L == nullptr) return;
@@ -578,6 +1232,16 @@ public:
         }
         if (pos < n) renderRange (L, R, pos, n);
         applyGain (L, R, n);
+        if (ballParam >= 0)
+        {
+            // position de la bille (-1 à 1, y vers le haut) pour l'écran : simple écriture atomique
+            float st[16];
+            if (module->status (st, 16) >= 2)
+            {
+                set (ballParam, std::clamp (st[0], -1.0f, 1.0f));
+                set (ballParam + 1, std::clamp (st[1], -1.0f, 1.0f));
+            }
+        }
     }
 
     /** Morceaux de 128 échantillons au plus : comme dans GOLEM (certains instruments, les batteries
@@ -589,15 +1253,113 @@ public:
         for (int p = from; p < to;)
         {
             const int m = std::min (maxChunk, to - p);
+            runArp (p, m);
             module->render (L + p, R + p, m, plain.data());
             p += m;
         }
     }
 
+    bool arpActive() const noexcept
+    {
+        return arpParam >= 0 && plain[(size_t) arpParam] >= 0.5f && (arpOnParam < 0 || plain[(size_t) arpOnParam] >= 0.5f);
+    }
+
+    /** Arpège : mêmes réglages et même calcul que le moteur de GOLEM (Engine::runArpeggiators). */
+    void runArp (int offset, int n) noexcept
+    {
+        auto off = [this] (int note) { module->noteOff (note); };
+        if (! arpActive())
+        {
+            if (arpWasOn) arp.flush (off);
+            arpWasOn = false;
+            lastHold = false;
+            return;
+        }
+        arpWasOn = true;
+        // maintien mis en marche pendant que des notes sont tenues : elles sont retenues tout de suite
+        // (sinon il fallait relâcher et rejouer l'accord)
+        const bool holdNow = plain[(size_t) arpParam + 4] > 0.5f;
+        if (holdNow && ! lastHold)
+            for (int i = 0; i < numKeys; ++i) { arp.noteOff (keys[(size_t) i]); arp.noteOn (keys[(size_t) i], keyVel[(size_t) i], true); }
+        lastHold = holdNow;
+        static constexpr double rates[] { 1.0, 0.5, 1.0 / 3.0, 0.25, 1.0 / 6.0, 0.125, 0.75, 1.0 / 12.0 };
+        const float* q = plain.data() + arpParam;
+        grv::engine::Arpeggiator::Settings s;
+        s.mode = (int) q[0];
+        s.octaves = (int) std::lround (q[1]);
+        s.stepQuarters = rates[std::clamp ((int) q[2], 0, 7)];
+        s.gate = q[3] / 100.0;
+        s.hold = q[4] > 0.5f;
+        s.swing = q[5] / 100.0;
+        if (arpStepsParam >= 0)
+        {
+            s.steps = (int) std::lround (plain[(size_t) arpStepsParam]);
+            s.transpose = plain.data() + arpStepsParam + 1;
+            s.velocity = plain.data() + arpStepsParam + 17;
+        }
+        const double pps = blockBpm / 60.0 / sr;
+        arp.process (s, blockPpq + pps * offset, blockPlaying, pps, n,
+                     [this] (int note, float vel) { module->noteOn (note, vel); }, off);
+    }
+
 private:
+    void applyExtras() noexcept
+    {
+        for (int k = 0; k < files.slots; ++k)
+        {
+            // dossier changé : le sample chargé reste tant qu'on n'a pas choisi un fichier du nouveau dossier
+            const int d = firstDir > 0 ? getInt (firstDir + k) : 0;
+            const int f = getInt (firstFile + k);
+            const int ld = lastDir[(size_t) k].load (std::memory_order_relaxed);
+            if (d != ld)
+            {
+                if (ld >= 0 && ! hold[(size_t) k].load()) { holdVal[(size_t) k].store (f); overrideTok[(size_t) k].store (0); hold[(size_t) k].store (true); }
+                lastDir[(size_t) k].store (d, std::memory_order_relaxed);
+            }
+            if (hold[(size_t) k].load() && f != holdVal[(size_t) k].load()) hold[(size_t) k].store (false);
+            int tok = f <= 0 ? -1 : FileLoader::encode (d, f - 1);
+            if (hold[(size_t) k].load())
+            {
+                const int o = overrideTok[(size_t) k].load();
+                tok = o < 0 ? o : FileLoader::HOLD;
+            }
+            files.request (k, tok);
+            if (auto* sb = files.take (k))
+            {
+                const auto* use = sb == FileLoader::empty() ? nullptr : sb;
+                if (ex.banks > 0) for (int b = 0; b < ex.banks; ++b) module->setSample (b * 16 + k, use);
+                else module->setSample (k, use);
+                files.retire (k, sb);
+            }
+        }
+        if (laneParam >= 0) module->setPlayLane (getInt (laneParam) - 1);
+        if (phraseParam >= 0)
+        {
+            const int ph = std::clamp (getInt (phraseParam), 0, (int) scripts.size() - 1);
+            if (ph != appliedPhrase) { module->setSpeech (scripts[(size_t) ph].get()); appliedPhrase = ph; }
+        }
+    }
+
     int mapNote (int note) const noexcept
     {
+        if (ex.allNotes) return note >= 16 ? note : -1;
+        if (ex.laneNotes)
+        {
+            if (note >= 36 && note < 36 + std::max (1, ex.lanes)) return note - 36; // pads : pistes T1 à T8
+            return note >= 16 ? note : -1;                                         // clavier : piste choisie
+        }
         if (! desc.drumKit) return note;
+        if (padParam >= 0 && getInt (padParam) >= 1)
+        {
+            // gamme de la Force à partir de C1 = 36, une note de la gamme par pad : pads 1 à 16
+            //   Do majeur : C D E F G A B (notes blanches) ; Do mineur : C D Eb F G Ab Bb
+            static constexpr int major[12] = { 0, -1, 1, -1, 2, 3, -1, 4, -1, 5, -1, 6 };
+            static constexpr int minor[12] = { 0, -1, 1, 2, -1, 3, -1, 4, 5, -1, 6, -1 };
+            const int* deg = getInt (padParam) == 2 ? minor : major;
+            if (note < 0 || deg[note % 12] < 0) return -1;
+            const int d = (note / 12) * 7 + deg[note % 12] - 21;
+            return d >= 0 && d < 16 ? d : -1;
+        }
         if (note >= 36 && note < 52) return note - 36;   // pads MPC (A01..A16)
         if (note >= 0 && note < 16) return note;
         return -1;
@@ -608,14 +1370,23 @@ private:
         if (ev.isNoteOn())
         {
             const int k = mapNote (ev.note());
-            if (k >= 0) module->noteOn (k, (float) ev.velocity() / 127.0f);
+            const float vel = (float) ev.velocity() / 127.0f;
+            if (k >= 0 && arpActive()) { arp.noteOn (k, vel, plain[(size_t) arpParam + 4] > 0.5f); pushKey (k, vel); }
+            else if (k >= 0) { module->noteOn (k, vel); direct[(size_t) k] = true; }
         }
         else if (ev.isNoteOff())
         {
             const int k = mapNote (ev.note());
-            if (k >= 0) module->noteOff (k);
+            if (k >= 0)
+            {
+                arp.noteOff (k);
+                popKey (k);
+                // une note jouée sans l'arpège reçoit toujours son relâchement, même si l'arpège a été
+                // mis en marche entre-temps (sinon elle restait tenue)
+                if (direct[(size_t) k]) { module->noteOff (k); direct[(size_t) k] = false; }
+            }
         }
-        else if (ev.isAllNotesOff()) module->allNotesOff();
+        else if (ev.isAllNotesOff()) { arp.clear(); numKeys = 0; direct.fill (false); module->allNotesOff(); }
         else if (ev.isPitchBend()) { bend = std::clamp ((float) ev.pitchBend() / 8192.0f, -1.0f, 1.0f); module->setExpression (bend, wheel, pressure); }
         else if (ev.isAftertouch()) { pressure = (float) ev.data[1] / 127.0f; module->setExpression (bend, wheel, pressure); }
         else if (ev.isController())
@@ -626,6 +1397,36 @@ private:
     }
 
     std::unique_ptr<Module> module;
+    Extras ex;
+    FileLoader files;
+    int firstFile = -1, laneParam = -1, phraseParam = -1, padParam = -1, appliedPhrase = -1, ballParam = -1, firstDir = -1;
+    grv::engine::Arpeggiator arp;
+    int arpParam = -1, arpOnParam = -1, arpStepsParam = -1;
+    bool arpWasOn = false, blockPlaying = false, lastHold = false;
+    std::array<int, 16> keys {};          // touches tenues qui vont à l'arpège, dans l'ordre joué
+    std::array<float, 16> keyVel {};
+    int numKeys = 0;
+    std::array<bool, 128> direct {};      // notes envoyées directement à l'instrument (sans l'arpège)
+    void pushKey (int k, float v) noexcept
+    {
+        for (int i = 0; i < numKeys; ++i) if (keys[(size_t) i] == k) { keyVel[(size_t) i] = v; return; }
+        if (numKeys < 16) { keys[(size_t) numKeys] = k; keyVel[(size_t) numKeys] = v; ++numKeys; }
+    }
+    void popKey (int k) noexcept
+    {
+        for (int i = 0; i < numKeys; ++i)
+            if (keys[(size_t) i] == k)
+            {
+                for (int j = i; j + 1 < numKeys; ++j) { keys[(size_t) j] = keys[(size_t) j + 1]; keyVel[(size_t) j] = keyVel[(size_t) j + 1]; }
+                --numKeys;
+                return;
+            }
+    }
+    double sr = 44100.0, blockBpm = 120.0, blockPpq = 0.0;
+    // emplacements de sample : dossier vu au dernier bloc, « garder le chargé » et la valeur alors en place
+    std::array<std::atomic<int>, maxSlots> lastDir {}, holdVal {}, overrideTok {};
+    std::array<std::atomic<bool>, maxSlots> hold {};
+    std::vector<std::unique_ptr<grv::engine::SpeechScript>> scripts;
     std::vector<float> tmpR;
     bool wasPlaying = false;
     float bend = 0.0f, wheel = 0.0f, pressure = 0.0f;
@@ -687,6 +1488,102 @@ private:
     std::vector<float> bufL, bufR;
 };
 
+//==============================================================================
+/** Vocodeur en effet : le son de la piste où il est inséré est la voix (modulateur) ; la porteuse joue
+    la note et l'accord choisis dans les réglages (un effet ne reçoit pas de notes sur la machine). */
+template <class Module>
+class VocoderFxPlugin : public GolemBase
+{
+public:
+    explicit VocoderFxPlugin (const mpc::PluginInfo& info, std::unique_ptr<Module> m = std::make_unique<Module>())
+        : GolemBase (info, m->desc()), module (std::move (m))
+    {
+        srcIndex = desc.indexOf ("src");
+        noteParam = numParams();
+        addParam (mpc::intParam ("mpc_note", "Note porteuse", 24, 84, 48));
+        chordParam = numParams();
+        mpc::Param q;
+        q.id = "mpc_chord"; q.name = "Accord porteuse"; q.kind = mpc::Param::Kind::Choice;
+        q.choices = { "Une note", "Octave", "Quinte", "Majeur", "Mineur", "Sus4", "Septieme", "Mineur 7", "Neuvieme" };
+        q.min = 0; q.max = (float) q.choices.size() - 1; q.def = 4;
+        addParam (q);
+    }
+
+    bool formatValue (int index, float plainValue, std::string& out) override
+    {
+        if (index == noteParam)
+        {
+            static const char* nm[12] = { "Do", "Do#", "Re", "Re#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si" };
+            const int n = (int) std::lround (plainValue);
+            out = std::string (nm[((n % 12) + 12) % 12]) + std::to_string (n / 12 - 2);
+            return true;
+        }
+        return GolemBase::formatValue (index, plainValue, out);
+    }
+
+    void prepare (double sampleRate, int maxBlockSize) override
+    {
+        const int mb = std::min (128, std::max (32, maxBlockSize));
+        pullParams();
+        module->prepare (sampleRate, mb);
+        inBufL.assign ((size_t) mb, 0.0f);
+        inBufR.assign ((size_t) mb, 0.0f);
+        scratch.assign ((size_t) mb, 0.0f);
+        held = -1;
+    }
+
+    void reset() override { module->allNotesOff(); module->reset(); held = -1; }
+
+    void process (mpc::ProcessContext& ctx) override
+    {
+        pullParams();
+        const auto& tr = ctx.transport;
+        if (tr.tempoValid && tr.bpm > 0.0) module->setTempo (tr.bpm);
+        if (tr.valid) module->setPosition (tr.ppqValid ? tr.ppqPos : 0.0, tr.playing);
+        if (srcIndex >= 0) plain[(size_t) srcIndex] = 1.0f;   // modulateur : « Entrée audio » = le son de la piste
+        // porteuse : note et accord tenus
+        const int note = getInt (noteParam), chord = getInt (chordParam);
+        const int key = note * 16 + chord;
+        if (key != held)
+        {
+            module->allNotesOff();
+            static const int iv[9][4] = { { 0, -1, -1, -1 }, { 0, 12, -1, -1 }, { 0, 7, 12, -1 }, { 0, 4, 7, 12 }, { 0, 3, 7, 12 },
+                                          { 0, 5, 7, 12 }, { 0, 4, 7, 10 }, { 0, 3, 7, 10 }, { 0, 4, 7, 14 } };
+            const int c = std::clamp (chord, 0, 8);
+            for (int k = 0; k < 4; ++k)
+                if (iv[c][k] >= 0) module->noteOn (note + iv[c][k], 0.85f);
+            held = key;
+        }
+        const int n = ctx.numFrames;
+        if (ctx.numOutputs < 1) return;
+        float* L = ctx.outputs[0];
+        float* R = ctx.numOutputs > 1 ? ctx.outputs[1] : nullptr;
+        const float* inL = ctx.numInputs > 0 && ctx.inputs ? ctx.inputs[0] : nullptr;
+        const float* inR = ctx.numInputs > 1 && ctx.inputs ? ctx.inputs[1] : inL;
+        for (int pos = 0; pos < n;)
+        {
+            const int m = std::min ((int) inBufL.size(), n - pos);
+            for (int k = 0; k < m; ++k)
+            {
+                inBufL[(size_t) k] = inL ? inL[pos + k] : 0.0f;
+                inBufR[(size_t) k] = inR ? inR[pos + k] : inBufL[(size_t) k];
+            }
+            module->setInput (inBufL.data(), inBufR.data());
+            float* r = R ? R + pos : tmpR (m);
+            module->render (L + pos, r, m, plain.data());
+            pos += m;
+        }
+        applyGain (L, R, n);
+    }
+
+private:
+    float* tmpR (int m) { if ((int) scratch.size() < m) scratch.resize ((size_t) m); return scratch.data(); }
+
+    std::unique_ptr<Module> module;
+    std::vector<float> inBufL, inBufR, scratch;
+    int srcIndex = -1, noteParam = -1, chordParam = -1, held = -1;
+};
+
 } // namespace grv::mpcport
 
 /** Lu par le générateur (dlopen du greffon natif) : pages de l'interface. */
@@ -695,5 +1592,11 @@ private:
     {                                                                                         \
         static std::string s;                                                                 \
         if (s.empty()) { PluginClass p; s = p.layout(); }                                     \
+        return s.c_str();                                                                     \
+    }                                                                                         \
+    extern "C" __attribute__ ((visibility ("default"))) const char* golem_mpc_catalog()       \
+    {                                                                                         \
+        static std::string s;                                                                 \
+        if (s.empty()) { PluginClass p; s = p.catalog(); }                                    \
         return s.c_str();                                                                     \
     }

@@ -26,10 +26,12 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GOLEM_SRC = os.path.normpath(os.path.join(HERE, "..", "src"))
+ROOT_DIR = os.path.normpath(os.path.join(HERE, ".."))
 
 
 def slug(name):
-    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    # même règle que l'outil de construction du kit (tools/build.py : make_slug)
+    return re.sub(r"[^a-z0-9]", "-", name.lower())
 
 
 def ident(name):
@@ -68,9 +70,52 @@ def write_project(m, manufacturer, out_root, version):
     v = [int(x) for x in (version.split(".") + ["0", "0", "0"])[:4]]
     vnum = v[0] * 1000 + v[1] * 100 + v[2] * 10 + v[3]
     cls = ident(name) + "Plugin"
-    base = "InstrumentPlugin" if m["kind"] == "instrument" else "EffectPlugin"
+    base = m.get("wrapper") or ("InstrumentPlugin" if m["kind"] == "instrument" else "EffectPlugin")
     uid = m["uid"]
-    cpp = f'''// Généré par mpc/build_mpc.py — ne pas modifier à la main. OFAD GOLEM — AGPL-3.0-or-later
+    extras = m.get("extras") or {}
+    ex_lines = []
+    if extras:
+        ex_lines.append("    grv::mpcport::Extras x;")
+        if extras.get("folder"):
+            ex_lines.append('    x.folder = "%s";' % extras["folder"])
+            ex_lines.append("    x.exts = { %s };" % ", ".join('"%s"' % e for e in extras.get("exts", [".wav"])))
+            ex_lines.append("    x.slots = %d;" % int(extras.get("slots", 1)))
+            ex_lines.append('    x.label = "%s";' % extras.get("label", "Sample"))
+            ex_lines.append("    x.firmware = %s;" % ("true" if extras.get("firmware") else "false"))
+            ex_lines.append("    x.banks = %d;" % int(extras.get("banks", 0)))
+        if extras.get("lanes"):
+            ex_lines.append("    x.lanes = %d;" % int(extras["lanes"]))
+            ex_lines.append("    x.laneNotes = %s;" % ("false" if extras.get("allNotes") else "true"))
+        if extras.get("allNotes"):
+            ex_lines.append("    x.allNotes = true;")
+        if extras.get("ballOut"):
+            ex_lines.append("    x.ballOut = true;")
+        for label, text in extras.get("phrases", []):
+            ex_lines.append('    x.phrases.push_back ({ %s, %s });' % (json.dumps(label), json.dumps(text)))
+        ex_lines.append("    return x;")
+    loader_code = ""
+    loader_arg = ""
+    if m.get("fm1"):
+        loader_code = """
+grv::engine::SampleBuffer* firmwareLoader (const std::string& path, const std::string& name, bool)
+{
+    std::vector<std::uint8_t> bytes;
+    if (! mpc::readFile (path, bytes)) return nullptr;
+    if (! grv::instruments::fmplayer::looksLikeFirmware (name, bytes.data(), bytes.size())) return nullptr;
+    auto* s = new grv::engine::SampleBuffer();
+    s->firmware = true;
+    s->name = name;
+    const auto err = grv::instruments::fmplayer::start (bytes, {}, s->runtime, name);
+    if (! err.empty() || s->runtime == nullptr) { delete s; return nullptr; }
+    return s;
+}
+"""
+        loader_arg = ", &firmwareLoader"
+    extras_fn = ("grv::mpcport::Extras makeExtras()\n{\n" + "\n".join(ex_lines) + "\n}\n") if ex_lines else ""
+    ctor_args = "makeInfo(), %s" % m["make"]
+    if ex_lines:
+        ctor_args += ", makeExtras()" + loader_arg
+    cpp = f"""// Généré par mpc/build_mpc.py — ne pas modifier à la main. OFAD GOLEM — AGPL-3.0-or-later
 #include "GolemMpc.h"
 #include "{m["header"]}"
 
@@ -88,19 +133,38 @@ mpc::PluginInfo makeInfo()
     i.numOutputs = 2;
     return i;
 }}
-}}
+{extras_fn}{loader_code}}}
 
 class {cls} : public grv::mpcport::{base}<std::decay_t<decltype (*{m["make"]})>>
 {{
 public:
-    {cls}() : {base} (makeInfo(), {m["make"]}) {{}}
+    {cls}() : {base} ({ctor_args}) {{}}
 }};
 
 MPC_PLUGIN_ENTRY ({cls})
 GOLEM_MPC_LAYOUT ({cls})
-'''
+"""
     with open(os.path.join(proj, "src", ident(name) + ".cpp"), "w", encoding="utf-8") as f:
         f.write(cpp)
+    # fichiers livrés avec le greffon (Content/), copiés depuis le dépôt GOLEM
+    for sub, src in (m.get("content") or {}).items():
+        dst = os.path.join(proj, "Content", sub)
+        if os.path.isdir(dst):
+            shutil.rmtree(dst)
+        shutil.copytree(os.path.join(ROOT_DIR, src), dst)
+    # émulateur FM (licence MIT) : sa notice accompagne le greffon
+    if m.get("fm1"):
+        os.makedirs(os.path.join(proj, "Content", "Licences"), exist_ok=True)
+        shutil.copy(os.path.join(FM1_DIR, "LICENSE"), os.path.join(proj, "Content", "Licences", "fm1emu-MIT.txt"))
+    # dossier des fichiers de l'utilisateur, avec sa notice
+    folder_x = (m.get("extras") or {}).get("folder")
+    if folder_x:
+        os.makedirs(os.path.join(proj, "Content", folder_x), exist_ok=True)
+        what = "firmwares .fwsc" if (m.get("extras") or {}).get("firmware") else "fichiers WAV (16, 24 ou 32 bits, mono ou stéréo)"
+        with open(os.path.join(proj, "Content", folder_x, "LISEZ-MOI.txt"), "w", encoding="utf-8") as f:
+            f.write("Copiez ici vos %s, puis redémarrez la machine (ou rechargez le greffon).\n"
+                    "Copy your %s here, then restart the machine (or reload the plugin).\n"
+                    % (what, "firmware .fwsc files" if (m.get("extras") or {}).get("firmware") else "WAV files (16, 24 or 32-bit, mono or stereo)"))
     return proj, s
 
 
@@ -110,6 +174,51 @@ def load_sdk_build(sdk, extra_defines, src_dir):
     flags = [f for f in b.COMMON_FLAGS if not f.startswith("-std=") and f not in ("-Wall", "-Wextra")]
     b.COMMON_FLAGS[:] = ["-std=c++20"] + flags + ["-w", "-I" + src_dir, "-I" + HERE] + ["-D" + d for d in extra_defines]
     return b
+
+
+FM1_DIR = os.path.join(ROOT_DIR, "third_party", "fm1emu")
+FM1_TRIPLES = {"native": "x86_64-unknown-linux-gnu", "arm32": "armv7-unknown-linux-gnueabihf", "arm64": "aarch64-unknown-linux-gnu"}
+
+
+def build_fm1(cargo_dir):
+    """Émulateur FM-1 (Rust, licence MIT) compilé pour le PC et les deux processeurs des MPC."""
+    libs = {}
+    for target, triple in FM1_TRIPLES.items():
+        r = subprocess.run(["cargo", "build", "--release", "--offline", "-p", "fm1-bridge", "--target", triple],
+                           cwd=FM1_DIR, env=dict(os.environ, CARGO_TARGET_DIR=cargo_dir))
+        lib = os.path.join(cargo_dir, triple, "release", "libfm1_bridge.a")
+        if r.returncode != 0 or not os.path.isfile(lib):
+            raise SystemExit("émulateur FM-1 : la compilation Rust a échoué (%s)" % triple)
+        libs[target] = lib
+    return libs
+
+
+def with_extra_libs(b, libs):
+    """Ajoute, cible par cible, une bibliothèque statique à l'édition des liens du kit."""
+    B = b.Builder
+    if not hasattr(B, "_golem_orig"):
+        B._golem_orig = (B.build_native, B.build_arm)
+    orig_native, orig_arm = B._golem_orig
+    if not libs:
+        B.build_native, B.build_arm = orig_native, orig_arm
+        return
+
+    def build_native(self, output):
+        saved = self.sources
+        self.sources = saved + [libs["native"], "-lpthread", "-ldl"]
+        try:
+            return orig_native(self, output)
+        finally:
+            self.sources = saved
+
+    def build_arm(self, target, output):
+        saved = self.sources
+        self.sources = saved + [libs[target], "-lpthread", "-ldl"]
+        try:
+            return orig_arm(self, target, output)
+        finally:
+            self.sources = saved
+    B.build_native, B.build_arm = build_native, build_arm
 
 
 def stage_sources(stage_dir):
@@ -155,7 +264,7 @@ def skins_only(args, cfg, mods):
         skin_dir = os.path.join(proj, "skins")
         if os.path.isdir(skin_dir):
             shutil.rmtree(skin_dir)
-        SK.build(os.path.abspath(args.sdk), m["key"], m["kind"], params_json, catalog, skin_dir, title=m["name"])
+        SK.build(os.path.abspath(args.sdk), m["key"], m["kind"], params_json, catalog, skin_dir, title=m.get("base_name", m["name"]))
         dst = os.path.join(folder, "Plugin Skins")
         if os.path.isdir(dst):
             shutil.rmtree(dst)
@@ -193,6 +302,8 @@ def main():
     b = load_sdk_build(os.path.abspath(args.sdk), ["GRV_MPC=1", "GRV_LOW_MEMORY=1"] + args.define, stage_dir)
     version = version_of_golem()
     failed = []
+    fm1_libs = None
+    base_flags = list(b.COMMON_FLAGS)
     for m in mods:
         print("\n" + "=" * 72 + "\n" + m["name"] + "\n" + "=" * 72)
         proj, s = write_project(m, cfg["manufacturer"], args.out, version)
@@ -202,6 +313,14 @@ def main():
             print("  déjà construit : passé")
             continue
         filter_banks(stage_dir, m["key"])
+        if m.get("fm1"):
+            if fm1_libs is None:
+                fm1_libs = build_fm1(os.path.join(args.out, "_fm1"))
+            with_extra_libs(b, fm1_libs)
+            b.COMMON_FLAGS[:] = base_flags + ["-DGROOVEBOX_FM1=1", "-I" + os.path.join(FM1_DIR, "include")]
+        else:
+            with_extra_libs(b, None)
+            b.COMMON_FLAGS[:] = base_flags
         if b.main([proj, "--target", "native", "--no-validate"]) != 0:
             failed.append(m["name"]); continue
         lib = ctypes.CDLL(os.path.join(proj, "build", "native", s + ".so"))
@@ -209,6 +328,17 @@ def main():
         layout = lib.golem_mpc_layout().decode("utf-8")
         with open(os.path.join(proj, "ui.json"), "w", encoding="utf-8") as f:
             f.write(layout)
+        if m.get("mpc_only"):
+            # greffon propre à la MPC (pas encore dans GOLEM) : sa fiche rejoint mpc/catalog_mpc.json
+            lib.golem_mpc_catalog.restype = ctypes.c_char_p
+            entry = json.loads(lib.golem_mpc_catalog().decode("utf-8"))
+            cpath = os.path.join(HERE, "catalog_mpc.json")
+            extra = json.load(open(cpath, encoding="utf-8")) if os.path.isfile(cpath) else {"instruments": [], "effects": []}
+            grp = "instruments" if m["kind"] == "instrument" else "effects"
+            extra[grp] = [e for e in extra.get(grp, []) if e["type"] != entry["type"]] + [entry]
+            with open(cpath, "w", encoding="utf-8") as f:
+                json.dump(extra, f, ensure_ascii=False, indent=1)
+                f.write("\n")
         # habillage graphique dessiné à la main (skins.py), sinon pages automatiques (ui.json)
         import skins as SK
         skin_dir = os.path.join(proj, "skins")
@@ -216,7 +346,7 @@ def main():
             shutil.rmtree(skin_dir)
         catalog = os.path.join(HERE, "..", "ui", "src", "engine", "catalog.json")
         params_json = os.path.join(proj, "build", "params.json")
-        if SK.build(os.path.abspath(args.sdk), m["key"], m["kind"], params_json, catalog, skin_dir, title=m["name"]):
+        if SK.build(os.path.abspath(args.sdk), m["key"], m["kind"], params_json, catalog, skin_dir, title=m.get("base_name", m["name"])):
             print("  habillage graphique : skins.py")
         if args.native_only:
             continue
