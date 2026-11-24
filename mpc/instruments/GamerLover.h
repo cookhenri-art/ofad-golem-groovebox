@@ -151,7 +151,7 @@ inline engine::ModuleDesc makeDesc()
     p[drDecay] = P ("drdecay", "Batterie declin", "%", 25, 200, 100);
     p[drTone] = P ("drtone", "Batterie timbre", "%", 0, 100, 50);
     p[bits] = I ("bits", "Resolution", "bits", 4, 16, 16);
-    p[rate] = C ("rate", "Frequence", { "44,1 kHz", "32 kHz", "22 kHz", "16 kHz", "11 kHz" }, 0);
+    p[rate] = C ("rate", "Frequence", { "Pleine", "32 kHz", "22 kHz", "16 kHz", "11 kHz" }, 0);
     p[tone] = C ("tone", "Filtre sortie", { "Ouvert", "Salon", "Portable", "Télé" }, 0);
     p[echoMix] = P ("echomix", "Echo", "%", 0, 100, 0);
     p[echoTime] = I ("echotime", "Echo temps", "ms", 16, 240, 160);
@@ -343,7 +343,20 @@ inline std::vector<Smp> buildSamples()
     // 7 orgue : tirettes 1, 2, 3, 4, 6, 8
     partials (out[7], [] (int k) { return (k == 1 || k == 2) ? 1.0 : ((k == 3 || k == 4) ? 0.6 : ((k == 6 || k == 8) ? 0.35 : 0.0)); },
               [&] (int, int n) { return rise (n, 8); }, 0.0, 1, 0.0);
-    for (auto& s : out) crunch4 (s.d);
+    for (auto& s : out)
+    {
+        crunch4 (s.d);
+        // la compression 4 bits laisse un petit saut au point de boucle (clic à chaque tour) : la fin de la
+        // boucle est fondue vers ce qui précède son début, la reprise est continue
+        const int len = (int) s.d.size(), n = 96;
+        if (s.loopStart > n && len - s.loopStart > n)
+            for (int i = 0; i < n; ++i)
+            {
+                const float w = (float) (i + 1) / (float) n;
+                auto& v = s.d[(size_t) (len - n + i)];
+                v = v * (1.0f - w) + s.d[(size_t) (s.loopStart - n + i)] * w;
+            }
+    }
     return out;
 }
 
@@ -484,8 +497,10 @@ public:
         const int nv = std::clamp ((int) p[S::voices], 1, gamer::maxVoices);
         const float wid = p[S::width] / 100.0f;
         // sortie console
-        static const double rates[] = { 44100.0, 32000.0, 22050.0, 16000.0, 11025.0 };
-        const double holdStep = std::min (1.0, rates[std::clamp ((int) p[S::rate], 0, 4)] / sr);
+        // « Pleine » : aucune réduction (avant : 44,1 kHz, qui répétait un échantillon sur douze à 48 kHz)
+        static const double rates[] = { 0.0, 32000.0, 22050.0, 16000.0, 11025.0 };
+        const int rateSel = std::clamp ((int) p[S::rate], 0, 4);
+        const double holdStep = rateSel == 0 ? 1.0 : std::min (1.0, rates[rateSel] / sr);
         const int nb = std::clamp ((int) p[S::bits], 4, 16);
         const float q = nb >= 16 ? 0.0f : (float) std::ldexp (1.0, nb - 1);
         static const double cut[] = { 20000.0, 11000.0, 6500.0, 3800.0 };
@@ -577,6 +592,9 @@ private:
         double tickLeft = 0.0;
         int frames = 0, relFrame = 0;
         float volLevel = 0.0f;          // 0..15 (marches)
+        float volTgt = 0.0f, volCur = 0.0f;  // niveau visé (0..1) et niveau joué, lissé sur ~1 ms (sans clic)
+        bool restartPending = false, killing = false;
+        int pendNote = 60; float pendVel = 1.0f;
         float volFrom = 0.0f;           // niveau au relâchement
         double curPitch = 60.0, fromPitch = 60.0;
         double hz = 261.6;
@@ -591,6 +609,12 @@ private:
 
         void start (int nt, float v, bool legato)
         {
+            if (active && ! legato && volCur > 1.0e-3f)
+            {
+                restartPending = true; killing = false; pendNote = nt; pendVel = v; note = nt;
+                return;
+            }
+            restartPending = false; killing = false;
             const bool was = active;
             note = nt; vel = v;
             active = true; gate = true;
@@ -604,6 +628,7 @@ private:
             else frames = std::min (frames, 1);
         }
         void release() { if (gate) { gate = false; relFrame = frames; volFrom = volLevel; } }
+        void kill() { if (active) { killing = true; gate = false; } }
 
         /** Une image (1/60 ou 1/50 s) : tables de volume, d'arpège, de largeur et de hauteur. */
         void frame (const float* p, int chip, double tickHz, float bend) noexcept
@@ -622,9 +647,13 @@ private:
             {
                 const double tr = (frames - relFrame) * fms;
                 lvl = r <= 0 ? 0.0 : volFrom * std::max (0.0, 1.0 - tr / r);
-                if (lvl < 0.5) { active = false; }
+                if (lvl < 0.5) lvl = 0.0;   // la voix s'éteint quand le niveau joué arrive à zéro (sample)
             }
             volLevel = (float) std::clamp (std::floor (lvl + 0.5), 0.0, 15.0);
+            // 8 bits et portable : 16 marches de volume (comme les puces) ; FM et échantillons : enveloppe fine
+            const bool stepped = chip == gamer::chip8 || chip == gamer::chipGb;
+            if (! restartPending && ! killing)
+                volTgt = stepped ? volLevel / 15.0f : (float) std::clamp (lvl / 15.0, 0.0, 1.0);
             // hauteur : glisse, arpège, chute, vibrato retardé (en marches)
             const double target = note + p[S::tune];
             const double gl = p[S::glide];
@@ -649,13 +678,24 @@ private:
                 case 3: { static const int seq[6] = { 0, 1, 2, 3, 2, 1 }; dutyIdx = seq[(frames / 3 + base) % 6]; break; }
                 default: dutyIdx = base; break;
             }
-            (void) chip;
             ++frames;
         }
 
         float sample (const float* p, int chip, double sr, const std::vector<gamer::Smp>& smps) noexcept
         {
-            const float amp = volLevel / 15.0f * (0.35f + 0.65f * vel);
+            {
+                const float tgt = (restartPending || killing) ? 0.0f : volTgt;
+                const float k = (restartPending || killing) ? (float) (1.0 - std::exp (-1.0 / (0.0006 * sr)))
+                                                            : (float) (1.0 - std::exp (-1.0 / (0.001 * sr)));
+                volCur += (tgt - volCur) * k;
+                if (volCur < 1.0e-4f && tgt <= 0.0f)
+                {
+                    volCur = 0.0f;
+                    if (restartPending) { restartPending = false; start (pendNote, pendVel, false); }
+                    else if (killing || ! gate) { active = false; killing = false; return 0.0f; }
+                }
+            }
+            const float amp = volCur * (0.35f + 0.65f * vel);
             if (amp <= 0.0f) return 0.0f;
             const double dt = hz / sr;
             float y = 0.0f;
@@ -678,7 +718,8 @@ private:
                     if (chip == gamer::chip8)
                     {
                         const int lv = stp < 16 ? 15 - stp : stp - 16;     // 15 .. 0 .. 15 : triangle en escalier
-                        y = (float) (lv / 7.5 - 1.0) * (0.35f + 0.65f * vel); // le triangle n'a pas de volume : tout ou rien
+                        // le triangle n'a pas de volume : tout ou rien (porte lissée, sans clic)
+                        y = (float) (lv / 7.5 - 1.0) * (0.35f + 0.65f * vel) * std::min (1.0f, volCur * 15.0f);
                         ph += dt;
                         if (ph >= 1.0) ph -= 1.0;
                         return y;
@@ -700,7 +741,7 @@ private:
                     y = nval;
                 }
                 // volume 4 bits
-                y *= std::floor (amp * 15.0f + 0.5f) / 15.0f;
+                y *= amp;
             }
             else if (chip == gamer::chipFm)
             {
@@ -779,6 +820,7 @@ private:
         int pad = 0; float vel = 1.0f; float pan = 0.0f;
         double t = 0.0, ph = 0.0, mph = 0.0, nph = 0.0;
         std::uint32_t lfsr = 1; float nval = 1.0f;
+        float eT = 0.0f, eN = 0.0f;   // marches de volume lissées (~0,5 ms) : plus de clic à chaque marche
 
         void start (int pd, float v) { active = true; pad = pd; vel = v; t = 0.0; ph = mph = nph = 0.0; lfsr = 1; pan = ((pd * 7) % 5 - 2) * 0.15f; }
 
@@ -804,7 +846,8 @@ private:
                 else if (d.osc == 2) v = ph < 0.5 ? 1.0f : -1.0f;
                 else { mph += f * d.fmRatio / sr; mph -= std::floor (mph); v = gamer::fastSin (ph + d.fmIndex * env * gamer::fastSin (mph) * 0.3); }
                 const float e4 = std::floor ((float) env * 15.0f + 0.5f) / 15.0f;
-                out += v * e4 * (float) d.toneLvl;
+                eT += (e4 - eT) * (float) (1.0 - std::exp (-1.0 / (0.0005 * sr)));
+                out += v * eT * (float) d.toneLvl;
             }
             if (d.noise > 0)
             {
@@ -822,10 +865,11 @@ private:
                     nval = (lfsr & 1u) ? 1.0f : -1.0f;
                 }
                 const float e4 = std::floor ((float) env * 15.0f + 0.5f) / 15.0f;
-                out += nval * e4 * (float) d.noiseLvl * 0.6f;
+                eN += (e4 - eN) * (float) (1.0 - std::exp (-1.0 / (0.0005 * sr)));
+                out += nval * eN * (float) d.noiseLvl * 0.6f;
             }
             t += 1.0 / sr;
-            if (! alive && t > 0.02) active = false;
+            if (! alive && t > 0.02 && eT < 1.0e-4f && eN < 1.0e-4f) active = false;
             return out * (0.35f + 0.65f * vel) * 0.7f;
         }
     };
@@ -853,7 +897,7 @@ private:
                     const bool legato = v.active && v.gate;
                     if (! (legato && p[S::glide] > 0.0f)) v.curPitch = ev.note + p[S::tune];
                     v.start (ev.note, ev.vel, legato);
-                    for (int k = 1; k < gamer::maxVoices; ++k) vs[(size_t) k].active = false;
+                    for (int k = 1; k < gamer::maxVoices; ++k) vs[(size_t) k].kill();
                     heldStack (ev.note, true);
                     continue;
                 }
