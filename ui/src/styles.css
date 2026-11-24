@@ -4939,3 +4939,66 @@ html, body, #root { overflow: clip; }
 .kf-browser-close { position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--accent); background: oklch(0.2 0.01 45); color: var(--fp-text); cursor: pointer; font-size: 12px; z-index: 1; }
 .kf-libbtn { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent, oklch(0.78 0.17 55)); background: oklch(0.2 0.01 45); color: oklch(0.88 0.12 60); font-size: 12px; font-weight: 800; cursor: pointer; }
 .kf-libbtn.on { background: var(--accent); color: oklch(0.14 0.02 50); }
+
+/* 1.3 : Gamer Lover — coque violet nuit, sérigraphie jaune cartouche, sections à coins carrés comme une console ;
+   le téléviseur à tube (phosphore de la couleur de la puce, lignes de balayage, verre bombé) et les cartouches */
+.face--t-cartouche { --face-panel: oklch(0.18 0.06 285); --face-accent: oklch(0.88 0.17 90); --accent: oklch(0.88 0.17 90); --fp-line: oklch(0.7 0.08 285 / 0.25); --fp-text: oklch(0.95 0.02 95); --fp-led: oklch(0.88 0.17 90); --fp-led-off: oklch(0.33 0.05 285); }
+.face--t-cartouche .fp { border-radius: 3px; border: 2px solid oklch(0.32 0.07 285); background: oklch(0.22 0.065 285); box-shadow: inset 0 -3px 0 oklch(0.15 0.05 285); padding-top: 22px; }
+.face--t-cartouche .fp-title { background: transparent; color: var(--tone, oklch(0.88 0.17 90)); letter-spacing: 0.06em; font-weight: 800; }
+.face--t-cartouche .fp-head { top: 3px; }
+.face--t-cartouche .knob-arc { stroke: var(--tone, oklch(0.88 0.17 90)); }
+.face--t-cartouche .knob-track { stroke: oklch(0.34 0.06 285); }
+.face--t-cartouche .knob-value { color: oklch(0.92 0.1 95); font-variant-numeric: tabular-nums; }
+.face--t-cartouche .fc-toggle { border-radius: 2px; background: oklch(0.15 0.05 285); }
+.face--t-cartouche .face-head .face-stripe { background: repeating-linear-gradient(90deg, var(--fp-led) 0 10px, transparent 10px 14px); }
+
+.gl-tv { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
+.gl-cabinet { flex: none; height: 178px; display: flex; gap: 8px; padding: 10px; border-radius: 10px; background: linear-gradient(oklch(0.3 0.03 60), oklch(0.22 0.025 55)); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.08), 0 3px 8px oklch(0 0 0 / 0.5); }
+.gl-glass { position: relative; flex: 1; min-width: 0; border-radius: 18px / 26px; overflow: hidden; background: radial-gradient(ellipse at 50% 45%, oklch(0.2 0.02 250), oklch(0.08 0.01 250) 80%); box-shadow: inset 0 0 26px oklch(0 0 0 / 0.85), 0 0 0 3px oklch(0.12 0.01 60); }
+.gl-svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.gl-scan { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, oklch(0 0 0 / 0.28) 0 1px, transparent 1px 3px), radial-gradient(ellipse at 30% 20%, oklch(1 0 0 / 0.09), transparent 45%); }
+.gl-trace { fill: none; stroke: var(--gl-phos); stroke-width: 2.2; filter: drop-shadow(0 0 4px var(--gl-phos)); }
+.gl-link { fill: none; stroke: var(--gl-phos); stroke-width: 1.6; opacity: 0.75; }
+.gl-link--out { stroke-dasharray: 4 3; }
+.gl-op { fill: oklch(0.12 0.02 250); stroke: var(--gl-phos); stroke-width: 1.6; }
+.gl-op--car { fill: color-mix(in oklch, var(--gl-phos) 30%, oklch(0.12 0.02 250)); }
+.gl-optext, .gl-padnote, .gl-padname { fill: var(--gl-phos); text-anchor: middle; font-weight: 700; }
+.gl-optext { font-size: 13px; }
+.gl-padhit { cursor: pointer; }
+.gl-padhit:active .gl-pad { fill: color-mix(in oklch, var(--gl-phos) 45%, oklch(0.1 0.01 250)); }
+.gl-pad { fill: color-mix(in oklch, var(--gl-phos) 14%, oklch(0.1 0.01 250)); stroke: var(--gl-phos); stroke-width: 1; }
+.gl-padnote { font-size: 9px; opacity: 0.7; }
+.gl-padname { font-size: 9.5px; }
+.gl-caption { fill: var(--gl-phos); font-size: 12px; font-weight: 700; }
+.gl-chiptag { fill: var(--gl-phos); font-size: 11px; text-anchor: end; opacity: 0.8; }
+.gl-grille { width: 34px; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.gl-grille i { display: block; height: 4px; border-radius: 2px; background: oklch(0.14 0.02 55); box-shadow: inset 0 1px 1px oklch(0 0 0 / 0.6); }
+.gl-carts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.gl-cart { position: relative; min-height: 34px; padding: 8px 2px 4px; border: 0; border-radius: 3px 3px 1px 1px; background: oklch(0.3 0.02 285); color: oklch(0.9 0.02 95); font: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer; box-shadow: inset 0 -3px 0 oklch(0.2 0.02 285); }
+.gl-cart::before { content: ""; position: absolute; left: 18%; right: 18%; top: 3px; height: 3px; border-radius: 1px; background: var(--gl-c); opacity: 0.45; }
+.gl-cart.on { background: oklch(0.88 0.17 90); color: oklch(0.2 0.05 285); }
+.gl-cart.on::before { opacity: 1; background: oklch(0.2 0.05 285); }
+.gl-cart:focus-visible { outline: 2px solid oklch(0.88 0.17 90); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .gl-cart:not(.on):hover { background: oklch(0.36 0.03 285); } }
+.gl-cart:active { transform: translateY(1px); }
+
+/* 1.3 (essai) : Gamer Lover au téléphone — écran façon machine à pads : 8 menus, téléviseur, pastilles, 8 boutons */
+.gk { display: flex; gap: 8px; min-height: 0; }
+.gk-knobs .encoder--knob { zoom: 0.86; }
+.gk-nav { width: 92px; flex: none; display: flex; flex-direction: column; gap: 3px; }
+.gk-navbtn { flex: 1; min-height: 26px; padding: 0 10px; border-radius: 8px; border: 1px solid oklch(0.32 0.07 285); background: oklch(0.24 0.07 285); color: oklch(0.95 0.02 95); font: inherit; font-size: 12.5px; font-weight: 700; text-align: left; white-space: nowrap; cursor: pointer; }
+.gk-navbtn.on { background: oklch(0.88 0.17 90); border-color: oklch(0.88 0.17 90); color: oklch(0.2 0.05 285); }
+.gk-navbtn:focus-visible, .gk-pill:focus-visible { outline: 2px solid oklch(0.88 0.17 90); outline-offset: 2px; }
+.gk-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.gk-top { display: flex; gap: 10px; min-height: 0; padding: 7px; border-radius: 12px; background: oklch(0.24 0.07 285); border: 1px solid oklch(0.32 0.07 285); }
+.gk-tv { width: 236px; height: 130px; flex: none; padding: 7px; border-radius: 14px; background: oklch(0.13 0.04 285); box-shadow: inset 0 0 0 1px oklch(0.32 0.07 285); }
+.gk-tv .gl-glass { height: 100%; }
+.gk-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+.gk-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.gk-pills-k { width: 100%; font-size: 10.5px; color: oklch(0.75 0.06 285); }
+.gk-pill { min-height: 26px; padding: 0 10px; border-radius: 14px; border: 1px solid oklch(0.4 0.08 285); background: transparent; color: oklch(0.95 0.02 95); font: inherit; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.gk-pill.on { background: oklch(0.88 0.17 90); border-color: oklch(0.88 0.17 90); color: oklch(0.2 0.05 285); }
+.gk-knobs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); align-items: start; padding: 4px; border-radius: 12px; background: oklch(0.24 0.07 285); border: 1px solid oklch(0.32 0.07 285); }
+.gk-knob { display: flex; justify-content: center; min-width: 0; }
+.gk-knob--empty { min-height: 1px; }
+.face--t-cartouche .fp:has(> .fp-body .gk), .face--t-cartouche .fp:has(.gk) { padding-top: 6px; background: transparent; border: 0; box-shadow: none; }

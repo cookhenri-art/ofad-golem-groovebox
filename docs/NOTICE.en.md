@@ -1010,6 +1010,37 @@ percussion.
 
 <figure><img src="img/v120/en/pc-microton-kit.jpg" alt="Micro Tonnerre, The kit page: the 8 channels in columns"><figcaption>"The kit" page: the 8 channels in columns</figcaption></figure>
 
+### 18. Gamer Lover: game console chips (1.3)
+
+**Gamer Lover** (**Polys** family) brings together the sounds of **8 and 16-bit** game consoles from the 90s and
+2000s in a single instrument. The **Chip** selector changes the whole engine, and the front panel's **CRT TV**
+changes with it: it shows the wave, the operator diagram or the drum pads.
+
+- **8-bit**: square with 4 widths (12.5 to 75 %, fixed or animated), **stepped triangle** with 16 levels, long or
+  short noise; stepped volume as on the console.
+- **Handheld**: the same square, plus a 32-step **4-bit table** (8 waves: sine, saw, organ, voice, bell…).
+- **16-bit FM**: **4 operators**, **8 algorithms**, feedback, ratio and level per operator, modulator decay and the
+  period converter's **grain**.
+- **16-bit samples**: 8 short block-compressed samples (strings, choir, electric piano, brass, flute, bass, guitar,
+  organ), soft or hard playback.
+- **Drums**: **16 pads** (notes 36 to 51) — kicks, snares, clap, hi-hats, toms, bell, and game sound effects (coin,
+  jump, explosion); tap the pads on the TV to hear them.
+- **Tables** run at the frame rate (**60 or 50 Hz**): fast **arpeggios** (fake chords), pitch drop, delayed
+  vibrato, volume envelope.
+- **Console output**: resolution (4 to 16 bits), sample rate (full down to 11 kHz), output filter (Living room,
+  Handheld, TV), stereo width, and an **8-tap echo** with its filter.
+- **95 factory sounds**: Basses, Leads, Pads, Keys, Arpeggios, Drum kits, Effects (coin, laser, life lost…).
+
+**On the phone (trial)**, Gamer Lover has a pad-machine style screen: **8 menus** on the left (Play, Waves, FM,
+FM levels, Tables, Volume, Drums, Console), the TV and the chip pills in the middle, and a row of **8 knobs** that
+follows the chosen menu. If you like this trial, other instruments may move to this layout.
+
+<figure><img src="img/v130/en/pc-gamer.jpg" alt="Gamer Lover: the CRT TV, the chip cartridges, the chip, envelope, wave, FM and sample settings"><figcaption>Gamer Lover: the TV follows the chosen chip</figcaption></figure>
+
+<figure><img src="img/v130/en/pc-gamer-tables.jpg" alt="Gamer Lover, Tables and output page: the 16 drum pads, arpeggio, pitch, console output and echo"><figcaption>"Tables and output" page: drums, tables, console output</figcaption></figure>
+
+<figure><img src="img/v130/en/tel-gamer.jpg" alt="Gamer Lover on the phone: 8 menus, the TV, the chip pills and 8 knobs"><figcaption>On the phone: the pad-machine style screen</figcaption></figure>
+
 ## MIDI controller
 
 ### Plugging in a controller: plug and play

@@ -4,7 +4,7 @@ Fichier écrit par `scripts/gen-docs.py` à partir du catalogue du moteur (`groo
 Les noms sont propres au Groovebox ; chaque module reprend le **principe** d'une famille de machines, jamais son nom,
 sa façade ni ses sons.
 
-**41 instruments** (2673 sons d'usine) et **54 effets**.
+**42 instruments** (2768 sons d'usine) et **54 effets**.
 
 ## Instruments
 
@@ -43,6 +43,7 @@ sa façade ni ses sons.
 | <img src="../ui/public/thumbs/gooddoc.webp" width="120" alt=""> | **Good Doctor** | Trois oscillateurs à tables d'ondes à double déformation, deux filtres en série ou parallèle, distorsion, matrice | 90 (Basses 26, Leads 12, Nappes 12, Plucks 8, Claviers 7, Cordes 5, Cuivres 5, Arpèges 6, Effets 5, Acide 4) |
 | <img src="../ui/public/thumbs/fmplayer.webp" width="120" alt=""> | **FM Player** | Lecteur de firmwares du boîtier de synthèse FM-1 (processeur émulé) : chaque firmware .fwsc devient un instrument | — |
 | <img src="../ui/public/thumbs/gooddoc2.webp" width="120" alt=""> | **Good Doctor 2** | Trois oscillateurs hybrides (tables d'ondes, granulaire, spectral) à double déformation et unisson, deux filtres, 4 enveloppes à courbes, LFO, matrice, rack de 10 effets dont compresseur trois bandes | 99 (Basses 42, Leads 12, Nappes 10, Plucks 8, Claviers 4, Cordes 3, Cuivres 3, Arpèges 4, Effets 11, Acide 2) |
+| <img src="../ui/public/thumbs/gamer.webp" width="120" alt=""> | **Gamer Lover** | Puces des consoles de jeu 8 et 16 bits (carré, triangle, bruit, onde 4 bits, FM 4 opérateurs, échantillons compressés), tables à 60 Hz, batterie de console et sortie d'époque | 95 (Basses 17, Leads 20, Nappes 15, Claviers 7, Arpèges 14, Effets 14, Batteries 8) |
 
 ### Nappes
 

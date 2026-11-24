@@ -271,8 +271,7 @@
    "category": "Synth",
    "header": "instruments/GamerLover.h",
    "make": "std::make_unique<grv::instruments::GamerLover>()",
-   "base_name": "Gamer Lover",
-   "mpc_only": true
+   "base_name": "Gamer Lover"
   },
   {
    "key": "gooddoc",

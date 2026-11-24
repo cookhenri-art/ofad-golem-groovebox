@@ -1014,6 +1014,37 @@ un clap ou une percussion métallique.
 
 <figure><img src="img/v120/pc-microton-kit.jpg" alt="Micro Tonnerre, page Le kit : les 8 canaux en colonnes"><figcaption>Page « Le kit » : les 8 canaux en colonnes</figcaption></figure>
 
+### 18. Gamer Lover : les puces des consoles de jeu (1.3)
+
+**Gamer Lover** (famille **Polys**) réunit dans un seul instrument les sons des consoles de jeu **8 et 16 bits**
+des années 90-2000. Le sélecteur **Puce** change tout le moteur, et le **téléviseur à tube** de la façade change
+avec lui : on y voit l'onde, le schéma des opérateurs ou les pads de la batterie.
+
+- **8 bits** : carré à 4 largeurs (12,5 à 75 %, fixe ou animée), **triangle en escalier** à 16 niveaux, bruit long
+  ou court ; volume en marches comme sur la console.
+- **Portable** : le même carré, plus une **table 4 bits** de 32 pas (8 ondes : sinus, scie, orgue, voix, cloche…).
+- **16 bits FM** : **4 opérateurs**, **8 algorithmes**, rétroaction, rapport et niveau par opérateur, déclin des
+  modulateurs et **grain** du convertisseur d'époque.
+- **16 bits échantillons** : 8 échantillons courts compressés par blocs (cordes, chœur, piano électrique, cuivres,
+  flûte, basse, guitare, orgue), lecture douce ou dure.
+- **Batterie** : **16 pads** (notes 36 à 51) — grosses caisses, caisses claires, clap, charleys, toms, cloche, et
+  les bruitages de jeu (pièce, saut, explosion) ; on les écoute en touchant les pads du téléviseur.
+- **Les tables** tournent à la cadence de l'image (**60 ou 50 Hz**) : **arpèges** rapides (faux accords), chute
+  de hauteur, vibrato retardé, enveloppe de volume.
+- **Sortie console** : résolution (4 à 16 bits), fréquence d'échantillonnage (pleine à 11 kHz), filtre de sortie
+  (Salon, Portable, Télé), largeur stéréo, et un **écho à 8 prises** avec son filtre.
+- **95 sons d'usine** : Basses, Leads, Nappes, Claviers, Arpèges, Batteries, Effets (pièce, laser, vie en moins…).
+
+**Au téléphone (essai)**, Gamer Lover a un écran façon machine à pads : **8 menus** à gauche (Jeu, Ondes, FM,
+Niveaux FM, Tables, Volume, Batterie, Console), le téléviseur et les pastilles de la puce au centre, et une rangée
+de **8 boutons** qui suit le menu choisi. Si cet essai vous plaît, d'autres instruments pourront passer à ce modèle.
+
+<figure><img src="img/v130/pc-gamer.jpg" alt="Gamer Lover : le téléviseur à tube, les cartouches de la puce, les réglages de la puce, de l'enveloppe, des ondes, de la FM et des échantillons"><figcaption>Gamer Lover : le téléviseur suit la puce choisie</figcaption></figure>
+
+<figure><img src="img/v130/pc-gamer-tables.jpg" alt="Gamer Lover, page Tables et sortie : les 16 pads de la batterie, l'arpège, la hauteur, la sortie console et l'écho"><figcaption>Page « Tables et sortie » : la batterie, les tables, la sortie console</figcaption></figure>
+
+<figure><img src="img/v130/tel-gamer.jpg" alt="Gamer Lover au téléphone : 8 menus, le téléviseur, les pastilles de la puce et 8 boutons"><figcaption>Au téléphone : l'écran façon machine à pads</figcaption></figure>
+
 ## Contrôleur MIDI
 
 ### Brancher un contrôleur : prêt à jouer

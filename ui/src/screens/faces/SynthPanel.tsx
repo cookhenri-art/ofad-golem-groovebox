@@ -28,6 +28,7 @@ import { Gd2Chain, Gd2Env, Gd2Lfo, Gd2Mix, Gd2ModeKnobs, Gd2Osc } from "./Gd2Pan
 import { Gd2TableEditor } from "./Gd2TableEditor";
 import { MtChannels, MtKit, MtShape } from "./MtPanel";
 import { KfBrowser, KfDisplay, KfLayers, KfModule, KfRack, KfTop } from "./KfPanel";
+import { GamerAkai, GamerTv } from "./GamerPanel";
 import { DfamSeqPanel, DfamTransport } from "./DfamPanel";
 import { ImpactOut, ImpactStrips } from "./ImpactPanel";
 import { NervePads } from "./NervePanel";
@@ -55,6 +56,9 @@ const CUSTOM: Record<string, (p: { channel: number; module: ModuleDesc; args: st
   wavescan: ({ channel, module }) => <WaveScanPanel channel={channel} module={module} />,
   orbiter: ({ channel, module }) => <OrbiterPanel channel={channel} module={module} />,
   // v0.47 : Glutamake — pavé de la physique, écran d'un oscillateur (« glutaosc:1 »), couloir (« glutalane:a »)
+  // 1.3 : Gamer Lover — téléviseur à tube qui suit la puce, cartouches de choix de la puce
+  gamertv: ({ channel, module }) => <GamerTv channel={channel} module={module} />,
+  gamerakai: ({ channel, module }) => <GamerAkai channel={channel} module={module} />,
   glutapad: ({ channel, module }) => <GlutaPad channel={channel} module={module} />,
   glutaosc: ({ channel, module, args }) => <GlutaOsc channel={channel} module={module} osc={args[0] ?? "1"} />,
   glutalane: ({ channel, module, args }) => <GlutaLane channel={channel} module={module} lane={args[0] ?? "a"} />,
@@ -145,6 +149,7 @@ export interface FacePage { id: string; label: string; rows: Panel[][] }
 export interface FaceLayout {
   theme: string;          // habillage : fatsub, five, chorus, pointe, onde, nappe, acid, boum, club, machine…
   pages: FacePage[];
+  phonePages?: FacePage[]; // 1.3 (essai, Gamer Lover) : pages propres au téléphone (écran façon machine à pads)
   wheels?: boolean;       // molettes de hauteur et de modulation à gauche du clavier
   bigText?: boolean;      // noms et valeurs des boutons en grandes inscriptions, hors du bouton (v0.29)
 }

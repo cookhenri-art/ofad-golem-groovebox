@@ -29,6 +29,7 @@
 #include "../instruments/Bitmask.h"
 #include "../instruments/Orbit.h"
 #include "../instruments/Glutamake.h"
+#include "../instruments/GamerLover.h"
 #include "../instruments/GoodDoctor.h"
 #include "../instruments/GoodDoctor2.h"
 #include "../instruments/KickForge.h"
@@ -116,6 +117,7 @@ namespace
             { [] { return &gd2::desc(); },     [] { return std::make_unique<GoodDoctor2>(); } }, // après la 1.1 : Good Doctor 2, à la fin
             { [] { return &mt::desc(); },      [] { return std::make_unique<MicroTonnerre>(); } }, // après la 1.1 : Micro Tonnerre, à la fin
             { [] { return &kf::desc(); },      [] { return std::make_unique<KickForge>(); } },     // 1.2 : Kick Forge, à la fin
+            { [] { return &gamer::desc(); },   [] { return std::make_unique<GamerLover>(); } },    // 1.3 : Gamer Lover, à la fin
         };
         return e;
     }

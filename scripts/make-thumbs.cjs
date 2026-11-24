@@ -18,8 +18,9 @@ fs.mkdirSync(out, { recursive: true });
     await p.getByRole("button", { name: /^pistes$/i }).first().click(); await p.waitForTimeout(200);
     await p.click(".track-row >> nth=5"); await p.waitForTimeout(150);
     await p.getByRole("tab", { name: inst.family }).first().click(); await p.waitForTimeout(200);
-    await p.locator(".browser").getByText(inst.name, { exact: true }).first().click(); await p.waitForTimeout(200);
-    await p.getByRole("button", { name: /Mettre sur la piste|Recharger sur/ }).first().click(); await p.waitForTimeout(400);
+    // 1.3 : un double clic dans la bibliothèque pose l'instrument sur la piste (le bouton « Mettre sur la piste » n'existe plus)
+    await p.locator(".browser").getByText(inst.name, { exact: true }).first().dblclick(); await p.waitForTimeout(600);
+    await p.getByRole("button", { name: /^pistes$/i }).first().click(); await p.waitForTimeout(300);
     await p.getByRole("button", { name: /ouvrir le synth/i }).first().click(); await p.waitForTimeout(900);
     // v0.46 : la façade doit être ouverte (sinon la miniature montrait l'écran Pistes)
     await p.locator(".face").first().waitFor({ state: "visible", timeout: 5000 });

@@ -57,6 +57,7 @@ const FACES: Record<string, { accent: string; panel: string; cheeks?: boolean; t
   fmplayer: { accent: "oklch(0.8 0.15 70)",  panel: "oklch(0.2 0.008 250)",  tag: "Lecteur de firmwares FM-1" },
   microton: { accent: "oklch(0.88 0.17 95)", panel: "oklch(0.18 0.03 275)", tag: "Générateur de rythmes à synthèse universelle" },
   kickforge: { accent: "oklch(0.78 0.17 55)", panel: "oklch(0.16 0.01 40)", tag: "Constructeur de kicks par couches" },
+  gamer:   { accent: "oklch(0.88 0.17 90)",  panel: "oklch(0.18 0.06 285)", tag: "Puces de consoles 8 et 16 bits, batterie de console, sortie d'époque" },
   fm6:     { accent: "oklch(0.8 0.12 175)",  panel: "oklch(0.16 0.008 40)",  cheeks: true, tag: "FM à 6 opérateurs" },
   fm4:     { accent: "oklch(0.82 0.15 300)", panel: "oklch(0.17 0.012 290)", tag: "FM à 4 opérateurs" },
   fmx:     { accent: "oklch(0.8 0.16 55)",   panel: "oklch(0.16 0.01 50)",   tag: "FM à 6 opérateurs, matrice libre" },
@@ -432,7 +433,7 @@ export function InstrumentFace() {
   // synthés mélodiques : page « Pas » (rangée de pas façon basse acide, même séquence que l'écran Séquence)
   const stepsPage = layout && !m.drumKit && !["acid", "octa"].includes(m.type)
     ? [{ id: "steps", label: "Pas", rows: [[{ title: "Pas de la séquence (ligne 1) · note, octave, vélocité, durée, accent, glissé", cols: 1, grow: 1, ctl: [], custom: "steps303" }]] }] : [];
-  const facePages = layout ? [...layout.pages, ...stepsPage] : [];
+  const facePages = layout ? [...(phoneUi && layout.phonePages ? layout.phonePages : layout.pages), ...stepsPage] : []; // 1.3 : pages propres au téléphone (Gamer Lover, essai)
   const midiTrack = m.type === "midiext"; // après la 1.1 : piste MIDI — page « Pas » (séquence et verrous) comme les synthés
   const pages = layout ? [...facePages.map((p) => ({ id: p.id, label: p.label })), { id: "track", label: "Modulations de la piste" }, { id: "macros", label: "Macros" }]
     : [{ id: "sound", label: "Son" }, ...(midiTrack ? [{ id: "steps", label: "Pas" }] : []), { id: "mod", label: "Modulation" }, { id: "macros", label: "Macros" }];

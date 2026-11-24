@@ -2052,4 +2052,78 @@ const kickforge: FaceLayout = {
   ],
 };
 
-export const FACE_LAYOUTS: Record<string, FaceLayout> = { mono, acid, drumA, drum80, drum90, poly5, polyj, hybrid, morph, pads, octa, ms20, sh101, blo, ob6, orbit, fm6, fm4, fmx, muse, hots, lyra, bitm, drumImp, drumNrv, dfam, voc16, vocstr, vocspec, vocsyn, sampler, keys, sp, gluta, gooddoc, gooddoc2, fmplayer, microton, kickforge };
+/** 1.3 : Gamer Lover (puces de consoles 8 et 16 bits) : coque violet nuit, sérigraphie jaune cartouche ;
+    le téléviseur à tube suit la puce, les cartouches la choisissent ; ondes, FM, échantillons et volume
+    sur la page Son, les tables (arpège, hauteur), la batterie et la sortie d'époque sur la seconde page. */
+const GM_OPS = [{ label: "1", value: "1" }, { label: "2", value: "2" }, { label: "3", value: "3" }, { label: "4", value: "4" }];
+const gamer: FaceLayout = {
+  theme: "cartouche",
+  // téléphone (essai) : un seul écran façon machine à pads — 8 menus, le téléviseur, 8 boutons
+  phonePages: [{ id: "screen", label: "Écran", rows: [[{ title: "", ctl: [], custom: "gamerakai", grow: 1 }]] }],
+  pages: [
+    {
+      id: "sound", label: "Son",
+      rows: [
+        [
+          { title: "Écran · la puce choisie", ctl: [], custom: "gamertv", grow: 1.5 },
+          { title: "Puce", cols: 3, grow: 1.2, ctl: [
+            { id: "level", k: "big", label: "Niveau" }, { id: "voices", label: "Voix" }, { id: "tune", label: "Accord" },
+            { id: "glide", label: "Glisse" }, { id: "tick", k: "vswitch", label: "Cadence", short: ["60 Hz", "50 Hz"] },
+          ] },
+          { title: "Volume · table d'enveloppe", cols: 2, grow: 0.9, ctl: [
+            { id: "vatk", label: "Attaque" }, { id: "vdec", label: "Déclin" }, { id: "vsus", label: "Maintien" }, { id: "vrel", label: "Relâchement" },
+          ] },
+        ],
+        [
+          { title: "Ondes 8 bits et portable", cols: 5, grow: 1.6, tone: "oklch(0.86 0.2 145)", ctl: [
+            { id: "wave8", k: "vswitch", label: "Onde", short: ["Carré", "Tri./table", "Bruit"] },
+            { id: "duty", k: "vswitch", label: "Largeur", short: ["12,5", "25", "50", "75"] },
+            { id: "dutymove", k: "menu", label: "Largeur animée" }, { id: "gbwave", k: "menu", label: "Table 4 bits" },
+            { id: "noisemode", k: "toggle", label: "Bruit court", on: 1 },
+          ] },
+          { title: "FM 16 bits · opérateurs", banks: GM_OPS, cols: 6, grow: 2, tone: "oklch(0.8 0.15 235)", ctl: [
+            { id: "fmalgo", k: "big", label: "Algorithme" }, { id: "fmfb", label: "Rétroaction" },
+            { id: "fmmul{b}", label: "Rapport" }, { id: "fmlev{b}", label: "Niveau" },
+            { id: "fmdec", label: "Déclin mod." }, { id: "fmgrain", k: "small", label: "Grain" },
+          ] },
+          { title: "Échantillons 16 bits", cols: 2, grow: 0.9, tone: "oklch(0.85 0.15 75)", ctl: [
+            { id: "smpl", k: "menu", label: "Échantillon" },
+            { id: "smplsmooth", k: "vswitch", label: "Lecture", short: ["Douce", "Dure"] },
+          ] },
+        ],
+      ],
+    },
+    {
+      id: "tables", label: "Tables et sortie",
+      rows: [
+        [
+          { title: "Écran · la puce choisie", ctl: [], custom: "gamertv", grow: 1.3 },
+          { title: "Tables · arpège", cols: 2, grow: 0.8, ctl: [
+            { id: "arp", k: "menu", label: "Arpège" }, { id: "arpspeed", k: "big", label: "Vitesse" },
+          ] },
+          { title: "Tables · hauteur", cols: 3, grow: 1.3, ctl: [
+            { id: "sweep", k: "big", label: "Chute" }, { id: "sweeptime", label: "Durée" },
+            { id: "vibdepth", label: "Vibrato" }, { id: "vibrate", label: "Vitesse" }, { id: "vibdelay", label: "Retard" },
+          ] },
+        ],
+        [
+          { title: "Batterie · 16 pads", cols: 3, grow: 1, tone: "oklch(0.75 0.2 25)", ctl: [
+            { id: "drtune", label: "Accord" }, { id: "drdecay", label: "Déclin" }, { id: "drtone", label: "Timbre" },
+          ] },
+          { title: "Sortie console", cols: 4, grow: 1.5, ctl: [
+            { id: "bits", k: "big", label: "Résolution" },
+            { id: "rate", k: "vswitch", label: "Fréquence", short: ["Pleine", "32 k", "22 k", "16 k", "11 k"] },
+            { id: "tone", k: "vswitch", label: "Filtre", short: ["Ouvert", "Salon", "Portable", "Télé"] },
+            { id: "width", label: "Stéréo" },
+          ] },
+          { title: "Écho à 8 prises", cols: 4, grow: 1.4, ctl: [
+            { id: "echomix", k: "big", label: "Écho" }, { id: "echotime", label: "Temps" }, { id: "echofb", label: "Réinjection" },
+            { id: "echofilter", k: "vswitch", label: "Filtre", short: ["Clair", "Doux", "Sombre", "Grotte"] },
+          ] },
+        ],
+      ],
+    },
+  ],
+};
+
+export const FACE_LAYOUTS: Record<string, FaceLayout> = { mono, acid, drumA, drum80, drum90, poly5, polyj, hybrid, morph, pads, octa, ms20, sh101, blo, ob6, orbit, fm6, fm4, fmx, muse, hots, lyra, bitm, drumImp, drumNrv, dfam, voc16, vocstr, vocspec, vocsyn, sampler, keys, sp, gluta, gooddoc, gooddoc2, fmplayer, microton, kickforge, gamer };

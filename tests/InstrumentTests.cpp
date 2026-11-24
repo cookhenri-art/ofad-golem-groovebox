@@ -9,6 +9,7 @@
 #include "instruments/HybridPoly.h"
 #include "instruments/WaveMorph.h"
 #include "instruments/Glutamake.h"
+#include "instruments/GamerLover.h"
 #include "instruments/GoodDoctor.h"
 #include "instruments/GoodDoctor2.h"
 #include "instruments/KickForge.h"
@@ -459,6 +460,58 @@ static void testHybridMatrix()
             for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); }
         }
         CHECK (finite && peak > 0.05f && peak < 2.0f, fx == 0 ? "synchro dure (table)" : "densit\xC3\xA9 (table)");
+    }
+}
+
+// 1.3 : Gamer Lover — chaque puce, onde, bruit, échantillon et algorithme FM sonne sans exploser ; les 16 sons de
+// la batterie sonnent ; positions des réglages figées ; au moins 90 sons d'usine ; une voix reprise ne claque pas
+static void testGamerLover()
+{
+    const std::string name = "gamer lover : puces, batterie, tables, sortie console";
+    const auto& d = *[] { for (const auto* x : instrumentCatalog()) if (x->type == "gamer") return x; return (const ModuleDesc*) nullptr; }();
+    CHECK (d.indexOf ("chip") == 0 && d.indexOf ("width") == grv::instruments::gamer::numSlots - 1, "positions des r\xC3\xA9glages");
+    CHECK (d.presets.size() >= 90, "au moins 90 sons d'usine");
+    auto run = [&] (std::initializer_list<std::pair<const char*, float>> set, std::initializer_list<int> notes, int blocks = 1500) {
+        auto inst = createInstrument ("gamer");
+        inst->prepare (48000.0, 32);
+        auto p = defaults (d);
+        for (const auto& [id, v] : set) p[(size_t) d.indexOf (id)] = v;
+        std::vector<float> L (32), R (32);
+        for (int n : notes) inst->noteOn (n, 1.0f);
+        float peak = 0.0f; bool finite = true;
+        for (int k = 0; k < blocks; ++k)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); }
+        }
+        return finite && peak > 0.01f && peak < 1.01f;
+    };
+    for (int c = 0; c < 4; ++c)
+        for (int w = 0; w < 3; ++w)
+            CHECK (run ({ { "chip", (float) c }, { "wave8", (float) w } }, { 48, 60 }), (std::string ("puce ") + std::to_string (c) + " onde " + std::to_string (w)).c_str());
+    for (int g = 0; g < 8; ++g) CHECK (run ({ { "chip", 1.0f }, { "wave8", 1.0f }, { "gbwave", (float) g } }, { 60 }), (std::string ("onde 4 bits ") + std::to_string (g)).c_str());
+    for (int s = 0; s < 8; ++s) CHECK (run ({ { "chip", 3.0f }, { "smpl", (float) s } }, { 48, 60 }), (std::string ("\xC3\xA9" "chantillon ") + std::to_string (s)).c_str());
+    for (int a = 1; a <= 8; ++a) CHECK (run ({ { "chip", 2.0f }, { "fmalgo", (float) a }, { "fmfb", 7.0f } }, { 48, 60 }), (std::string ("algorithme FM ") + std::to_string (a)).c_str());
+    for (int n = 36; n < 52; ++n) CHECK (run ({ { "chip", 4.0f } }, { n }, 400), (std::string ("pad ") + std::to_string (n - 35)).c_str());
+    CHECK (run ({ { "bits", 4.0f }, { "rate", 4.0f }, { "tone", 3.0f }, { "echomix", 100.0f }, { "echofb", 95.0f } }, { 60 }), "sortie console au maximum");
+    // une note rejouée sur une voix qui sonne : pas de saut brutal (la voix s'éteint en ~1 ms avant de repartir)
+    {
+        auto inst = createInstrument ("gamer");
+        inst->prepare (48000.0, 32);
+        auto p = defaults (d);
+        p[(size_t) d.indexOf ("chip")] = 3.0f; p[(size_t) d.indexOf ("voices")] = 1.0f; p[(size_t) d.indexOf ("vatk")] = 0.0f;
+        std::vector<float> L (32), R (32);
+        inst->noteOn (60, 1.0f);
+        float prev = 0.0f, jump = 0.0f;
+        for (int k = 0; k < 600; ++k)
+        {
+            if (k == 300) inst->noteOn (62, 1.0f);
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (float x : L) { if (k >= 299 && k < 302) jump = std::max (jump, std::abs (x - prev)); prev = x; }
+        }
+        CHECK (jump < 0.2f, "note reprise sans claquement");
     }
 }
 
@@ -3988,6 +4041,7 @@ int main (int argc, char** argv)
     testPolyExpression();
     testHybridMatrix();
     testGlutamake();
+    testGamerLover();
     testGoodDoctor();
     testGoodDoctor2();
     testMicroTonnerre();
