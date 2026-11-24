@@ -97,15 +97,15 @@ def build(md_name, pdf_name, title, sub, note, golem_h, keys_section=None, lang=
 
 
 if __name__ == "__main__":
-    build("NOTICE.md", "NOTICE.pdf", "OFAD GOLEM — Notice", "Notice de prise en main · raccourcis · version 1.2",
+    build("NOTICE.md", "NOTICE.pdf", "OFAD GOLEM — Notice", "Notice de prise en main · raccourcis · version 1.3",
           "Groovebox à 16 pistes, logiciel libre (AGPL) de One For All Distribution.", "150px",
           keys_section="Raccourcis")
     # v0.46 fix28 : notice en anglais (l'interface reste en français pour l'instant : table de correspondance en tête)
-    build("NOTICE.en.md", "NOTICE-EN.pdf", "OFAD GOLEM — Manual", "Getting started · shortcuts · version 1.2",
+    build("NOTICE.en.md", "NOTICE-EN.pdf", "OFAD GOLEM — Manual", "Getting started · shortcuts · version 1.3",
           "16-track groovebox, free software (AGPL) by One For All Distribution.", "150px",
           keys_section="Keyboard and mouse shortcuts", lang="en")
-    build("CATALOGUE.md", "CATALOGUE.pdf", "OFAD GOLEM — Catalogue", "Catalogue des instruments et des effets · version 1.2",
+    build("CATALOGUE.md", "CATALOGUE.pdf", "OFAD GOLEM — Catalogue", "Catalogue des instruments et des effets · version 1.3",
           "Les noms sont propres au Groovebox ; chaque module reprend le principe d'une famille de machines, jamais son nom, sa façade ni ses sons.", "110px")
     # 1.2 : implémentation MIDI, français puis anglais, dans un seul document
     build(["IMPLEMENTATION-MIDI.md", "MIDI-IMPLEMENTATION.en.md"], "IMPLEMENTATION-MIDI.pdf", "OFAD GOLEM — Implémentation MIDI / MIDI implementation",
-          "Implémentation MIDI · français puis anglais · version 1.2", "Ce que GOLEM reçoit et envoie en MIDI. English version from the second part.", "110px")
+          "Implémentation MIDI · français puis anglais · version 1.3", "Ce que GOLEM reçoit et envoie en MIDI. English version from the second part.", "110px")

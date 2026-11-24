@@ -70,6 +70,7 @@ const SHOTS = {
   "pc-gamer-fm": { vp: PC, run: async (p) => { await openGamer(p, "Nappe FM verre"); } },
   "pc-gamer-tables": { vp: PC, run: async (p) => { await openGamer(p, "Batterie 16 bits"); await page(p, "Tables et sortie"); } },
   "tel-gamer": { vp: TEL, run: async (p) => { await openGamer(p, "Lead FM cuivre"); await akNav(p, 2); } },
+  "gal-gamer": { vp: { width: 1920, height: 1080 }, scale: 1, run: async (p) => { await openGamer(p, "Lead heros"); } },
   "tel-gamer-portable": { vp: TEL, run: async (p) => { await openGamer(p, "Lead onde voix"); await akNav(p, 1); } },
 };
 

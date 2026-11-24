@@ -45,7 +45,7 @@ le système le donne.
 
 | Message | Reçu | Effet |
 |---|---|---|
-| Note On / Note Off | Oui | Joue la piste ; vélocité prise en compte. Batteries : notes 36 à 51 = pads 1 à 16. Pieuvre 8 et FM Player : la T choisie sur toutes les octaves. Micro Tonnerre : pads 9 à 16 = canaux 1 à 8. Kick Forge (1.2) : toute note joue le kick, à la tonalité réglée ou à la note jouée |
+| Note On / Note Off | Oui | Joue la piste ; vélocité prise en compte. Batteries : notes 36 à 51 = pads 1 à 16. Pieuvre 8 et FM Player : la T choisie sur toutes les octaves. Micro Tonnerre : pads 9 à 16 = canaux 1 à 8. Kick Forge (1.2) : toute note joue le kick, à la tonalité réglée ou à la note jouée. Gamer Lover (1.3) : puce Batterie, notes 36 à 51 = les 16 pads |
 | Notes 36 à 51 en mode pads Scènes / Couper / Solo / Pas | Oui | Comme les pads de l'écran : lancer une scène, couper ou mettre en solo une piste, poser un pas |
 | Pitch bend | Oui | Piste qui joue |
 | Pression (aftertouch par canal) | Oui | Piste qui joue (selon l'instrument) |

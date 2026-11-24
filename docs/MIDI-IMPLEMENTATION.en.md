@@ -44,7 +44,7 @@ reports it.
 
 | Message | Received | Effect |
 |---|---|---|
-| Note On / Note Off | Yes | Plays the track, with velocity. Drum kits: notes 36 to 51 = pads 1 to 16. Pieuvre 8 and FM Player: the selected T over all octaves. Micro Tonnerre: pads 9 to 16 = channels 1 to 8. Kick Forge (1.2): any note plays the kick, at the set key or at the played note |
+| Note On / Note Off | Yes | Plays the track, with velocity. Drum kits: notes 36 to 51 = pads 1 to 16. Pieuvre 8 and FM Player: the selected T over all octaves. Micro Tonnerre: pads 9 to 16 = channels 1 to 8. Kick Forge (1.2): any note plays the kick, at the set key or at the played note. Gamer Lover (1.3): Drums chip, notes 36 to 51 = the 16 pads |
 | Notes 36 to 51 in Scenes / Mute / Solo / Steps pad mode | Yes | Like the on-screen pads: launch a scene, mute or solo a track, place a step |
 | Pitch bend | Yes | Playing track |
 | Channel pressure | Yes | Playing track (depending on the instrument) |

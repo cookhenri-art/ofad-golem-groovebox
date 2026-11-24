@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger_1.2.0-Windows_·_Mac_·_Android_·_iPhone-F5A623?style=for-the-badge" alt="Télécharger la 1.2.0 pour Windows, Mac, Android et iPhone"></a>
+  <a href="../../releases/latest"><img src="https://img.shields.io/badge/⬇_Télécharger_1.3.0-Windows_·_Mac_·_Android_·_iPhone-F5A623?style=for-the-badge" alt="Télécharger la 1.3.0 pour Windows, Mac, Android et iPhone"></a>
   <a href="docs/NOTICE.pdf"><img src="https://img.shields.io/badge/📘_Notice-PDF-2B2F3A?style=for-the-badge" alt="Notice de prise en main (PDF)"></a>
   <a href="docs/NOTICE-EN.pdf"><img src="https://img.shields.io/badge/📘_Manual_(English)-PDF-2B2F3A?style=for-the-badge" alt="Manual in English (PDF)"></a>
   <a href="docs/CATALOGUE.pdf"><img src="https://img.shields.io/badge/🎹_Catalogue-PDF-2B2F3A?style=for-the-badge" alt="Catalogue des sons et effets (PDF)"></a>
@@ -29,14 +29,28 @@
   <b><a href="../../releases/latest">Télécharger</a></b> ·
   <b><a href="docs/NOTICE.pdf">Notice de prise en main et raccourcis (PDF)</a></b> ·
   <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
-  <b><a href="docs/CATALOGUE.pdf">Catalogue des 41 instruments et 54 effets (PDF)</a></b>
+  <b><a href="docs/CATALOGUE.pdf">Catalogue des 42 instruments et 54 effets (PDF)</a></b>
 </p>
 
 <p align="center"><b>🇬🇧 English speakers: <a href="#-english-summary">English summary below ↓</a></b></p>
 
 ---
 
-## 🆕 Nouveautés de la 1.2.0 — Kick Forge, Good Doctor 2, Micro Tonnerre
+## 🆕 Nouveautés de la 1.3.0 — Gamer Lover
+
+<p align="center"><b><a href="../../releases/tag/v1.3.0">Tout le détail et les téléchargements sur la page de la version 1.3.0</a></b></p>
+
+- **Gamer Lover** : les puces des consoles de jeu **8 et 16 bits** dans un seul instrument — carré, **triangle en escalier**, bruit, **table 4 bits**, **FM 4 opérateurs**, **échantillons compressés**, **batterie de console** (16 pads, bruitages de jeu), tables à 60 ou 50 Hz (arpèges rapides, chute, vibrato) et **sortie d'époque** (bits, fréquence, filtre télé, écho à 8 prises) ; **95 sons d'usine**.
+- **Façade** : un **téléviseur à tube** qui suit la puce choisie. **Au téléphone (essai)** : un écran façon machine à pads, 8 menus et 8 boutons.
+- **Kick Forge** : le même kick pour une même position du LFO, calcul plus rapide, filtres des couches après la distorsion.
+- **Akai Force et MPC** : les instruments et effets de GOLEM existent aussi en greffons pour les machines autonomes, Gamer Lover compris ([page des greffons](../../releases/tag/mpc-1.1.0)).
+
+<table>
+<tr><td align="center" colspan="2"><a href="docs/img/v130/pc-gamer.jpg"><img src="docs/img/v130/pc-gamer.jpg" alt="Gamer Lover"></a><br><b>Gamer Lover</b> · le téléviseur suit la puce choisie</td></tr>
+<tr><td align="center"><a href="docs/img/v130/pc-gamer-tables.jpg"><img src="docs/img/v130/pc-gamer-tables.jpg" alt="Gamer Lover, Tables et sortie"></a><br><b>Tables et sortie</b></td><td align="center"><a href="docs/img/v130/tel-gamer.jpg"><img src="docs/img/v130/tel-gamer.jpg" alt="Gamer Lover au téléphone"></a><br><b>Au téléphone</b> (essai)</td></tr>
+</table>
+
+## Nouveautés de la 1.2.0 — Kick Forge, Good Doctor 2, Micro Tonnerre
 
 <p align="center"><b><a href="../../releases/tag/v1.2.0">Tout le détail et les téléchargements sur la page de la version 1.2.0</a></b></p>
 
@@ -100,7 +114,7 @@ vocodeurs, sampler de performance, échos à bande, réverbérations, compresseu
 
 - **Application Windows et Mac** (autonome), **plugins VST3 et AU** pour les logiciels de musique, **application Android** pour téléphone et tablette et version **iPhone / iPad** (essai), avec **contrôleur MIDI** USB ou Bluetooth prêt à jouer.
 - **Interface en français ou en anglais** (*English interface*) : la langue se choisit à l'installation sur Windows, au premier lancement sur Android, et se change dans Réglages.
-- **41 instruments**, **2673 sons d'usine**, **54 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
+- **42 instruments**, **2768 sons d'usine**, **54 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
 - **Vue live** pour le jeu en direct : crossfader ou **pavé vectoriel** à quatre scènes (formes en mouvement, taille, hauteur, rotation), console des 16 pistes avec faders, FX et M / S, et les **16 boutons assignables** avec leurs propres modulations.
 - Logiciel **libre** (AGPL-3.0) : les sources de chaque version sont fournies avec elle.
 
@@ -128,7 +142,7 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
 
 <p align="center"><i>Les repères numérotés sont expliqués dans la <a href="docs/NOTICE.md">notice</a>.</i></p>
 
-### 🎹 Les 41 instruments
+### 🎹 Les 42 instruments
 
 <p align="center">
   <img src="docs/img/galerie/instruments-1.jpg" alt="Instruments : batteries et basses">
@@ -136,7 +150,7 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
   <img src="docs/img/galerie/instruments-3.jpg" alt="Instruments : synthés FM et drones">
   <img src="docs/img/galerie/instruments-4.jpg" alt="Instruments : vocodeurs, Pieuvre 8, entrée audio, Glutamake, Good Doctor">
   <img src="docs/img/galerie/instruments-5.jpg" alt="Instruments : FM Player et Piste MIDI">
-  <img src="docs/img/galerie/instruments-6.jpg" alt="Instruments : Good Doctor 2, Micro Tonnerre, Kick Forge">
+  <img src="docs/img/galerie/instruments-6.jpg" alt="Instruments : Good Doctor 2, Micro Tonnerre, Kick Forge, Gamer Lover">
 </p>
 
 ### 🎚️ Les 54 effets
@@ -258,7 +272,7 @@ contrôleur.
 ## 🎹 Instruments
 
 <details>
-<summary><b>Les 41 instruments</b> (cliquer pour déplier)</summary>
+<summary><b>Les 42 instruments</b> (cliquer pour déplier)</summary>
 
 <!-- CATALOGUE:INSTRUMENTS -->
 42 instruments, 2768 sons d'usine rangés par catégories. Le détail (vignettes, principe, sons par catégorie) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
@@ -502,10 +516,16 @@ In English: **[Manual (PDF)](docs/NOTICE-EN.pdf)** · [text version](docs/NOTICE
 **OFAD GOLEM** is a complete groovebox for your computer, phone or tablet, made for all electronic music
 (techno, house, acid, hardtek, drum & bass, electro, ambient, beatmaking…). It follows the workflow of
 standalone pad-based production stations: 16 tracks, 16 pads, patterns launched like clips, scenes on a
-crossfader, song mode and audio editing. Its **41 instruments** and **54 effects** follow the architecture of
+crossfader, song mode and audio editing. Its **42 instruments** and **54 effects** follow the architecture of
 the machines that made this music, rebuilt from scratch with their own names, panels and sounds. The whole
 interface is available **in English** (choose it when installing on Windows, at first launch on Android, or in
 Settings). Free software (AGPL-3.0).
+
+**What's new in 1.3.0 — Gamer Lover**:
+- **Gamer Lover**: **8 and 16-bit** game console chips in a single instrument — square, **stepped triangle**, noise, **4-bit table**, **4-operator FM**, **compressed samples**, **console drums** (16 pads, game sound effects), 60 or 50 Hz tables (fast arpeggios, drop, vibrato) and a **period-correct output** (bits, sample rate, TV filter, 8-tap echo); **95 factory sounds**.
+- **Front panel**: a **CRT TV** that follows the chosen chip. **On the phone (trial)**: a pad-machine style screen with 8 menus and 8 knobs.
+- **Kick Forge**: the same kick for the same LFO position, faster rendering, layer filters after the distortion.
+- **Akai Force and MPC**: GOLEM's instruments and effects also exist as plugins for the standalone machines, Gamer Lover included ([plugins page](../../releases/tag/mpc-1.1.0)).
 
 **What's new in 1.2.0 — Kick Forge, Good Doctor 2, Micro Tonnerre**:
 - **Kick Forge**: build the kick **layer by layer** (up to 8) — **680 parts calculated in the kick's key** (punches, crunches, rumbles, clicks, tops, bodies, reverse bass…) or **your own tuned samples**; fades, length and timing **dragged on the waveform**; **9-effect rack** (kick shaper, convolution, finalizer…); **14 styles** and **Randomize**; 78 factory kicks.
@@ -524,10 +544,10 @@ Settings). Free software (AGPL-3.0).
 - **SOUND screen curves** that follow the sound and **can be dragged**; automatic **latency compensation** with its indicator.
 - **MIDI**: bank + program change and CC 102 to 105 (insert effects) **per track and channel**; see the [MIDI implementation](docs/MIDI-IMPLEMENTATION.en.md).
 
-Previous releases: [what's new in 1.1.0](../../releases/tag/v1.1.0) · [what's new in 1.0.0](../../releases/tag/v1.0.0) (FM Player and free FM-1 firmwares, single-view workflow, Play view, Big mode…).
+Previous releases: [what's new in 1.2.0](../../releases/tag/v1.2.0) · [what's new in 1.1.0](../../releases/tag/v1.1.0) · [what's new in 1.0.0](../../releases/tag/v1.0.0) (FM Player and free FM-1 firmwares, single-view workflow, Play view, Big mode…).
 
 <p align="center">
-  <b><a href="../../releases/tag/v1.2.0">Download 1.2.0 (Windows · Mac · Android · iPhone)</a></b> ·
+  <b><a href="../../releases/tag/v1.3.0">Download 1.3.0 (Windows · Mac · Android · iPhone)</a></b> ·
   <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
   <b><a href="docs/CATALOGUE.pdf">Catalogue (PDF)</a></b>
 </p>
@@ -611,7 +631,7 @@ latence (AAudio) ; un appui long vaut un clic droit ; un contrôleur MIDI USB br
 GROOVEBOX/
 ├── src/
 │   ├── engine/        moteur : pistes, séquenceur, scènes, morceau, modulations
-│   ├── instruments/   les 41 instruments
+│   ├── instruments/   les 42 instruments
 │   ├── effects/       les 54 effets
 │   ├── dsp/, synth/   briques de traitement et de synthèse
 │   ├── Montage.*      montage audio
