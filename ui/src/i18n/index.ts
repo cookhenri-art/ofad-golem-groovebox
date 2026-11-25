@@ -93,6 +93,16 @@ function englishNotes(s: string): string {
     (_, pre: string, n: string, o: string) => pre + NOTE_EN[n] + o);
 }
 
+// Valeurs affichées avec une unité française (engine/params.ts) : « +2 dt » → « +2 st », « 16 pas » → « 16 steps »,
+// « 2 img » → « 2 fr », panoramique « G 12 » / « D 12 » → « L 12 » / « R 12 ».
+function englishUnits(s: string): string {
+  const m = /^([+−-]?\d+(?:[.,]\d+)?) (dt|pas|img)$/.exec(s);
+  if (m) return `${m[1]} ${({ dt: "st", pas: "steps", img: "fr" } as Record<string, string>)[m[2]]}`;
+  const pan = /^([GD]) (\d+)$/.exec(s);
+  if (pan) return `${pan[1] === "G" ? "L" : "R"} ${pan[2]}`;
+  return s;
+}
+
 /** Traduit un texte affiché (espaces de début et de fin gardés). */
 export function translate(text: string, depth = 0): string {
   const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(text);
@@ -101,7 +111,7 @@ export function translate(text: string, depth = 0): string {
   let t = cache.get(core);
   if (t === undefined) {
     t = lookup(core, depth);
-    if (t === core) t = englishNotes(core);
+    if (t === core) t = englishUnits(englishNotes(core));
     if (cache.size > 20000) cache.clear();
     cache.set(core, t);
   }
