@@ -220,13 +220,14 @@ public:
     {
         sr = s;
         fenv.prepare (s); aenv.prepare (s);
+        gainK = 1.0 - std::exp (-1.0 / (0.003 * s)); // lissage du gain de sortie : ~3 ms
         reset();
     }
     void reset() noexcept
     {
         o1.reset(); o2.reset(); sub.reset(); filter.reset(); fenv.reset(); aenv.reset(); dc.reset();
         busLfo[0].reset(); busLfo[1].reset (0.25);
-        active = false; fb = 0.0; second = -1; pending = pendingRelease = false;
+        active = false; fb = 0.0; second = -1; pending = pendingRelease = false; gainSm = -1.0;
     }
 
     void setExpression (const MonoExpression* e) noexcept { expr = e; }
@@ -270,6 +271,8 @@ public:
             const auto n2 = second >= 0 ? second : pendingNote;
             if (! doGlide || gOsc == 1) g2.jump ((double) n2);
             g2.to ((double) n2);
+            // voix muette : le gain de la nouvelle note est pris tout de suite (attaque inchangée)
+            if (! aenv.isActive()) gainSm = -1.0;
             const bool retrigger = ! pendingLegato || p[retrig] > 0.5f;
             if (retrigger || ! aenv.isActive()) { fenv.gate (true, true); aenv.gate (true, true); }
             else { fenv.gate (true, false); aenv.gate (true, false); }
@@ -391,7 +394,10 @@ public:
             const auto fc = std::clamp ((double) p[cutoff] * fastExp2 (octaves), 16.0, 0.45 * sr);
             const auto y = filter.process (x * 0.45, fc, res, sr, mode, drv);
             fb = softClip (y * 1.4);
-            const auto out = dc.process (y) * a * gain;
+            // gain lissé : une note douce jouée pendant la queue d'une note forte (vélocité différente) ne fait
+            // plus de saut de volume, donc plus de petit clic (MPC/Force et GOLEM)
+            gainSm = gainSm < 0.0 ? gain : gainSm + (gain - gainSm) * gainK;
+            const auto out = dc.process (y) * a * gainSm;
             L[i] += (float) out;
             R[i] += (float) out;
         }
@@ -426,7 +432,7 @@ private:
         }
     };
 
-    double sr = 48000.0, driftState = 0.0, fb = 0.0, keyNote = 60.0;
+    double sr = 48000.0, driftState = 0.0, fb = 0.0, keyNote = 60.0, gainSm = -1.0, gainK = 0.007;
     double lastBus[2] {};
     float vel = 1.0f;
     int pendingNote = 60, second = -1;
