@@ -85,6 +85,14 @@ function lookup(s: string, depth: number): string {
   return s;
 }
 
+// Noms de notes à la française suivis de l'octave (« La#2 », « Do4 (60) ») : notation anglaise (A#2, C4).
+const NOTE_EN: Record<string, string> = { "Do": "C", "Do#": "C#", "Ré": "D", "Re": "D", "Ré#": "D#", "Re#": "D#", "Mi": "E",
+  "Fa": "F", "Fa#": "F#", "Sol": "G", "Sol#": "G#", "La": "A", "La#": "A#", "Si": "B" };
+function englishNotes(s: string): string {
+  return s.replace(/(^|[^A-Za-zÀ-ÿ])(Do#?|Ré#?|Re#?|Mi|Fa#?|Sol#?|La#?|Si)(-?\d)(?!\d)/g,
+    (_, pre: string, n: string, o: string) => pre + NOTE_EN[n] + o);
+}
+
 /** Traduit un texte affiché (espaces de début et de fin gardés). */
 export function translate(text: string, depth = 0): string {
   const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(text);
@@ -93,6 +101,7 @@ export function translate(text: string, depth = 0): string {
   let t = cache.get(core);
   if (t === undefined) {
     t = lookup(core, depth);
+    if (t === core) t = englishNotes(core);
     if (cache.size > 20000) cache.clear();
     cache.set(core, t);
   }

@@ -1231,8 +1231,30 @@ def load_face_cap(key):
     if not os.path.isfile(f):
         return None
     cap = json.load(open(f, encoding="utf-8"))
+    # façades capturées en anglais : les textes (titres, libellés) qui guident le rangement des pages sont repris
+    # de la capture française, pour que les greffons anglais aient exactement les mêmes touches que les français
+    fr = os.path.join(_FACE_CAP_FR, key, "face.json")
+    if os.path.abspath(FACE_CAP) != os.path.abspath(_FACE_CAP_FR) and os.path.isfile(fr):
+        cap = _strings_from(json.load(open(fr, encoding="utf-8")), cap)
     cap["dir"] = os.path.join(FACE_CAP, key)
     return cap
+
+
+_FACE_CAP_FR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "_facecap")
+
+
+def _strings_from(fr, en):
+    """Copie de la capture anglaise (positions, images) avec les textes de la capture française, quand les
+    deux ont la même structure ; les noms de fichiers d'images restent ceux de la capture anglaise."""
+    if type(fr) is not type(en):
+        return en
+    if isinstance(en, dict):
+        return {k: (_strings_from(fr[k], v) if k in fr else v) for k, v in en.items()}
+    if isinstance(en, list):
+        return [_strings_from(a, b) for a, b in zip(fr, en)] if len(fr) == len(en) else en
+    if isinstance(en, str):
+        return en if (en.endswith(".png") or "/" in en) else fr
+    return en
 
 
 def _css_colour(c, default=(235, 235, 235, 255)):

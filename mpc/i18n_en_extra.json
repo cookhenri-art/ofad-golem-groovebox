@@ -2837,5 +2837,7 @@
  "Façade": "Panel",
  "Matrice ## ·…": "Matrix ## ·…",
  "Mutants de l'oscillat…": "Oscillator mutants…",
- "Temps": "Time"
+ "Temps": "Time",
+ "JEU": "PERF",
+ "jeu": "perf"
 }
