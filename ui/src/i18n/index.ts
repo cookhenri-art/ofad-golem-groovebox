@@ -34,13 +34,16 @@ export function setLang(l: Lang) {
 }
 
 // --- modèles « … {1} … » -> expressions régulières (les plus longs d'abord : les plus précis) -------------
-type Pat = { re: RegExp; out: string };
+type Pat = { re: RegExp; out: string; names: string[] };
 const PATS: Pat[] = Object.keys(DICT)
   .filter((k) => /\{\d\}/.test(k))
   .sort((a, b) => b.replace(/\{\d\}/g, "").length - a.replace(/\{\d\}/g, "").length)
   .map((k) => {
     const src = k.split(/(\{\d\})/).map((p) => (/^\{\d\}$/.test(p) ? "([\\s\\S]*?)" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/#/g, "(-?\\d+(?:[.,]\\d+)?)"))).join("");
-    return { re: new RegExp(`^${src}$`), out: DICT[k] };
+    // 1.3.1 : les repères {0}, {1}… sont rangés dans l'ordre où ils apparaissent (le groupe 0 de l'expression est
+    // tout le texte : « Filtre {0} » donnait « Filter Filter Filter… Filtre lent »)
+    const names = (k.match(/\{\d\}/g) ?? []).map((x) => x.slice(1, -1));
+    return { re: new RegExp(`^${src}$`), out: DICT[k], names };
   });
 
 const NUM = /-?\d+(?:[.,]\d+)?/g;
@@ -62,7 +65,9 @@ function lookup(s: string, depth: number): string {
     for (const p of PATS) {
       const m = p.re.exec(s);
       if (!m) continue;
-      return p.out.replace(/\{(\d)\}/g, (_, n: string) => translate(m[Number(n)] ?? "", depth + 1));
+      const vals: Record<string, string> = {};
+      p.names.forEach((n, i) => { if (!(n in vals)) vals[n] = translate(m[i + 1] ?? "", depth + 1); });
+      return p.out.replace(/\{(\d)\}/g, (_, n: string) => vals[n] ?? "");
     }
   }
   // morceau de texte qui commence ou finit par un séparateur (« Machine électronique · »)

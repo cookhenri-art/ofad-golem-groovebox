@@ -149,8 +149,36 @@ def screen_body(tpl):
     return body
 
 
+def _english(body):
+    """Version anglaise des greffons (GOLEM_MOCK_LANG=en) : textes visibles de la maquette traduits avec la
+    même traduction que le greffon (mpc/i18n_en.py). Les valeurs vivantes (data-v) sont écrites par la MPC."""
+    import re as _re
+    sys.path.insert(0, os.path.join(HERE, ".."))
+    import i18n_en as I
+
+    def seg(m):
+        txt = m.group(1)
+        core = txt.strip()
+        if not core or core.startswith("{{"):
+            return m.group(0)
+        plain = _html.unescape(core)
+        t = I.translate(plain)
+        if I.residual_french(t) and not (t == plain and plain in I.DICT):
+            with open(os.environ.get("GOLEM_MOCK_MISSING", "/tmp/mock_missing.txt"), "a", encoding="utf-8") as f:
+                f.write(plain + "\n")
+        if t == plain:
+            if False:
+                with open(os.environ.get("GOLEM_MOCK_MISSING", "/tmp/mock_missing.txt"), "a", encoding="utf-8") as f:
+                    f.write(plain + "\n")
+            return m.group(0)
+        return ">" + txt.replace(core, _html.escape(t, quote=False)) + "<"
+    return _re.sub(r">([^<>]+)<", seg, body)
+
+
 def page_html(body_tpl, D, extra_css=""):
     body = run(parse(body_tpl), {"D": D})
+    if os.environ.get("GOLEM_MOCK_LANG") == "en":
+        body = _english(body)
     return ("<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\"><style>%s\n"
             "html,body{margin:0;padding:0;background:transparent}*,*::before,*::after{box-sizing:border-box}"
             "button{font-family:inherit;cursor:default}%s</style></head><body>%s</body></html>"

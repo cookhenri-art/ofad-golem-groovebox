@@ -159,8 +159,8 @@ def capture(p, url, t, faces, cat, out):
     result = {"type": t, "name": inst["name"], "theme": face.get("theme", ""), "pages": []}
     for pg_i, page in enumerate(face.get("pages", [])):
         p.goto(url + "/?demo=" + demo_name(t)); p.wait_for_timeout(1500)
-        p.get_by_role("button", name=re.compile("ouvrir (le )?synth", re.I)).first.click(); p.wait_for_timeout(900)
-        tabs = p.locator(".face-pages [role=tab], .face-pages button").filter(has_text=re.compile("^%s$" % re.escape(page["label"])))
+        p.get_by_role("button", name=re.compile("ouvrir (le )?synth|open (the )?synth", re.I)).first.click(); p.wait_for_timeout(900)
+        tabs = p.locator(".face-pages [role=tab], .face-pages button").filter(has_text=re.compile("^%s$" % re.escape(_ui(page["label"]))))
         if tabs.count():
             tabs.first.click(); p.wait_for_timeout(700)
         elif pg_i > 0:
@@ -253,11 +253,11 @@ def capture_fx(p, url, fx, out):
     shutil.rmtree(d, ignore_errors=True)
     os.makedirs(d)
     p.goto(url + "/"); p.wait_for_timeout(1500)
-    p.get_by_role("button", name=re.compile("^effets$", re.I)).first.click(); p.wait_for_timeout(400)
-    p.locator(".fx-chain-btns button", has_text="Pédalier").first.click(); p.wait_for_timeout(500)
+    p.get_by_role("button", name=re.compile("^(effets|effects)$", re.I)).first.click(); p.wait_for_timeout(400)
+    p.locator(".fx-chain-btns button", has_text=_ui("Pédalier")).first.click(); p.wait_for_timeout(500)
     first = p.locator(".pb-board").first.locator(":scope > .pd, :scope > .rk").first
     first.locator(".pd-swap, .pd-add").first.click(force=True); p.wait_for_timeout(400)
-    p.locator(".fxpick .ipick-card", has_text=fx["name"]).first.click(); p.wait_for_timeout(900)
+    p.locator(".fxpick .ipick-card", has_text=_ui(fx["name"])).first.click(); p.wait_for_timeout(900)
     unit = p.locator(".pb-board").first.locator(":scope > .pd, :scope > .rk").first
     p.add_style_tag(content=".pd-swap,.pd-presets,.rk-swap,.rk-presets,.rk-open{display:none!important}")
     unit.screenshot(path=os.path.join(d, "unit.png"))
@@ -306,6 +306,26 @@ def capture_fx(p, url, fx, out):
     return res
 
 
+_EN = None
+
+
+def _ui(s):
+    """Texte tel que l'interface de GOLEM l'affiche dans la langue de capture (en.json de GOLEM)."""
+    global _EN
+    if os.environ.get("GOLEM_FACE_LANG") != "en":
+        return s
+    if _EN is None:
+        _EN = json.load(open(os.path.join(ROOT, "ui", "src", "i18n", "en.json"), encoding="utf-8"))
+    return _EN.get(s, s)
+
+
+def _lang(page):
+    """GOLEM_FACE_LANG=en : façades capturées avec l'interface de GOLEM en anglais (greffons anglais)."""
+    lang = os.environ.get("GOLEM_FACE_LANG")
+    if lang:
+        page.add_init_script("try { localStorage.setItem('groovebox.lang', '%s'); } catch (e) {}" % lang)
+
+
 def main():
     out = sys.argv[1]
     only = sys.argv[2:]
@@ -318,6 +338,7 @@ def main():
         with sync_playwright() as pw:
             b = pw.chromium.launch()
             p = b.new_page(viewport={"width": 1920, "height": 1080}, device_scale_factor=SCALE)
+            _lang(p)
             for fx in fxs:
                 try:
                     r = capture_fx(p, url, fx, out)
@@ -332,6 +353,7 @@ def main():
     with sync_playwright() as pw:
         b = pw.chromium.launch()
         p = b.new_page(viewport={"width": 1700, "height": 3200}, device_scale_factor=SCALE)
+        _lang(p)
         for t in types:
             try:
                 r = capture(p, url, t, faces, cat, out)

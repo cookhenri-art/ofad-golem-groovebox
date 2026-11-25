@@ -5331,5 +5331,8 @@
 "Filtre écho": "Echo filter",
 "Triangle": "Triangle",
 "Menus": "Menus",
-"Bits": "Bits"
+"Bits": "Bits",
+"Retard modulé · deux lignes croisées · Libre : ms · Tempo : divisions": "Modulated delay · two crossed lines · Free: ms · Tempo: divisions",
+"Moteur A · réglage 1 : forme / position / pente / matière · 2 : désaccord / pli / parité / durée": "Engine A · setting 1: shape / position / slope / material · 2: detune / fold / parity / duration",
+"Pad choisi · la couleur est le dernier réglage": "Selected pad · colour is the last setting"
 }

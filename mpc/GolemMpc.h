@@ -42,11 +42,56 @@
 #include <string>
 #include <vector>
 
+#if defined (GRV_MPC_EN)
+/** Version anglaise des greffons (build_mpc.py --lang en) : traduction d'un texte français de GOLEM,
+    nullptr si le texte n'a pas de traduction. Définie dans le .cpp généré du greffon (table du module). */
+const char* golemEn (const std::string& fr);
+#endif
+
 namespace grv::mpcport
 {
 
 using grv::engine::ModuleDesc;
 using grv::engine::ParamDesc;
+
+/** Texte affiché dans la langue du greffon (français, ou anglais avec GRV_MPC_EN). */
+inline std::string L (const std::string& fr)
+{
+#if defined (GRV_MPC_EN)
+    if (const char* t = golemEn (fr)) return t;
+#endif
+    return fr;
+}
+
+/** Fiche du module dans la langue du greffon : noms des réglages, choix, sections, sons d'usine, pads.
+    Les identifiants et les valeurs ne changent jamais (sauvegardes et sons identiques dans les deux langues). */
+inline const ModuleDesc& localized (const ModuleDesc& d)
+{
+#if defined (GRV_MPC_EN)
+    static std::vector<std::pair<const ModuleDesc*, std::unique_ptr<ModuleDesc>>> done; // une fiche par type (construction, hors du fil audio)
+    for (const auto& e : done) if (e.first == &d) return *e.second;
+    auto t = std::make_unique<ModuleDesc> (d);
+    t->name = L (t->name);
+    for (auto& p : t->params)
+    {
+        p.name = L (p.name);
+        for (auto& c : p.choices) c = L (c);
+        // unités affichées en toutes lettres (les autres sont des symboles : %, ms, dB, Hz…)
+        if (p.unit == "pas") p.unit = "steps";
+        else if (p.unit == "img") p.unit = "fr";
+        else if (p.unit == "demi-tons") p.unit = "semitones";
+    }
+    for (auto& sec : t->sections) sec.name = L (sec.name);
+    for (auto& pr : t->presets) { pr.name = L (pr.name); pr.category = L (pr.category); }
+    for (auto& n : t->padNames) n = L (n);
+    for (auto& n : t->machineNames) n = L (n);
+    for (auto& v : t->machineLabels) for (auto& n : v) n = L (n);
+    done.emplace_back (&d, std::move (t));
+    return *done.back().second;
+#else
+    return d;
+#endif
+}
 
 //==============================================================================
 /** UTF-8 → ASCII (français) : « Résonance » → « Resonance ». */
@@ -179,6 +224,16 @@ inline std::string shorten (std::string n)
         { "Profondeur", "Prof" }, { "profondeur", "prof" }, { "Velocite", "Velo" }, { "velocite", "velo" },
         { "Sensibilite", "Sens" }, { "sensibilite", "sens" }, { "Relachement", "Relache" }, { "relachement", "relache" },
         { "automatique", "auto" }, { "Alignement", "Align" }, { "passe-", "p-" }, { "Passe-", "P-" },
+        // version anglaise
+        { "Frequency", "Freq" }, { "frequency", "freq" }, { "Resonance", "Reso" }, { "Envelope", "Env" }, { "envelope", "env" },
+        { "Oscillator", "Osc" }, { "oscillator", "osc" }, { "Feedback", "Fdbk" }, { "feedback", "fdbk" }, { "Distortion", "Dist" },
+        { "distortion", "dist" }, { "Velocity", "Velo" }, { "velocity", "velo" }, { "Sensitivity", "Sens" }, { "Release", "Rel" },
+        { "release", "rel" }, { "Attack", "Atk" }, { "attack", "atk" }, { "Decay", "Dec" }, { "decay", "dec" }, { "Sustain", "Sus" },
+        { "Amount", "Amt" }, { "amount", "amt" }, { "Depth", "Dpth" }, { "depth", "dpth" }, { "Position", "Pos" }, { "position", "pos" },
+        { "Transpose", "Transp" }, { "Polarity", "Polar" }, { "Low-pass", "LP" }, { "High-pass", "HP" }, { "Band-pass", "BP" },
+        { "Modulator", "Mod" }, { "Asymmetry", "Asym" }, { "Saturation", "Satur" }, { "Threshold", "Thresh" }, { "Character", "Char" },
+        { "low-pass", "LP" }, { "high-pass", "HP" }, { "band-pass", "BP" }, { "fade-out", "f-out" }, { "fade-in", "f-in" },
+        { "Synthesis level", "Synth lvl" }, { "synthesis level", "synth lvl" },
     };
     if (n.size() <= maxName) return n;
     n = squeeze (n);
@@ -357,6 +412,11 @@ inline std::string pageName (const std::string& folded)
         { "Enveloppes", "Env" }, { "Bas-medium", "Bas-med" }, { "Haut-medium", "Haut-med" }, { "Reverberation", "Reverb" },
         { "Compresseur", "Comp" }, { "Saturation", "Satur" }, { "Arpegiateur", "Arpeg" }, { "Sequenceur", "Sequ" },
         { "Generateur", "Gener" }, { "Resonateur", "Reson" }, { "Harmoniques", "Harmo" }, { "Echantillon", "Sample" },
+        // version anglaise
+        { "Equalizer", "EQ" }, { "Distortion", "Dist" }, { "Transients", "Transnt" }, { "Oscillators", "Osc" }, { "Oscillator", "Osc" },
+        { "Envelopes", "Env" }, { "Envelope", "Env" }, { "Arpeggiator", "Arp" }, { "Sequencer", "Seq" }, { "Generator", "Gen" },
+        { "Resonator", "Reson" }, { "Harmonics", "Harmo" }, { "Compressor", "Comp" }, { "Modulation", "Mod" }, { "Finalizer", "Final" },
+        { "Multiband", "Multib" }, { "Low-mid", "Low-mid" }, { "High-mid", "Hi-mid" },
     };
     std::string n = folded;
     for (const auto& w : words)
@@ -1020,7 +1080,7 @@ class InstrumentPlugin : public GolemBase
 {
 public:
     explicit InstrumentPlugin (const mpc::PluginInfo& info, std::unique_ptr<Module> m = std::make_unique<Module>(), Extras x = {}, Loader ld = nullptr)
-        : GolemBase (info, m->desc()), module (std::move (m)), ex (std::move (x))
+        : GolemBase (info, localized (m->desc())), module (std::move (m)), ex (std::move (x))
     {
         const int base = (int) desc.params.size() + 1;
         for (auto& x : lastDir) x.store (-1);
@@ -1046,7 +1106,7 @@ public:
         if (ex.lanes > 0)
         {
             laneParam = numParams();
-            addParam (mpc::intParam ("mpc_lane", "Piste clavier", 1, ex.lanes, 1));
+            addParam (mpc::intParam ("mpc_lane", L ("Piste clavier").c_str(), 1, ex.lanes, 1));
         }
         if (! ex.phrases.empty())
         {
@@ -1065,8 +1125,8 @@ public:
         {
             padParam = numParams();
             mpc::Param q;
-            q.id = "mpc_pads"; q.name = "Disposition pads"; q.kind = mpc::Param::Kind::Choice;
-            q.choices = { "Notes 36-51", "Do majeur", "Do mineur" }; q.min = 0; q.max = 2; q.def = 0;
+            q.id = "mpc_pads"; q.name = L ("Disposition pads"); q.kind = mpc::Param::Kind::Choice;
+            q.choices = { L ("Notes 36-51"), L ("Do majeur"), L ("Do mineur") }; q.min = 0; q.max = 2; q.def = 0;
             addParam (q);
         }
         // Réglages ajoutés à la fin (identifiants permanents) : le dossier de chaque emplacement de sample
@@ -1077,7 +1137,7 @@ public:
             for (int k = 0; k < files.slots; ++k)
             {
                 const auto id = "mpc_dir" + std::to_string (k + 1);
-                const auto nm = files.slots == 1 ? std::string ("Dossier") : "Dossier " + std::to_string (k + 1);
+                const auto nm = files.slots == 1 ? L ("Dossier") : L ("Dossier") + " " + std::to_string (k + 1);
                 addParam (mpc::intParam (id.c_str(), nm.c_str(), 0, maxFolders - 1, 0));
             }
         }
@@ -1085,8 +1145,8 @@ public:
         if (ex.ballOut)
         {
             ballParam = numParams();
-            auto bx = mpc::floatParam ("mpc_ballx", "Bille X", -1.0f, 1.0f, 0.0f, "", 2, 1.0f);
-            auto by = mpc::floatParam ("mpc_bally", "Bille Y", -1.0f, 1.0f, 0.0f, "", 2, 1.0f);
+            auto bx = mpc::floatParam ("mpc_ballx", L ("Bille X").c_str(), -1.0f, 1.0f, 0.0f, "", 2, 1.0f);
+            auto by = mpc::floatParam ("mpc_bally", L ("Bille Y").c_str(), -1.0f, 1.0f, 0.0f, "", 2, 1.0f);
             bx.automatable = false;
             by.automatable = false;
             addParam (bx);
@@ -1438,7 +1498,7 @@ class EffectPlugin : public GolemBase
 {
 public:
     explicit EffectPlugin (const mpc::PluginInfo& info, std::unique_ptr<Module> m = std::make_unique<Module>())
-        : GolemBase (info, m->desc()), module (std::move (m)) {}
+        : GolemBase (info, localized (m->desc())), module (std::move (m)) {}
 
     void prepare (double sampleRate, int maxBlockSize) override
     {
@@ -1496,15 +1556,15 @@ class VocoderFxPlugin : public GolemBase
 {
 public:
     explicit VocoderFxPlugin (const mpc::PluginInfo& info, std::unique_ptr<Module> m = std::make_unique<Module>())
-        : GolemBase (info, m->desc()), module (std::move (m))
+        : GolemBase (info, localized (m->desc())), module (std::move (m))
     {
         srcIndex = desc.indexOf ("src");
         noteParam = numParams();
-        addParam (mpc::intParam ("mpc_note", "Note porteuse", 24, 84, 48));
+        addParam (mpc::intParam ("mpc_note", L ("Note porteuse").c_str(), 24, 84, 48));
         chordParam = numParams();
         mpc::Param q;
-        q.id = "mpc_chord"; q.name = "Accord porteuse"; q.kind = mpc::Param::Kind::Choice;
-        q.choices = { "Une note", "Octave", "Quinte", "Majeur", "Mineur", "Sus4", "Septieme", "Mineur 7", "Neuvieme" };
+        q.id = "mpc_chord"; q.name = L ("Accord porteuse"); q.kind = mpc::Param::Kind::Choice;
+        q.choices = { L ("Une note"), L ("Octave"), L ("Quinte"), L ("Majeur"), L ("Mineur"), L ("Sus4"), L ("Septieme"), L ("Mineur 7"), L ("Neuvieme") };
         q.min = 0; q.max = (float) q.choices.size() - 1; q.def = 4;
         addParam (q);
     }
@@ -1513,7 +1573,11 @@ public:
     {
         if (index == noteParam)
         {
+#if defined (GRV_MPC_EN)
+            static const char* nm[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+#else
             static const char* nm[12] = { "Do", "Do#", "Re", "Re#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si" };
+#endif
             const int n = (int) std::lround (plainValue);
             out = std::string (nm[((n % 12) + 12) % 12]) + std::to_string (n / 12 - 2);
             return true;

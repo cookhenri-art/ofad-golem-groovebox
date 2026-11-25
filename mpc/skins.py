@@ -25,6 +25,54 @@ import skin_kit as K
 
 GEN_UI = None  # module tools/gen_ui.py du kit, chargé par load_gen_ui()
 
+# Version anglaise (build_mpc.py --lang en) : les textes restent écrits en français dans ce fichier et dans
+# le catalogue ; ils sont traduits au moment où ils sont dessinés (images) ou écrits (onglets, choix), avec
+# la même traduction que le greffon (i18n_en.py). Les textes restés en français sont notés dans MISSING.
+LANG = "fr"
+MISSING = set()
+# réglages propres à l'adaptateur (GolemMpc.h) : nom anglais → nom français, pour les règles de ce fichier
+_EXTRA_FR = {"Folder": "Dossier", "Ball X": "Bille X", "Ball Y": "Bille Y", "Pad layout": "Disposition pads",
+             "Carrier chord": "Accord porteuse"}
+
+
+def tr(s):
+    """Texte affiché dans la langue des greffons construits (français par défaut)."""
+    if LANG != "en" or not isinstance(s, str):
+        return s
+    import i18n_en as I
+    if s in I.EN_VALUES and s not in I.DICT:   # déjà en anglais (noms des réglages venus du greffon)
+        return s
+    t = I.translate(s)
+    if I.residual_french(t) and not (t == s and s in I.DICT):
+        MISSING.add(s)
+    return t
+
+
+def _extra_fr(name):
+    if LANG != "en":
+        return name
+    base, _, num = name.rpartition(" ")
+    if num.isdigit() and base in _EXTRA_FR:
+        return _EXTRA_FR[base] + " " + num
+    return _EXTRA_FR.get(name, name)
+
+
+def set_lang(lang):
+    """« en » : tous les textes dessinés par PIL passent par tr() (une seule fois, même pour les mesures)."""
+    global LANG
+    LANG = lang
+    from PIL import ImageDraw
+    D = ImageDraw.ImageDraw
+    if not hasattr(D, "_golem_orig"):
+        D._golem_orig = (D.text, D.textlength, D.textbbox)
+    o_text, o_len, o_bbox = D._golem_orig
+    if lang != "en":
+        D.text, D.textlength, D.textbbox = o_text, o_len, o_bbox
+        return
+    D.text = lambda self, xy, text, *a, **k: o_text(self, xy, K.safe(tr(text)) if isinstance(text, str) else text, *a, **k)
+    D.textlength = lambda self, text, *a, **k: o_len(self, K.safe(tr(text)) if isinstance(text, str) else text, *a, **k)
+    D.textbbox = lambda self, xy, text, *a, **k: o_bbox(self, xy, K.safe(tr(text)) if isinstance(text, str) else text, *a, **k)
+
 
 def load_gen_ui(sdk):
     global GEN_UI
@@ -58,7 +106,8 @@ class P:
         self.index, self.id, self.name = index, pid, name
         self.lo, self.hi = lo, hi
         self.raw_choices = list(choices) if choices else []
-        self.choices = [fold(c)[:28] for c in choices] if choices else []
+        # version anglaise : traduire AVANT de couper à 28 signes (sinon « Modulateur - Hauteur (voix i »)
+        self.choices = [fold(tr(c))[:28] for c in choices] if choices else []
         if len(self.choices) == 1:
             self.choices.append(self.choices[0])
         self.bipolar = lo is not None and hi is not None and lo < 0 < hi
@@ -96,6 +145,7 @@ def load_params(catalog_path, kind, key, params_json):
     # réglages propres au greffon MPC (fichiers, phrase, piste au clavier), après ceux de GOLEM
     extras = []
     for b in built[len(mod["params"]) + 1:]:
+        b = dict(b, name=_extra_fr(b["name"]))
         q = P(b["index"], "__extra_%d" % b["index"], b["name"], None, None, b["choices"] if b["kind"] == "choice" and not b["name"].startswith(("Sample", "Firmware")) else [])
         q.extra_kind = "file" if b["name"].startswith(("Sample", "Firmware", "Dossier")) else ("choice" if q.choices else "int")
         out[q.id] = q
@@ -279,13 +329,13 @@ class Skin:
     def write(self):
         self.finish_defs()
         defs = [O(("key", k), ("value", v)) for k, v in self.defs.items() if not k.endswith("#size")]
-        repl = [O(("key", "Parameter %d" % i), ("value", ch)) for i, ch in sorted(self.replacements.items())]
+        repl = [O(("key", "Parameter %d" % i), ("value", [tr(c) for c in ch] if isinstance(ch, list) else tr(ch))) for i, ch in sorted(self.replacements.items())]
         tabs = []
         for pg in self.pages:
             bgname = "bg_%d_%d.png" % (pg.fn, pg.sub)
             pg.canvas.save(os.path.join(self.out, bgname))
             root = GEN_UI.component_definition([], pg.children, K.argb(K.BG_BOT), bg_image=bgname)
-            tabs.append(O(("version", 1), ("tabName", pg.name), ("fnKeyIndex", pg.fn), ("fnKeySubIndex", pg.sub),
+            tabs.append(O(("version", 1), ("tabName", tr(pg.name)), ("fnKeyIndex", pg.fn), ("fnKeySubIndex", pg.sub),
                           ("componentDefinition", root), ("qlinkBoundsData", pg.qlink_rects())))
         page_data = O(("version", 1),
                       ("componentDefinitions", O(("version", 2), ("importFiles", []), ("localComponentDefinitions", defs))),
@@ -773,7 +823,7 @@ def make_ctl(p, kind_hint, label, short=None):
         if words is None:
             words = [c for c in p.raw_choices] or list(p.choices)
         low = [fold(w).lower() for w in p.choices]
-        if n == 2 and (low in (["non", "oui"], ["off", "on"], ["arret", "marche"]) or kind_hint == "toggle"):
+        if n == 2 and (low in (["non", "oui"], ["off", "on"], ["arret", "marche"], ["no", "yes"], ["stop", "on"]) or kind_hint == "toggle"):
             return Ctl(p, "toggle", label)
         maxlen = max(len(w) for w in words)
         tw = max(K.text_px(w, 17) for w in words)
@@ -1172,7 +1222,7 @@ def kit_pages(mod, P_, used, accent, extras=(), reserved=0):
     return pad_tabs, None
 
 
-FACE_CAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "_facecap")  # face_capture.py
+FACE_CAP = os.environ.get("GOLEM_FACE_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "_facecap")  # face_capture.py
 FACE_HEAD = 46
 
 
@@ -3018,8 +3068,9 @@ def drop_internal_seq(params, mod):
     return {k: v for k, v in params.items() if k not in drop}
 
 
-def build(sdk, key, kind, params_json, catalog, out_dir, envelope=True, title=None):
+def build(sdk, key, kind, params_json, catalog, out_dir, envelope=True, title=None, lang="fr"):
     load_gen_ui(sdk)
+    set_lang(lang)
     params = load_params(catalog, kind, key, params_json)
     _cat = load_catalog(catalog)
     _mods = [m for m in _cat["instruments"] + _cat["effects"] if m["type"] == key]

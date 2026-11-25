@@ -61,7 +61,7 @@ def write_project(m, manufacturer, out_root, version):
         "category": m.get("category", "Synth" if m["kind"] == "instrument" else "Effect"),
         "file32": "VST/%s-arm32.so" % s,
         "file64": "VST/%s-arm64.so" % s,
-        "description": "OFAD GOLEM - %s (portage MPC)" % name,
+        "description": ("OFAD GOLEM - %s (MPC port)" if m.get("en_table") is not None else "OFAD GOLEM - %s (portage MPC)") % name,
         "license": "AGPL-3.0-or-later",
     }
     with open(os.path.join(proj, "plugin.json"), "w", encoding="utf-8") as f:
@@ -143,6 +143,21 @@ public:
 
 MPC_PLUGIN_ENTRY ({cls})
 GOLEM_MPC_LAYOUT ({cls})
+"""
+    if m.get("en_table"):
+        rows = ",\n".join("        {{ {}, {} }}".format(json.dumps(k, ensure_ascii=False), json.dumps(v, ensure_ascii=False))
+                           for k, v in sorted(m["en_table"].items()))
+        cpp += f"""
+// Version anglaise : traduction des textes du module (mpc/i18n_en.py : ui/src/i18n/en.json + mpc/i18n_en_extra.json)
+#include <unordered_map>
+const char* golemEn (const std::string& fr)
+{{
+    static const std::unordered_map<std::string, const char*> table {{
+{rows}
+    }};
+    const auto it = table.find (fr);
+    return it == table.end() ? nullptr : it->second;
+}}
 """
     with open(os.path.join(proj, "src", ident(name) + ".cpp"), "w", encoding="utf-8") as f:
         f.write(cpp)
@@ -248,6 +263,45 @@ def filter_banks(stage_dir, key):
 
 sys.path.insert(0, HERE)
 
+# textes de l'adaptateur (GolemMpc.h, fonction L) : traduits dans la table de chaque greffon anglais
+WRAPPER_TEXTS = ["Disposition pads", "Notes 36-51", "Do majeur", "Do mineur", "Accord porteuse", "Une note", "Octave",
+                 "Quinte", "Majeur", "Mineur", "Sus4", "Septieme", "Mineur 7", "Neuvieme", "Dossier", "Bille X", "Bille Y", "Note porteuse", "Piste clavier"]
+
+
+def _strings(x, out):
+    """Tous les textes d'une fiche du catalogue (sauf identifiants techniques)."""
+    if isinstance(x, str):
+        out.add(x)
+    elif isinstance(x, list):
+        for v in x:
+            _strings(v, out)
+    elif isinstance(x, dict):
+        for k, v in x.items():
+            if k in ("id", "type", "visual", "tab", "unit", "padKinds", "form", "sampleRuntime"):
+                continue
+            _strings(v, out)
+
+
+def english_module(m):
+    """Module de la version anglaise : nom, identifiant et table de traduction propres."""
+    import i18n_en as I
+    cat = json.load(open(os.path.join(ROOT_DIR, "ui", "src", "engine", "catalog.json"), encoding="utf-8"))
+    entry = next((e for grp in ("instruments", "effects") for e in cat[grp] if e["type"] == m["key"]), None)
+    texts = set(WRAPPER_TEXTS)
+    if entry:
+        _strings(entry, texts)
+    table = {}
+    for t in texts:
+        en = I.translate(t)
+        if en != t:
+            table[t] = en
+    e = dict(m)
+    e["name"] = I.plugin_name(m["name"], entry["name"] if entry else None)
+    e["base_name"] = e["name"].split(" - ", 1)[1]
+    e["uid"] = I.plugin_uid(m["uid"])
+    e["en_table"] = table
+    return e
+
 
 def skins_only(args, cfg, mods):
     """Refait l'habillage (Plugin Skins) des greffons déjà construits, sans recompiler."""
@@ -264,11 +318,17 @@ def skins_only(args, cfg, mods):
         skin_dir = os.path.join(proj, "skins")
         if os.path.isdir(skin_dir):
             shutil.rmtree(skin_dir)
-        SK.build(os.path.abspath(args.sdk), m["key"], m["kind"], params_json, catalog, skin_dir, title=m.get("base_name", m["name"]))
+        SK.build(os.path.abspath(args.sdk), m["key"], m["kind"], params_json, catalog, skin_dir, title=m.get("base_name", m["name"]), lang=args.lang)
         dst = os.path.join(folder, "Plugin Skins")
         if os.path.isdir(dst):
             shutil.rmtree(dst)
         shutil.copytree(skin_dir, dst)
+        if args.prune:
+            shutil.rmtree(skin_dir, ignore_errors=True)
+        if args.lang == "en":
+            with open(os.path.join(proj, "untranslated.txt"), "w", encoding="utf-8") as f:
+                f.write("\n".join(sorted(SK.MISSING)) + ("\n" if SK.MISSING else ""))
+            SK.MISSING.clear()
         r = subprocess.run([sys.executable, os.path.join(args.sdk, "tools", "validate.py"), folder], capture_output=True, text=True)
         tail = [l for l in r.stdout.splitlines() if "errors" in l]
         print("%-24s %s" % (m["name"], tail[-1] if tail else r.stdout[-200:]))
@@ -289,10 +349,21 @@ def main():
     ap.add_argument("--skip-built", action="store_true", help="passer les greffons déjà construits")
     ap.add_argument("--kind", choices=["instrument", "effect"], help="seulement les instruments ou les effets")
     ap.add_argument("--skins-only", action="store_true", help="refaire seulement l'habillage des greffons déjà construits")
+    ap.add_argument("--lang", choices=["fr", "en"], default="fr", help="langue des greffons (en : noms, réglages, sons et écrans en anglais)")
+    ap.add_argument("--prune", action="store_true", help="après chaque greffon réussi, effacer la bibliothèque native et la copie de l'habillage (place disque)")
     args = ap.parse_args()
 
     cfg = json.load(open(os.path.join(HERE, "modules.json"), encoding="utf-8"))
     mods = [m for m in cfg["modules"] if (not args.keys or m["key"] in args.keys) and (not args.kind or m["kind"] == args.kind)]
+    if args.lang == "en":
+        mods = [english_module(m) for m in mods]
+        if args.out == os.path.join(HERE, "out"):
+            args.out = os.path.join(HERE, "out_en")
+        args.define = args.define + ["GRV_MPC_EN=1"]
+        # écrans de tête des maquettes capturés en anglais (mockskin/build_cache.py avec GOLEM_MOCK_LANG=en)
+        os.environ.setdefault("GOLEM_MOCK_DIR", os.path.join(HERE, "out", "mockcache_en"))
+        # façades capturées avec l'interface de GOLEM en anglais (face_capture.py avec GOLEM_FACE_LANG=en)
+        os.environ.setdefault("GOLEM_FACE_DIR", os.path.join(HERE, "out", "_facecap_en"))
     if not mods:
         print("aucun module"); return 1
     if args.skins_only:
@@ -346,12 +417,20 @@ def main():
             shutil.rmtree(skin_dir)
         catalog = os.path.join(HERE, "..", "ui", "src", "engine", "catalog.json")
         params_json = os.path.join(proj, "build", "params.json")
-        if SK.build(os.path.abspath(args.sdk), m["key"], m["kind"], params_json, catalog, skin_dir, title=m.get("base_name", m["name"])):
+        if SK.build(os.path.abspath(args.sdk), m["key"], m["kind"], params_json, catalog, skin_dir, title=m.get("base_name", m["name"]), lang=args.lang):
             print("  habillage graphique : skins.py")
+        if args.lang == "en":
+            # textes restés en français dans les images (à ajouter à mpc/i18n_en_extra.json)
+            with open(os.path.join(proj, "untranslated.txt"), "w", encoding="utf-8") as f:
+                f.write("\n".join(sorted(SK.MISSING)) + ("\n" if SK.MISSING else ""))
+            SK.MISSING.clear()
         if args.native_only:
             continue
         if b.main([proj]) != 0:
             failed.append(m["name"])
+        elif args.prune:
+            shutil.rmtree(os.path.join(proj, "build", "native"), ignore_errors=True)
+            shutil.rmtree(os.path.join(proj, "skins"), ignore_errors=True)
     print("\nTerminé. Échecs : %s" % (", ".join(failed) if failed else "aucun"))
     return 1 if failed else 0
 
