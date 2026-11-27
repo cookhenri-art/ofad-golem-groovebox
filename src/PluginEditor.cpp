@@ -505,6 +505,15 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         if (ch >= 0 && slot >= -1) eng.applyPreset (ch, slot, strArg (a, 2, 80).toStdString());
         done (json (bridge::channelJson (eng, std::max (0, ch))));
     });
+    // 1.3 (Croc Glacé) : un son d'usine copié dans un coin de l'ORB (réglages « ka_… » à « kd_… »)
+    fn ("presetToPrefix", [&eng, C] (const Args& a, Completion done)
+    {
+        const auto ch = intArg (a, 0, 0, C, -1);
+        const auto prefix = strArg (a, 2, 8).toStdString();
+        const bool okPrefix = prefix.size() == 3 && prefix[0] == 'k' && prefix[1] >= 'a' && prefix[1] <= 'd' && prefix[2] == '_';
+        if (ch >= 0 && okPrefix) eng.applyPresetToPrefix (ch, strArg (a, 1, 80).toStdString(), prefix);
+        done (json (bridge::channelJson (eng, std::max (0, ch))));
+    });
     // --- Préréglages de l'utilisateur ------------------------------------------------------
     // Portée : "inst" (instrument de la piste), "fx" (insert), "pad" (un pad d'une batterie).
     // Le type de module est toujours celui du moteur (jamais celui qu'envoie l'interface).

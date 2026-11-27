@@ -265,7 +265,9 @@ sys.path.insert(0, HERE)
 
 # textes de l'adaptateur (GolemMpc.h, fonction L) : traduits dans la table de chaque greffon anglais
 WRAPPER_TEXTS = ["Disposition pads", "Notes 36-51", "Do majeur", "Do mineur", "Accord porteuse", "Une note", "Octave",
-                 "Quinte", "Majeur", "Mineur", "Sus4", "Septieme", "Mineur 7", "Neuvieme", "Dossier", "Bille X", "Bille Y", "Note porteuse", "Piste clavier"]
+                 "Quinte", "Majeur", "Mineur", "Sus4", "Septieme", "Mineur 7", "Neuvieme", "Dossier", "Bille X", "Bille Y", "Note porteuse", "Piste clavier", "Muet", "Solo", "Non", "Oui",
+                 "1 pad = 1 piste", "Clavier (ci-dessous)", "Disques", "Couche", "Sample",
+                 "sample du greffon", "pas de sample (enregistreur)", "Piste", "Pad", "Zone"]
 
 
 def _strings(x, out):

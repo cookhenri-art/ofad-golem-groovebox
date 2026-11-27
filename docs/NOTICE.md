@@ -952,11 +952,13 @@ est exactement ce que montre l'afficheur, et il ne coûte presque rien au proces
   transitoires (au tempo), **convolution** (27 réponses calculées : clics, boîtes, réverbérations, queues de rumble,
   chutes de sub, textures, corps tonals ; courbe du mouillé à 3 points), **finaliseur** (grave relevé, grave en
   mono, écrêtage, avec la vue de ce qu'il écrase), multibande et filtres résonants. Chaque module a son mélange.
-- **Styles et hasard** : 14 styles (Rumble, Reverse bass, Industriel, Psy, Schranz, Rumble propre, Newstyle,
-  Rawstyle, Hard techno, Gabber, Frenchcore, Hardstyle, Techno, et **Construction libre**). **⚄ Hasard** tire un
+- **Styles et hasard** : 15 styles (Rumble, Reverse bass, Industriel, Psy, Schranz, Rumble propre, Newstyle,
+  Rawstyle, Hard techno, Gabber, Frenchcore, Hardstyle, Techno, **Psy · kick + basse**, et **Construction libre**). **⚄ Hasard** tire un
   kick complet dans le style choisi ; en **construction libre**, il garde vos morceaux et ne fait que varier leurs
   réglages. **Garder les fondus** les protège, une couche **verrouillée** n'est jamais touchée, **→ Construction
-  libre** garde le kick tiré pour le retoucher, **Vider** repart de zéro. **78 kicks d'usine** (6 par style).
+  libre** garde le kick tiré pour le retoucher, **Vider** repart de zéro. **84 kicks d'usine** (6 par style).
+  **1.3** : le style **Psy · kick + basse** pose le couple de la psytrance (kick « zap » court et basse en
+  roulement) avec les nouveaux morceaux **punch psy (zap)**, **corps basse psy** et **basse psy FM**.
 - **En bas**, une octave de notes à partir de la tonalité : pour jouer le kick (et le faire suivre la note en
   mode « Note jouée : Suivie »).
 
@@ -1044,6 +1046,40 @@ de **8 boutons** qui suit le menu choisi. Si cet essai vous plaît, d'autres ins
 <figure><img src="img/v130/pc-gamer-tables.jpg" alt="Gamer Lover, page Tables et sortie : les 16 pads de la batterie, l'arpège, la hauteur, la sortie console et l'écho"><figcaption>Page « Tables et sortie » : la batterie, les tables, la sortie console</figcaption></figure>
 
 <figure><img src="img/v130/tel-gamer.jpg" alt="Gamer Lover au téléphone : 8 menus, le téléviseur, les pastilles de la puce et 8 boutons"><figcaption>Au téléphone : l'écran façon machine à pads</figcaption></figure>
+
+### 19. Croc Glacé : le synthé psy à l'ORB (1.3)
+
+**Croc Glacé** (famille **Nappes**, **Frost Fang** dans l'interface anglaise) fait des sons qui tournent et
+changent sans cesse : drones psychés, nappes qui mutent, textures étranges, glitchs, sons métalliques, balayages,
+lasers et quelques séquences squelch.
+
+- **Deux oscillateurs à tables d'ondes** : une **porteuse** et un **modulateur** (deux ondes A et B mélangées),
+  position, PWM, **distorsion de phase**. Tables propres (classiques, voyelles, métal FM, cristal…), tables
+  « Résonance » et « Bruit », les tables de **Glutamake, Good Doctor et Good Doctor 2**, et vos **tables perso**
+  (un WAV de la Bibliothèque, ondes de 2048 points ou un seul cycle).
+- **Bite!** : **FM** du modulateur vers la porteuse, **repli**, **réduction de bits**, saturation douce,
+  sous-oscillateur, bruit du blanc au brun.
+- **Filtre** à 8 types (passe-bas 24 et 12, passe-bande, passe-haut, coupe-bande, peigne + et −, formant), deux
+  étages, et trois **enveloppes** (ampli, filtre, et une enveloppe de modulation « zap » vers la FM et la hauteur).
+- **Séquenceur de LFO** : **8 LFO** joués par **4 couloirs de 32 pas** ; chaque pas joue l'un des LFO ou un
+  niveau fixe. **32 motifs classiques** à choisir (roulement psy, porte de trance, euclidiens, squelch, hitech…),
+  hasard par pas, lissage, repli, swing.
+- **L'ORB** : on charge **quatre sons dans les coins** (sons d'usine ou son en cours capturé), et un **point**
+  les mélange. Le point peut tourner tout seul sur une **orbite** (cercle, huit, étoile, spirale, Lorenz,
+  Rössler…), avec une **sous-orbite en sens opposé** et un **orbe 3** ; trois **physiques** (rigide, élastique,
+  gravité) et **6 routes** qui envoient l'ORB directement sur le son.
+- **Matrice** de 16 routages, **arpégiateur** et 4 macros.
+- **Effets** : distorsion (lampe, écrêtage, bitcrush, repli), **flanger**, **phaser** de 4 à 12 étages, **écho**
+  (simple ou ping-pong, glissé façon bande, et mode **Peigne** qui suit la note jouée : sons de cloches et de
+  métal accordés), **réverbération** avec **gel**, **stéréo** (largeur et décalage Haas), et l'ordre écho /
+  réverbération au choix. Ces effets sont aussi des destinations des couloirs et de l'ORB.
+- **44 sons d'usine** : Drones, Nappes, Textures, Glitch, Métal, Effets, Séquences, Plucks, Arpèges et 3 basses.
+
+<figure><img src="img/v130/pc-croc-orb.jpg" alt="Croc Glacé, page ORB : le pavé aux quatre coins colorés, le point en orbite, la sous-orbite et l'orbe 3, les quatre sons des coins"><figcaption>Page ORB : le point mélange les quatre sons des coins</figcaption></figure>
+
+<figure><img src="img/v130/pc-croc-seq.jpg" alt="Croc Glacé, page SEQ : un couloir de 32 pas, chaque pas joue un LFO, et les réglages du LFO choisi"><figcaption>Page SEQ : chaque pas du couloir joue l'un des 8 LFO</figcaption></figure>
+
+<figure><img src="img/v130/pc-croc-fx.jpg" alt="Croc Glacé, page Effets : distorsion, flanger, phaser, écho avec le mode peigne, réverbération avec le gel, stéréo"><figcaption>Page Effets : peigne qui suit la note, phaser, gel de la réverbération</figcaption></figure>
 
 ## Contrôleur MIDI
 

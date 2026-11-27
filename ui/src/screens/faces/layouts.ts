@@ -2126,4 +2126,158 @@ const gamer: FaceLayout = {
   ],
 };
 
-export const FACE_LAYOUTS: Record<string, FaceLayout> = { mono, acid, drumA, drum80, drum90, poly5, polyj, hybrid, morph, pads, octa, ms20, sh101, blo, ob6, orbit, fm6, fm4, fmx, muse, hots, lyra, bitm, drumImp, drumNrv, dfam, voc16, vocstr, vocspec, vocsyn, sampler, keys, sp, gluta, gooddoc, gooddoc2, fmplayer, microton, kickforge, gamer };
+/* 1.3 : Croc Glacé — synthé psy à tables d'ondes. Panneau sombre et froid (glace), arcs cyan, pages comme
+   la machine dont il reprend le principe : SON (porteuse, modulateur, Bite, bruit, filtre, enveloppes, voix),
+   SEQ (8 LFO, 4 couloirs de 32 pas avec 32 motifs), ORB (pavé fixe, onglets Morph / Orbite / Physique /
+   Routes), MATRICE et ARPÈGE, EFFETS (distorsion, flanger, écho, réverbération). */
+const CG_LFOS = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ label: String(n), value: String(n) }));
+const CG_LANES = [1, 2, 3, 4].map((n) => ({ label: `Couloir ${n}`, value: String(n) }));
+const croc: FaceLayout = {
+  theme: "glace",
+  wheels: true,
+  pages: [
+    {
+      id: "sound", label: "Son",
+      rows: [
+        [
+          { title: "Porteuse", cols: 4, grow: 1.2, ctl: [
+            { id: "ctab", k: "menu", label: "Table", tip: "Tables propres, tables « Résonance », « Bruit », tables de Glutamake / Good Doctor / Good Doctor 2, et « Perso (WAV) »" },
+            { id: "cpos", k: "big", label: "Position" }, { id: "cpwm", label: "PWM" }, { id: "cpwmrate", k: "small", label: "Vit. PWM" },
+            { id: "cpd", label: "Dist. phase", tip: "Distorsion de phase : l'onde se tasse d'un côté du cycle (l'oscillateur fait de la FM tout seul)" },
+            { id: "coct", k: "small", label: "Octave" }, { id: "csemi", k: "small", label: "Demi-ton" }, { id: "cfine", k: "small", label: "Fin" },
+          ] },
+          { title: "Modulateur", cols: 5, grow: 1.5, ctl: [
+            { id: "mtaba", k: "menu", label: "Onde A" }, { id: "mtabb", k: "menu", label: "Onde B" }, { id: "mpos", k: "big", label: "Position" }, { id: "mab", label: "A/B" },
+            { id: "mpd", label: "Dist. phase", tip: "Distorsion de phase du modulateur (plus de dents dans la FM)" },
+            { id: "moct", k: "small", label: "Octave" }, { id: "msemi", k: "small", label: "Demi-ton" }, { id: "mfine", k: "small", label: "Fin" },
+            { id: "mcrush", k: "small", label: "Crush" }, { id: "mshape", k: "small", label: "Shape" }, { id: "mfold", k: "small", label: "Fold" },
+          ] },
+          { title: "Bite!", cols: 3, grow: 1, tone: "oklch(0.72 0.2 330)", ctl: [
+            { id: "fm", k: "big", label: "FM" }, { id: "fold", label: "Fold" }, { id: "crush", label: "Crush" },
+            { id: "soft", label: "Soft" }, { id: "oscmix", label: "Porteuse ↔ mod.", tip: "Tout à droite : le modulateur seul (la FM ne s'entend plus)" }, { id: "sub", k: "small", label: "Sous-osc." },
+          ] },
+          { title: "Bruit", cols: 1, grow: 0.45, ctl: [
+            { id: "noise", k: "big", label: "Niveau" }, { id: "noisecol", label: "Couleur", tip: "0 : bruit blanc ; 50 : rose ; 100 : brun (sourd)" },
+          ] },
+        ],
+        [
+          { title: "Filtre", cols: 6, grow: 1.9, ctl: [
+            { id: "ftype", k: "menu", label: "Type" }, { id: "cutoff", k: "big", label: "Coupure" }, { id: "reso", label: "Résonance" }, { id: "fdrive", label: "Drive" },
+            { id: "fenv", label: "Enveloppe" }, { id: "f2stage", k: "toggle", label: "2 étages", on: 1 },
+            { id: "fkey", k: "small", label: "Clavier" }, { id: "fvel", k: "small", label: "Vélocité" },
+            { id: "flsync", k: "menu", label: "LFO tempo" }, { id: "flrate", k: "small", label: "LFO Hz", dimUnless: { id: "flsync", eq: 0 } }, { id: "flamt", label: "LFO" }, { id: "flshape", k: "menu", label: "LFO forme" },
+          ] },
+          { title: "Enveloppe", banks: [{ label: "Ampli", value: "a" }, { label: "Filtre", value: "f" }, { label: "Mod (zap)", value: "mod" }], cols: 6, grow: 1.4, tone: "oklch(0.78 0.12 210)", ctl: [
+            { id: "{b}a", k: "fader", label: "A" }, { id: "{b}d", k: "fader", label: "D" }, { id: "{b}s", k: "fader", label: "S" }, { id: "{b}r", k: "fader", label: "R" },
+            { id: "velamp", k: "small", label: "Vél. ampli" },
+            { stack: [
+              { id: "modfm", k: "small", label: "Env. → FM", tip: "Enveloppe de modulation vers la FM (zap)" },
+              { id: "modpitch", k: "small", label: "Env. → hauteur", tip: "Enveloppe de modulation vers la hauteur, ±4 octaves (zap, laser)" },
+            ] },
+          ] },
+          { title: "Voix et sortie", cols: 3, grow: 1, ctl: [
+            { id: "vmode", k: "vswitch", label: "Jeu", short: ["Poly", "Mono", "Legato", "Unisson"] }, { id: "level", k: "big", label: "Volume" }, { id: "glide", k: "small", label: "Glissé" },
+            { id: "voices", k: "small", label: "Voix" }, { id: "univoices", k: "small", label: "Unisson" }, { id: "unidetune", k: "small", label: "Désacc." },
+            { id: "spread", k: "small", label: "Largeur" }, { id: "tune", k: "small", label: "Accord" },
+          ] },
+          { title: "Tables perso (WAV)", ctl: [], custom: "crocwav", grow: 0.9 },
+        ],
+      ],
+    },
+    {
+      id: "seq", label: "SEQ",
+      rows: [
+        [
+          { title: "Couloir · chaque pas joue l'un des 8 LFO (L1 à L8) ou un niveau fixe (F) — toucher L : suivant, glisser : niveau", banks: CG_LANES, cols: 7, grow: 3, custom: "crocsteps:{b}", ctl: [
+            { id: "c{b}on", k: "toggle", label: "En marche", on: 1 }, { id: "c{b}len", label: "Longueur" }, { id: "c{b}div", k: "menu", label: "Division" },
+            { id: "c{b}dir", k: "menu", label: "Sens" }, { id: "c{b}mode", k: "menu", label: "Mode", tip: "Grille du morceau : calé sur la mesure ; À chaque note : repart au début ; Libre : ne s'arrête jamais" },
+            { id: "c{b}swing", label: "Swing" },
+            { id: "c{b}dst", k: "menu", label: "Destination" }, { id: "c{b}amt", k: "big", label: "Quantité" },
+            { id: "c{b}smooth", k: "small", label: "Lissage", tip: "Adoucit le passage d'un pas au suivant (0 : marches franches)" },
+            { id: "c{b}quant", k: "small", label: "Quantif.", tip: "Ramène la sortie sur n niveaux (réduction de bits) : 0 = libre" },
+            { id: "c{b}curve", k: "small", label: "Courbe", tip: "Creuse (négatif) ou bombe (positif) la sortie du couloir" },
+            { id: "c{b}fold", k: "small", label: "Repli", tip: "Repli (rebond aux bords) : ce qui dépasse le haut ou le bas repart dans l'autre sens au lieu d'être coupé — plus de mouvements, plus de dents" },
+            { id: "c{b}jit", k: "small", label: "Hasard / pas", tip: "Hasard par pas : chaque pas reçoit un écart au hasard, jusqu'à ±100 % (glitch, instabilité)" },
+          ] },
+        ],
+        [
+          { title: "LFO", banks: CG_LFOS, cols: 7, grow: 2, tone: "oklch(0.72 0.2 330)", wideLabels: true, ctl: [
+            { id: "l{b}shape", k: "menu", label: "Forme", tip: "Sinus, triangle, scie, rampe, carré, hasard, chaos en sauts ou lissé, bruit blanc ou rose" },
+            { id: "l{b}sync", k: "menu", label: "Tempo", tip: "« Libre » : la vitesse se règle en Hz (jusqu'à 1000 Hz) ; sinon calé sur le tempo" },
+            { id: "l{b}rate", label: "Vitesse", dimUnless: { id: "l{b}sync", eq: 0 } }, { id: "l{b}amt", label: "Quantité" },
+            { id: "l{b}steps", k: "small", label: "Lisse → marches", tip: "Marches · lisse → numérique — 0 : LFO lisse ; plus haut : la courbe tombe en marches (2 marches = carré), jusqu'à un son numérique" },
+            { id: "l{b}phase", k: "small", label: "Phase" },
+            { id: "l{b}retrig", k: "toggle", label: "Repart", on: 1, tip: "Réenclenché à chaque note : le LFO repart de sa phase à chaque nouvelle note (sinon il tourne librement)" },
+          ] },
+        ],
+      ],
+    },
+    {
+      id: "orb", label: "ORB",
+      rows: [
+        [{ title: "ORB · un point fait muter tout le son", ctl: [], custom: "crocorbpage", grow: 1 }],
+      ],
+    },
+    {
+      id: "matrix", label: "Matrice et arpège",
+      rows: [
+        [{ title: "Matrice de modulation · 16 routages (LFO, couloirs, ORB X / Y et orbe 3 sont des sources)", ctl: [], custom: "matrix", grow: 2 }],
+        [
+          { title: "Env. 3", cols: 4, grow: 1.1, ctl: [
+            { id: "me1_att", label: "Attaque" }, { id: "me1_dec", label: "Déclin" }, { id: "me1_sus", label: "Niveau" }, { id: "me1_rel", label: "Relâch." },
+            { id: "me1_dly", k: "small", label: "Retard" }, { id: "me1_hld", k: "small", label: "Tenue" },
+            { stack: [{ id: "me1_loop", label: "Boucle" }, { id: "me1_sync", label: "Tempo" }] }, { id: "me1_vel", k: "small", label: "Vélocité" },
+          ] },
+          { title: "Mod", cols: 2, grow: 0.6, ctl: [{ id: "macro1", label: "Mod 1" }, { id: "macro2", label: "Mod 2" }, { id: "macro3", label: "Mod 3" }, { id: "macro4", label: "Mod 4" }] },
+          { title: "Arpège", cols: 4, grow: 1, ctl: [
+            { stack: [{ id: "arp_on", label: "En marche" }, { id: "arp_mode", label: "Mode" }] }, { id: "arp_rate", label: "Division" }, { id: "arp_gate", k: "small", label: "Durée" }, { id: "arp_swing", k: "small", label: "Swing" },
+            { id: "arp_hold", label: "Maintien" }, { id: "arp_oct", k: "switch", label: "Octaves" }, { id: "arp_steps", k: "small", label: "Pas" },
+          ] },
+          { title: "Pas de l'arpège", banks: [{ label: "Transposition", value: "t" }, { label: "Vélocité", value: "v" }], ctl: [], custom: "steps:arp_{b}:arp_steps", grow: 1.4 },
+        ],
+      ],
+    },
+    {
+      id: "fx", label: "Effets",
+      rows: [
+        [
+          { title: "Distorsion", cols: 3, grow: 0.9, tone: "oklch(0.72 0.2 30)", ctl: [
+            { id: "distmode", k: "vswitch", label: "Type", short: ["Lampe", "Écrêtage", "Bitcrush", "Repli"] }, { id: "distdrive", k: "big", label: "Drive" }, { id: "distmix", label: "Mélange" },
+          ] },
+          { title: "Flanger · très court et réinjecté : laser, métal", cols: 3, grow: 1.2, ctl: [
+            { id: "flgtime", k: "big", label: "Temps", tip: "De 0,05 à 10 ms : très court, il sonne comme un peigne métallique. Un couloir vers « Flanger temps » le fait balayer (laser)" },
+            { id: "flgrate", label: "Vitesse" }, { id: "flgdepth", label: "Profondeur" }, { id: "flgfb", label: "Rétroaction", tip: "±99 % : négatif creuse, positif fait siffler" }, { id: "flgmix", label: "Mélange" },
+          ] },
+          { title: "Phaser · 4 à 12 cellules, réinjecté : tourbillons, sons qui creusent", cols: 3, grow: 1.1, tone: "oklch(0.72 0.2 330)", ctl: [
+            { id: "phstages", k: "menu", label: "Cellules" }, { id: "phfreq", k: "big", label: "Fréquence" }, { id: "phrate", label: "Vitesse", tip: "Jusqu'à 40 Hz : au-delà de 10 Hz le phaser devient un grain métallique" },
+            { id: "phdepth", label: "Profondeur" }, { id: "phfb", label: "Rétroaction", tip: "±95 % : plus haut, les creux sifflent et sonnent métal" }, { id: "phmix", label: "Mélange" },
+          ] },
+        ],
+        [
+          { title: "Écho · de 0,05 ms à 2 s ; au-delà de 100 % il s'emballe", cols: 4, grow: 1.6, ctl: [
+            { id: "dlmode", k: "menu", label: "Mode" }, { id: "dlsync", k: "menu", label: "Synchro" },
+            { id: "dltime", k: "big", label: "Temps", dimUnless: { id: "dlsync", eq: 0 }, tip: "Quelques ms avec beaucoup de rétroaction : un peigne (sons métalliques, glitch)" },
+            { id: "dldiv", k: "menu", label: "Division", dimUnless: { id: "dlsync", eq: 1 } },
+            { id: "dlfb", label: "Rétroaction", tip: "Au-delà de 100 % l'écho s'entretient et sature" },
+            { id: "dlglide", label: "Glissé", tip: "Temps pour rejoindre un nouveau temps d'écho : 0 = sauts nets (glitch), plus haut = l'écho glisse (bruit de bande)" },
+            { id: "dltone", label: "Timbre" }, { id: "dlmix", k: "big", label: "Mélange" },
+            { id: "dlcomb", k: "toggle", label: "Peigne", on: 1, tip: "Le temps de l'écho suit la note jouée : avec beaucoup de rétroaction, un métal accordé (cloches, tuyaux, cordes de glace). Temps et division ne servent plus" },
+            { id: "dlcombst", k: "small", label: "Hauteur", dimUnless: { id: "dlcomb", eq: 1 }, tip: "Hauteur du peigne par rapport à la note, en demi-tons (±3 octaves). Un couloir vers « Peigne hauteur » le fait sauter" },
+            { id: "dlcombfine", k: "small", label: "Fin", dimUnless: { id: "dlcomb", eq: 1 }, tip: "Désaccord fin du peigne, en centièmes" },
+          ] },
+          { title: "Réverbération · diffusion faible : métallique", cols: 3, grow: 1.3, ctl: [
+            { id: "rvsize", label: "Taille" }, { id: "rvwidth", label: "Largeur" }, { id: "rvdamp", label: "Amortiss." }, { id: "rvdiff", label: "Diffusion" }, { id: "rvmix", k: "big", label: "Mélange" },
+            { id: "rvfreeze", k: "toggle", label: "Gel", on: 1, tip: "Fige la queue de la réverbération (plus rien n'entre) : nappe infinie, à couper en jouant" },
+            { id: "fxorder", k: "menu", label: "Ordre", tip: "Écho puis réverbération (classique) ou réverbération puis écho : les queues se répètent" },
+          ] },
+          { title: "Stéréo", cols: 1, grow: 0.5, ctl: [
+            { id: "stwidth", k: "big", label: "Largeur", tip: "0 : mono ; 100 % : tel quel ; 200 % : très large" },
+            { id: "sthaas", label: "Décalage", tip: "Retarde la droite de 0 à 30 ms : écarte un son mono" },
+          ] },
+        ],
+      ],
+    },
+  ],
+};
+
+export const FACE_LAYOUTS: Record<string, FaceLayout> = { mono, acid, drumA, drum80, drum90, poly5, polyj, hybrid, morph, pads, octa, ms20, sh101, blo, ob6, orbit, fm6, fm4, fmx, muse, hots, lyra, bitm, drumImp, drumNrv, dfam, voc16, vocstr, vocspec, vocsyn, sampler, keys, sp, gluta, gooddoc, gooddoc2, fmplayer, microton, kickforge, gamer, croc };

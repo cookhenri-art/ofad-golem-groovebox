@@ -949,11 +949,13 @@ costs almost nothing to the processor while playing.
   **convolution** (27 calculated responses: clicks, boxes, reverbs, rumble tails, sub drops, textures, tonal bodies;
   3-point wet curve), **finalizer** (bass boost, mono bass, clipping, with a view of what it squashes),
   multiband and resonant filters. Each module has its own mix.
-- **Styles and randomize**: 14 styles (Rumble, Reverse bass, Industrial, Psy, Schranz, Clean rumble, Newstyle,
-  Rawstyle, Hard techno, Gabber, Frenchcore, Hardstyle, Techno, and **Free build**). **⚄ Randomize** draws a
+- **Styles and randomize**: 15 styles (Rumble, Reverse bass, Industrial, Psy, Schranz, Clean rumble, Newstyle,
+  Rawstyle, Hard techno, Gabber, Frenchcore, Hardstyle, Techno, **Psy · kick + bass**, and **Free build**). **⚄ Randomize** draws a
   complete kick in the chosen style; in **free build**, it keeps your parts and only varies their settings.
   **Keep fades** protects them, a **locked** layer is never touched, **→ Free build** keeps the drawn kick to
-  tweak it, **Clear** starts from scratch. **78 factory kicks** (6 per style).
+  tweak it, **Clear** starts from scratch. **84 factory kicks** (6 per style).
+  **1.3**: the **Psy · kick + bass** style sets up the psytrance pair (a short "zap" kick and a rolling bass)
+  with the new **psy punch (zap)**, **psy bass body** and **psy FM bass** parts.
 - **At the bottom**, one octave of notes from the key: to play the kick (and make it follow the note in
   "Played note: Follows" mode).
 
@@ -1040,6 +1042,40 @@ follows the chosen menu. If you like this trial, other instruments may move to t
 <figure><img src="img/v130/en/pc-gamer-tables.jpg" alt="Gamer Lover, Tables and output page: the 16 drum pads, arpeggio, pitch, console output and echo"><figcaption>"Tables and output" page: drums, tables, console output</figcaption></figure>
 
 <figure><img src="img/v130/en/tel-gamer.jpg" alt="Gamer Lover on the phone: 8 menus, the TV, the chip pills and 8 knobs"><figcaption>On the phone: the pad-machine style screen</figcaption></figure>
+
+### 19. Frost Fang: the psy synth with the ORB (1.3)
+
+**Frost Fang** (**Pads** family; *Croc Glacé* in the French interface) makes sounds that keep turning and
+changing: psychedelic drones, morphing pads, strange textures, glitches, metallic sounds, sweeps, lasers and a
+few squelch sequences.
+
+- **Two wavetable oscillators**: a **carrier** and a **modulator** (two waves A and B mixed), position, PWM,
+  **phase distortion**. Its own tables (classic, vowels, FM metal, crystal…), "Resonance" and "Noise" tables, the
+  tables from **Glutamake, Good Doctor and Good Doctor 2**, and your **custom tables** (a WAV from the Library,
+  2048-point waves or a single cycle).
+- **Bite!**: modulator-to-carrier **FM**, **fold**, **bit crushing**, soft saturation, sub-oscillator, noise from
+  white to brown.
+- **Filter** with 8 types (low-pass 24 and 12, band-pass, high-pass, notch, comb + and −, formant), two stages,
+  and three **envelopes** (amp, filter, and a "zap" modulation envelope to FM and pitch).
+- **LFO sequencer**: **8 LFOs** played by **4 lanes of 32 steps**; each step plays one of the LFOs or a fixed
+  level. **32 classic patterns** to choose from (psy roll, trance gate, Euclidean, squelch, hitech…), per-step
+  random, smoothing, fold, swing.
+- **The ORB**: load **four sounds into the corners** (factory sounds or the current sound, captured), and a
+  **point** mixes them. The point can circle on its own on an **orbit** (circle, figure eight, star, spiral,
+  Lorenz, Rössler…), with a **sub-orbit in the opposite direction** and an **orb 3**; three **physics** modes
+  (rigid, elastic, gravity) and **6 routes** that send the ORB straight to the sound.
+- 16-slot modulation **matrix**, **arpeggiator** and 4 macros.
+- **Effects**: distortion (tube, clipping, bitcrush, fold), **flanger**, **phaser** with 4 to 12 stages, **echo**
+  (simple or ping-pong, tape-style glide, and a **Comb** mode that follows the played note: tuned bell and metal
+  sounds), **reverb** with **freeze**, **stereo** (width and Haas offset), and a choice of echo / reverb order.
+  These effects are also destinations for the lanes and the ORB.
+- **44 factory sounds**: Drones, Pads, Textures, Glitch, Metal, Effects, Sequences, Plucks, Arpeggios and 3 basses.
+
+<figure><img src="img/v130/en/pc-croc-orb.jpg" alt="Frost Fang, ORB page: the pad with four colored corners, the orbiting point, the sub-orbit and orb 3, the four corner sounds"><figcaption>ORB page: the point mixes the four corner sounds</figcaption></figure>
+
+<figure><img src="img/v130/en/pc-croc-seq.jpg" alt="Frost Fang, SEQ page: a 32-step lane, each step plays an LFO, and the settings of the chosen LFO"><figcaption>SEQ page: each step of the lane plays one of the 8 LFOs</figcaption></figure>
+
+<figure><img src="img/v130/en/pc-croc-fx.jpg" alt="Frost Fang, Effects page: distortion, flanger, phaser, echo with comb mode, reverb with freeze, stereo"><figcaption>Effects page: comb that follows the note, phaser, reverb freeze</figcaption></figure>
 
 ## MIDI controller
 

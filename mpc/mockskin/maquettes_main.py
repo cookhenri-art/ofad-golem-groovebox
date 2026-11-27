@@ -131,7 +131,7 @@ BODIES["orbit"] = """<div style="width:1280px;height:800px;background:#160f20;fo
           </div>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
             <sc-for list="{{D.corners}}" as="c" hint-placeholder-count="4">
-              <div style="border-radius:10px;background:#160f20cc;border:1px solid {{c.border}};padding:8px 10px;display:flex;align-items:center;gap:10px">
+              <div data-k="chip" data-p="{{c.bl}}" style="border-radius:10px;background:#160f20cc;border:1px solid {{c.border}};padding:8px 10px;display:flex;align-items:center;gap:10px">
                 <div style="font-weight:800;font-size:22px;color:{{c.col}};width:20px">{{c.k}}</div>
                 <svg width="64" height="30" viewBox="0 0 64 30" aria-hidden="true"><path d="{{c.w}}" fill="none" stroke="{{c.col}}" stroke-width="2"></path></svg>
                 <div style="flex:1;min-width:0;font-size:13px;line-height:1.3;color:#d8cdea">
@@ -147,8 +147,8 @@ BODIES["orbit"] = """<div style="width:1280px;height:800px;background:#160f20;fo
             </sc-for>
           </div>
           <div style="display:flex;gap:8px">
-            <div style="flex:1;border-radius:10px;background:#160f20cc;border:1px solid #33254a;padding:8px 12px;font-size:14px;display:flex;justify-content:space-between"><span style="color:#b6a8cc">Vitesse</span><b data-v="speed" data-j="right" data-fw="Bold">{{D.speed}}</b></div>
-            <div style="flex:1;border-radius:10px;background:#160f20cc;border:1px solid #33254a;padding:8px 12px;font-size:14px;display:flex;justify-content:space-between"><span style="color:#b6a8cc">Repart à chaque note</span><b data-v="retrig" data-j="right" data-fw="Bold">{{D.retrig}}</b></div>
+            <div data-k="chip" data-p="speed" style="flex:1;border-radius:10px;background:#160f20cc;border:1px solid #33254a;padding:8px 12px;font-size:14px;display:flex;justify-content:space-between"><span style="color:#b6a8cc">Vitesse</span><b data-v="speed" data-j="right" data-fw="Bold">{{D.speed}}</b></div>
+            <div data-k="chip" data-p="retrig" style="flex:1;border-radius:10px;background:#160f20cc;border:1px solid #33254a;padding:8px 12px;font-size:14px;display:flex;justify-content:space-between"><span style="color:#b6a8cc">Repart à chaque note</span><b data-v="retrig" data-j="right" data-fw="Bold">{{D.retrig}}</b></div>
           </div>
         </div>
       </div>
@@ -264,7 +264,7 @@ BODIES["gluta"] = """<div style="width:1280px;height:800px;background:#121213;fo
           </div>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:2px">
             <sc-for list="{{D.readouts}}" as="r" hint-placeholder-count="6">
-              <div style="border-radius:10px;background:#121213;border:1px solid #2c2b2e;padding:8px 12px;font-size:14px;display:flex;justify-content:space-between"><span style="color:#c9bfb4;white-space:nowrap">{{r.k}}</span><b data-v="{{r.id}}" data-j="right" data-fw="Bold" style="font-variant-numeric:tabular-nums;white-space:nowrap">{{r.v}}</b></div>
+              <div data-k="chip" data-p="{{r.id}}" style="border-radius:10px;background:#121213;border:1px solid #2c2b2e;padding:8px 12px;font-size:14px;display:flex;justify-content:space-between"><span style="color:#c9bfb4;white-space:nowrap">{{r.k}}</span><b data-v="{{r.id}}" data-j="right" data-fw="Bold" style="font-variant-numeric:tabular-nums;white-space:nowrap">{{r.v}}</b></div>
             </sc-for>
           </div>
         </div>
@@ -434,7 +434,7 @@ BODIES["gamer"] = """<div style="width:1280px;height:800px;background:#13112a;fo
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:2px">
             <sc-for list="{{D.readouts}}" as="r" hint-placeholder-count="6">
-              <div style="border-radius:10px;background:#13112a;border:1px solid #2f2b5c;padding:8px 10px;font-size:14px;display:flex;justify-content:space-between;gap:6px"><span style="color:#cfcae8;white-space:nowrap">{{r.k}}</span><b data-v="{{r.id}}" data-j="right" data-fw="Bold" style="font-variant-numeric:tabular-nums;white-space:nowrap">{{r.v}}</b></div>
+              <div data-k="chip" data-p="{{r.id}}" style="border-radius:10px;background:#13112a;border:1px solid #2f2b5c;padding:8px 10px;font-size:14px;display:flex;justify-content:space-between;gap:6px"><span style="color:#cfcae8;white-space:nowrap">{{r.k}}</span><b data-v="{{r.id}}" data-j="right" data-fw="Bold" style="font-variant-numeric:tabular-nums;white-space:nowrap">{{r.v}}</b></div>
             </sc-for>
           </div>
         </div>

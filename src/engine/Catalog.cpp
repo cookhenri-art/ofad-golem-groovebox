@@ -30,6 +30,7 @@
 #include "../instruments/Orbit.h"
 #include "../instruments/Glutamake.h"
 #include "../instruments/GamerLover.h"
+#include "../instruments/CrocGlace.h"
 #include "../instruments/GoodDoctor.h"
 #include "../instruments/GoodDoctor2.h"
 #include "../instruments/KickForge.h"
@@ -118,6 +119,7 @@ namespace
             { [] { return &mt::desc(); },      [] { return std::make_unique<MicroTonnerre>(); } }, // après la 1.1 : Micro Tonnerre, à la fin
             { [] { return &kf::desc(); },      [] { return std::make_unique<KickForge>(); } },     // 1.2 : Kick Forge, à la fin
             { [] { return &gamer::desc(); },   [] { return std::make_unique<GamerLover>(); } },    // 1.3 : Gamer Lover, à la fin
+            { [] { return &croc::desc(); },    [] { return std::make_unique<CrocGlace>(); } },     // 1.3 : Croc Glacé, à la fin
         };
         return e;
     }

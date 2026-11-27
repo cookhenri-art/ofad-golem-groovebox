@@ -29,6 +29,7 @@ import { Gd2TableEditor } from "./Gd2TableEditor";
 import { MtChannels, MtKit, MtShape } from "./MtPanel";
 import { KfBrowser, KfDisplay, KfLayers, KfModule, KfRack, KfTop } from "./KfPanel";
 import { GamerAkai, GamerTv } from "./GamerPanel";
+import { CrocCorners, CrocOrb, CrocOrbPage, CrocSteps, CrocWav } from "./CrocPanel";
 import { DfamSeqPanel, DfamTransport } from "./DfamPanel";
 import { ImpactOut, ImpactStrips } from "./ImpactPanel";
 import { NervePads } from "./NervePanel";
@@ -60,6 +61,12 @@ const CUSTOM: Record<string, (p: { channel: number; module: ModuleDesc; args: st
   gamertv: ({ channel, module }) => <GamerTv channel={channel} module={module} />,
   gamerakai: ({ channel, module }) => <GamerAkai channel={channel} module={module} />,
   glutapad: ({ channel, module }) => <GlutaPad channel={channel} module={module} />,
+  // 1.3 : Croc Glacé — pavé de l'ORB, quatre coins, couloir de 32 pas (« crocsteps:1 »), tables perso (WAV)
+  crocorb: ({ channel, module }) => <CrocOrb channel={channel} module={module} />,
+  croccorners: ({ channel, module }) => <CrocCorners channel={channel} module={module} />,
+  crocorbpage: ({ channel, module }) => <CrocOrbPage channel={channel} module={module} />,
+  crocsteps: ({ channel, module, args }) => <CrocSteps channel={channel} module={module} lane={args[0] ?? "1"} />,
+  crocwav: ({ channel, module }) => <CrocWav channel={channel} module={module} />,
   glutaosc: ({ channel, module, args }) => <GlutaOsc channel={channel} module={module} osc={args[0] ?? "1"} />,
   glutalane: ({ channel, module, args }) => <GlutaLane channel={channel} module={module} lane={args[0] ?? "a"} />,
   // v0.47 (maj. 5 nov.) : Good Doctor — écran d'un oscillateur (« gdosc:a »), schéma des sorties
@@ -123,6 +130,8 @@ export interface Ctl {
   on?: number;           // interrupteur : position allumée (par défaut toute position autre que 0)
   bit?: number;          // interrupteur qui allume / éteint un bit de la valeur (chorus I et II cumulables)
   vcols?: number;        // 1.0 (6 nov.) : sélecteur vertical rangé sur n colonnes en façade « en flux » (téléphone)
+  tip?: string;          // 1.3 : bulle d'aide (survol) qui explique la commande
+  dimUnless?: { id: string; eq: number }; // 1.3 : commande grisée tant que le réglage id ne vaut pas eq (ex. vitesse libre hors tempo)
 }
 export type CtlSpec = string | Ctl | { stack: (string | Ctl)[] } | { gap: true };
 
@@ -257,7 +266,8 @@ function PanelSection({ channel, module: m, panel, lane }: { channel: number; mo
   const all = !!(flow && panel.bankAll && panel.banks);
   // « {z} » : numéro de la zone / du pad choisi sur 2 chiffres, « {n} » : sans zéro (samplers)
   const z = String(lane + 1).padStart(2, "0"), n = String(lane + 1);
-  const subB = (bb: string) => (c: Ctl): Ctl => ({ ...c, id: c.id.replace("{b}", bb).replace("{z}", z).replace("{n}", n), ...(c.label ? { label: c.label.replace("{b}", bb) } : {}) });
+  const subB = (bb: string) => (c: Ctl): Ctl => ({ ...c, id: c.id.replace("{b}", bb).replace("{z}", z).replace("{n}", n), ...(c.label ? { label: c.label.replace("{b}", bb) } : {}),
+    ...(c.dimUnless ? { dimUnless: { ...c.dimUnless, id: c.dimUnless.id.replace("{b}", bb) } } : {}), ...(c.tip ? { tip: c.tip.replace("{b}", bb) } : {}) });
   const sub = subB(b);
   const visual = panel.visual ? m.sections.find((s) => s.id === panel.visual) : undefined;
   // v0.32.1 : copier / coller / remettre à zéro la section (enveloppes, LFO, oscillateurs, filtres)
@@ -343,8 +353,23 @@ function SectionCopyButton({ open, setOpen }: { open: boolean; setOpen: (v: bool
   );
 }
 
-/** Une commande de façade (aussi utilisée par les panneaux particuliers : Good Doctor 2). */
+/** Une commande de façade (aussi utilisée par les panneaux particuliers : Good Doctor 2). 1.3 : bulle d'aide
+    (tip) et commande grisée quand un autre réglage la rend sans effet (dimUnless). */
 export function Control({ channel, module: m, ctl }: { channel: number; module: ModuleDesc; ctl: Ctl }) {
+  if (!ctl.tip && !ctl.dimUnless) return <ControlBody channel={channel} module={m} ctl={ctl} />;
+  return <ControlWrap channel={channel} module={m} ctl={ctl} />;
+}
+
+function ControlWrap({ channel, module: m, ctl }: { channel: number; module: ModuleDesc; ctl: Ctl }) {
+  const di = ctl.dimUnless ? m.params.findIndex((p) => p.id === ctl.dimUnless!.id) : -1;
+  const b = useParam(di >= 0 ? paramAddress(channel, "inst", 0, di) : null);
+  const plain = b?.entry ? Math.round(b.entry.choices ? b.entry.plain : b.entry.plain - b.entry.min) : null;
+  const dim = ctl.dimUnless !== undefined && plain !== null && plain !== ctl.dimUnless.eq;
+  const tip = dim ? `${ctl.tip ? ctl.tip + " — " : ""}sans effet ici : réglez d'abord « ${b?.label ?? ctl.dimUnless!.id} »${ctl.dimUnless!.eq === 0 && b?.entry?.choices ? ` sur « ${b.entry.choices[0]} »` : ""}` : ctl.tip;
+  return <div className={`fc-wrap${dim ? " fc-dim" : ""}`} title={tip}><ControlBody channel={channel} module={m} ctl={ctl} /></div>;
+}
+
+function ControlBody({ channel, module: m, ctl }: { channel: number; module: ModuleDesc; ctl: Ctl }) {
   const index = m.params.findIndex((p) => p.id === ctl.id);
   if (index < 0) return null;
   const global = paramAddress(channel, "inst", 0, index);

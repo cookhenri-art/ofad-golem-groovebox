@@ -834,6 +834,19 @@ let glutaHold: [number, number] | null = null; // v0.47 : bille tenue au doigt (
     const st = Math.floor(t * 8);
     return [x, y, st % 16, st % 12, Math.floor(st / 2) % 7, st % 14, Math.floor(t * 3) % 1000, 1, Math.max(0, Math.sin(t * 4)), Math.sin(t), Math.cos(t * 0.7), 0.3, -0.2];
   };
+  // 1.3 (Croc Glacé) : l'ORB de l'aperçu — le point tourne autour de la position choisie (orbite + sous-orbite),
+  // l'orbe 3 tourne en sens inverse, et les quatre coins prennent leur part selon la place du point
+  const crocTick = () => {
+    const t = Date.now() / 1000;
+    const mx = toPlainLocal(focus, "morphx") / 100, my = toPlainLocal(focus, "morphy") / 100;
+    const on = toPlainLocal(focus, "orbon") > 0.5, size = on ? Math.max(0.25, toPlainLocal(focus, "o1size") / 100) * 0.7 : 0;
+    const ox = mx + size * Math.cos(t * 0.9), oy = my + size * Math.sin(t * 0.9);
+    const px = Math.max(-1, Math.min(1, ox + size * 0.35 * Math.cos(-t * 2.3))), py = Math.max(-1, Math.min(1, oy + size * 0.35 * Math.sin(-t * 2.3)));
+    const qx = 0.55 * Math.cos(-t * 0.6 + 1), qy = 0.55 * Math.sin(-t * 0.6 + 1);
+    const u = (px + 1) / 2, v = (py + 1) / 2;
+    const w = [(1 - u) * v, u * v, (1 - u) * (1 - v), u * (1 - v)];
+    return [px, py, ox, oy, qx, qy, ...new Array(18).fill(0), ...w];
+  };
   const heldNotes = new Set<number>();
   const baseTick = () => ({
     kn: [...heldNotes], kh: [] as number[],
@@ -842,6 +855,7 @@ let glutaHold: [number, number] | null = null; // v0.47 : bille tenue au doigt (
       // vocodeurs : 16 bandes qui bougent comme une voix
       // Glutamake (v0.47) : bille qui tourne, pas des couloirs au tempo
       : tracks[focus]?.instrument === "gluta" ? glutaTick()
+      : tracks[focus]?.instrument === "croc" ? crocTick()
       : (tracks[focus]?.instrument ?? "").startsWith("voc") ? [16, (Date.now() / 900) % 1 > 0.8 ? 0.7 : 0.1, ...Array.from({ length: 16 }, (_, k) => Math.max(0, 0.75 - Math.abs(Math.sin(Date.now() / 300 + k * 0.5)) * 0.5 - k * 0.02)), ...vocCapTick()]
       : [],
     t: { ...transport, bpm: globals.bpm, lq: transport.playing ? 32 : 0, lp: transport.playing ? (Math.max(0, transport.ppq) % 32) / 32 : 0 }, g: { ...globals }, hits: [] as number[][],

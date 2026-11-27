@@ -18,6 +18,7 @@
 #include "instruments/Vocoders.h"
 #include "instruments/FmPlayer.h"
 #include "instruments/gd2/Gd2Sources.h" // après la 1.1 : analyse des échantillons de Good Doctor 2
+#include "instruments/CrocGlace.h"      // 1.3 : tables perso (WAV) de Croc Glacé
 #include "effects/Distortion.h"
 #if ! GROOVEBOX_NO_EDITOR
  #include "PluginEditor.h"
@@ -2763,6 +2764,8 @@ juce::String GrooveboxProcessor::loadSampleBytes (int track, int index, const ju
     // après la 1.1 : Good Doctor 2 — table perso (emplacements 2 à 4) ou spectre (emplacement 1), calculés ici
     if (const auto* inst = engine.instrumentAt (track); inst != nullptr && inst->desc().sampleRuntime == "gooddoc2")
         s->runtime = instruments::gd2::buildRuntime (index, *s);
+    else if (inst != nullptr && inst->desc().sampleRuntime == "croc")
+        s->runtime = instruments::croc::buildRuntime (index, *s); // 1.3 : Croc Glacé, table perso de la porteuse (1) ou du modulateur (2)
     engine.setSample (track, index, std::move (s), nowMs());
     projectVersion.fetch_add (1);
     return {};
@@ -4323,6 +4326,8 @@ void GrooveboxProcessor::restoreSnapshot (const juce::ValueTree& snap)
                 auto copy = std::make_unique<SampleBuffer> (*known);
                 if (const auto* inst = engine.instrumentAt (tr); inst != nullptr && inst->desc().sampleRuntime == "gooddoc2" && copy->runtime == nullptr)
                     copy->runtime = instruments::gd2::buildRuntime (i, *copy); // après la 1.1 : Good Doctor 2
+                else if (inst != nullptr && inst->desc().sampleRuntime == "croc" && copy->runtime == nullptr)
+                    copy->runtime = instruments::croc::buildRuntime (i, *copy); // 1.3 : Croc Glacé
                 engine.setSample (tr, i, std::move (copy), nowMs());
                 sampleRefs[(size_t) tr][(size_t) i] = w;
                 continue;

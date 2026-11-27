@@ -38,6 +38,11 @@ namespace styles
         R2 fi { 0.0f, 0.0f };
         R2 drv { 0.0f, 0.0f };
         R2 pitch { 0.0f, 0.0f };
+        // 26 nov. 2026 : longueur au tempo (en doubles-croches, prioritaire sur len) et répétition au tempo
+        // de la couche (roulé kick-basse : 3 = x4 doubles-croches, from 1 = sans le 1er coup)
+        R2 len16 { 0.0f, 0.0f };
+        int roll = 0, rollFrom = 0;
+        R2 rollGate { 90.0f, 90.0f };
     };
     struct ModRule { int module; std::vector<std::pair<const char*, R2>> v; };
     struct Style { std::vector<LayerRule> layers; std::vector<ModRule> mods; };
@@ -46,6 +51,8 @@ namespace styles
     {
         auto L = [] (int fam, std::vector<int> fl, R2 vol, R2 off = {}, R2 len = {}, R2 fo = { 5, 30 }, R2 lp = { 20000, 20000 }, float hp = 20, R2 fi = {}, R2 drv = {}, R2 pitch = {})
         { LayerRule r; r.fam = fam; r.flavors = std::move (fl); r.vol = vol; r.off16 = off; r.len = len; r.fo = fo; r.lp = lp; r.hp = hp; r.fi = fi; r.drv = drv; r.pitch = pitch; return r; };
+        // longueur au tempo, répétition au tempo
+        auto T = [] (LayerRule r, R2 len16, int roll = 0, int from = 0, R2 gate = { 90, 90 }) { r.len16 = len16; r.roll = roll; r.rollFrom = from; r.rollGate = gate; return r; };
         static const std::vector<Style> s {
             // 0 Construction libre : pas de recette (le hasard varie les réglages des morceaux choisis)
             {},
@@ -58,9 +65,11 @@ namespace styles
             // 3 Industriel
             { { L (fPunch, { 4, 2 }, { 0, 0 }), L (fCrunch, { 2 }, { -5, -1 }), L (fRumble, { 2 }, { -12, -8 }, { 0, 0.25f }, {}, { 20, 60 }), L (fEnhSchranz, { 0 }, { -12, -8 }) },
               { { mDist, { { "type", { 2, 3 } }, { "drive", { 10, 20 } } } }, { mConv, { { "ir", { 4, 7 } }, { "wet", { 15, 30 } } } }, { mFinal, { { "clip", { 30, 60 } } } }, { mFilt, { { "lp", { 6000, 12000 } } } } } },
-            // 4 Psy
-            { { L (fPunch, { 0, 3 }, { 0, 0 }, {}, { 180, 280 }, { 30, 70 }), L (fClick, { 0, 2, 4 }, { -6, -2 }), L (fBody, { 2, 0 }, { -5, -2 }, {}, { 200, 300 }, { 30, 60 }) },
-              { { mEq, { { "b1f", { 250, 400 } }, { "b1g", { -4, -1 } } } }, { mTrans, { { "attack", { 20, 50 } } } }, { mFinal, { { "boost", { 2, 4 } }, { "clip", { 0, 15 } } } } } },
+            // 4 Psy (26 nov. 2026) : punch « zap » (de 2 à 8 kHz vers la tonalité en 15 à 35 ms), corps sinus court,
+            // 120 à 180 ms en tout ; passe-haut 30 à 35 Hz, creux à 200-400 Hz, clic relevé à 3-5 kHz, saturation douce
+            { { L (fPunch, { 8 }, { 0, 0 }, {}, { 120, 180 }, { 15, 35 }), L (fClick, { 0, 2 }, { -9, -5 }), L (fBody, { 2 }, { -8, -4 }, {}, { 120, 170 }, { 15, 35 }) },
+              { { mEq, { { "b1f", { 200, 400 } }, { "b1g", { -5, -3 } }, { "b2f", { 3000, 5000 } }, { "b2g", { 2, 3 } } } }, { mDist, { { "type", { 0, 0 } }, { "drive", { 2, 5 } }, { "mix", { 30, 60 } } } },
+                { mFilt, { { "hp", { 30, 35 } } } }, { mFinal, { { "boost", { 0, 2 } }, { "mono", { 120, 120 } }, { "clip", { 0, 10 } } } } } },
             // 5 Schranz
             { { L (fPunch, { 2, 4 }, { 0, 0 }), L (fCrunch, { 1 }, { -4, 0 }), L (fRumble, { 5 }, { -11, -7 }), L (fEnhSchranz, { 0, 1, 2 }, { -10, -6 }) },
               { { mDist, { { "type", { 2, 2 } }, { "drive", { 14, 24 } } } }, { mMulti, { { "depth", { 40, 70 } } } }, { mFinal, { { "clip", { 40, 70 } } } }, { mFilt, { { "hp", { 30, 40 } } } } } },
@@ -88,6 +97,14 @@ namespace styles
             // 13 Techno
             { { L (fPunch, { 1, 5 }, { 0, 0 }), L (fClick, { 0, 3 }, { -10, -6 }), L (fRumble, { 0, 3 }, { -15, -11 }, { 0, 0.5f }, {}, { 20, 60 }, { 200, 500 }, 30) },
               { { mDist, { { "type", { 0, 0 } }, { "drive", { 2, 6 } } } }, { mEq, { { "lsg", { 0, 2 } } } }, { mFinal, { { "boost", { 1, 3 } }, { "clip", { 0, 15 } } } } } },
+            // 14 Psy · kick + basse (26 nov. 2026) : le couple de la psytrance dans un seul son, K - B - B - B.
+            // Kick « zap » long d'une double-croche (il finit quand la basse arrive), clic, basse psy sur la
+            // tonalité répétée en doubles-croches sans le 1er coup (couche 3). Accorder la tonalité sur la
+            // tonique du morceau (fa 1 à sol 1) ; jouer sur chaque temps.
+            { { T (L (fPunch, { 8 }, { 0, 0 }, {}, {}, { 6, 14 }), { 0.95f, 1.1f }), L (fClick, { 0, 2 }, { -11, -7 }),
+                T (L (fBody, { 5, 6 }, { -1, 2 }, {}, {}, { 3, 6 }), { 0, 0 }, 3, 1, { 70, 92 }) },
+              { { mEq, { { "b1f", { 200, 400 } }, { "b1g", { -5, -3 } }, { "b2f", { 3000, 5000 } }, { "b2g", { 2, 3 } } } }, { mDist, { { "type", { 0, 0 } }, { "drive", { 2, 5 } }, { "mix", { 30, 60 } } } },
+                { mFilt, { { "hp", { 30, 35 } } } }, { mFinal, { { "mono", { 120, 120 } }, { "clip", { 0, 8 } } } } } },
         };
         return s;
     }
@@ -183,7 +200,15 @@ inline void randomize (std::vector<float>& p, int mode, int layer, std::uint32_t
         at (l, lPart) = (float) (flavor * fi.perFlavor + R.i (fi.perFlavor));
         at (l, lVol) = R.r (rule.vol);
         at (l, lOffset) = (float) std::round (R.r (rule.off16) * s16);
-        at (l, lLen) = rule.len.hi > 0.0f ? R.r (rule.len) : 4000.0f;
+        at (l, lLen) = rule.len16.hi > 0.0f ? (float) std::round (R.r (rule.len16) * s16) : rule.len.hi > 0.0f ? R.r (rule.len) : 4000.0f;
+        {
+            // 26 nov. 2026 : la répétition au tempo suit la recette (avant : restait celle du son précédent)
+            const auto def = defaults();
+            for (int k = 0; k < numRollParams; ++k) p[(size_t) rollSlot (l, k)] = def[(size_t) rollSlot (l, k)];
+            p[(size_t) rollSlot (l, rMode)] = (float) rule.roll;
+            p[(size_t) rollSlot (l, rFrom)] = (float) rule.rollFrom;
+            if (rule.roll > 0) p[(size_t) rollSlot (l, rGate)] = R.r (rule.rollGate);
+        }
         at (l, lPitch) = std::round (R.r (rule.pitch));
         at (l, lHp) = rule.hp;
         at (l, lLp) = R.r (rule.lp);

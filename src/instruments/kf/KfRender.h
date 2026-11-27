@@ -23,6 +23,7 @@
 #include "KfParts.h"
 #include "../gd2/Gd2Sources.h"
 #include "../gd2/Gd2Fx.h"
+#include "../../effects/Distortion.h"
 #include "../../dsp/Fft.h"
 #include "../../engine/Module.h"
 
@@ -93,7 +94,89 @@ inline const std::array<int, numModules + 1>& moduleBase()
 }
 /** Réglages ajoutés après le rack (positions figées à la suite) : alignement de phase des couches. */
 inline int phaseAlignSlot() { return moduleBase()[numModules]; }
-inline int numSlots() { return moduleBase()[numModules] + 1; }
+/** 25 nov. 2026 : répétition de chaque couche au tempo (roulé kick-basse), après l'alignement de phase :
+    5 réglages par couche (motif, coups joués, décroissance, durée, volume des répétitions). */
+enum RollParam { rMode = 0, rFrom, rDecay, rGate, rVol, rOffSync, numRollParams };
+inline const char* rollIds[numRollParams] { "roll", "rollfrom", "rolldec", "rollgate", "rollvol", "offsync" };
+/** Décalage au tempo (rOffSync) : « Libre » = le décalage en ms ; sinon la couche part pile sur la
+    division choisie, en temps (une noire = 1). */
+inline const std::vector<std::string>& offSyncNames()
+{
+    static const std::vector<std::string> n { "Libre", "Aucun (0)", "1/64", "1/32", "1/16 triolet", "1/16",
+                                              "1/8 triolet", "3/32", "1/8", "1/8 point\xC3\xA9" "e", "1/4" };
+    return n;
+}
+inline double offSyncBeats (int k) noexcept
+{
+    static constexpr double b[] { 0.0, 0.0, 1.0 / 16.0, 1.0 / 8.0, 1.0 / 6.0, 0.25, 1.0 / 3.0, 0.375, 0.5, 0.75, 1.0 };
+    return b[std::clamp (k, 0, 10)];
+}
+/** Coups joués parmi ceux du motif (k = 0 : le coup du kick). */
+inline bool rollHit (int mask, int k, int div) noexcept
+{
+    switch (mask)
+    {
+        case 1: return k >= 1;                     // sans le 1er : la couche roule après le kick
+        case 2: return k % 2 == 0;                 // un sur deux
+        case 3: return k % 2 == 1;                 // un sur deux, décalé
+        case 4: return k >= 1 && k < div - 1;      // sans le 1er ni le dernier
+        case 5: return k == div - 1;               // le dernier seul
+        default: return true;                      // tous
+    }
+}
+inline int rollSlot (int layer, int k) { return phaseAlignSlot() + 1 + layer * numRollParams + k; }
+inline int numSlots() { return phaseAlignSlot() + 1 + numLayers * numRollParams; }
+
+/** Types de distorsion du kick : les 10 courbes de Good Doctor 2 (telles quelles : sons d'usine
+    inchangés), puis, depuis le 25 nov. 2026, les 14 algorithmes du Grinder (Bande … Écrêtage asym.) avec sa
+    loi de drive (gain ×1 à ×64) et sa compensation douce (-4 dB au plus) : ils salissent sans tasser. */
+constexpr int numGd2Dist = 10;
+inline const std::vector<std::string>& distNames()
+{
+    static const std::vector<std::string> n = []
+    {
+        // noms courts (14 signes au plus sur la MPC), distincts des 10 premiers ; même ordre que
+        // effects::dist::algorithms()
+        auto v = gd2::Gd2Dist::names();
+        for (const char* a : { "Bande", "Lampe chaude", "Transistor", "Transfo", "Redresseur", "Germanium", "Fuzz", "Bits durs",
+                               "Bits invers\xC3\xA9s", "Repli d'onde", "Fa\xC3\xA7onneur", "Diode dure", "Repli triangle",
+                               "\xC3\x89" "cr\xC3\xAAtage asym." })
+            v.push_back (a);
+        return v;
+    }();
+    return n;
+}
+inline void kickDistort (float* L, float* R, int n, int type, double driveDb, int pre, double preHz, double mix, double sr) noexcept
+{
+    if (type < numGd2Dist)
+    {
+        gd2::Gd2Dist d; d.prepare (sr);
+        d.process (L, R, n, type, driveDb, pre, preHz, mix);
+        return;
+    }
+    const int t = std::clamp (type - numGd2Dist, 0, (int) effects::dist::algorithms().size() - 1);
+    const auto d01 = std::clamp (driveDb / 36.0, 0.0, 1.0);
+    const auto comp = 1.0 / (1.0 + 0.6 * d01);
+    std::array<dsp::Oversampler2x, 2> os;
+    std::array<dsp::SvfEq, 2> pf;
+    if (pre != gd2::Gd2Dist::preOff)
+        for (auto& f : pf) f.set (pre == gd2::Gd2Dist::preLow ? dsp::SvfEq::lowpass : pre == gd2::Gd2Dist::preBand ? dsp::SvfEq::bandpass : dsp::SvfEq::highpass, preHz, 0.8, 0.0, sr);
+    double x1[2] {}, y1[2] {};
+    float* io[2] { L, R };
+    for (int c = 0; c < 2; ++c)
+        for (int i = 0; i < n; ++i)
+        {
+            const double dry = io[c][i];
+            const double x = pre != gd2::Gd2Dist::preOff ? pf[(size_t) c].process (dry) : dry;
+            double a, b;
+            os[(size_t) c].up (x, a, b);
+            a = effects::dist::shape (t, a, d01); b = effects::dist::shape (t, b, d01);
+            double y = os[(size_t) c].down (a, b) * comp;
+            const auto dc = y - x1[c] + 0.9995 * y1[c]; x1[c] = y; y1[c] = dc; y = dc;   // redresseur, diode : pas de décalage continu
+            if (pre != gd2::Gd2Dist::preOff) y += dry - x;
+            io[c][i] = (float) (dry + (y - dry) * mix);
+        }
+}
 inline int modParam (int module, const char* id)
 {
     const auto& ids = moduleParams()[(size_t) module];
@@ -535,6 +618,14 @@ namespace detail
 
 inline double keyToHz (int midi) noexcept { return 440.0 * std::pow (2.0, (midi - 69) / 12.0); }
 
+/** Début d'une couche (échantillons) : décalage en ms, ou calé au tempo (rOffSync). */
+inline int layerStart (const std::vector<float>& p, int l, int msStart, double bpm, double sr) noexcept
+{
+    const int k = (int) std::lround (p[(size_t) rollSlot (l, rOffSync)]);
+    if (k <= 0) return msStart;
+    return (int) std::lround (offSyncBeats (k) * 60.0 / std::clamp (bpm, 40.0, 300.0) * sr);
+}
+
 /** Calcule le kick entier. */
 inline Result render (const Input& in)
 {
@@ -582,10 +673,11 @@ inline Result render (const Input& in)
             if (auto* e = RenderCache::find (cache->layers, lkey))
             {
                 e->tick = cache->tick;
-                view.name = e->name; view.start = e->start; view.len = (int) e->wave.size(); view.wave = e->wave;
+                const auto st = layerStart (p, l, e->start, in.bpm, sr);
+                view.name = e->name; view.start = st; view.len = (int) e->wave.size(); view.wave = e->wave;
                 r.detectedHz[(size_t) l] = e->detected;
                 cached[(size_t) l] = e;
-                if (audibleL) layerSig.push_back ({ l, e->start });
+                if (audibleL) layerSig.push_back ({ l, st });
                 continue;
             }
         }
@@ -661,9 +753,9 @@ inline Result render (const Input& in)
             if (q[lTrSus] > 0.0f) transient (x.data(), (int) x.size(), sr, -q[lTrSus] / 200.0, 0.0, 0.03); // maintien relevé = attaque adoucie
             if (q[lDrv] > 0.05f && q[lDrvMix] > 0.5f)
             {
-                gd2::Gd2Dist d; d.prepare (sr);
                 Buf r2 (x);
-                d.process (x.data(), r2.data(), (int) x.size(), std::clamp ((int) std::lround (q[lDrvType]), 0, 9), q[lDrv], 0, 1000.0, q[lDrvMix] / 100.0);
+                kickDistort (x.data(), r2.data(), (int) x.size(), std::clamp ((int) std::lround (q[lDrvType]), 0, (int) distNames().size() - 1),
+                             q[lDrv], 0, 1000.0, q[lDrvMix] / 100.0, sr);
             }
             // 1.2 : passe-haut et passe-bas EN DERNIER (après la distorsion, qui recréait les aigus
             // qu'un passe-bas placé avant avait coupés : le réglage semblait sans effet)
@@ -678,7 +770,8 @@ inline Result render (const Input& in)
         }
         // 5. polarité, volume, décalage
         const auto g = (q[lVol] <= -47.9f ? 0.0 : dsp::dbToGain (q[lVol])) * (q[lPhase] > 0.5f ? -1.0 : 1.0);
-        const auto start = (int) std::lround (q[lOffset] * 0.001 * sr);
+        const auto msStart = (int) std::lround (q[lOffset] * 0.001 * sr);
+        const auto start = layerStart (p, l, msStart, in.bpm, sr);
         view.start = start; view.len = (int) x.size();
         const bool audible = q[lMute] < 0.5f && (! anySolo || q[lSolo] > 0.5f);
         // vue de la couche : la couche telle qu'elle sonne (avant les effets du rack)
@@ -688,7 +781,7 @@ inline Result render (const Input& in)
         if (cache != nullptr)
         {
             auto& e = cache->slot (cache->layers, RenderCache::maxLayers, lkey);
-            e.tick = cache->tick; e.wave = view.wave; e.start = start; e.name = view.name; e.detected = r.detectedHz[(size_t) l];
+            e.tick = cache->tick; e.wave = view.wave; e.start = msStart; e.name = view.name; e.detected = r.detectedHz[(size_t) l];
             cached[(size_t) l] = &e;
         }
     }
@@ -724,7 +817,19 @@ inline Result render (const Input& in)
         for (size_t o = 0; o < lows.size(); ++o)
         {
             auto& a = lows[o];
-            const auto [layer, start] = layerSig[(size_t) a.idx];
+            const auto layer = layerSig[(size_t) a.idx].first;
+            int start = layerSig[(size_t) a.idx].second;
+            {
+                // 26 nov. 2026 : couche répétée au tempo (roulé kick-basse) : son grave est raccordé là où elle
+                // sonne pour la première fois (« sans le 1er » : la 2e double-croche, juste après le kick)
+                const int roll = std::clamp ((int) std::lround (p[(size_t) rollSlot (layer, rMode)]), 0, 3);
+                if (roll > 0)
+                {
+                    const int div = roll + 1, mask = std::clamp ((int) std::lround (p[(size_t) rollSlot (layer, rFrom)]), 0, 5);
+                    for (int k = 0; k < div; ++k)
+                        if (rollHit (mask, k, div)) { start += (int) std::lround (k * 60.0 / std::clamp (in.bpm, 40.0, 300.0) / div * sr); break; }
+                }
+            }
             auto& w = r.layers[(size_t) layer].wave;
             double c = 1.0, sn = 0.0;
             if (o > 0 && a.e > 1.0e-4 * lows[0].e)
@@ -753,12 +858,45 @@ inline Result render (const Input& in)
     for (const auto& [layer, start] : layerSig)
     {
         const auto& w = r.layers[(size_t) layer].wave;
-        for (int i = 0; i < (int) w.size(); ++i)
+        const int roll = std::clamp ((int) std::lround (p[(size_t) rollSlot (layer, rMode)]), 0, 3);
+        if (roll == 0)
         {
-            const auto t = start + i;
-            if (t < 0 || t >= maxN) continue;
-            mixL[(size_t) t] += w[(size_t) i]; mixR[(size_t) t] += w[(size_t) i];
-            used = std::max (used, t + 1);
+            for (int i = 0; i < (int) w.size(); ++i)
+            {
+                const auto t = start + i;
+                if (t < 0 || t >= maxN) continue;
+                mixL[(size_t) t] += w[(size_t) i]; mixR[(size_t) t] += w[(size_t) i];
+                used = std::max (used, t + 1);
+            }
+            continue;
+        }
+        // répétition au tempo : la couche rejouée 2 fois (croches), 3 fois (triolets) ou 4 fois
+        // (doubles-croches) dans le temps ; « coups » : lesquels sonnent (sans le 1er : roulé kick-basse,
+        // la basse sur les doubles-croches 2 à 4). Chaque coup dure une part du pas et s'éteint en 3 ms ;
+        // les répétitions (coups 2 et suivants) ont leur volume.
+        const int div = roll + 1;
+        const auto step = 60.0 / std::clamp (in.bpm, 40.0, 300.0) / div * sr;
+        const int mask = std::clamp ((int) std::lround (p[(size_t) rollSlot (layer, rFrom)]), 0, 5);
+        const auto dec = std::clamp ((double) p[(size_t) rollSlot (layer, rDecay)] / 100.0, 0.0, 0.95);
+        const auto gate = std::clamp ((double) p[(size_t) rollSlot (layer, rGate)] / 100.0, 0.05, 1.0);
+        const auto rv = p[(size_t) rollSlot (layer, rVol)] <= -47.9f ? 0.0 : dsp::dbToGain (p[(size_t) rollSlot (layer, rVol)]);
+        const int len = std::min ((int) w.size(), std::max (16, (int) (step * gate)));
+        const int fade = std::min (len / 2, std::max (1, (int) (0.003 * sr)));
+        int heard = 0;
+        for (int k = 0; k < div; ++k)
+        {
+            if (! rollHit (mask, k, div)) continue;
+            const auto gk = std::pow (1.0 - dec, (double) heard++) * (k > 0 ? rv : 1.0);
+            const int at = start + (int) std::lround (k * step);
+            for (int i = 0; i < len; ++i)
+            {
+                const auto t = at + i;
+                if (t < 0 || t >= maxN) continue;
+                const auto f = i >= len - fade ? (double) (len - i) / fade : 1.0;
+                const auto v = w[(size_t) i] * gk * f;
+                mixL[(size_t) t] += v; mixR[(size_t) t] += v;
+                used = std::max (used, t + 1);
+            }
         }
     }
     used = std::max (used, (int) (0.05 * sr));
@@ -816,9 +954,8 @@ inline Result render (const Input& in)
             }
             case mDist:
             {
-                gd2::Gd2Dist d; d.prepare (sr);
-                d.process (L.data(), R.data(), (int) L.size(), std::clamp ((int) std::lround (P (m, "type")), 0, 9), P (m, "drive"),
-                           std::clamp ((int) std::lround (P (m, "pre")), 0, 3), P (m, "pref"), 1.0);
+                kickDistort (L.data(), R.data(), (int) L.size(), std::clamp ((int) std::lround (P (m, "type")), 0, (int) distNames().size() - 1),
+                             P (m, "drive"), std::clamp ((int) std::lround (P (m, "pre")), 0, 3), P (m, "pref"), 1.0, sr);
                 if (P (m, "tone") < 19900.0)
                 {
                     dsp::SvfEqStereo t; t.set (dsp::SvfEq::lowpass, P (m, "tone"), 0.707, 0.0, sr);
@@ -968,6 +1105,9 @@ inline Result render (const Input& in)
         constexpr double target = -15.0, ceiling = 0.8913, maxGr = 0.5; // -1 dBFS, -6 dB
         auto g = dsp::dbToGain (std::clamp (target - r.loudness, -40.0, 40.0));
         if (pk * g * maxGr > ceiling) g = ceiling / (pk * maxGr);
+        // 25 nov. 2026 : « Crête » (techno) : la crête du kick à -1 dBFS, sans viser l'intensité ; un kick
+        // plus dense (distorsion, rumble) sonne alors plus fort au lieu d'être ramené au même niveau
+        if (p[gAutogain] > 1.5f) g = ceiling / pk;
         r.gain = g;
         for (int i = 0; i < end; ++i) { L[(size_t) i] = (float) (L[(size_t) i] * g); R[(size_t) i] = (float) (R[(size_t) i] * g); }
         peakLimit (L, R, ceiling, sr, gr);

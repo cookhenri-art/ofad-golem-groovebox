@@ -54,6 +54,10 @@ def fm_matrix_hero():
     h["labels"] = [l for l in h["labels"] if l["t"]]
     h["labels"].append(L(368, 64, "2 → 1 :", "#e7a6ff", 15, 600, "end"))
     h["vals"] = [{"id": "m21", "x": 372, "y": 48, "w": 32, "h": 22, "fs": 15, "fw": 600, "col": "#e7a6ff", "j": "left", "jc": "flex-start", "v": fmt(P("fmx", "m21"))}]
+    # pas de flèches ◀ ▶ : la matrice n'a pas d'algorithme à faire défiler (elles ne faisaient rien)
+    h["rects"] = [r for r in h["rects"] if not (r["w"] == 40 and r["h"] == 40 and r["y"] == 36)]
+    h["paths"] = [p for p in h["paths"] if not p["d"].startswith(("M66 46", "M192 46"))]
+    h["labels"] = [dict(l, x=40, anchor="start") if l["t"] == "MATRICE" else l for l in h["labels"]]
     return h
 
 
@@ -67,7 +71,7 @@ make_b("B-Poly-Synthonde", "morph", "Synthonde", "Poly - Synthonde", th("ink"),
        ["w1pos", "w2pos", "w1mutamt", "f1cutoff", "f1reso", "env3pos", "l1pos", "level"], ["Jouer", "Osc 1", "Osc 2", "Filtres", "Matrice", "Arpège"])
 make_b("B-Nappe-OndesBretzel", "blo", "Ondes Bretzel", "Nappe - Ondes Bretzel", th("ink"),
        ["Osc", "Mix", "Filtres", "Env.", "LFO", "Matrice", "Jeu"], hero_filter("#7fd3ff", "#ffc873"),
-       "Filtre 1", "Glisser le point : coupure et résonance. Les deux filtres en série ou en parallèle.",
+       "Filtre 1", "Coupure et résonance : boutons 1 et 2. Les deux filtres en série ou en parallèle.",
        ["f1type", "routing"], ["f1drive", "f1key", "f1env", "f1vel", "f2cut", "fbalance"],
        ["f1cut", "f1reso", "o1pos", "o2pos", "o3level", "e2a", "e2r", "level"], ["Jouer", "Osc", "Filtres", "Env.", "Matrice", "Jeu"])
 make_b("B-Poly-Micropointe", "hybrid", "Micropointe", "Poly - Micropointe", th("steel"),
@@ -93,25 +97,25 @@ make_b("B-Nappe-Bignappe", "pads", "Bignappe One", "Nappe - Bignappe One", th("f
 make_b("B-FM-KomodoFuel", "fmx", "Komodo Fuel", "FM - Komodo Fuel", th("rust"),
        ["Opér.", "Matrice", "Filtre", "Env.", "LFO", "Arpège", "Global"],
        fm_matrix_hero(),
-       "Opérateurs", "Six opérateurs : qui module qui, d'après la matrice FM. Toucher un opérateur pour le régler.",
+       "Opérateurs", "Six opérateurs : qui module qui, d'après la matrice FM. Rapports à droite, le reste par la colonne de gauche.",
        ["ftype"], ["o1_coarse", "o2_coarse", "o3_coarse", "o4_coarse", "o5_coarse", "o6_coarse"],
        ["o1_fine", "o2_fine", "o3_fine", "fcut", "fres", "fenv", "spread", "level"], ["Jouer", "Opér.", "Matrice", "Filtre", "LFO", "Arpège"])
 make_b("B-FM-NewMetal", "fm4", "New Metal", "FM - New Metal", th("steel"),
        ["FM", "Env.", "Filtres", "Ampli", "LFO", "Arpège", "Global"],
        hero_fm_film(FM4_ALGOS, ["C", "A", "B1", "B2"], "algo", "feedback"),
-       "Algorithme", "Quatre opérateurs C, A, B1, B2 : en haut les modulateurs, en bas les porteuses. Toucher un opérateur pour le régler.",
+       "Algorithme", "Quatre opérateurs C, A, B1, B2 : en haut les modulateurs, en bas les porteuses. Toucher le schéma : algorithme (deux touches : la liste).",
        ["ftype"], ["ratc", "rata", "ratb1", "ratb2", "harm", "detune"],
-       ["algo", "feedback", "mix", "leva", "levb", "ffreq", "fres", "level"], ["Jouer", "FM", "Env.", "Filtres", "LFO", "Arpège"])
+       ["algo", "feedback", "mix", "leva", "levb", "ffreq", "fres", "level"], ["Jouer", "FM", "Env.", "Filtres", "LFO", "Arpège"], heroTap="algo")
 make_b("B-FM-OldMetal", "fm6", "Old Metal", "FM - Old Metal", th("teal"),
        ["Opér.", "Env. op.", "Hauteur", "LFO", "Molette", "Arpège", "Global"],
        hero_fm_film(FM6_ALGOS, [1, 2, 3, 4, 5, 6], "algo", "feedback"),
-       "Algorithme", "En haut les modulateurs, en bas les porteuses vers la sortie. Toucher un opérateur pour le régler.",
+       "Algorithme", "En haut les modulateurs, en bas les porteuses vers la sortie. Toucher le schéma : algorithme (deux touches : la liste).",
        ["lfowave"], ["o1_coarse", "o2_coarse", "o3_coarse", "o4_coarse", "o5_coarse", "o6_coarse"],
-       ["algo", "feedback", "o1_level", "o2_level", "o3_level", "o4_level", "lfospeed", "level"], ["Jouer", "Opér.", "Env.", "LFO", "Arpège", "Global"])
+       ["algo", "feedback", "o1_level", "o2_level", "o3_level", "o4_level", "lfospeed", "level"], ["Jouer", "Opér.", "Env.", "LFO", "Arpège", "Global"], heroTap="algo")
 make_b("B-Drone-HotSauce", "hots", "Hot Sauce", "Drone - Hot Sauce", th("rust"),
        ["Moteurs", "Utilit.", "Filtres", "Env.", "LFO", "Arpège", "Global"], hero_two("#ff8a4c", "#9fd2ff", "Moteur A", "Moteur B", "fold", "pulse"),
-       "Moteurs A et B", "Deux moteurs face à face, B modulé en FM par A.",
-       ["atype", "btype"], ["aoct", "boct", "ap1", "bp1", "sub", "noise"],
+       "Moteurs A et B", "Deux moteurs face à face, B modulé en FM par A. Le mélange : niveaux A et B.",
+       ["atype", "btype"], ["alvl", "blvl", "aoct", "boct", "sub", "noise"],
        ["ap1", "ap2", "bp1", "bp2", "fmab", "f1cut", "route", "level"], ["Jouer", "Moteurs", "Filtres", "Env.", "LFO", "Arpège"])
 make_b("B-Drone-KomodoDragon", "bitm", "Komodo Dragon", "Drone - Komodo Dragon", th("forest"),
        ["Masques", "Mix", "Delta", "Filtre", "Env.", "LFO", "Arpège"], hero_mask("#6fe0a8", "#f0c25a"),

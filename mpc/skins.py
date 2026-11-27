@@ -31,8 +31,10 @@ GEN_UI = None  # module tools/gen_ui.py du kit, chargé par load_gen_ui()
 LANG = "fr"
 MISSING = set()
 # réglages propres à l'adaptateur (GolemMpc.h) : nom anglais → nom français, pour les règles de ce fichier
-_EXTRA_FR = {"Folder": "Dossier", "Ball X": "Bille X", "Ball Y": "Bille Y", "Pad layout": "Disposition pads",
-             "Carrier chord": "Accord porteuse"}
+_EXTRA_FR = {"Folder": "Dossier", "Folder name": "Nom dossier", "File name": "Nom fichier",
+              "Nav slot": "Nav emplacement", "Nav previous page": "Nav page precedente", "Nav next page": "Nav page suivante",
+              "Nav back": "Nav retour", "Nav row": "Nav ligne", "Nav text": "Nav texte", "Ball X": "Bille X", "Ball Y": "Bille Y", "Pad layout": "Disposition pads",
+             "Carrier chord": "Accord porteuse", "Mute": "Muet"}
 
 
 def tr(s):
@@ -111,6 +113,8 @@ class P:
         if len(self.choices) == 1:
             self.choices.append(self.choices[0])
         self.bipolar = lo is not None and hi is not None and lo < 0 < hi
+        self.steps = None        # sélecteur de dossier / fichier : libellés des crans (replacementStrings)
+        self.name_param = None   # réglage en lecture seule qui donne le nom en clair (GolemMpc.h : « Nom ... »)
 
     @property
     def handle(self):
@@ -144,10 +148,55 @@ def load_params(catalog_path, kind, key, params_json):
         out[p["id"]] = P(i + 1, p["id"], b["name"], p.get("min"), p.get("max"), p.get("choices") or [])
     # réglages propres au greffon MPC (fichiers, phrase, piste au clavier), après ceux de GOLEM
     extras = []
+    names_of = {}
     for b in built[len(mod["params"]) + 1:]:
         b = dict(b, name=_extra_fr(b["name"]))
         q = P(b["index"], "__extra_%d" % b["index"], b["name"], None, None, b["choices"] if b["kind"] == "choice" and not b["name"].startswith(("Sample", "Firmware")) else [])
         q.extra_kind = "file" if b["name"].startswith(("Sample", "Firmware", "Dossier")) else ("choice" if q.choices else "int")
+        if b["name"].startswith("Decouper "):
+            # 26 nov. 2026 : Cutsample, « Découper en 16 » / « sur les attaques » (boutons du greffon)
+            q.extra_kind = "cut"
+            q.choices = []
+            out[q.id] = q
+            continue
+        if b["name"].startswith("Onde "):
+            # 26 nov. 2026 : forme du sample (GolemMpc.h « Onde 1..96 », « Onde texte ») : dessinée en tête
+            # des écrans qui ont le réglage Début
+            q.extra_kind = "wave"
+            q.choices = []
+            q.wave_col = 0 if b["name"] == "Onde texte" else int(b["name"].split()[1])
+            out[q.id] = q
+            continue
+        if b["name"].startswith("Nav "):
+            # 26 nov. 2026 : navigateur de samples (GolemMpc.h « Nav ... ») : sa propre touche CHARGER
+            q.extra_kind = "nav"
+            nm = b["name"]
+            q.nav_key = ("slot" if nm.startswith("Nav emplacement") else "prev" if nm.startswith("Nav page prec") else
+                         "next" if nm.startswith("Nav page suiv") else "up" if nm.startswith("Nav retour") else
+                         "row" + nm.rsplit(" ", 1)[1] if nm.startswith("Nav ligne") else "txt" + nm.rsplit(" ", 1)[1])
+            if q.nav_key == "slot":
+                q.choices = b["choices"] if b["kind"] == "choice" else ["Sample 1"]
+            else:
+                q.choices = []
+            out[q.id] = q
+            continue
+        if b["name"].startswith(("Nom dossier", "Nom fichier")):
+            # 26 nov. 2026 : nom en clair du dossier / du fichier choisi (lecture seule, écrit par le greffon),
+            # montré dans la case de son sélecteur ; pas une commande à part
+            q.extra_kind = "name"
+            q.choices = []
+            names_of[(b["name"].startswith("Nom dossier"), (_re.search(r"(\d*)$", b["name"]).group(1)))] = q
+            out[q.id] = q
+            continue
+        if q.extra_kind == "file":
+            # sélecteurs pas à pas : l'écran tactile n'avance d'un cran à la fois qu'avec une liste fixe de
+            # libellés (replacementStrings) du même nombre que les valeurs du réglage (GolemMpc.h : maxFolders
+            # = 512 dossiers, maxFiles = 255 fichiers + « - »). Le firmware du FM Player garde sa liste.
+            q.choices = []
+            if b["name"].startswith("Dossier"):
+                q.steps = [str(i + 1) for i in range(512)]
+            elif b["name"].startswith("Sample"):
+                q.steps = ["-"] + [str(i) for i in range(1, 256)]
         out[q.id] = q
         if b["name"] in ("Bille X", "Bille Y"):
             # Glutamake : position de la bille, écrite par le moteur (pavé XY de l'écran de tête seulement)
@@ -160,6 +209,14 @@ def load_params(catalog_path, kind, key, params_json):
         return (0 if q.extra_kind == "file" else 1, int(m.group(1)) if m else 0, 0 if q.name.startswith("Dossier") else 1)
     if any(q.name.startswith("Dossier") for q in extras):
         extras = sorted(extras, key=slot_order)
+    for q in extras:
+        if q.extra_kind == "file":
+            num = _re.search(r"(\d*)$", q.name).group(1)
+            q.name_param = names_of.get((q.name.startswith("Dossier"), num))
+    if any(getattr(q, "extra_kind", "") == "nav" for q in out.values()):
+        # 26 nov. 2026 : un seul endroit pour charger un sample, la page CHARGER (navigateur des disques) ;
+        # plus de sélecteurs Dossier / Sample à molette (les réglages restent, pour les projets enregistrés)
+        extras = [q for q in extras if not (q.extra_kind == "file" and _re.match(r"^(Dossier|Sample)\b", q.name))]
     out["__extras__"] = extras
     return out
 
@@ -314,6 +371,54 @@ class Skin:
             self.defs[tag] = GEN_UI.component_definition(self.actions("knob overlay"), children, "00000000")
         return tag
 
+    def def_file(self, w, h, colour, size=19):
+        """26 nov. 2026 : sélecteur de dossier ou de fichier. Le réglage avance d'un cran à la fois (liste de
+        numéros) ; son numéro est écrit à droite, le nom en clair (dossier de la carte, de la clé, du disque
+        interne, ou fichier) à gauche, lu dans le réglage « Nom ... » lié à la poignée « Name »."""
+        tag = "fi_%dx%d_%d_%s" % (w, h, size, self.colour_tag(colour))
+        if tag not in self.defs:
+            box = "menu_%d_%s.png" % (w, self.colour_tag(colour))
+            K.menu_box(os.path.join(self.out, box), w, h, colour)
+            nw = 64
+            vs = O(("version", 4), ("knobType", "ValueSlider"), ("textStyle", textstyle(max(12, size - 5), K.argb(K.MUTED), "right verticallyCentred", style="Regular")),
+                   ("dragOrientation", "Vertical"), ("handleName", "Data"))
+            name = O(("version", 1), ("textStyle", textstyle(size, K.argb(colour), "left verticallyCentred", style="Bold")), ("type", "Value"), ("handleName", "Name"))
+            children = [self.focus(w, h),
+                        ent("box", "Image", O(("version", 2), ("imageType", "Regular"), ("colour", "0"), ("image", box)), rect(0, 0, w, h)),
+                        ent("num", "Knob", vs, rect(0, 0, w - 34, h)),
+                        ent("name", "Label", name, rect(12, 0, w - 34 - nw - 12, h))]
+            self.defs[tag] = GEN_UI.component_definition(self.actions("knob overlay"), children, "00000000")
+        return tag
+
+    def def_navrow(self, w, h, colour, size=19, word=None):
+        """26 nov. 2026 : ligne (ou bouton de page) du navigateur de samples. Un toucher n'importe où sur la
+        ligne bascule la valeur du réglage (le greffon y répond : entrer dans le dossier, charger le fichier,
+        changer de page). Pas d'enfant « Button » ni de fenêtre de réglage : c'est le composant entier qui
+        reçoit le toucher (« Toggle Switch » sur « Mouse Down », comme les interrupteurs qui marchent).
+        Le texte vient du réglage lié à « Name » ; sans lui (word), le mot est dessiné dans l'image."""
+        safe = (__import__("re").sub(r"[^A-Za-z0-9]", "", fold(word or "")) +
+                ("%x" % (__import__("zlib").crc32((word or "").encode()) & 0xffff) if word else ""))
+        tag = "nr_%dx%d_%d_%s_%s" % (w, h, size, self.colour_tag(colour), safe)
+        if tag not in self.defs:
+            from PIL import Image
+            img = "navrow_%dx%d_%s_%s.png" % (w, h, self.colour_tag(colour), safe or "v")
+            tmp = os.path.join(self.out, "_" + img)
+            K.text_button(tmp, w, h, word or "", bool(word), colour, size=24 if word else None)
+            fr = Image.open(tmp).convert("RGBA")
+            strip = Image.new("RGBA", (fr.width, fr.height * 2))
+            strip.paste(fr, (0, 0))
+            strip.paste(fr, (0, fr.height))   # deux images identiques : la bascule ne change pas le dessin
+            strip.save(os.path.join(self.out, img))
+            os.remove(tmp)
+            children = [self.focus(w, h), ent("strip", "Knob", GEN_UI.knob_filmstrip_data(img, 2, None), rect(0, 0, w, h))]
+            if not word:
+                name = O(("version", 1), ("textStyle", textstyle(size, K.argb((238, 238, 242, 255)), "left verticallyCentred", style="Bold")), ("type", "Value"), ("handleName", "Name"))
+                children.append(ent("name", "Label", name, rect(16, 0, w - 26, h)))
+            acts = [GEN_UI.action("Mouse Down", "Toggle Switch", "Data", ""), GEN_UI.action("Mouse Down", "Q-Link", "Data", ""),
+                    GEN_UI.action("Enter Pressed", "Toggle Switch", "Data", "")]
+            self.defs[tag] = GEN_UI.component_definition(acts, children, "00000000")
+        return tag
+
     def finish_defs(self):
         bg = K.argb(K.BG_BOT)
         self.defs["knob overlay"] = GEN_UI.overlay_component("KnobOverlay", GEN_UI.knob_overlay_data(False), bg)
@@ -371,8 +476,11 @@ class Page:
             self.skin.replacements[p.index] = p.choices
 
     def _add(self, p, tag, x, y, w, h):
+        remap = [("Data", p.handle)]
+        if getattr(p, "name_param", None) is not None and isinstance(tag, str) and tag.startswith(("fi_", "nr_")):
+            remap.append(("Name", p.name_param.handle))
         self.children.append(ent(p.id, tag, O(("version", 1), ("handleName", "Data")), rect(x, y, w, h),
-                                 focus="Yes", invalid="Hide", remap=[("Data", p.handle)]))
+                                 focus="Yes", invalid="Hide", remap=remap))
         self.bounds_of[p.index] = (x, y, w, h)
         if p not in self.placed:
             self.placed.append(p)
@@ -433,7 +541,9 @@ class Page:
 
     def number(self, p, x, y, w, h, label=None, colour=None, size=26):
         colour = colour or self.skin.accent
-        tag = self.skin.def_number(w, h, colour, size)
+        if getattr(p, "steps", None):
+            self.skin.replacements[p.index] = p.steps
+        tag = self.skin.def_file(w, h, colour, size) if getattr(p, "name_param", None) is not None else self.skin.def_number(w, h, colour, size)
         if label:
             self.canvas.text(x + 4, y - 12, label, size=14, colour=K.MUTED)
         self._add(p, tag, x, y, w, h)
@@ -443,15 +553,29 @@ class Page:
         self.children.append(ent(p.id + " txt", "Label", label_value(size, K.argb(colour), style="Regular"), rect(x, y, w, h),
                                  invalid="Hide", remap=[("Data", p.handle)]))
 
-    def envelope(self, x, y, w, h, attack, decay, release, ashape=None, rshape=None, colour=None, name="", sustain=None):
-        """Enveloppe ADSR à palier fixe : montée (fondu d'entrée), corps (longueur), descente (fondu de sortie)."""
+    def envelope(self, x, y, w, h, attack, decay, release, ashape=None, rshape=None, colour=None, name="", sustain=None,
+                 hold=None):
+        """Enveloppe ADSR à palier fixe : montée (fondu d'entrée), corps (longueur), descente (fondu de sortie).
+        hold (Kick Forge) : enveloppe AHDSR, la longueur sur le point de TENUE (un seul réglage, comme A et R :
+        la molette le règle) ; le point D/S de l'ADSR portait aussi le palier fixe et ne tenait pas à la molette.
+        Déclin nul et palier plein : le point D/S est posé sur la fin de la tenue."""
         if self.skin.no_envelope:
             return
         colour = colour or self.skin.accent
         fixed = ("Fixed/displayRange 0 1 valueRange 0 1 fineIncrement 0.01 coarseIncrement 0.1 defaultValue 1 "
                  "displayString '100%' name 'Corps' value 1")
+        fixed0 = ("Fixed/displayRange 0 1 valueRange 0 1 fineIncrement 0.01 coarseIncrement 0.1 defaultValue 0 "
+                  "displayString '0' name 'Corps' value 0")
         c = K.argb
-        data = O(("version", 1), ("envelopeType", "ADSR"), ("envelopeStyle", "WithoutHeader"), ("envelopeName", name),
+        if hold is not None:
+            stages = [("attackHandle", attack.handle), ("holdHandle", hold.handle), ("decayHandle", fixed0),
+                      ("sustainHandle", fixed), ("releaseHandle", release.handle)]
+            etype = "AHDSR"
+        else:
+            stages = [("attackHandle", attack.handle), ("decayHandle", decay.handle),
+                      ("sustainHandle", sustain.handle if sustain else fixed), ("releaseHandle", release.handle)]
+            etype = "ADSR"
+        data = O(("version", 1), ("envelopeType", etype), ("envelopeStyle", "WithoutHeader"), ("envelopeName", name),
                  ("backgroundColour", "ff17181c"), ("scaleColour", "ff2c2e34"), ("lineColour", c(colour)),
                  ("fillColour", c(colour[:3] + (64,))), ("highlightColour", "ffffffff"),
                  ("lineWidth", 3), ("handleWidth", 30), ("handleHeight", 30), ("handleShape", "Circle"),
@@ -459,9 +583,7 @@ class Page:
                  ("handleTextColour", "ffffffff"), ("handleLineWidthOnPressed", 3), ("handleLineColourOnPressed", "ffffffff"),
                  ("handleFillColourOnPressed", c(colour)), ("handleTextColourOnPressed", "ff111111"),
                  ("handleArrowLineColourOnPressed", "ffffffff"), ("handleArrowFillColourOnPressed", c(colour)),
-                 ("attackHandle", attack.handle), ("decayHandle", decay.handle),
-                 ("sustainHandle", sustain.handle if sustain else fixed),
-                 ("releaseHandle", release.handle),
+                 *stages,
                  ("attackShapeHandle", ashape.handle if ashape else "Invalid"), ("decayShapeHandle", "Invalid"),
                  ("releaseShapeHandle", rshape.handle if rshape else "Invalid"),
                  ("forceHideShapeHandles", not (ashape or rshape)), ("forceCurveShape", 0.5), ("curveType", "Exponential"))
@@ -546,7 +668,7 @@ def skin_kickforge(skin, P_):
     pg.buttons(p("pitchmode"), 434, 556, ["Fixe", "Suivie"], w=86, h=36, label="Note jouée")
     pg.knob(p("velsens"), 640, 480, "Vélocité")
     pg.knob(p("volume"), 760, 480, "Volume")
-    pg.buttons(p("autogain"), 890, 556, ["Gain auto"], w=120, h=36, label="Niveau")
+    pg.menu(p("autogain"), 884, 498, 128, "Gain auto", K.GOLD)   # Non / Oui (intensité) / Crête (techno, plus fort)
     pg.buttons(p("phasealign"), 1022, 556, ["Phase auto"], w=124, h=36, label="Phase")
     pg.qlink_group([p("l%d_vol" % n) for n in (1, 2, 3, 4)])
     pg.qlink_group([p("l%d_vol" % n) for n in (5, 6, 7, 8)])
@@ -575,10 +697,11 @@ def skin_kickforge(skin, P_):
         pg.knob(L("stretch"), xs[3], 98, "Étirement", colour=T_SRC)
         pg.knob(L("offset"), xs[0], 238, "Décalage", colour=T_SRC)
         pg.knob(L("len"), xs[1], 238, "Longueur", colour=T_SRC)
+        pg.menu(L("offsync"), xs[3] - 6, 238, 134, "Décalage tempo", T_SRC)   # Libre (ms) ou calé : 1/16, 1/8…
         pg.buttons(L("keytrk"), xs[2] + 20, 296, ["Accordé"], w=120, h=38, label="Sample")
         # ENVELOPPE
         c.panel(572, 72, 696, 304, "Enveloppe · fondus · toucher un point, molette", T_FADE)
-        pg.envelope(588, 104, 420, 262, L("filen"), L("len"), L("folen"), L("ficurve"), L("focurve"), T_FADE)
+        pg.envelope(588, 104, 420, 262, L("filen"), None, L("folen"), L("ficurve"), L("focurve"), T_FADE, hold=L("len"))
         pg.knob(L("filen"), 1018, 98, "Entrée", colour=T_FADE)
         pg.knob(L("folen"), 1140, 98, "Sortie", colour=T_FADE)
         pg.knob(L("ficurve"), 1018, 238, "Courbe ent.", colour=T_FADE)
@@ -672,8 +795,51 @@ def skin_kickforge(skin, P_):
              [("k", "cv_c1", "Courbe départ"), ("k", "cv_c2t", "Milieu (temps)"), ("k", "cv_c2", "Milieu"), ("k", "cv_c3", "Fin"), ("k", "cv_mix", "Mélange")]],
             [["cv_wet", "cv_stereo", "cv_tone", "cv_speed"], ["cv_c1", "cv_c2t", "cv_c2", "cv_c3"], ["cv_ir"], ["cv_mix"]])
 
+    # ---- ROULEMENT : répétition de chaque couche au tempo (roulé kick-basse) -----------------
+    T_ROLL = K.oklch(0.8, 0.16, 330)
+    pg = skin.page("ROULEMENT", 4)
+    c = pg.canvas
+    c.header("ROULEMENT", T_ROLL, right="Répétition des couches au tempo")
+    c.panel(12, 76, 1256, 544, "Couches", T_ROLL,
+            "motif x2 / x3 / x4 · coups joués · volume des répétitions")
+    sw = 154
+    for n in range(1, 9):
+        L = lambda s: p("l%d_%s" % (n, s))
+        x0 = 20 + (n - 1) * sw
+        if n > 1:
+            c.line(x0 - 2, 116, x0 - 2, 606)
+        c.text(x0, 126, str(n), size=26, colour=T_ROLL, weight="Bold", centre_w=sw - 8)
+        pg.value_text(L("fam"), x0 + 2, 148, sw - 12, 24, size=15)
+        pg.menu(L("roll"), x0 + 4, 176, sw - 16, "", T_ROLL)
+        pg.menu(L("rollfrom"), x0 + 4, 224, sw - 16, "", T_ROLL)
+        kx = x0 + (sw - 8 - COMPACT[0]) // 2
+        pg.knob(L("rollvol"), kx, 272, "Volume", "c", T_ROLL)
+        pg.knob(L("rollgate"), kx, 384, "Durée", "c", T_ROLL)
+        pg.knob(L("rolldec"), kx, 496, "Décroiss.", "c", T_ROLL)
+    pg.qlink_group([p("l%d_roll" % n) for n in (1, 2, 3, 4)])
+    pg.qlink_group([p("l%d_roll" % n) for n in (5, 6, 7, 8)])
+    pg.qlink_group([p("l%d_rollvol" % n) for n in (1, 2, 3, 4)])
+    pg.qlink_group([p("l%d_rollvol" % n) for n in (5, 6, 7, 8)])
+
     skin.program = [p("l%d_vol" % n).index for n in range(1, 9)] + [p(i).index for i in ("volume", "velsens", "style", "key")] + \
                    [p("l1_pitch").index, p("l1_len").index, p("l1_lp").index, p("l1_drv").index]
+
+    # 26 nov. 2026 : CHARGER, le navigateur des samplers : un fichier chargé dans « Couche n » passe la
+    # couche n en « Mes samples » (le greffon le fait) et l'allume
+    nav = {q.nav_key: q for q in P_.values() if getattr(q, "extra_kind", "") == "nav"}
+    if "slot" in nav and "row1" in nav:
+        def row(pid, tid, w=560):
+            q = nav[pid]
+            q.name_param = nav.get(tid)
+            return FItem("navrow", q, "", w, 48)
+        head = [FItem("menu", nav["slot"], "Charger dans", 150, 22), FItem("navrow", nav["prev"], "< Page", 150, 48),
+                FItem("navrow", nav["next"], "Page >", 150, 48), row("up", "txt0", 400)]
+        rows = [row("row%d" % r, "txt%d" % r) for r in range(1, 11)]
+        cpg = skin.page("CHARGER", 5)
+        panels = [FPanel("Charger un sample dans une couche", head, K.PANEL, FORGE), FPanel("Dossiers et fichiers", rows, K.PANEL, FORGE)]
+        draw_flow_screen(skin, cpg, panels, "KICK FORGE", FORGE, "Charger un sample · la couche passe en « Mes samples »",
+                         (12, FACE_HEAD + 8, 1268, 620), K.BG_BOT)
+        assign_qlinks(cpg, flow_order(panels)[:16])
 
 
 # =============================================================================================
@@ -1146,18 +1312,38 @@ def drum_abbrev(name):
     return fold(name).upper()[:10]
 
 
-def kit_pages(mod, P_, used, accent, extras=(), reserved=0):
+# Pieuvre 8 : réglages d'une piste montrés sur la machine (suffixes après « tN_ »), dans l'ordre des écrans
+# 26 nov. 2026 (retour d'Henrico : « comme sur GOLEM, sans les pas, deux ou trois écrans par piste ») :
+# tout ce que GOLEM a pour une piste, sauf les pas des LFO, l'enregistrement (Pickup, sources) et les zones
+# de notes (page NOTES)
+OCTA_PLAY = ["slot", "tune", "fine", "start", "length", "rate", "loop", "stretch", "slices", "keymode", "bars", "gain"]
+OCTA_PLAY2 = ["retrig", "rtim", "loops", "startlive"]
+OCTA_AMP = ["volume", "balance", "velamp", "attack", "hold", "holdmode", "release", "pb_range"]
+OCTA_FILTER = ["ftype", "fcut", "freso", "fenv", "fatk", "fdec", "drive", "bits", "srr"]
+OCTA_LFO_MORE = ["lf%d_%s" % (l, k) for l in (1, 2, 3) for k in ("fade", "phase", "delay")]
+OCTA_LFO = ["lf%d_%s" % (l, k) for l in (1, 2, 3) for k in ("shape", "rate", "sync", "mode")]
+OCTA_MATRIX = ["mx%d_%s" % (m, k) for m in range(1, 7) for k in ("src", "dst", "amt")]   # « Via » : seulement dans GOLEM (place)
+
+
+def kit_pages(mod, P_, used, accent, extras=(), reserved=0, pad_extra=None):
     """Batteries, comme les boîtes à rythmes de la machine : une touche par son (1 BD, 2 SD, 3 CP...),
     la barre des touches défile. Chaque son a ses écrans d'environ 16 réglages (le son, puis filtre et
     ampli...) : rappuyer sur la touche passe à l'écran suivant, les 16 Q-Links suivent l'écran.
-    Les touches sont limitées à 32 : les réglages communs du kit vont sur le dernier écran de chaque son."""
+    Les touches sont limitées à 32 : les réglages communs du kit vont sur le dernier écran de chaque son.
+    pad_extra (batteries avec Muet / Solo, {son: [Muet, Solo]}) : le premier écran de chaque son commence
+    par SON niveau (même s'il est aussi sur la console), son Muet et son Solo ; les réglages communs du kit
+    (volume du kit...) ne sont plus répétés sur chaque son, ils sont rendus à part pour l'écran GLOBAL."""
     params = mod["params"]
     names = {p["id"]: p["name"] for p in params}
     pads, kitp, skipped = {}, [], []
     padnames = mod.get("padNames") or []
+    octa = mod.get("type") == "octa"
     for p in params:
         pid = p["id"]
-        if pid not in P_ or pid in used:
+        # Pieuvre 8 : l'écran de la piste a tous ses réglages, même ceux aussi montrés sur la console PISTES
+        # 26 nov. 2026 : Cutsample / Poussière aussi (accord, coupure, mode de chaque zone étaient seulement
+        # sur la console ZONES : introuvables depuis la page de la zone)
+        if pid not in P_ or (pid in used and not ((octa or mod.get("type") in ("sampler", "sp")) and PAD_RE.match(pid))):
             continue
         m = PAD_RE.match(pid)
         if m and (p.get("name") or "").strip() in ("-", "—", "–", ""):
@@ -1174,7 +1360,34 @@ def kit_pages(mod, P_, used, accent, extras=(), reserved=0):
     used.update(skipped)
     for v in pads.values():
         used.update(v)
+    notes_tab = None
+    if octa:
+        # 26 nov. 2026 : comme dans GOLEM, qui joue quoi : mode des pads, réglage Clavier (piste choisie ou
+        # zones), piste du clavier, zones de notes de chaque piste (noms de notes : C1 = 36, comme la Force)
+        nn = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+        note_names = ["%s%d" % (nn[k % 12], k // 12 - 2) for k in range(128)]
+        head_q = [q for q in extras if q.name == "Pads"] + ([P_["kbmode"]] if "kbmode" in P_ else []) + \
+                 [q for q in extras if q.name.startswith("Piste clavier")]
+        head = [make_ctl(q, "", "Mode clavier" if q.id == "kbmode" else "Les pads jouent" if q.name == "Pads" else "Piste choisie") for q in head_q]
+        zones = []
+        for n in range(1, 9):
+            for x, lab in (("zlo", "T%d note basse"), ("zhi", "T%d note haute")):
+                q = P_.get("t%d_%s" % (n, x))
+                if q is not None:
+                    q.steps = note_names
+                    zones.append(make_ctl(q, "", lab % n))
+        if head or zones:
+            notes_tab = ("NOTES", [[Panel("Qui joue quoi", TONES[0], head, None),
+                                    Panel("Zones de notes (Pads sur Clavier, Clavier sur Zones)", TONES[1], zones, None)]])
+        taken = {id(q) for q in head_q}
+        kitp = [i for i in kitp if i != "kbmode"]
+        extras = [q for q in extras if id(q) not in taken]
     common = [make_ctl(P_[i], "", names[i]) for i in kitp] + [make_ctl(q, "", q.name) for q in extras]
+    kit_common = None
+    if pad_extra:
+        # « Disposition pads » reste en tête du premier son (rangée par auto_skin_flow), le reste va à GLOBAL
+        kit_common = [c for c in common if c.p.name != "Disposition pads"]
+        common = [c for c in common if c.p.name == "Disposition pads"]
     total = 32 - reserved
     base = max(1, min(8, total // max(1, len(pads))))
     extra = max(0, total - base * len(pads)) if base < 8 else 0
@@ -1183,6 +1396,56 @@ def kit_pages(mod, P_, used, accent, extras=(), reserved=0):
         per_pad = base + (1 if pi < extra else 0)
         pname = padnames[n - 1] if n - 1 < len(padnames) else "Pad %d" % n
         ctls = [make_ctl(P_[i], "", names[i]) for i in pads[n]]   # les plus importants d'abord
+        if pad_extra:
+            # le niveau du son (pas celui du kit), puis Muet et Solo : en tête du premier écran du son
+            lid = next((x % n for x in ("p%02d_level", "z%02d_level") if (x % n) in P_), None)
+            head = ([make_ctl(P_[lid], "", names[lid])] if lid else []) + \
+                   [make_ctl(q, "", q.name.split(" ")[0]) for q in pad_extra.get(n, [])]
+            ctls = head + [c for c in ctls if not lid or c.p.id != lid]
+        if mod.get("type") == "octa":
+            # 26 nov. 2026 : Pieuvre 8 sur la machine : la séquence s'écrit dans le séquenceur de la machine ;
+            # trois écrans par piste (lecture, son, modulation : LFO et matrice), sans les pas ni l'enregistrement.
+            byid = {c.p.id.split("_", 1)[1]: c for c in ctls}
+            pick = lambda ids: [byid[x] for x in ids if x in byid]
+            tone = TONES[(n - 1) % len(TONES)]
+            layout = [[("lecture", OCTA_PLAY)],
+                      [("ampli", OCTA_AMP), ("filtre et grain", OCTA_FILTER), ("redéclenchement, boucle", OCTA_PLAY2),
+                       ],   # LFO : fondu, phase, retard : seulement dans GOLEM (place sur l'écran de la machine)
+                      [("LFO 1 à 3", OCTA_LFO), ("matrice de modulation", OCTA_MATRIX)]]
+            screens = []
+            for scr in layout:
+                pans = []
+                for ttl, ids in scr:
+                    ch = pick(ids)
+                    if not ch:
+                        continue
+                    env = detect_adsr(ch)
+                    if env:
+                        ch = [c for c in ch if c not in env.values()]
+                    for c in ch:   # LFO et matrice : le numéro devant (trois « Forme », six « Source »...)
+                        mm = _re.match(r"^(lf|mx)(\d)_", c.p.id.split("_", 1)[1])
+                        if mm and not getattr(c, "_numbered", False):
+                            lab0 = (c.label or c.p.name).split(" · ")[-1]
+                            lab0 = {"Destination": "Cible", "Profondeur": "Prof."}.get(lab0, lab0)
+                            c.label = ("LFO%s " if mm.group(1) == "lf" else "M%s ") % mm.group(2) + lab0
+                            c._numbered = True
+                    pan = Panel(ttl[:1].upper() + ttl[1:], tone, ch, env)
+                    if ids is OCTA_LFO:
+                        pan.force_rows = 3      # une LFO par rangée : forme, vitesse, synchro, mode
+                    elif ids is OCTA_MATRIX:
+                        pan.force_rows = 6      # un emplacement par rangée : source, cible, profondeur
+                        for c in ch:
+                            if c.p.id.endswith("_amt"):
+                                c.kind = "numbox"   # profondeur en case : six rangées tiennent sur l'écran
+                    pans.append(pan)
+                if pans:
+                    screens.append(pans)
+            if common and screens:
+                screens[-1][-1].ctls = screens[-1][-1].ctls + [_copy.copy(c) for c in common]
+            ab = drum_abbrev(pname)
+            tab = ab if (ab.endswith(" %d" % n) or ab == "T%d" % n) else "%d %s" % (n, ab)
+            pad_tabs.append((tab, screens))
+            continue
         if len(ctls) > per_pad * 40:
             # trop de réglages pour les écrans de ce son (Pieuvre 8 : 155 par piste) : les valeurs des pas
             # des LFO pas à pas restent réglables dans GOLEM, pas sur l'écran de la MPC
@@ -1219,7 +1482,9 @@ def kit_pages(mod, P_, used, accent, extras=(), reserved=0):
             title = (pname if ab == "T%d" % n else "%d · %s" % (n, pname)) + (" · %d/%d" % (ci + 1, len(chunks)) if len(chunks) > 1 else "")
             screens.append([Panel(title, TONES[(n - 1) % len(TONES)], ch, env)])
         pad_tabs.append((tab, screens))
-    return pad_tabs, None
+    if notes_tab:
+        pad_tabs.insert(0, notes_tab)
+    return pad_tabs, kit_common
 
 
 FACE_CAP = os.environ.get("GOLEM_FACE_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "_facecap")  # face_capture.py
@@ -1551,6 +1816,22 @@ def draw_face_screen(skin, pg, scr, P_, title, accent, page_label):
         y += sh + 10
 
 
+FADER_HIT_W = 44   # largeur minimale de la zone de toucher d'une tirette de façade (pixels de l'écran)
+
+
+def _padded_strip(skin, name, pad):
+    """Bande d'images de l'habillage bordée de pad pixels transparents à gauche et à droite."""
+    from PIL import Image
+    out_name = "%s_hit%d.png" % (os.path.splitext(name)[0], pad)
+    dst = os.path.join(skin.out, out_name)
+    if not os.path.isfile(dst):
+        im = Image.open(os.path.join(skin.out, name)).convert("RGBA")
+        out = Image.new("RGBA", (im.width + 2 * pad, im.height), (0, 0, 0, 0))
+        out.paste(im, (pad, 0))
+        out.save(dst, optimize=True)
+    return out_name
+
+
 def place_face_ctl(skin, pg, scr, ctl, p, ox, oy, sc):
     kind = ctl["kind"]
     rx, ry, rw, rh = ctl["rect"]
@@ -1573,6 +1854,11 @@ def place_face_ctl(skin, pg, scr, ctl, p, ox, oy, sc):
         return
     name, fw, fh = _strip(skin, scr, info, sc)
     n = info["frames"]
+    if kind == "fader" and fw < FADER_HIT_W:
+        # tirette étroite : zone de toucher élargie (bords transparents), le dessin ne bouge pas
+        pad = (FADER_HIT_W - fw) // 2
+        name = _padded_strip(skin, name, pad)
+        x, fw = x - pad, fw + 2 * pad
     tag = "fs_%s_%s" % (os.path.splitext(name)[0], kind)
     if tag not in skin.defs:
         drag = "Vertical" if kind == "fader" else None
@@ -1727,24 +2013,41 @@ def fpanel_from_generic(pn, kref, theme, fill):
             items.append(FItem("btns", c.p, c.label, words=c.words))
         elif k == "file":
             items.append(FItem("file", c.p, c.label))
+        elif k == "numbox":
+            items.append(FItem("numbox", c.p, c.label))
         else:
             items.append(FItem("gknob", c.p, c.label, kref, kref, (theme or {}).get("knob")))
-    return FPanel(pn.title, items, fill, pn.tone)
+    fp = FPanel(pn.title, items, fill, pn.tone)
+    fp.force_rows = getattr(pn, "force_rows", None)
+    return fp
+
+
+TXT_COMPACT = [False]   # 27 nov. 2026 : écran trop chargé pour les grands textes → tailles resserrées (repli)
+# 27 nov. 2026 (Henrico) : textes doublés seulement sur les échantillonneurs et Kick Forge (sa demande du
+# 26 nov.) ; les autres greffons gardent les tailles de la 1.1.0, sauf les valeurs sous les boutons (même taille que sur les échantillonneurs).
+BIG_KEYS = ("keys", "sampler", "sp", "octa", "kickforge")
+TXT_BIG = [True]
 
 
 def _fonts(f):
-    return max(12, min(19, round(10 * f))), max(12, min(18, round(9.5 * f)))
+    # 26 nov. 2026 : textes environ deux fois plus gros (illisibles sur l'écran de la Force)
+    if not TXT_BIG[0]:
+        return max(12, min(19, round(10 * f))), max(20, min(28, round(17 * f)))   # valeurs comme les samplers
+    if TXT_COMPACT[0]:
+        return max(17, min(22, round(16 * f))), max(16, min(21, round(15 * f)))
+    return max(22, min(30, round(18 * f))), max(20, min(28, round(17 * f)))
 
 
 def item_box(it, f, fmax_px=118):
     """Taille de la case d'un réglage à l'échelle f : (w, h, vis_w, vis_h, label_h, value_h)."""
     fs, vfs = _fonts(f)
     k = it.kind
-    lh = fs + 6 if (it.label and k not in ("toggle", "gtoggle")) else 0
+    lh = fs + 6 if (it.label and k not in ("toggle", "gtoggle", "navrow")) else 0
     vh_val = 0
     if k in ("knob", "gknob"):
-        vw = vh = min(it.cw * f, fmax_px * (1.2 if it.big else 1.0))
-        vh = min(it.ch * f, vh) if k == "knob" else vw
+        kmin = 0 if not TXT_BIG[0] else 38 if TXT_COMPACT[0] else 50
+        vw = vh = max(kmin, min(it.cw * f, fmax_px * (1.2 if it.big else 1.0)))
+        vh = max(kmin, min(it.ch * f, vh)) if k == "knob" else vw
         vh_val = vfs + 6
     elif k in ("fader", "gfader"):
         vh = min(it.ch * f, 230)
@@ -1754,16 +2057,35 @@ def item_box(it, f, fmax_px=118):
         sc = min(f, 2.4)
         vw, vh = it.cw * sc, it.ch * sc
     elif k == "menu":
-        vw, vh = max(130, min(it.cw * f, 300)), max(30, min(it.ch * f, 46))
+        if not TXT_BIG[0]:
+            vw, vh = max(130, min(it.cw * f, 300)), max(30, min(it.ch * f, 46))
+        else:
+            mw, mh = (104, 36) if TXT_COMPACT[0] else (130, 42)
+            vw, vh = max(mw, min(it.cw * f, 320)), max(mh, min(it.ch * f, 54))
     elif k == "gtoggle":
-        bfs = max(13, min(19, round(9.5 * f)))
-        vw, vh = K.text_px(it.label, bfs) + 34, max(32, min(46, 21 * f))
+        if not TXT_BIG[0]:
+            bfs = max(13, min(19, round(9.5 * f)))
+            vw, vh = K.text_px(it.label, bfs) + 34, max(32, min(46, 21 * f))
+        else:
+            bfs = max(16, min(20, round(15 * f))) if TXT_COMPACT[0] else max(20, min(26, round(15 * f)))
+            bh = 36 if TXT_COMPACT[0] else 42
+            vw, vh = K.text_px(it.label, bfs) + 34, max(bh, min(54, 26 * f))
     elif k == "btns":
-        bfs = max(13, min(19, round(9.5 * f)))
-        bw = max(52, max(K.text_px(w, bfs) for w in it.words) + 24)
-        vw, vh = len(it.words) * bw + (len(it.words) - 1) * 6, max(32, min(46, 21 * f))
+        if not TXT_BIG[0]:
+            bfs = max(13, min(19, round(9.5 * f)))
+            bw = max(52, max(K.text_px(w, bfs) for w in it.words) + 24)
+            vw, vh = len(it.words) * bw + (len(it.words) - 1) * 6, max(32, min(46, 21 * f))
+        else:
+            bfs = max(16, min(20, round(15 * f))) if TXT_COMPACT[0] else max(20, min(26, round(15 * f)))
+            bh = 36 if TXT_COMPACT[0] else 42
+            bw = max(52 if TXT_COMPACT[0] else 60, max(K.text_px(w, bfs) for w in it.words) + 24)
+            vw, vh = len(it.words) * bw + (len(it.words) - 1) * 6, max(bh, min(54, 26 * f))
     elif k == "file":
         vw, vh = 300, 46
+    elif k == "numbox":   # 27 nov. 2026 : valeur en case (profondeurs de la matrice) : même hauteur qu'un menu
+        vw, vh = 130, 46
+    elif k == "navrow":
+        vw, vh = (it.cw or 560), 48
     else:
         vw, vh = it.cw * f, it.ch * f
     lw = K.text_px(it.label or "", fs, "Medium") if lh else 0
@@ -1772,7 +2094,7 @@ def item_box(it, f, fmax_px=118):
     return w, h, vw, vh, lh, vh_val
 
 
-PAN_TITLE, PAN_PAD, ROW_GAP = 30, 10, 4
+PAN_TITLE, PAN_PAD, ROW_GAP = 36, 10, 4
 
 
 def panel_rows(pn, f, r):
@@ -1812,7 +2134,7 @@ def flow_layout(panels, W, H, fmax=2.0, fmin=0.45):
         confs = []
         for pn in panels:
             cs = []
-            for r in range(1, min(len(pn.items), 6) + 1):
+            for r in ([pn.force_rows] if getattr(pn, "force_rows", None) else range(1, min(len(pn.items), 6) + 1)):
                 cs.append(panel_rows(pn, f, r))
             confs.append(cs)
         best = None
@@ -1907,6 +2229,8 @@ def flow_place(skin, pg, it, box, x, y, cw, f, colours):
     p = it.p
     fs, vfs = _fonts(f)
     pg._choice(p)
+    if getattr(p, "steps", None) and it.kind != "file":
+        skin.replacements[p.index] = p.steps
     if lh:
         pg.canvas.fit_text(x + 2, y + lh / 2, it.label, fs, cw - 4, label_c)
     vx, vy = x + (cw - vw) / 2, y + lh + 2
@@ -1931,15 +2255,25 @@ def flow_place(skin, pg, it, box, x, y, cw, f, colours):
         pg._add(p, tag, vx - 8, vy, round(vw) + 16, round(vh) + 34)
         p._turn = True
     elif k == "menu":
-        tag = _flow_def_menu(skin, vw, vh, max(13, min(19, round(vh * 0.45))), it_tone(it, skin))
+        tag = _flow_def_menu(skin, vw, vh, max(20, min(26, round(vh * 0.5))) if TXT_BIG[0] else max(13, min(19, round(vh * 0.45))), it_tone(it, skin))
         pg._add(p, tag, vx, vy, round(vw), round(vh))
     elif k in ("gtoggle", "btns"):
         words = [it.label] if k == "gtoggle" else it.words
         bw = round(vw) if k == "gtoggle" else round((vw - 6 * (len(words) - 1)) / len(words))
         tag, (tw, th) = skin.def_buttons(words, bw, round(vh), it_tone(it, skin))
         pg._add(p, tag, vx, vy, tw, th)
+    elif k == "navrow":
+        tag = skin.def_navrow(round(vw), round(vh), it_tone(it, skin), size=26,
+                              word=None if getattr(p, "name_param", None) is not None else it.label)
+        pg._add(p, tag, vx, vy, round(vw), round(vh))
+    elif k == "numbox":
+        tag = skin.def_number(round(vw), round(vh), it_tone(it, skin), size=22)
+        pg._add(p, tag, vx, vy, round(vw), round(vh))
+        p._turn = True
     elif k == "file":
-        tag = skin.def_number(round(vw), round(vh), it_tone(it, skin), size=19)
+        if getattr(p, "steps", None):
+            skin.replacements[p.index] = p.steps
+        tag = (skin.def_file if getattr(p, "name_param", None) is not None else skin.def_number)(round(vw), round(vh), it_tone(it, skin), size=19)
         pg._add(p, tag, vx, vy, round(vw), round(vh))
         p._turn = True
 
@@ -1954,9 +2288,62 @@ def flow_text_colours(fill):
     return (200, 202, 210, 255), (240, 240, 244, 255), fill
 
 
+WAVE_H = 130      # 26 nov. 2026 : bandeau de la forme du sample en tête des écrans « Début »
+WAVE_FRAMES = 51  # GolemMpc.h : 3 couleurs x 16 hauteurs, puis début/fin, début de boucle, découpe
+
+
+def wave_strip(skin, w, h, accent):
+    """Image à 51 vues d'une colonne de la forme : hauteur de la crête (16) x couleur (hors lecture, lecture,
+    boucle), puis les repères : début / fin (blanc), début de boucle (jaune), découpe (cyan)."""
+    from PIL import Image, ImageDraw
+    name = "wave_%dx%d_%s.png" % (w, h, skin.colour_tag(accent))
+    path = os.path.join(skin.out, name)
+    if os.path.isfile(path):
+        return name
+    S = 2
+    img = Image.new("RGBA", (w * S, h * S * WAVE_FRAMES), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    cols = [(78, 84, 100, 255), tuple(accent[:3]) + (255,), (255, 196, 70, 255)]
+    mid = h * S / 2
+    for kind in range(3):
+        for lvl in range(16):
+            fi = kind * 16 + lvl
+            y0 = fi * h * S
+            half = (1.0 + lvl / 15.0 * (h / 2 - 3)) * S
+            d.rectangle([S, y0 + mid - half, w * S - S - 1, y0 + mid + half], fill=cols[kind])
+    for j, col, lw in ((48, (255, 255, 255, 255), 3), (49, (255, 210, 60, 255), 3), (50, (90, 220, 255, 255), 2)):
+        y0 = j * h * S
+        cx = w * S / 2
+        d.rectangle([cx - lw * S / 2, y0, cx + lw * S / 2, y0 + h * S - 1], fill=col)
+    img = img.resize((w, h * WAVE_FRAMES), Image.LANCZOS)
+    img.save(path, optimize=True)
+    return name
+
+
+def draw_wave(skin, pg, area, accent, cols, txt):
+    """Bandeau de la forme du sample : titre (piste et fichier, écrit par le greffon) et 96 colonnes."""
+    x0, y0, x1, _ = area
+    W, H = x1 - x0, WAVE_H - 8
+    S = K.SS
+    K.rounded(pg.canvas.d, [x0 * S, y0 * S, x1 * S, (y0 + H) * S], 10 * S, fill=(14, 15, 18, 255), outline=accent, width=S)
+    th = 32
+    colw = max(4, int((W - 24) // len(cols)))
+    left = x0 + (W - colw * len(cols)) / 2
+    ch = H - th - 8
+    img = wave_strip(skin, colw, round(ch), accent)
+    if txt is not None:
+        lab = O(("version", 1), ("textStyle", textstyle(22, K.argb((238, 238, 242, 255)), "left verticallyCentred", style="Bold")),
+                ("type", "Value"), ("handleName", "Data"))
+        pg.children.append(ent("wave title", "Label", lab, rect(x0 + 16, y0 + 2, W - 32, th), remap=[("Data", txt.handle)]))
+    for i, q in enumerate(cols):
+        data = O(("version", 2), ("imageType", "FilmStrip"), ("colour", "0"), ("image", img), ("numFrames", WAVE_FRAMES), ("handleName", "Data"))
+        pg.children.append(ent("wave %d" % (i + 1), "Image", data, rect(left + i * colw, y0 + th, colw, ch), remap=[("Data", q.handle)]))
+
+
 def draw_flow_screen(skin, pg, panels, title, accent, page_label, area, bg, unit=None, fmax=2.6, hint=False):
     """Écran rempli : en-tête GOLEM, panneaux en étagères à la plus grande échelle, étirés à toute la surface."""
     from PIL import Image
+    TXT_COMPACT[0] = False
     pg.face = True
     c = pg.canvas
     S = K.SS
@@ -1982,7 +2369,19 @@ def draw_flow_screen(skin, pg, panels, title, accent, page_label, area, bg, unit
     if not lay:
         lay = flow_layout(panels, W, H, fmax, fmin=0.2)
     if not lay:
-        raise SystemExit("skins: écran impossible à ranger (%s, %s)" % (title, page_label))
+        TXT_COMPACT[0] = True   # repli : textes et cases resserrés pour cet écran seulement
+        lay = flow_layout(panels, W, H, fmax) or flow_layout(panels, W, H, fmax, fmin=0.2)
+        if lay:
+            print("  écran resserré : %s · %s" % (title, page_label))
+    if not lay:
+        TXT_COMPACT[0] = False
+        dbg = []
+        for pn in panels:
+            for r in ([pn.force_rows] if getattr(pn, "force_rows", None) else range(1, min(len(pn.items), 6) + 1)):
+                w_, h_, rows_ = panel_rows(pn, 0.2, r)
+                dbg.append("%s r%d %dx%d" % (pn.title[-12:], r, w_, h_))
+            dbg.append("items: " + ", ".join("%s:%s:%s" % (it.kind, it.label[:10], tuple(round(x) for x in item_box(it, 0.2)[:2])) for it in pn.items[:8]))
+        raise SystemExit("skins: écran impossible à ranger (%s, %s) zone %dx%d\n  %s" % (title, page_label, W, H, "\n  ".join(dbg)))
     f, shelves, total_h = lay
     extra_h = (H - total_h) / len(shelves)
     y = y0
@@ -1998,11 +2397,11 @@ def draw_flow_screen(skin, pg, panels, title, accent, page_label, area, bg, unit
             K.rounded(c.d, [x * S, y * S, (x + pw) * S, (y + sh) * S], 10 * S, fill=fill, outline=edge, width=S)
             tone = pn.tone
             tcol = tone if abs(_lum(tone) - _lum(fill)) > 80 else value_c
-            c.d.rounded_rectangle([(x + 12) * S, (y + 9) * S, (x + 16) * S, (y + 23) * S], radius=2 * S, fill=tone)
+            c.d.rounded_rectangle([(x + 12) * S, (y + 8) * S, (x + 16) * S, (y + 28) * S], radius=2 * S, fill=tone)
             ttl = short_title(pn.title).upper()
-            while len(ttl) > 4 and K.text_px(ttl, 14) > pw - 40:
+            while len(ttl) > 4 and K.text_px(ttl, 20) > pw - 40:
                 ttl = ttl[:-2].rstrip() + "…"
-            c.d.text(((x + 24) * S, (y + 16) * S), K.safe(ttl), font=K.font(14 * S, "Bold"), fill=tcol, anchor="lm")
+            c.d.text(((x + 24) * S, (y + (18 if TXT_BIG[0] else 16)) * S), K.safe(ttl), font=K.font((20 if TXT_BIG[0] else 14) * S, "Bold"), fill=tcol, anchor="lm")
             rows = conf[2]
             rows_h = sum(max(b[1] for _, b in row) for row in rows) + ROW_GAP * (len(rows) - 1)
             spare = sh - PAN_TITLE - PAN_PAD - rows_h
@@ -2041,7 +2440,7 @@ def flow_order(panels):
     turn, menus, push = [], [], []
     for pn in panels:
         for it in pn.items:
-            if it.kind in ("knob", "gknob", "fader", "gfader", "file"):
+            if it.kind in ("knob", "gknob", "fader", "gfader", "file", "numbox"):
                 it.p._turn = True
                 turn.append(it.p)
             elif it.kind in ("menu", "switch"):
@@ -2360,10 +2759,39 @@ def _mock_overlay(p):
     return "knob overlay" if len(p.choices) > 4 else ("knob overlay bipolar" if p.bipolar else "knob overlay")
 
 
+# Barres de niveau des consoles (tranches des batteries) : 14 pixels de large, trop étroites pour le doigt.
+# La zone de toucher est élargie (bande d'images bordée de transparent), le dessin ne bouge pas.
+VBAR_HIT = (34, 6)   # pixels ajoutés à gauche (vide de la tranche) et à droite (avant les textes)
+
+
+def mock_hit_pad(w):
+    return VBAR_HIT if w["t"] == "vbar" else (0, 0)
+
+
+def _mock_padded_strip(skin, key, name, frames, bw, pad):
+    """Copie de la bande d'images avec des bords transparents (zone de toucher plus large)."""
+    from PIL import Image as _Img
+    out_name = name[:-4] + "_hit%d_%d.png" % pad
+    dst = os.path.join(skin.out, out_name)
+    if not os.path.isfile(dst):
+        im = _Img.open(os.path.join(MOCK_DIR, key, name)).convert("RGBA")
+        sc = im.width / float(bw)
+        nw = int(round((bw + pad[0] + pad[1]) * sc))
+        out = _Img.new("RGBA", (nw, im.height), (0, 0, 0, 0))
+        out.paste(im, (int(round(pad[0] * sc)), 0))
+        out.save(dst)
+    return out_name
+
+
 def mock_widget_def(skin, key, w, lab, p):
     """Bouton rotatif / curseur / barre de la maquette : bande d'images + valeur écrite par la MPC."""
     x, y, bw, bh = w["box"]
-    strip = _mock_copy(skin, key, w["strip"])
+    pad = mock_hit_pad(w)
+    if pad != (0, 0):
+        strip = _mock_padded_strip(skin, key, w["strip"], w["frames"], bw, pad)
+        x, bw = x - pad[0], bw + pad[0] + pad[1]
+    else:
+        strip = _mock_copy(skin, key, w["strip"])
     vertical = w["t"] in ("cfader", "vbar")
     ov = _mock_overlay(p)
     lsig = ""
@@ -2384,14 +2812,20 @@ def mock_place(skin, key, pg, P_, spec, invalid=None, used=None):
     """Pose les éléments vivants d'un écran capturé ; rend les réglages tournants, dans l'ordre de l'écran."""
     labels_by_host = {}
     free = []
+    chip_ids = {w.get("mkid") for w in spec["widgets"] if w["t"] == "chip"}
     for lb in spec["labels"]:
         if lb["host"] >= 0:
-            labels_by_host.setdefault(lb["host"], lb)
+            if lb["host"] not in labels_by_host:
+                labels_by_host[lb["host"]] = lb
+            elif lb["host"] in chip_ids and lb.get("p"):
+                free.append(lb)   # case à plusieurs valeurs (coins de l'Orbiteur) : les autres valeurs restent écrites
         else:
             free.append(lb)
     turn = []
     radios = {}
-    for w in spec["widgets"]:
+    # case posée sur tout le schéma (toucher le schéma : son réglage) : après l'image du schéma, au-dessus
+    widgets = sorted(spec["widgets"], key=lambda w: 1 if (w["t"] == "chip" and w["box"][2] >= 300) else 0)
+    for w in widgets:
         p = P_.get(w.get("p") or "")
         if w["t"] in ("knob", "cknob", "cfader", "vbar"):
             if not p:
@@ -2399,6 +2833,8 @@ def mock_place(skin, key, pg, P_, spec, invalid=None, used=None):
             pg._choice(p)
             tag = mock_widget_def(skin, key, w, labels_by_host.get(w["mkid"]), p)
             x, y, bw, bh = w["box"]
+            hp = mock_hit_pad(w)
+            x, bw = x - hp[0], bw + hp[0] + hp[1]
             pg.children.append(ent(p.id, tag, O(("version", 1), ("handleName", "Data")), rect(x, y, bw, bh),
                                    focus="Yes", invalid="Hide", remap=[("Data", p.handle)], invalidating=invalid))
             pg.bounds_of[p.index] = (x, y, bw, bh)
@@ -2481,8 +2917,17 @@ def mock_place(skin, key, pg, P_, spec, invalid=None, used=None):
     return turn
 
 
+# 26 nov. 2026 : écrans de tête retirés. Chromasample : la colonne Sample / Filtre / Env. / Global / Fichiers /
+# Jeu de la maquette ne changeait pas l'écran sur la machine (Global, Fichiers et Jeu montraient tous
+# « Échantillon ») et aucun fichier ne s'y choisissait ; ses touches FILTRE (dossier, fichier, lecture,
+# filtre), ECHANTILLON et ENV suffisent.
+MOCK_OFF = {"keys"}
+
+
 def mock_console(key):
     """Console d'écrans de tête tirée des maquettes : rend (réglages montrés, nombre d'écrans, touches)."""
+    if key in MOCK_OFF:
+        return None
     data = mock_screens(key)
     if not data:
         return None
@@ -2594,9 +3039,10 @@ def auto_skin_flow(skin, P_, mod, face, title, accent, console=None):
         kref = max(44, min(64, th["knob"]["w"] / 2))
     tabs = []
     fn_start = 0
+    kit_tab = None
     if kit:
         files = [q for q in extras if q.extra_kind == "file"]
-        reserved = 2 if files else 0
+        reserved = 2 if files else (1 if any(getattr(q, "extra_kind", "") == "nav" for q in P_.values()) else 0)   # 1 : la touche CHARGER
         if console:
             bg0 = None
             if th and th.get("bg"):
@@ -2605,8 +3051,25 @@ def auto_skin_flow(skin, P_, mod, face, title, accent, console=None):
             used |= set(res[0])
             reserved += res[1]
             fn_start = res[2] if len(res) > 2 else 1
-        pad_tabs, _ = kit_pages(mod, P_, used, accent, [q for q in extras if q.extra_kind != "file"],
-                                reserved=reserved)
+        # Muet / Solo de chaque son (GolemMpc.h : « Muet N », « Solo N ») : sur l'écran du son
+        mutes = {}
+        for q in extras:
+            m_ = _re.match(r"^(Muet|Solo) (\d+)$", q.name)
+            if m_ and q.extra_kind != "file":
+                mutes.setdefault(int(m_.group(2)), []).append(q)
+        others = [q for q in extras if q.extra_kind != "file" and not any(q in v for v in mutes.values())]
+        pad_tabs, kit_common = kit_pages(mod, P_, used, accent, others,
+                                         reserved=reserved + (1 if mutes else 0), pad_extra=mutes or None)
+        if mutes:
+            # écran GLOBAL : le volume du kit, les réglages communs et le volume du greffon (une seule fois)
+            vinfo0 = (th or {}).get("fader")
+            gvol = (FItem("fader", P_["__volume__"], "Volume", vinfo0["w"] / 2 * 110 / (vinfo0["h"] / 2), 110, vinfo0) if vinfo0
+                    else FItem("gfader", P_["__volume__"], "Volume", 26, 110))
+            gp = fpanel_from_generic(Panel("Kit", accent, kit_common or []), kref, th, pfill)
+            gp.items.append(gvol)
+            kit_tab = ["GLOBAL", [[gp]]]
+        else:
+            kit_tab = None
         if pad_tabs:
             for n, scrs in pad_tabs:
                 tabs.append([n, [[fpanel_from_generic(pn, kref, th, pfill) for pn in scr] for scr in scrs]])
@@ -2663,6 +3126,12 @@ def auto_skin_flow(skin, P_, mod, face, title, accent, console=None):
                             [s for o in group_like([["x", fpanels]]) for s in o[1]]])
         if sec_fp:
             tabs.append(["PLUS", [[f for _, f in sec_fp]]])
+        if kit_tab:
+            # 27 nov. 2026 : samplers : GLOBAL avant ZONE 1 (au bout de 16 touches, on ne le trouvait pas)
+            if mod.get("type") in ("sampler", "sp"):
+                tabs.insert(0, kit_tab)
+            else:
+                tabs.append(kit_tab)
     elif fx and not face_fp:
         # effets : touches de leurs sections, tout sur une touche si tout tient en 16 réglages
         names = {}
@@ -2725,8 +3194,8 @@ def auto_skin_flow(skin, P_, mod, face, title, accent, console=None):
     vinfo = (th or {}).get("fader")
     vol = (FItem("fader", P_["__volume__"], "Volume", vinfo["w"] / 2 * 110 / (vinfo["h"] / 2), 110, vinfo) if vinfo
            else FItem("gfader", P_["__volume__"], "Volume", 26, 110))
-    placed = False
-    order_tabs = [t for t in tabs if t[0] not in ("SAMPLES", "JEU")][:1] if kit else list(reversed(tabs))
+    placed = bool(kit and kit_tab)   # batteries avec Muet / Solo : le volume est déjà sur l'écran GLOBAL
+    order_tabs = [] if placed else ([t for t in tabs if t[0] not in ("SAMPLES", "JEU")][:1] if kit else list(reversed(tabs)))
     for t in order_tabs:
         for scr in (t[1] if kit else list(reversed(t[1]))):
             if kit or sum(len(pn.items) for pn in scr) < 16:
@@ -2740,6 +3209,27 @@ def auto_skin_flow(skin, P_, mod, face, title, accent, console=None):
             tabs[-1][1][-1][-1].items.append(vol)
         else:
             tabs = [["SON", [[FPanel("Sortie", [vol], pfill, accent)]]]]
+    # 26 nov. 2026 : navigateur de samples (tous les disques) en première touche, CHARGER
+    nav = {q.nav_key: q for q in P_.values() if getattr(q, "extra_kind", "") == "nav"}
+    if "slot" in nav and "row1" in nav:
+        def row(pid, tid, w=560):
+            q = nav[pid]
+            q.name_param = nav.get(tid)
+            return FItem("navrow", q, "", w, 48)
+        head = ([FItem("menu", nav["slot"], "Charger dans", 150, 22)] if len(nav["slot"].choices) > 1 else []) + [
+                FItem("navrow", nav["prev"], "< Page", 150, 48), FItem("navrow", nav["next"], "Page >", 150, 48), row("up", "txt0", 400)]
+        rows = [row("row%d" % r, "txt%d" % r) for r in range(1, 11)]
+        tabs.insert(0, ["CHARGER", [[FPanel("Charger un sample · toucher un dossier, puis un fichier · la ligne du haut revient aux dossiers", head, pfill, accent),
+                                     FPanel("Dossiers et fichiers", rows, pfill, accent)]]])
+        # 26 nov. 2026 : page DÉCOUPE (Cutsample, Poussière) : comme dans GOLEM, découper le sample en zones
+        cuts = [q for q in P_.values() if getattr(q, "extra_kind", "") == "cut"]
+        dec = [P_[i] for i in ("slicecnt", "slicepage", "slices", "choke") if i in P_]
+        if cuts or (dec and mod.get("type") in ("sampler", "sp")):
+            items = [FItem("navrow", q, "Decouper en 16" if q.name.endswith("16") else "Sur les attaques", 300, 48) for q in cuts]
+            items += [FItem("menu", q, {"slicecnt": "Découpes", "slicepage": "Page", "slices": "Découpage", "choke": "Pads"}[q.id], 150, 22) for q in dec]
+            ttl = ("Découper le sample du pad 1 sur les 16 pads · un pad qui a son propre sample n'est pas découpé"
+                   if mod.get("type") == "sp" else "Découper le sample 1 en 16 zones · puis régler chaque zone (touches ZONE)")
+            tabs.insert(1, ["DECOUPE", [[FPanel(ttl, items, pfill, accent)]]])
     area = (12, FACE_HEAD + 8, 1268, 620)
     unit = None
     if th and th.get("unit"):
@@ -2753,6 +3243,9 @@ def auto_skin_flow(skin, P_, mod, face, title, accent, console=None):
                     all_turn.append(p)
     program = list(getattr(skin, "program", None) or [])
     fn = fn_start
+    wq = [q for q in P_.values() if getattr(q, "extra_kind", "") == "wave"]
+    waves = sorted([q for q in wq if q.wave_col > 0], key=lambda q: q.wave_col)
+    wave_txt = next((q for q in wq if q.wave_col == 0), None)
     for name, scrs in tabs:
         tab_all = []
         for scr in scrs:
@@ -2769,12 +3262,18 @@ def auto_skin_flow(skin, P_, mod, face, title, accent, console=None):
             label = " · ".join(ttl) if ttl and fold(ttl[0]).upper().startswith(fold(name).upper()) else name + " · " + " · ".join(ttl)
             if len(label) > 70:
                 label = label[:68] + "…"
-            draw_flow_screen(skin, pg, scr, title, accent, label, area, bg, unit, hint=len(scrs) > 1)
+            wave_here = bool(waves) and (name == "DECOUPE" or any(_re.match(r"^((t\d+|z\d\d)_)?start$", str(getattr(q, "id", ""))) for q in flow_order(scr)))
+            if wave_here:
+                ar = (area[0], area[1] + WAVE_H, area[2], area[3])
+                draw_flow_screen(skin, pg, scr, title, accent, label, ar, bg, unit, hint=len(scrs) > 1)
+                draw_wave(skin, pg, area, accent, waves, wave_txt)
+            else:
+                draw_flow_screen(skin, pg, scr, title, accent, label, area, bg, unit, hint=len(scrs) > 1)
             if len(scrs) > 1:
                 nxt = (si + 1) % len(scrs) + 1
                 hc = (236, 236, 240, 255) if _lum(bg) < 140 else (30, 30, 34, 255)
                 pg.canvas.text(1262, 616, "Écran %d/%d  ·  écran %d : rappuyer sur %s  >" % (si + 1, len(scrs), nxt, name),
-                               size=15, colour=hc, anchor="rm")
+                               size=21 if TXT_BIG[0] else 15, colour=hc, anchor="rm")
             order = flow_order(scr)
             part = order[:16]
             # Q-Links : seulement les réglages de l'écran (plus de réglages d'autres écrans pour compléter :
@@ -2840,7 +3339,7 @@ def auto_skin(skin, P_, mod, face, title, accent):
         # batteries : une touche par son d'abord (comme les boîtes à rythmes de la machine), puis KIT
         files = [q for q in extras if q.extra_kind == "file"]
         pad_tabs, kit_tab = kit_pages(mod, P_, used, accent, [q for q in extras if q.extra_kind != "file"],
-                                      reserved=2 if files else 0)
+                                      reserved=2 if files else (1 if any(getattr(q, "extra_kind", "") == "nav" for q in P_.values()) else 0))
         if pad_tabs:
             tabs.extend((n, scr, "pad") for n, scr in pad_tabs)
             extras = files
@@ -3093,6 +3592,9 @@ def drop_internal_seq(params, mod):
 def build(sdk, key, kind, params_json, catalog, out_dir, envelope=True, title=None, lang="fr"):
     load_gen_ui(sdk)
     set_lang(lang)
+    global PAN_TITLE
+    TXT_BIG[0] = key in BIG_KEYS
+    PAN_TITLE = 36 if TXT_BIG[0] else 30
     params = load_params(catalog, kind, key, params_json)
     _cat = load_catalog(catalog)
     _mods = [m for m in _cat["instruments"] + _cat["effects"] if m["type"] == key]

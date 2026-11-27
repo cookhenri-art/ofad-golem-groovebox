@@ -151,11 +151,20 @@ GOOD TO KNOW
   "heavy" plugins in the list below: 1 or 2 instances on a 32-bit Force.
 
 YOUR SAMPLES, VOCODERS
-- Samplers (Cutsample, Chromasample, Poussiere de Vinyle, Pieuvre 8): WAV files (16/24/32-bit, mono or
-  stereo, up to 90 s) from ANY folder of the SD card, USB drive or internal drive. SAMPLES page, for each
-  slot: "Dossier N" = the folder (every folder holding WAV files is listed; the plugin's own
-  Content/Samples comes first), then "Sample N" = the file. Changing the folder keeps the loaded sample
-  ("= name") until you pick a new file. Projects remember the full path of each file.
+- Samplers (Cutsample, Chromasample, Poussiere de Vinyle, Pieuvre 8) and Kick Forge: WAV files
+  (16/24/32-bit, mono or stereo, up to 90 s) from ANY folder of the SD card, USB drive or internal drive.
+  CHARGER page (first key) = a file browser: "Charger dans" chooses the slot / track / layer; the top line
+  shows "Disques" (the drives) or "<  folder": touch a drive or a folder to open it, touch the top line
+  to go back up, "< Page" / "Page >" to scroll, touch a WAV file to load it. Projects remember the full
+  path of each file.
+- Waveform: the playback screens of the samplers draw the sample with its start / end (white), loop
+  start (yellow) and slices (cyan); it follows the track or zone you are editing.
+- Cutsample: DECOUPE page, "Decouper en 16" (16 equal slices) or "Decouper sur attaques" (on the
+  transients) sets the 16 zones at once; each zone's Debut / Fin stays editable. Poussiere de Vinyle:
+  GLOBAL page first, then one page per pad.
+- Pieuvre 8: NOTES page, "1 pad = 1 piste" (pads 1-8 play tracks T1-T8) or keyboard zones, low / high
+  note per track (default T1 from C1 = 36, one octave per track).
+- Kick Forge: loading a WAV on a layer switches it to "Mes samples" and turns it on.
 - Gamer Lover (video game music): pick the chip on the first screen (8 bits, Portable, 16 bits FM,
   16 bits samples, Batterie). With "Batterie", notes 36 to 51 play the 16 console drum sounds.
   The "Console" page sets the bit depth, sample rate, speaker filter and echo, for every chip.
@@ -208,12 +217,20 @@ JEU
   boutons rotatifs d'abord.
 
 VOS SAMPLES, VOCODEURS
-- Échantillonneurs (Cutsample, Chromasample, Poussière de Vinyle, Pieuvre 8) : des WAV (16/24/32 bits,
-  mono ou stéréo, 90 s max.) pris dans N'IMPORTE QUEL dossier de la carte SD, de la clé USB ou du disque
-  interne. Page SAMPLES, pour chaque case : « Dossier N » = le dossier (tous les dossiers qui contiennent
-  des WAV sont proposés ; Content/Samples du greffon en premier), puis « Sample N » = le fichier.
-  Changer de dossier garde le sample chargé (« = nom ») jusqu'au choix d'un nouveau fichier.
-  Les projets retiennent le chemin complet de chaque fichier.
+- Échantillonneurs (Cutsample, Chromasample, Poussière de Vinyle, Pieuvre 8) et Kick Forge : des WAV
+  (16/24/32 bits, mono ou stéréo, 90 s max.) pris dans N'IMPORTE QUEL dossier de la carte SD, de la clé USB
+  ou du disque interne. Page CHARGER (première touche) = un vrai navigateur : « Charger dans » choisit la
+  case / la piste / la couche ; la ligne du haut montre « Disques » ou « <  dossier » : toucher un disque ou
+  un dossier pour l'ouvrir, toucher la ligne du haut pour remonter, « < Page » / « Page > » pour défiler,
+  toucher un fichier WAV pour le charger. Les projets retiennent le chemin complet de chaque fichier.
+- Forme d'onde : les écrans de lecture des échantillonneurs dessinent le sample avec le début / la fin
+  (blanc), le début de boucle (jaune) et les découpes (cyan) ; elle suit la piste ou la zone réglée.
+- Cutsample : page DÉCOUPE, « Découper en 16 » (16 parts égales) ou « Découper sur attaques » règle les
+  16 zones d'un coup ; le Début / la Fin de chaque zone restent réglables. Poussière de Vinyle : page
+  GLOBAL en premier, puis une page par pad.
+- Pieuvre 8 : page NOTES, « 1 pad = 1 piste » (les pads 1 à 8 jouent les pistes T1 à T8) ou zones du
+  clavier, note basse / haute par piste (par défaut T1 à partir de C1 = 36, une octave par piste).
+- Kick Forge : charger un WAV sur une couche la passe en « Mes samples » et l'allume.
 - Gamer Lover (musique de jeux vidéo) : choisir la puce sur le premier écran (8 bits, Portable, 16 bits FM,
   16 bits échantillons, Batterie). Avec « Batterie », les notes 36 à 51 jouent les 16 sons de console.
   La page « Console » règle la résolution, la fréquence, le filtre de sortie et l'écho, pour toutes les puces.
@@ -275,7 +292,7 @@ Code source : {REPO}
     with tarfile.open(st, "w:gz") as t:
         t.add(os.path.join(ROOT, "src"), "ofad-golem-mpc-%s/src" % v)
         for f in sorted(os.listdir(HERE)):
-            if f in ("out", "__pycache__"):
+            if f.startswith("out") or f == "__pycache__":
                 continue
             t.add(os.path.join(HERE, f), "ofad-golem-mpc-%s/mpc/%s" % (v, f),
                   filter=lambda ti: None if "__pycache__" in ti.name else ti)

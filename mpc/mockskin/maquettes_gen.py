@@ -246,6 +246,7 @@ B_BODY = """<div style="width:1280px;height:800px;background:{{D.bg}};font-famil
             <sc-for list="{{D.labels}}" as="l" hint-placeholder-count="3"><text x="{{l.x}}" y="{{l.y}}" fill="{{l.col}}" font-size="{{l.s}}" font-weight="{{l.fw}}" font-family="Archivo" text-anchor="{{l.anchor}}">{{l.t}}</text></sc-for>
           </svg>
           <sc-for list="{{D.heroVals}}" as="hv" hint-placeholder-count="1"><div data-v="{{hv.id}}" data-j="{{hv.j}}" data-abs="1" style="position:absolute;left:{{hv.x}}px;top:{{hv.y}}px;width:{{hv.w}}px;height:{{hv.h}}px;font-size:{{hv.fs}}px;font-weight:{{hv.fw}};color:{{hv.col}};display:flex;align-items:center;justify-content:{{hv.jc}};white-space:nowrap">{{hv.v}}</div></sc-for>
+          <sc-if value="{{D.heroTap}}"><div data-k="chip" data-p="{{D.heroTap}}" style="position:absolute;left:0;top:0;width:440px;height:440px"></div></sc-if>
         </div>
         <div style="flex:1;display:flex;flex-direction:column;gap:10px;min-width:0">
           <div style="display:flex;align-items:baseline;gap:12px">
@@ -264,7 +265,7 @@ B_BODY = """<div style="width:1280px;height:800px;background:{{D.bg}};font-famil
           </sc-for>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:2px">
             <sc-for list="{{D.readouts}}" as="r" hint-placeholder-count="6">
-              <div style="border-radius:10px;background:{{D.bg}};border:1px solid {{D.line}};padding:8px 12px;font-size:14px;display:flex;justify-content:space-between;gap:8px"><span style="color:{{D.sub}};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{r.k}}</span><b data-v="{{r.id}}" data-j="right" data-fw="Bold" style="font-variant-numeric:tabular-nums;white-space:nowrap">{{r.v}}</b></div>
+              <div data-k="chip" data-p="{{r.id}}" style="border-radius:10px;background:{{D.bg}};border:1px solid {{D.line}};padding:8px 12px;font-size:14px;display:flex;justify-content:space-between;gap:8px"><span style="color:{{D.sub}};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{r.k}}</span><b data-v="{{r.id}}" data-j="right" data-fw="Bold" style="font-variant-numeric:tabular-nums;white-space:nowrap">{{r.v}}</b></div>
             </sc-for>
           </div>
         </div>
@@ -286,12 +287,14 @@ B_BODY = """<div style="width:1280px;height:800px;background:{{D.bg}};font-famil
 """
 
 
-def make_b(key, t, title, plugin, th, nav, hero, heroTitle, heroSub, chips, readouts, macros, tabnames):
+def make_b(key, t, title, plugin, th, nav, hero, heroTitle, heroSub, chips, readouts, macros, tabnames, heroTap=""):
+    """heroTap : réglage pris au toucher du schéma (Q-Link ; deux touches : la liste). Les 6 cases de valeurs
+    à droite se touchent aussi (Q-Link ; deux touches : la liste) : rien de dessiné n'est seulement décoratif."""
     acc = th["accent"]
     D = {"title": title, "plugin": plugin, "accent": acc, "bg": th["bg"], "hero": th["hero"], "line": th["line"], "track": th["track"],
          "text": th["text"], "sub": th["sub"], "muted": th["muted"], "firm": th["firm"],
          "nav": [{"n": n, "bg": acc if i == 0 else th["hero"], "fg": th["bg"] if i == 0 else th["text"], "border": acc if i == 0 else th["line"]} for i, n in enumerate(nav)],
-         "heroTitle": heroTitle, "heroSub": heroSub, "heroAlt": heroTitle,
+         "heroTitle": heroTitle, "heroSub": heroSub, "heroAlt": heroTitle, "heroTap": heroTap,
          "chips": [{"label": P(t, c)["name"], "opts": [{"n": o, "i": i, "cnt": len(P(t, c)["choices"]), "id": c,
                                                      "bg": acc if o == fmt(P(t, c)) else "transparent",
                                                      "fg": th["bg"] if o == fmt(P(t, c)) else th["text"],
@@ -401,8 +404,10 @@ def hero_fm(acc, a2, ops, links, carriers):
 def hero_two(acc, a2, la, lb, ka, kb):
     return {"rects": [R(20, 20, 400, 400, 16, stroke="#ffffff22"), R(40, 60, 170, 260, 14, "#000000", .3, acc, 2), R(230, 60, 170, 260, 14, "#000000", .3, a2, 2)],
             "paths": [PA(wave(ka, 55, 150, 140, 80, 2), acc, 3), PA(wave(kb, 245, 150, 140, 80, 3), a2, 3),
-                      PA("M60 370 L380 370", "#ffffff", 6, so=.2), PA("M60 370 L250 370", acc, 6)],
-            "circles": [C(250, 370, 12, "#111", "#fff", 3)], "labels": [L(125, 95, la, acc, 22, 800, "middle"), L(315, 95, lb, a2, 22, 800, "middle"), L(220, 350, "mélange A ↔ B", "#ffffffaa", 13, 500, "middle")]}
+                      PA("M125 320 L125 352 L315 352 L315 320", "#ffffff", 2, so=.35), PA("M220 352 L220 372", "#ffffff", 2, so=.35)],
+            # pas de curseur dessiné : le mélange se règle avec les niveaux des deux moteurs (cases à droite)
+            "circles": [], "labels": [L(125, 95, la, acc, 22, 800, "middle"), L(315, 95, lb, a2, 22, 800, "middle"),
+                                      L(220, 395, "niveaux A et B : cases à droite", "#ffffffaa", 13, 500, "middle")]}
 
 
 def hero_mask(acc, a2):

@@ -311,6 +311,14 @@
    "category": "Drum",
    "header": "instruments/KickForge.h",
    "make": "std::make_unique<grv::instruments::KickForge>()",
+   "extras": {
+    "folder": "Samples",
+    "exts": [
+     ".wav"
+    ],
+    "slots": 8,
+    "label": "Couche"
+   },
    "base_name": "Kick Forge"
   },
   {
@@ -920,7 +928,7 @@
     "exts": [
      ".wav"
     ],
-    "slots": 16,
+    "slots": 8,
     "label": "Sample",
     "banks": 8,
     "lanes": 8

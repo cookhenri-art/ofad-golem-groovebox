@@ -45,7 +45,7 @@ struct FamilyInfo
 inline const std::array<FamilyInfo, numFamilies>& families()
 {
     static const std::array<FamilyInfo, numFamilies> f {{
-        { "Principaux \xC2\xB7 Punchs", "PUNCH", "Punch", { "propre", "techno", "dur", "creux", "industriel", "oldschool", "distordu", "zaag" }, 16 },
+        { "Principaux \xC2\xB7 Punchs", "PUNCH", "Punch", { "propre", "techno", "dur", "creux", "industriel", "oldschool", "distordu", "zaag", "psy (zap)" }, 16 },
         { "Principaux \xC2\xB7 Crunchs", "CRUNCH", "Crunch", { "raw", "schranz", "industriel", "bruit\xC3\xA9", "zaag", "reverse" }, 16 },
         { "Principaux \xC2\xB7 Rumbles", "RUMBLE", "Rumble", { "techno", "propre", "industriel", "hypnotique", "psy", "schranz" }, 16 },
         { "Transitoires \xC2\xB7 Clics", "TRANSITOIRE", "Clic", { "impulsion", "bruit", "FM", "tic", "num\xC3\xA9rique" }, 12 },
@@ -55,7 +55,7 @@ inline const std::array<FamilyInfo, numFamilies>& families()
         { "Renforts \xC2\xB7 Rumbles", "RUMBLE", "Renfort rumble", { "grave", "m\xC3\xA9" "dium", "granuleux" }, 12 },
         { "Renforts \xC2\xB7 Schranz", "RENFORT", "Renfort schranz", { "m\xC3\xA9tal", "grin\xC3\xA7" "ant", "bruit" }, 12 },
         { "Renforts \xC2\xB7 Tops", "TOP", "Renfort top", { "air", "gr\xC3\xA9sil", "craquant" }, 12 },
-        { "Corps \xC2\xB7 Sub", "CORPS", "Corps", { "rond", "long", "court", "satur\xC3\xA9", "triangle" }, 10 },
+        { "Corps \xC2\xB7 Sub", "CORPS", "Corps", { "rond", "long", "court", "satur\xC3\xA9", "triangle", "basse psy", "basse psy FM" }, 10 },
         { "Reverse bass", "REVERSE", "Reverse bass", { "psy", "hard", "doux" }, 12 },
         { "Mes samples", "SAMPLE", "Sample", {}, 0 },
     }};
@@ -226,6 +226,31 @@ inline std::vector<float> renderPart (int fam, int idx, double keyHz, double bpm
     {
         case fPunch:
         {
+            if (flavor == 8)
+            {
+                // 26 nov. 2026 : kick psytrance. Le « zap » : la hauteur part très haut (2 à 8 kHz), tombe sur
+                // la tonalité en 15 à 35 ms (courbe exponentielle très raide qui ARRIVE sur la tonalité au
+                // bout du temps de chute), puis reste parfaitement plate : sinus propre, à peine saturé.
+                // Corps court (le kick doit finir avant la première note de basse).
+                const auto f1 = keyHz, f0 = std::min (srx * 0.2, lerpLog (2000.0, 8000.0, S (0)));
+                const auto T = lerp (15.0, 35.0, S (1)) * 0.001, tau = T / lerp (3.5, 6.0, S (3));
+                const auto eT = std::exp (-T / tau);
+                const auto hold = lerp (0.0, 25.0, S (2)) * 0.001, dec = lerp (70.0, 150.0, S (6)) * 0.001;
+                const int N = alloc (std::min (0.4, hold + dec * 1.4 + 0.01));
+                const auto drive = lerp (1.0, 1.8, S (7));
+                dsp::SvfEq hp;
+                hp.set (dsp::SvfEq::highpass, 18.0, 0.7, 0.0, srx);
+                double ph = 0.0;
+                for (int i = 0; i < N; ++i)
+                {
+                    const auto t = i * dt;
+                    const auto e = t >= T ? 0.0 : (std::exp (-t / tau) - eT) / (1.0 - eT);
+                    ph += (f1 + (f0 - f1) * e) * dt; ph -= std::floor (ph);
+                    const auto a = t < 0.0004 ? t / 0.0004 : t < hold ? 1.0 : std::exp (-6.9 * (t - hold) / dec);
+                    buf[(size_t) i] = hp.process (soft (std::sin (dsp::kTwoPi * ph) * a, drive));
+                }
+                break;
+            }
             // sinus balayé du haut vers la tonalité (fin JUSTE sur la tonalité ou son octave), balayage
             // en deux temps, « tok » de médium (résonance avant saturation), saturation par saveur
             struct Fl { double oLo, oHi, t1Lo, t1Hi, decLo, decHi, holdMax, knock; };
@@ -503,6 +528,46 @@ inline std::vector<float> renderPart (int fam, int idx, double keyHz, double bpm
         }
         case fBody:
         {
+            if (flavor >= 5)
+            {
+                // 26 nov. 2026 : basse psytrance, une note par double-croche (à répéter au tempo : « Répétition
+                // x4, sans le 1er » = kick - basse - basse - basse). Note courte sur la tonalité, sans chute
+                // de hauteur. « basse psy » : scie (somme d'harmoniques, sans repliement) dans un passe-bas
+                // qui se referme vite (le « pluck ») ; « basse psy FM » : sinus modulé par un sinus dont
+                // l'indice retombe (le « squelch » rond).
+                const auto len = lerp (0.08, 0.14, S (0));
+                const int N = alloc (len + 0.004);
+                const auto dec = lerp (45.0, 95.0, S (1)) * 0.001;
+                const auto fHi = lerpLog (900.0, 3200.0, S (2)), fLo = lerpLog (110.0, 260.0, S (3)), ft = lerp (18.0, 60.0, S (4)) * 0.001;
+                const auto res = lerp (0.9, 2.2, S (5));
+                const auto idx0 = lerp (1.5, 4.5, S (2)), it = lerp (15.0, 45.0, S (4)) * 0.001, ratio = S (6) > 0.5 ? 2.0 : 1.0;
+                const int H = std::max (1, std::min (40, (int) (srx * 0.45 / keyHz)));
+                dsp::SvfEq lp, hp;
+                hp.set (dsp::SvfEq::highpass, keyHz * 0.6, 0.7, 0.0, srx);
+                double ph = 0.0, pm = 0.0;
+                for (int i = 0; i < N; ++i)
+                {
+                    const auto t = i * dt;
+                    ph += keyHz * dt; ph -= std::floor (ph);
+                    double y;
+                    if (flavor == 5)
+                    {
+                        y = 0.0;
+                        for (int h = 1; h <= H; ++h) y += std::sin (dsp::kTwoPi * ph * h) / h;
+                        y *= 0.55;
+                        if ((i & 15) == 0) lp.set (dsp::SvfEq::lowpass, fLo + (fHi - fLo) * std::exp (-t / ft), res, 0.0, srx);
+                        y = lp.process (y);
+                    }
+                    else
+                    {
+                        pm += keyHz * ratio * dt; pm -= std::floor (pm);
+                        y = std::sin (dsp::kTwoPi * ph + idx0 * std::exp (-t / it) * std::sin (dsp::kTwoPi * pm));
+                    }
+                    const auto a = (t < 0.0015 ? t / 0.0015 : std::exp (-t / dec)) * (t < len ? 1.0 : std::max (0.0, 1.0 - (t - len) / 0.004));
+                    buf[(size_t) i] = hp.process (soft (y * a, 1.3));
+                }
+                break;
+            }
             // corps / sub : sinus sur la tonalité (fin JUSTE sur la tonalité), petite chute de hauteur,
             // long déclin ; rond (un peu d'harmonique 2), long (maintien), court, saturé (pair), triangle
             struct Fl { double decLo, decHi, holdMax; };

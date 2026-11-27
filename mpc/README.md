@@ -44,6 +44,14 @@ des modules change la rangée des 8 boutons (valeur locale de l'écran) ; schém
 Habillage : chaque écran porte 16 réglages au plus (autant que de Q-Links, deux rangées de 8 sur la
 Force) et a sa propre touche, nommée d'après ce qu'on y règle (OSC, FILTRE, ENV...). Les synthés
 reprennent les panneaux de leur façade GOLEM ; les effets affichent leur pédale ou leur rack ; les
-batteries ont une touche par son (1 BD, 2 SD...) avec deux écrans chacun. Noms : la famille devant
+batteries ont une touche par son (1 BD, 2 SD...) avec deux écrans chacun ; le premier écran d'un son
+commence par SON niveau, puis « Muet » et « Solo » (réglages ajoutés par `GolemMpc.h` : `mpc_muteNN`,
+`mpc_soloNN` ; un son coupé est joué à -48 dB, son niveau réglé ne change pas). Le volume du kit, les
+réglages communs et le volume du greffon sont sur la touche GLOBAL (une seule fois). Toucher : les
+barres de niveau des consoles et les tirettes de façade ont une zone de toucher élargie (bords
+transparents de la bande d'images) ; sur les écrans héros (B), les six cases de valeurs à droite se
+touchent (Q-Link ; deux touches : la liste) et rien de dessiné n'est seulement décoratif (Hot Sauce :
+plus de faux curseur « mélange A ↔ B », les niveaux A et B sont dans les cases ; New Metal / Old Metal :
+toucher le schéma règle l'algorithme). Noms : la famille devant
 (« Drum - Boum 80 », « Reverb - Nave ») pour que la machine les range par type. Les vocodeurs sont des
 effets : le son de la piste est la voix, la porteuse joue la note et l'accord réglés.

@@ -83,7 +83,7 @@ def build(md_name, pdf_name, title, sub, note, golem_h, keys_section=None, lang=
     tmp = DOCS / f".{pdf_name}.html"
     tmp.write_text(page, encoding="utf-8")
     with sync_playwright() as p:
-        b = p.chromium.launch()
+        b = p.chromium.launch(executable_path=os.environ.get("CHROME") or None)  # CHROME : navigateur déjà installé (facultatif)
         pg = b.new_page()
         pg.goto(tmp.as_uri())
         pg.wait_for_load_state("networkidle")

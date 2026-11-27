@@ -138,6 +138,10 @@ def screen_body(tpl):
         body = {"A": G.A_BODY, "B": G.B_BODY, "C": G.C_BODY}[tpl]
     body = body.replace(G.FIRM, "").replace(G.TABS, "")
     body = body.replace("width:1280px;height:800px", "width:1280px;height:628px", 1)
+    if tpl == "C":
+        # textes agrandis (bump_fonts) : en-tête et marges resserrés pour garder la légende du bas à l'écran
+        body = body.replace('padding:10px 16px 10px;gap:10px;color:{{D.ink}}">\n      <div style="display:flex;align-items:center;gap:16px;height:64px">',
+                            'padding:4px 16px 2px;gap:6px;color:{{D.ink}}">\n      <div style="display:flex;align-items:center;gap:16px;height:58px;flex:none;margin-bottom:6px">', 1)
     if tpl == "B":
         # 66 px de moins qu'au canvas : rangée des 8 boutons et schéma resserrés, mêmes proportions
         body = body.replace('data-k="macrorow" style="height:182px;border-radius:16px', 'data-k="macrorow" style="height:176px;flex:none;border-radius:16px')
@@ -175,8 +179,28 @@ def _english(body):
     return _re.sub(r">([^<>]+)<", seg, body)
 
 
+# 27 nov. 2026 (retour d'Henrico sur la Force : petits textes illisibles) : les textes de 11 à 18 px des
+# maquettes grossissent (noms, valeurs, unités, légendes) ; les titres et les grands chiffres ne bougent pas.
+_FS_UP = {9: 12, 10: 13, 11: 14, 12: 15, 13: 16, 14: 17, 15: 18, 16: 18, 17: 19, 18: 20}
+
+
+_FS_CHIP = {12: 12.5, 13: 13.5, 14: 14.5}   # étiquettes de choix à largeur fixe (console A) : +1 px seulement
+
+
+def bump_fonts(body):
+    def tag(t):
+        table = _FS_CHIP if 'data-k="chip"' in t.group(0) and "border-radius:8px" in t.group(0) else _FS_UP
+
+        def css(m):
+            v = float(m.group(1))
+            r = table.get(int(round(v)), v) if v <= 18 else v
+            return "font-size:%gpx" % r
+        return re.sub(r"font-size:\s*([0-9.]+)px", css, t.group(0))
+    return re.sub(r"<[^<>]*font-size[^<>]*>", tag, body)
+
+
 def page_html(body_tpl, D, extra_css=""):
-    body = run(parse(body_tpl), {"D": D})
+    body = bump_fonts(run(parse(body_tpl), {"D": D}))
     if os.environ.get("GOLEM_MOCK_LANG") == "en":
         body = _english(body)
     return ("<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\"><style>%s\n"

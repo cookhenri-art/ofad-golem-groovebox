@@ -74,11 +74,19 @@ GOOD TO KNOW
   Heavy plugins: 1 or 2 instances on a 32-bit Force.
 
 YOUR SAMPLES, VOCODERS
-- Samplers (Cutsample, Chromasample, Vinyl Dust, Octopus 8): WAV files (16/24/32-bit, mono or stereo,
-  up to 90 s) from ANY folder of the SD card, USB drive or internal drive. SAMPLES page, for each slot:
-  "Folder N" = the folder (every folder holding WAV files is listed; the plugin's own Content/Samples
-  comes first), then "Sample N" = the file. Changing the folder keeps the loaded sample ("= name") until
-  you pick a new file. Projects remember the full path of each file.
+- Samplers (Cutsample, Chromasample, Vinyl Dust, Octopus 8) and Kick Forge: WAV files (16/24/32-bit,
+  mono or stereo, up to 90 s) from ANY folder of the SD card, USB drive or internal drive. LOAD page
+  (first key) = a file browser: "Load into" chooses the slot / track / layer; the top line shows
+  "Drives" or "<  folder": touch a drive or a folder to open it, touch the top line to go back up,
+  "< Page" / "Page >" to scroll, touch a WAV file to load it (the loaded file is marked *). Projects
+  remember the full path of each file.
+- Waveform: the playback screens of the samplers draw the sample with its start / end (white), loop
+  start (yellow) and slices (cyan); it follows the track or zone you are editing.
+- Cutsample: SLICE page, "Slice into 16" (16 equal slices) or "Slice on transients" sets the 16 zones
+  at once; each zone's Start / End stays editable. Vinyl Dust: GLOBAL page first, then one page per pad.
+- Octopus 8: NOTES page, "1 pad = 1 track" (pads 1-8 play tracks T1-T8) or keyboard zones, low / high
+  note per track (default T1 from C1 = 36, one octave per track).
+- Kick Forge: loading a WAV on a layer switches it to "My samples" and turns it on.
 - Gamer Lover (video game music): pick the chip on the first screen (8 bits, Handheld, 16-bit FM,
   16-bit samples, Drums). With "Drums", notes 36 to 51 play the 16 console drum sounds.
   The "Console" page sets the bit depth, sample rate, speaker filter and echo, for every chip.

@@ -49,7 +49,8 @@ namespace kf
     inline const std::vector<std::string>& styleNames()
     {
         static const std::vector<std::string> s { "Construction libre", "Rumble", "Reverse bass", "Industriel", "Psy", "Schranz", "Rumble propre",
-                                                  "Newstyle", "Rawstyle", "Hard techno", "Gabber", "Frenchcore", "Hardstyle", "Techno" };
+                                                  "Newstyle", "Rawstyle", "Hard techno", "Gabber", "Frenchcore", "Hardstyle", "Techno",
+                                                  "Psy \xC2\xB7 kick + basse" }; // 26 nov. 2026 : à la fin (positions figées)
         return s;
     }
     inline std::vector<std::string> keyNames()
@@ -636,7 +637,7 @@ namespace kf
                 m.params.push_back (P (px + "eqhi", L + "aigu", "dB", -18, 18, 0));
                 m.params.push_back (P (px + "tratk", L + "attaque", "%", -100, 100, 0));
                 m.params.push_back (P (px + "trsus", L + "maintien", "%", -100, 100, 0));
-                m.params.push_back (C (px + "drvtype", L + "type de distorsion", gd2::Gd2Dist::names(), 1));
+                m.params.push_back (C (px + "drvtype", L + "type de distorsion", distNames(), 1));
                 m.params.push_back (P (px + "drv", L + "pouss\xC3\xA9" "e", "dB", 0, 36, 0));
                 m.params.push_back (P (px + "drvmix", L + "m\xC3\xA9lange distorsion", "%", 0, 100, 100));
             }
@@ -645,7 +646,7 @@ namespace kf
             m.params.push_back (C ("pitchmode", "Hauteur jou\xC3\xA9" "e", { "Fixe (tonalit\xC3\xA9)", "Suit la note" }, 0));
             m.params.push_back (P ("velsens", "V\xC3\xA9locit\xC3\xA9", "%", 0, 100, 50));
             m.params.push_back (P ("volume", "Volume", "dB", -24, 6, 0));
-            m.params.push_back (C ("autogain", "Gain automatique", { "Non", "Oui" }, 1));
+            m.params.push_back (C ("autogain", "Gain automatique", { "Non", "Oui", "Cr\xC3\xAA" "te" }, 1)); // 25 nov. 2026 : « Crête » (techno)
             // rack : marche, rang, puis réglages de chaque module
             std::vector<std::string> irs;
             for (const auto& [cat, name] : irList()) irs.push_back (std::string (cat) + " \xC2\xB7 " + name);
@@ -670,7 +671,7 @@ namespace kf
                         add (P (px + "width", N + "largeur", "%", 0, 200, 100));
                         break;
                     case mDist:
-                        add (C (px + "type", N + "type", gd2::Gd2Dist::names(), 0)); add (P (px + "drive", N + "pouss\xC3\xA9" "e", "dB", 0, 36, 12));
+                        add (C (px + "type", N + "type", distNames(), 0)); add (P (px + "drive", N + "pouss\xC3\xA9" "e", "dB", 0, 36, 12));
                         add (C (px + "pre", N + "pr\xC3\xA9" "filtre", { "Aucun", "Passe-bas", "Passe-bande", "Passe-haut" }, 0)); add (P (px + "pref", N + "fr\xC3\xA9q. pr\xC3\xA9" "filtre", "Hz", 40, 10000, 800, 0.3f));
                         add (P (px + "tone", N + "ton", "Hz", 500, 20000, 20000, 0.3f));
                         break;
@@ -707,6 +708,19 @@ namespace kf
             }
             // après le rack (positions figées à la suite) : alignement de phase du grave des couches
             m.params.push_back (C ("phasealign", "Alignement de phase", { "Non", "Oui" }, 1));
+            // 25 nov. 2026 : répétition de chaque couche au tempo (positions figées à la suite)
+            for (int l = 0; l < numLayers; ++l)
+            {
+                const auto px = layerPrefix (l), L = "Couche " + std::to_string (l + 1) + " : ";
+                m.params.push_back (C (px + "roll", L + "r\xC3\xA9p\xC3\xA9tition",
+                                       { "Non", "x2 (croches)", "x3 (triolets)", "x4 (doubles-croches)" }, 0));
+                m.params.push_back (C (px + "rollfrom", L + "coups r\xC3\xA9p\xC3\xA9t\xC3\xA9s",
+                                       { "Tous", "Sans le 1er", "1 sur 2", "1 sur 2 d\xC3\xA9" "cal\xC3\xA9", "Sans 1er ni dernier", "Le dernier seul" }, 0));
+                m.params.push_back (P (px + "rolldec", L + "d\xC3\xA9" "croissance des r\xC3\xA9p\xC3\xA9titions", "%", 0, 90, 0));
+                m.params.push_back (P (px + "rollgate", L + "dur\xC3\xA9" "e des r\xC3\xA9p\xC3\xA9titions", "%", 10, 100, 90));
+                m.params.push_back (P (px + "rollvol", L + "volume des r\xC3\xA9p\xC3\xA9titions", "dB", -48, 12, 0));
+                m.params.push_back (C (px + "offsync", L + "d\xC3\xA9" "calage au tempo", offSyncNames(), 0));
+            }
             // sections (écran SON générique) : une par couche, le kit, le rack
             for (int l = 0; l < numLayers; ++l)
             {

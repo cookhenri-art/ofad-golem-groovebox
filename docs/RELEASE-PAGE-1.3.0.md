@@ -7,11 +7,11 @@
 
 <h2 align="center">OFAD GOLEM — Groovebox 1.3.0</h2>
 
-<p align="center"><b>🎮 La 1.3, c'est Gamer Lover</b> : les puces des consoles de jeu 8 et 16 bits des années 90-2000 réunies dans un seul instrument, avec leur batterie et leur sortie d'époque. Et en essai sur téléphone, un nouvel écran façon machine à pads.</p>
+<p align="center"><b>🎮 ❄️ La 1.3, c'est Gamer Lover et Croc Glacé</b> : les puces des consoles de jeu 8 et 16 bits réunies dans un seul instrument, et un synthé psy dont les sons tournent et mutent sans cesse grâce à l'ORB, quatre sons mélangés par un point en orbite. Et en essai sur téléphone, un nouvel écran façon machine à pads.</p>
 
 <p align="center">🔔 <b>Suivez le projet, testez-le et partagez-le un max</b> pour que tout le monde puisse en profiter.</p>
 
-<p align="center">OFAD GOLEM, c'est une groovebox complète dans l'ordinateur, la tablette ou le téléphone, pensée pour <b>toutes les musiques électroniques</b> : techno, house, acid, hardtek et tribe, hardcore, drum & bass, électro, ambient, beatmaking, chiptune… 42 instruments, 54 effets, les séquenceurs qu'on connaît tous (pas à pas, verrous, acide, conditions), 16 pistes, 16 pads, scènes, morceau et montage audio. Logiciel libre (AGPL-3.0).</p>
+<p align="center">OFAD GOLEM, c'est une groovebox complète dans l'ordinateur, la tablette ou le téléphone, pensée pour <b>toutes les musiques électroniques</b> : techno, house, acid, hardtek et tribe, hardcore, drum & bass, électro, ambient, beatmaking, chiptune… 43 instruments, 54 effets, les séquenceurs qu'on connaît tous (pas à pas, verrous, acide, conditions), 16 pistes, 16 pads, scènes, morceau et montage audio. Logiciel libre (AGPL-3.0).</p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/pc-gamer.jpg" width="820" alt="Gamer Lover : le téléviseur à tube, les cartouches de la puce et les réglages"></p>
 
@@ -46,9 +46,28 @@ Sur téléphone, Gamer Lover a un **écran à part** : **8 menus** à gauche (Je
 </tr>
 </table>
 
+### ❄️ En vedette aussi : Croc Glacé — le synthé psy qui ne tient pas en place
+
+Des sons qui **tournent, changent de fréquence et mutent** sans arrêt : drones psychés, nappes qui se transforment, textures étranges, glitchs, sons métalliques, balayages, lasers et séquences squelch.
+
+- **L'ORB** : on charge **quatre sons dans les coins** (sons d'usine ou le son en cours) et un **point** les mélange. Le point peut **tourner tout seul** sur une orbite (cercle, huit, étoile, spirale, Lorenz, Rössler…), avec une **sous-orbite en sens opposé**, un troisième orbe, et une physique **rigide, élastique ou gravité**.
+- **Le séquenceur de LFO** : **8 LFO** joués par **4 couloirs de 32 pas** — chaque pas joue un LFO différent ou un niveau fixe. **32 motifs classiques** (roulement psy, porte de trance, euclidiens, squelch, hitech…).
+- **Deux oscillateurs à tables d'ondes** (porteuse et modulateur), **FM**, distorsion de phase, repli et réduction de bits ; les tables de Glutamake, Good Doctor et Good Doctor 2, et **vos propres tables en WAV**.
+- **Des effets pour les sons extrêmes** : **écho en peigne qui suit la note** (cloches et métal accordés), **phaser** jusqu'à 12 étages, réverbération avec **gel**, flanger, distorsion, **stéréo** (largeur et effet Haas), ordre écho / réverb au choix — et tous pilotables par les couloirs et l'ORB.
+- **44 sons d'usine** : Drones, Nappes, Textures, Glitch, Métal, Effets, Séquences, et quelques basses.
+
+<p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/pc-croc-orb.jpg" width="820" alt="Croc Glacé, page ORB : le point en orbite mélange les quatre sons des coins"></p>
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/pc-croc-seq.jpg" alt="Croc Glacé, page SEQ : un couloir de 32 pas, chaque pas joue un LFO"><br><b>SEQ</b><br>8 LFO joués par les couloirs</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/pc-croc-fx.jpg" alt="Croc Glacé, page Effets : peigne, phaser, gel de la réverbération, stéréo"><br><b>Effets</b><br>peigne, phaser, gel, stéréo</td>
+</tr>
+</table>
+
 ### 🎛️ Aussi sur Akai Force et MPC
 
-Les instruments et effets de GOLEM existent aussi en **greffons pour Akai Force et MPC autonomes**, Gamer Lover compris : **[page des greffons MPC / Force](https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/mpc-1.1.0)**.
+Les instruments et effets de GOLEM existent aussi en **greffons pour Akai Force et MPC autonomes**, Gamer Lover compris : **[page des greffons MPC / Force](https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/mpc-1.2.0)**.
 
 <table>
 <tr>
@@ -58,10 +77,12 @@ Les instruments et effets de GOLEM existent aussi en **greffons pour Akai Force 
 </table>
 
 ### 🔧 Aussi dans la 1.3
-- **Kick Forge** : le même kick pour une même position du LFO, calcul plus rapide, filtres des couches appliqués après la distorsion.
-- **Notices** FR et EN : un chapitre Gamer Lover ; implémentation MIDI : les pads de la batterie de Gamer Lover.
+- **Kick Forge** : le même kick pour une même position du LFO, calcul plus rapide, filtres des couches appliqués après la distorsion ; nouveau style **Psy · kick + basse** (6 kicks) avec le punch « zap » et les corps de basse psy.
+- **Notices** FR et EN : un chapitre Gamer Lover et un chapitre Croc Glacé ; implémentation MIDI : les pads de la batterie de Gamer Lover.
 
 <p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-6.jpg" width="820" alt="Good Doctor 2, Micro Tonnerre, Kick Forge et Gamer Lover"></p>
+
+<p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-7.jpg" width="820" alt="Croc Glacé : Son, ORB, SEQ, Effets"></p>
 
 ## Rappel : la 1.2
 
@@ -241,9 +262,9 @@ Façade compacte en métal noir dans le pédalier, **interface complète** par �
 |---|---|
 | **`OFAD-GOLEM-1.3.0-Windows-installateur.exe`** | **Windows** : application, plugin VST3 (au choix), notice, catalogue et sources |
 | **`OFAD-GOLEM-1.3.0-Android.apk`** | **Android** : téléphones et tablettes |
-| **`Notice-OFAD-GOLEM.pdf`** | Notice de prise en main et **raccourcis**, avec captures annotées (Gamer Lover, Kick Forge, Good Doctor 2 et Micro Tonnerre compris) |
+| **`Notice-OFAD-GOLEM.pdf`** | Notice de prise en main et **raccourcis**, avec captures annotées (Gamer Lover, Croc Glacé, Kick Forge, Good Doctor 2 et Micro Tonnerre compris) |
 | **`Notice-OFAD-GOLEM-EN.pdf`** | **Manual in English** |
-| **`Catalogue-OFAD-GOLEM.pdf`** | Les 42 instruments et les 54 effets, avec leurs façades |
+| **`Catalogue-OFAD-GOLEM.pdf`** | Les 43 instruments et les 54 effets, avec leurs façades |
 | **`Implementation-MIDI-OFAD-GOLEM.pdf`** | Tout le MIDI de GOLEM : notes, CC, banques et changements de programme, horloge |
 | **`OFAD-GOLEM-1.3.0-sources.tar.gz`** | Les sources de cette version (AGPL-3.0) |
 | **`OFAD-GOLEM-1.3.0-firmwares-sources.tar.gz`** | Les sources des 15 firmwares fournis avec le FM Player (GPL-3.0 / MPL-2.0) |
@@ -268,7 +289,7 @@ Façade compacte en métal noir dans le pédalier, **interface complète** par �
 >
 > **Premier lancement** : l'appli n'est pas encore signée par Apple. **Clic droit › Ouvrir**, ou **Réglages Système › Confidentialité et sécurité › Ouvrir quand même**. Si macOS dit que l'appli est « endommagée » : `xattr -cr /Applications/Groovebox.app` dans le Terminal.
 
-### 🎹 Les 42 instruments et 🎚️ les 54 effets
+### 🎹 Les 43 instruments et 🎚️ les 54 effets
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-1.jpg" alt="Instruments : batteries et basses">
@@ -291,7 +312,7 @@ Toutes les nouveautés de la 1.2 : voir la [page de la 1.2.0](https://github.com
 
 🔔 **Abonnez-vous / suivez le dépôt** (bouton **Watch › Releases** en haut de la page GitHub) pour les dernières mises à jour.
 
-🧪 **Vos retours de test sont précieux** : vos sons préférés de Gamer Lover, ce que vous pensez de l'écran du téléphone, les sons qui vous manquent, ce qui coince, dans l'onglet **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)**.
+🧪 **Vos retours de test sont précieux** : vos sons préférés de Gamer Lover et de Croc Glacé, ce que vous pensez de l'écran du téléphone, les sons qui vous manquent, ce qui coince, dans l'onglet **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)**.
 
 <sub>OFAD GOLEM est un projet indépendant. Ses instruments et ses effets reprennent des principes de synthèse et de traitement connus, sans utiliser les noms, logos, façades ni sons d'usine d'aucun fabricant. M-VAVE et FM-1 sont des marques de leurs propriétaires respectifs ; OFAD GOLEM n'est ni affilié, ni approuvé, ni sponsorisé par M-VAVE.</sub>
 
@@ -301,11 +322,11 @@ Toutes les nouveautés de la 1.2 : voir la [page de la 1.2.0](https://github.com
 
 ## English version
 
-<p align="center"><b>🎮 OFAD GOLEM 1.3.0 is all about Gamer Lover</b>: the 8 and 16-bit game console chips of the 90s and 2000s in a single instrument, with their drums and their period-correct output. And as a trial on phones, a new pad-machine style screen.</p>
+<p align="center"><b>🎮 ❄️ OFAD GOLEM 1.3.0 is all about Gamer Lover and Frost Fang</b>: the 8 and 16-bit game console chips in a single instrument, and a psy synth whose sounds keep turning and morphing thanks to the ORB, four sounds mixed by an orbiting point. And as a trial on phones, a new pad-machine style screen.</p>
 
 <p align="center">🔔 <b>Follow the project, try it and share it as much as you can</b> so everyone can enjoy it.</p>
 
-<p align="center">A complete groovebox in your computer, tablet or phone, made for <b>all electronic music</b>: techno, house, acid, hardtek and tribe, hardcore, drum & bass, electro, ambient, beatmaking, chiptune… 42 instruments, 54 effects, the sequencers we all know (step, parameter locks, acid, conditions), 16 tracks, 16 pads, scenes, song mode and audio editing. Free software (AGPL-3.0).</p>
+<p align="center">A complete groovebox in your computer, tablet or phone, made for <b>all electronic music</b>: techno, house, acid, hardtek and tribe, hardcore, drum & bass, electro, ambient, beatmaking, chiptune… 43 instruments, 54 effects, the sequencers we all know (step, parameter locks, acid, conditions), 16 tracks, 16 pads, scenes, song mode and audio editing. Free software (AGPL-3.0).</p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/en/pc-gamer.jpg" width="820" alt="Gamer Lover: the CRT TV, the chip cartridges and the settings"></p>
 
@@ -340,9 +361,28 @@ On phones, Gamer Lover has its **own screen**: **8 menus** on the left (Play, Wa
 </tr>
 </table>
 
+### ❄️ Also in the spotlight: Frost Fang — the psy synth that never sits still
+
+Sounds that **turn, shift frequency and morph** non-stop: psychedelic drones, shape-shifting pads, strange textures, glitches, metallic sounds, sweeps, lasers and squelch sequences.
+
+- **The ORB**: load **four sounds into the corners** (factory sounds or the current sound) and a **point** mixes them. The point can **circle on its own** on an orbit (circle, figure eight, star, spiral, Lorenz, Rössler…), with a **sub-orbit in the opposite direction**, a third orb, and **rigid, elastic or gravity** physics.
+- **The LFO sequencer**: **8 LFOs** played by **4 lanes of 32 steps** — each step plays a different LFO or a fixed level. **32 classic patterns** (psy roll, trance gate, Euclidean, squelch, hitech…).
+- **Two wavetable oscillators** (carrier and modulator), **FM**, phase distortion, fold and bit crushing; the tables from Glutamake, Good Doctor and Good Doctor 2, and **your own WAV tables**.
+- **Effects for extreme sounds**: a **comb echo that follows the note** (tuned bells and metal), a **phaser** up to 12 stages, reverb with **freeze**, flanger, distortion, **stereo** (width and Haas effect), echo / reverb order of your choice — all of them driven by the lanes and the ORB.
+- **44 factory sounds**: Drones, Pads, Textures, Glitch, Metal, Effects, Sequences, and a few basses.
+
+<p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/en/pc-croc-orb.jpg" width="820" alt="Frost Fang, ORB page: the orbiting point mixes the four corner sounds"></p>
+
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/en/pc-croc-seq.jpg" alt="Frost Fang, SEQ page: a 32-step lane, each step plays an LFO"><br><b>SEQ</b><br>8 LFOs played by the lanes</td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/en/pc-croc-fx.jpg" alt="Frost Fang, Effects page: comb, phaser, reverb freeze, stereo"><br><b>Effects</b><br>comb, phaser, freeze, stereo</td>
+</tr>
+</table>
+
 ### 🎛️ Also on Akai Force and MPC
 
-GOLEM's instruments and effects also exist as **plugins for the standalone Akai Force and MPC**, Gamer Lover included: **[MPC / Force plugins page](https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/mpc-1.1.0)**.
+GOLEM's instruments and effects also exist as **plugins for the standalone Akai Force and MPC**, Gamer Lover included: **[MPC / Force plugins page](https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/mpc-1.2.0)**.
 
 <table>
 <tr>
@@ -352,10 +392,12 @@ GOLEM's instruments and effects also exist as **plugins for the standalone Akai 
 </table>
 
 ### 🔧 Also in 1.3
-- **Kick Forge**: the same kick for the same LFO position, faster rendering, layer filters applied after the distortion.
-- **Manuals** (FR and EN): a Gamer Lover chapter; MIDI implementation: Gamer Lover's drum pads.
+- **Kick Forge**: the same kick for the same LFO position, faster rendering, layer filters applied after the distortion; new **Psy · kick + bass** style (6 kicks) with the "zap" punch and psy bass bodies.
+- **Manuals** (FR and EN): a Gamer Lover chapter and a Frost Fang chapter; MIDI implementation: Gamer Lover's drum pads.
 
 <p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-6.jpg" width="820" alt="Good Doctor 2, Micro Tonnerre, Kick Forge and Gamer Lover"></p>
+
+<p align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/galerie/instruments-7.jpg" width="820" alt="Frost Fang (Croc Glacé): Sound, ORB, SEQ, Effects"></p>
 
 ## Reminder: what came in 1.2
 
@@ -473,9 +515,9 @@ A compact black-metal face in the pedalboard, and a **full interface** through "
 |---|---|
 | **`OFAD-GOLEM-1.3.0-Windows-installateur.exe`** | **Windows**: application, VST3 plugin (optional), manual, catalogue and sources |
 | **`OFAD-GOLEM-1.3.0-Android.apk`** | **Android**: phones and tablets |
-| **`Notice-OFAD-GOLEM-EN.pdf`** | **Manual in English**: getting started and **shortcuts**, with annotated screenshots (Gamer Lover, Kick Forge, Good Doctor 2 and Micro Tonnerre included) |
+| **`Notice-OFAD-GOLEM-EN.pdf`** | **Manual in English**: getting started and **shortcuts**, with annotated screenshots (Gamer Lover, Frost Fang, Kick Forge, Good Doctor 2 and Micro Tonnerre included) |
 | **`Notice-OFAD-GOLEM.pdf`** | The same manual in French |
-| **`Catalogue-OFAD-GOLEM.pdf`** | The 42 instruments and 54 effects, with their panels |
+| **`Catalogue-OFAD-GOLEM.pdf`** | The 43 instruments and 54 effects, with their panels |
 | **`Implementation-MIDI-OFAD-GOLEM.pdf`** | All of GOLEM's MIDI: notes, CC, banks and program changes, clock |
 | **`OFAD-GOLEM-1.3.0-sources.tar.gz`** | Source code of this release (AGPL-3.0) |
 | **`OFAD-GOLEM-1.3.0-firmwares-sources.tar.gz`** | Sources of the 15 firmwares bundled with the FM Player (GPL-3.0 / MPL-2.0) |
@@ -502,6 +544,6 @@ A compact black-metal face in the pedalboard, and a **full interface** through "
 
 Everything new in 1.2: see the [1.2.0 page](https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.2.0). In 1.1: see the [1.1.0 page](https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.1.0). In 1.0 (FM Player and its 15 free firmwares, single-view workflow, Play view, Big mode…): see the [1.0.0 page](https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.0.0).
 
-🧪 **Your test feedback matters**: your favourite Gamer Lover sounds, what you think of the phone screen, the sounds you miss, what gets in the way, in the **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)** tab.
+🧪 **Your test feedback matters**: your favourite Gamer Lover and Frost Fang sounds, what you think of the phone screen, the sounds you miss, what gets in the way, in the **[Issues](https://github.com/cookhenri-art/ofad-golem-groovebox/issues)** tab.
 
 <sub>OFAD GOLEM is an independent project. Its instruments and effects follow well-known synthesis and processing principles, without using any manufacturer's names, logos, panels or factory sounds. M-VAVE and FM-1 are trademarks of their respective owners; OFAD GOLEM is not affiliated with, endorsed or sponsored by M-VAVE.</sub>

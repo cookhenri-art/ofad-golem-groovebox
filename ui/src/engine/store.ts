@@ -665,6 +665,12 @@ export const actions = {
     await refreshTracks();
     showMessage(`Préréglage « ${name} »`);
   },
+  /** 1.3 (Croc Glacé) : un son d'usine copié dans un coin de l'ORB (préfixe « ka_ » à « kd_ »). */
+  async presetToPrefix(channel: number, name: string, prefix: string) {
+    if (!hasNative("presetToPrefix")) return;
+    const c = await callJson<ChannelData>("presetToPrefix", channel, name, prefix);
+    if (c) set({ channels: { ...state.channels, [channel]: c } });
+  },
   // Préréglages de l'utilisateur (banques) ------------------------------------------------
   async listPresets(scope: PresetScope, channel: number, slot: number, pad: number): Promise<UserPresetList | null> {
     if (!hasNative("listPresets")) return null;

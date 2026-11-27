@@ -1675,6 +1675,82 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .face--t-braise .fc-toggle { border-radius: 4px; background: oklch(0.12 0.006 40); text-transform: uppercase; font-size: 9px; }
 .face--t-braise .fp-banks { background: transparent; }
 .face--t-braise .face-head .face-stripe { background: var(--fp-led); box-shadow: 0 0 12px var(--fp-led); }
+/* 1.3 : Croc Glacé — métal bleui froid, arcs cyan glacé, Bite en magenta */
+.face--t-glace { --face-panel: oklch(0.14 0.02 250); --face-accent: oklch(0.82 0.13 210); --fp-line: oklch(0.8 0.1 210 / 0.22); --fp-text: oklch(0.94 0.015 230); --fp-led: oklch(0.82 0.14 210); --fp-led-off: oklch(0.28 0.04 240); }
+.face--t-glace .fp { border-radius: 8px; border: 0; background: oklch(0.1 0.02 250 / 0.55); box-shadow: inset 0 0 0 1px oklch(0.8 0.1 210 / 0.18); padding-top: 22px; }
+.face--t-glace .fp-title { background: transparent; color: oklch(0.86 0.08 210); letter-spacing: 0.08em; }
+.face--t-glace .fp-head { top: 3px; }
+.face--t-glace .knob-arc { stroke: var(--fp-led); filter: drop-shadow(0 0 3px oklch(0.8 0.15 210 / 0.7)); }
+.face--t-glace .knob-track { stroke: oklch(0.3 0.04 240); }
+.face--t-glace .knob-value { color: oklch(0.86 0.1 210); }
+.face--t-glace .knob-label { text-transform: uppercase; letter-spacing: 0.05em; font-size: 8.5px; color: oklch(0.88 0.03 230); }
+.face--t-glace .fc-toggle { border-radius: 4px; background: oklch(0.12 0.02 250); text-transform: uppercase; font-size: 9px; }
+.face--t-glace .fp-banks { background: transparent; }
+.face--t-glace .face-head .face-stripe { background: var(--fp-led); box-shadow: 0 0 12px var(--fp-led); }
+.cg-orb { display: flex; flex-direction: column; gap: 6px; height: 100%; }
+.cg-orb-pad { position: relative; aspect-ratio: 1; width: 100%; max-width: 460px; max-height: 460px; margin: 0 auto; border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 0 1px oklch(0.8 0.1 210 / 0.25); }
+.cg-orb-cv { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+.cg-orb-corner { position: absolute; font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; pointer-events: none; display: flex; flex-direction: column; max-width: 46%; }
+.cg-orb-corner b { font-size: 10px; text-transform: none; letter-spacing: 0; color: oklch(0.95 0.01 230); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cg-orb-corner em { font-style: normal; opacity: 0.7; }
+.cg-orb-corner--0 { top: 6px; left: 8px; } .cg-orb-corner--1 { top: 6px; right: 8px; text-align: right; align-items: flex-end; }
+.cg-orb-corner--2 { bottom: 6px; left: 8px; } .cg-orb-corner--3 { bottom: 6px; right: 8px; text-align: right; align-items: flex-end; }
+.cg-hint { margin: 0; font-size: 10px; opacity: 0.7; line-height: 1.35; }
+.cg-corners { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.cg-corner { border-radius: 6px; padding: 6px; background: oklch(0.1 0.02 250 / 0.6); box-shadow: inset 0 0 0 1px oklch(0.8 0.1 210 / 0.12); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cg-corner.on { box-shadow: inset 0 0 0 1px oklch(0.8 0.1 210 / 0.4); }
+.cg-corner-head { font-size: 9px; text-transform: uppercase; letter-spacing: 0.07em; }
+.cg-corner select { width: 100%; min-width: 0; font-size: 11px; background: oklch(0.16 0.02 250); color: inherit; border: 1px solid oklch(0.8 0.1 210 / 0.2); border-radius: 4px; padding: 3px; }
+.cg-corner-share { position: relative; height: 14px; font-size: 9px; }
+.cg-corner-share i { position: absolute; left: 0; top: 0; height: 4px; border-radius: 2px; }
+.cg-corner-share span { position: absolute; top: 5px; left: 0; opacity: 0.75; }
+.cg-corner-btns { display: flex; gap: 4px; } .cg-corner-btns button { flex: 1; }
+.cg-steps { display: grid; grid-template-columns: repeat(32, minmax(0, 1fr)); gap: 2px; height: 150px; margin-top: 6px; }
+.cg-steps.off { opacity: 0.45; }
+.cg-step { display: flex; flex-direction: column; align-items: stretch; gap: 2px; min-width: 0; }
+.cg-step.out { opacity: 0.3; }
+.cg-step-lfo { font-size: 8px; padding: 1px 0; border: 0; border-radius: 3px; background: oklch(0.2 0.03 250); color: oklch(0.85 0.08 210); cursor: pointer; }
+.cg-step-bar { flex: 1; position: relative; border-radius: 3px; background: oklch(0.11 0.02 250); touch-action: none; cursor: ns-resize; overflow: hidden; }
+.cg-step-bar i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 3px 3px 0 0; }
+.cg-step.now .cg-step-bar { box-shadow: inset 0 0 0 1px oklch(0.85 0.14 210), 0 0 8px oklch(0.8 0.15 210 / 0.6); }
+.cg-step-n { font-size: 7px; text-align: center; opacity: 0.55; }
+/* 1.3 : commande avec bulle d'aide, ou grisée quand un autre réglage la rend sans effet (vitesse hors « Libre ») */
+.fc-wrap { display: contents; }
+.fc-dim > * { opacity: 0.32; filter: saturate(0.25); }
+/* Croc Glacé v2 : page ORB (pavé fixe à gauche, onglets à droite ; téléphone : pavé en haut, réduit) */
+.cg-orbpage { display: grid; grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr); gap: 12px; align-items: start; min-height: 0; }
+.cg-orbpage-pad { position: sticky; top: 0; min-width: 0; }
+.cg-orbpage-side { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cg-orbpage--phone { grid-template-columns: minmax(0, 1fr); }
+.cg-orbpage--phone .cg-orbpage-pad { position: static; }
+.cg-orb--compact .cg-orb-pad, .cg-orbpage--phone .cg-orb-pad { max-width: 300px; max-height: 300px; }
+.cg-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.cg-tabs button { appearance: none; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 4px;
+  background: oklch(0.16 0.02 250); color: oklch(0.85 0.05 220); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+.cg-tabs button.on { background: oklch(0.24 0.05 230); color: oklch(0.96 0.02 220); box-shadow: inset 0 0 0 1px oklch(0.82 0.13 210 / 0.55); }
+.cg-tabs button.on .fc-led { background: var(--fp-led, oklch(0.82 0.14 210)); box-shadow: 0 0 6px var(--fp-led, oklch(0.82 0.14 210)); }
+.cg-tab-body { display: flex; flex-direction: column; gap: 10px; padding: 8px; border-radius: 6px; background: oklch(0.1 0.02 250 / 0.5); box-shadow: inset 0 0 0 1px oklch(0.8 0.1 210 / 0.12); min-width: 0; }
+.cg-grid { justify-content: start; gap: 4px 14px; }
+.cg-routes { display: flex; flex-direction: column; gap: 4px; }
+.cg-route { display: flex; align-items: center; gap: 8px; }
+.cg-route-n { width: 18px; text-align: center; font-size: 11px; color: oklch(0.82 0.13 210); }
+/* couloir : outils (motif, source), pas avec l'allure de leur LFO, sortie */
+.cg-lane { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.cg-lane.off .cg-steps, .cg-lane.off .cg-scope { opacity: 0.45; }
+.cg-lane-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cg-lane-motif { display: inline-flex; align-items: center; gap: 6px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.07em; }
+.cg-lane-motif select { font-size: 12px; min-width: 210px; background: oklch(0.16 0.02 250); color: inherit; border: 1px solid oklch(0.8 0.1 210 / 0.25); border-radius: 4px; padding: 4px; text-transform: none; letter-spacing: 0; }
+.cg-steps { position: relative; }
+.cg-steps.motif .cg-step-bar { box-shadow: inset 0 0 0 1px oklch(0.75 0.12 85 / 0.35); }
+.cg-steps.single .cg-step { opacity: 0.35; }
+.cg-steps-note { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; font-size: 12px; color: oklch(0.92 0.06 210); text-shadow: 0 0 6px oklch(0 0 0); }
+.cg-step-bar svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.cg-scope { width: 100%; height: 44px; display: block; border-radius: 4px; background: oklch(0.09 0.02 250); }
+.cg-wav-btns { display: inline-flex; gap: 4px; flex: none; }
+.cg-wav-lib { max-height: 260px; overflow: auto; border-radius: 6px; box-shadow: inset 0 0 0 1px oklch(0.8 0.1 210 / 0.2); }
+.cg-wav { display: flex; flex-direction: column; gap: 6px; font-size: 10px; }
+.cg-wav-row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+.cg-wav-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* --- habillage « docteur » (Good Doctor, v0.47 (maj. 5 nov.)) : bleu nuit, sérigraphie claire, arcs turquoise */
 .face--t-docteur { --face-panel: oklch(0.15 0.02 245); --face-accent: oklch(0.8 0.13 195); --fp-line: oklch(0.75 0.12 195 / 0.2); --fp-text: oklch(0.94 0.01 220); --fp-led: oklch(0.78 0.14 195); --fp-led-off: oklch(0.28 0.04 220); }
 .face--t-docteur .fp { border-radius: 7px; border: 0; background: oklch(0.1 0.02 250 / 0.55); box-shadow: inset 0 0 0 1px oklch(0.75 0.12 195 / 0.14); padding-top: 22px; }

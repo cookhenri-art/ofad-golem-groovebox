@@ -29,25 +29,28 @@
   <b><a href="../../releases/latest">Télécharger</a></b> ·
   <b><a href="docs/NOTICE.pdf">Notice de prise en main et raccourcis (PDF)</a></b> ·
   <b><a href="docs/NOTICE-EN.pdf">Manual in English (PDF)</a></b> ·
-  <b><a href="docs/CATALOGUE.pdf">Catalogue des 42 instruments et 54 effets (PDF)</a></b>
+  <b><a href="docs/CATALOGUE.pdf">Catalogue des 43 instruments et 54 effets (PDF)</a></b>
 </p>
 
 <p align="center"><b>🇬🇧 English speakers: <a href="#-english-summary">English summary below ↓</a></b></p>
 
 ---
 
-## 🆕 Nouveautés de la 1.3.0 — Gamer Lover
+## 🆕 Nouveautés de la 1.3.0 — Gamer Lover et Croc Glacé
 
 <p align="center"><b><a href="../../releases/tag/v1.3.0">Tout le détail et les téléchargements sur la page de la version 1.3.0</a></b></p>
 
 - **Gamer Lover** : les puces des consoles de jeu **8 et 16 bits** dans un seul instrument — carré, **triangle en escalier**, bruit, **table 4 bits**, **FM 4 opérateurs**, **échantillons compressés**, **batterie de console** (16 pads, bruitages de jeu), tables à 60 ou 50 Hz (arpèges rapides, chute, vibrato) et **sortie d'époque** (bits, fréquence, filtre télé, écho à 8 prises) ; **95 sons d'usine**.
 - **Façade** : un **téléviseur à tube** qui suit la puce choisie. **Au téléphone (essai)** : un écran façon machine à pads, 8 menus et 8 boutons.
-- **Kick Forge** : le même kick pour une même position du LFO, calcul plus rapide, filtres des couches après la distorsion.
-- **Akai Force et MPC** : les instruments et effets de GOLEM existent aussi en greffons pour les machines autonomes, Gamer Lover compris ([page des greffons](../../releases/tag/mpc-1.1.0)).
+- **Croc Glacé** (*Frost Fang* en anglais) : un synthé psy à **tables d'ondes** (porteuse et modulateur, FM, distorsion de phase, tables perso en WAV), **8 LFO joués par 4 couloirs de 32 pas** (32 motifs classiques) et l'**ORB** : **quatre sons dans les coins**, mélangés par un **point en orbite** (Lorenz, Rössler, spirale…, sous-orbite en sens opposé, physique élastique ou gravité). Effets pour les sons extrêmes : **écho en peigne qui suit la note**, **phaser** jusqu'à 12 étages, **gel** de la réverbération, stéréo. **44 sons d'usine** : drones, nappes qui mutent, textures, glitch, métal, effets, séquences squelch.
+- **Kick Forge** : le même kick pour une même position du LFO, calcul plus rapide, filtres des couches après la distorsion ; nouveau style **Psy · kick + basse** (6 kicks) avec le punch « zap » et les corps de basse psy.
+- **Akai Force et MPC** : les instruments et effets de GOLEM existent aussi en greffons pour les machines autonomes, Gamer Lover compris ([page des greffons](../../releases/tag/mpc-1.2.0)).
 
 <table>
 <tr><td align="center" colspan="2"><a href="docs/img/v130/pc-gamer.jpg"><img src="docs/img/v130/pc-gamer.jpg" alt="Gamer Lover"></a><br><b>Gamer Lover</b> · le téléviseur suit la puce choisie</td></tr>
 <tr><td align="center"><a href="docs/img/v130/pc-gamer-tables.jpg"><img src="docs/img/v130/pc-gamer-tables.jpg" alt="Gamer Lover, Tables et sortie"></a><br><b>Tables et sortie</b></td><td align="center"><a href="docs/img/v130/tel-gamer.jpg"><img src="docs/img/v130/tel-gamer.jpg" alt="Gamer Lover au téléphone"></a><br><b>Au téléphone</b> (essai)</td></tr>
+<tr><td align="center" colspan="2"><a href="docs/img/v130/pc-croc-orb.jpg"><img src="docs/img/v130/pc-croc-orb.jpg" alt="Croc Glacé, page ORB"></a><br><b>Croc Glacé</b> · le point de l'ORB mélange les quatre sons des coins</td></tr>
+<tr><td align="center"><a href="docs/img/v130/pc-croc-seq.jpg"><img src="docs/img/v130/pc-croc-seq.jpg" alt="Croc Glacé, page SEQ"></a><br><b>SEQ</b> · 8 LFO joués par les couloirs</td><td align="center"><a href="docs/img/v130/pc-croc-fx.jpg"><img src="docs/img/v130/pc-croc-fx.jpg" alt="Croc Glacé, page Effets"></a><br><b>Effets</b> · peigne, phaser, gel</td></tr>
 </table>
 
 ## Nouveautés de la 1.2.0 — Kick Forge, Good Doctor 2, Micro Tonnerre
@@ -114,7 +117,7 @@ vocodeurs, sampler de performance, échos à bande, réverbérations, compresseu
 
 - **Application Windows et Mac** (autonome), **plugins VST3 et AU** pour les logiciels de musique, **application Android** pour téléphone et tablette et version **iPhone / iPad** (essai), avec **contrôleur MIDI** USB ou Bluetooth prêt à jouer.
 - **Interface en français ou en anglais** (*English interface*) : la langue se choisit à l'installation sur Windows, au premier lancement sur Android, et se change dans Réglages.
-- **42 instruments**, **2768 sons d'usine**, **54 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
+- **43 instruments**, **2818 sons d'usine**, **54 effets**, 16 pistes, 16 patterns par piste (A à P), 32 scènes.
 - **Vue live** pour le jeu en direct : crossfader ou **pavé vectoriel** à quatre scènes (formes en mouvement, taille, hauteur, rotation), console des 16 pistes avec faders, FX et M / S, et les **16 boutons assignables** avec leurs propres modulations.
 - Logiciel **libre** (AGPL-3.0) : les sources de chaque version sont fournies avec elle.
 
@@ -142,7 +145,7 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
 
 <p align="center"><i>Les repères numérotés sont expliqués dans la <a href="docs/NOTICE.md">notice</a>.</i></p>
 
-### 🎹 Les 42 instruments
+### 🎹 Les 43 instruments
 
 <p align="center">
   <img src="docs/img/galerie/instruments-1.jpg" alt="Instruments : batteries et basses">
@@ -151,6 +154,7 @@ manque, un effet, une fonction de séquenceur, un geste de jeu ? Dites-le dans l
   <img src="docs/img/galerie/instruments-4.jpg" alt="Instruments : vocodeurs, Pieuvre 8, entrée audio, Glutamake, Good Doctor">
   <img src="docs/img/galerie/instruments-5.jpg" alt="Instruments : FM Player et Piste MIDI">
   <img src="docs/img/galerie/instruments-6.jpg" alt="Instruments : Good Doctor 2, Micro Tonnerre, Kick Forge, Gamer Lover">
+  <img src="docs/img/galerie/instruments-7.jpg" alt="Croc Glacé : Son, ORB, SEQ, Effets">
 </p>
 
 ### 🎚️ Les 54 effets
@@ -272,10 +276,10 @@ contrôleur.
 ## 🎹 Instruments
 
 <details>
-<summary><b>Les 42 instruments</b> (cliquer pour déplier)</summary>
+<summary><b>Les 43 instruments</b> (cliquer pour déplier)</summary>
 
 <!-- CATALOGUE:INSTRUMENTS -->
-42 instruments, 2768 sons d'usine rangés par catégories. Le détail (vignettes, principe, sons par catégorie) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
+43 instruments, 2818 sons d'usine rangés par catégories. Le détail (vignettes, principe, sons par catégorie) est dans [docs/CATALOGUE.md](docs/CATALOGUE.md).
 
 ### Batteries
 
@@ -288,7 +292,7 @@ contrôleur.
 | **Cut of the Beat** | Batterie à échantillons : pads à déposer, précalcul par pad (synthèse ajoutée, sous-harmonique, résolution, écrêtage), GATE, compresseur interne | — |
 | **Kick Killer** | Percussion analogique semi-modulaire : 2 VCO, bruit, filtre en échelle, 3 enveloppes à déclin, séquenceur 8 pas hauteur et vélocité | 91 (Basses 11, Effets 11, Percussions 45, Séquences 24) |
 | **Micro Tonnerre** | Générateur de rythmes à synthèse universelle : 8 canaux, oscillateur à modulation de hauteur et bruit filtré, égaliseur et distorsion | 64 (Classiques 7, Électro 7, Techno 7, House 7, Hip-hop 7, Minimal 7, Rave 96 8, Dur 7, Expérimental 7) |
-| **Kick Forge** | Constructeur de kicks par couches : morceaux calculés ou samples, fondus à la souris, rack de 9 effets, styles et tirage au hasard | 78 (Rumble 6, Reverse bass 6, Industriel 6, Psy 6, Schranz 6, Rumble propre 6, Newstyle 6, Rawstyle 6, Hard techno 6, Gabber 6, Frenchcore 6, Hardstyle 6, Techno 6) |
+| **Kick Forge** | Constructeur de kicks par couches : morceaux calculés ou samples, fondus à la souris, rack de 9 effets, styles et tirage au hasard | 84 (Rumble 6, Reverse bass 6, Industriel 6, Psy 6, Schranz 6, Rumble propre 6, Newstyle 6, Rawstyle 6, Hard techno 6, Gabber 6, Frenchcore 6, Hardstyle 6, Techno 6, Psy · kick + basse 6) |
 
 ### Basses
 
@@ -322,6 +326,7 @@ contrôleur.
 | **Ondes Bretzel** | Hybride numérique : 3 oscillateurs (formes analogiques ou tables), 2 filtres série / parallèle, 4 enveloppes, 3 LFO, matrice | 90 (Basses 18, Leads 14, Nappes 18, Plucks 12, Claviers 8, Cordes 3, Cuivres 3, Arpèges 6, Effets 8) |
 | **État de Grâce** | Polyphonique analogique à 2 oscillateurs à forme continue, filtre d'état 2 pôles passe-bas → réjection → passe-haut, X-Mod | 89 (Basses 20, Leads 16, Nappes 13, Plucks 11, Claviers 9, Cordes 5, Cuivres 5, Arpèges 4, Effets 6) |
 | **Orbiteur** | Synthèse vectorielle : 4 coins (générateurs d'harmoniques, mélange, filtre) mélangés par un orbe en orbite | 90 (Basses 18, Leads 14, Nappes 22, Plucks 9, Claviers 10, Cordes 3, Cuivres 3, Arpèges 5, Effets 6) |
+| **Croc Glacé** | Synthé psy : tables d'ondes porteuse et modulateur, FM et distorsion créative, 8 LFO joués en séquence par 4 couloirs, et l'ORB : quatre sons dans les coins, mélangés par un point en orbite | 44 (Basses 3, Nappes 5, Plucks 1, Arpèges 1, Effets 6, Drones 6, Textures 5, Glitch 7, Métal 6, Séquences 4) |
 
 ### Sampler
 
@@ -516,16 +521,17 @@ In English: **[Manual (PDF)](docs/NOTICE-EN.pdf)** · [text version](docs/NOTICE
 **OFAD GOLEM** is a complete groovebox for your computer, phone or tablet, made for all electronic music
 (techno, house, acid, hardtek, drum & bass, electro, ambient, beatmaking…). It follows the workflow of
 standalone pad-based production stations: 16 tracks, 16 pads, patterns launched like clips, scenes on a
-crossfader, song mode and audio editing. Its **42 instruments** and **54 effects** follow the architecture of
+crossfader, song mode and audio editing. Its **43 instruments** and **54 effects** follow the architecture of
 the machines that made this music, rebuilt from scratch with their own names, panels and sounds. The whole
 interface is available **in English** (choose it when installing on Windows, at first launch on Android, or in
 Settings). Free software (AGPL-3.0).
 
-**What's new in 1.3.0 — Gamer Lover**:
+**What's new in 1.3.0 — Gamer Lover and Frost Fang**:
 - **Gamer Lover**: **8 and 16-bit** game console chips in a single instrument — square, **stepped triangle**, noise, **4-bit table**, **4-operator FM**, **compressed samples**, **console drums** (16 pads, game sound effects), 60 or 50 Hz tables (fast arpeggios, drop, vibrato) and a **period-correct output** (bits, sample rate, TV filter, 8-tap echo); **95 factory sounds**.
 - **Front panel**: a **CRT TV** that follows the chosen chip. **On the phone (trial)**: a pad-machine style screen with 8 menus and 8 knobs.
-- **Kick Forge**: the same kick for the same LFO position, faster rendering, layer filters after the distortion.
-- **Akai Force and MPC**: GOLEM's instruments and effects also exist as plugins for the standalone machines, Gamer Lover included ([plugins page](../../releases/tag/mpc-1.1.0)).
+- **Frost Fang** (*Croc Glacé* in French): a psy synth with **wavetables** (carrier and modulator, FM, phase distortion, custom WAV tables), **8 LFOs played by 4 lanes of 32 steps** (32 classic patterns) and the **ORB**: **four sounds in the corners**, mixed by an **orbiting point** (Lorenz, Rössler, spiral…, opposite sub-orbit, elastic or gravity physics). Effects for extreme sounds: **comb echo that follows the note**, **phaser** up to 12 stages, reverb **freeze**, stereo. **44 factory sounds**: drones, morphing pads, textures, glitch, metal, effects, squelch sequences.
+- **Kick Forge**: the same kick for the same LFO position, faster rendering, layer filters after the distortion; new **Psy · kick + bass** style (6 kicks) with the "zap" punch and psy bass bodies.
+- **Akai Force and MPC**: GOLEM's instruments and effects also exist as plugins for the standalone machines, Gamer Lover included ([plugins page](../../releases/tag/mpc-1.2.0)).
 
 **What's new in 1.2.0 — Kick Forge, Good Doctor 2, Micro Tonnerre**:
 - **Kick Forge**: build the kick **layer by layer** (up to 8) — **680 parts calculated in the kick's key** (punches, crunches, rumbles, clicks, tops, bodies, reverse bass…) or **your own tuned samples**; fades, length and timing **dragged on the waveform**; **9-effect rack** (kick shaper, convolution, finalizer…); **14 styles** and **Randomize**; 78 factory kicks.
@@ -631,7 +637,7 @@ latence (AAudio) ; un appui long vaut un clic droit ; un contrôleur MIDI USB br
 GROOVEBOX/
 ├── src/
 │   ├── engine/        moteur : pistes, séquenceur, scènes, morceau, modulations
-│   ├── instruments/   les 42 instruments
+│   ├── instruments/   les 43 instruments
 │   ├── effects/       les 54 effets
 │   ├── dsp/, synth/   briques de traitement et de synthèse
 │   ├── Montage.*      montage audio

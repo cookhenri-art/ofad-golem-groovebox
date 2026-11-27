@@ -4,7 +4,7 @@ Fichier écrit par `scripts/gen-docs.py` à partir du catalogue du moteur (`groo
 Les noms sont propres au Groovebox ; chaque module reprend le **principe** d'une famille de machines, jamais son nom,
 sa façade ni ses sons.
 
-**42 instruments** (2768 sons d'usine) et **54 effets**.
+**43 instruments** (2818 sons d'usine) et **54 effets**.
 
 ## Instruments
 
@@ -19,7 +19,7 @@ sa façade ni ses sons.
 | <img src="../ui/public/thumbs/drumNrv.webp" width="120" alt=""> | **Cut of the Beat** | Batterie à échantillons : pads à déposer, précalcul par pad (synthèse ajoutée, sous-harmonique, résolution, écrêtage), GATE, compresseur interne | — |
 | <img src="../ui/public/thumbs/dfam.webp" width="120" alt=""> | **Kick Killer** | Percussion analogique semi-modulaire : 2 VCO, bruit, filtre en échelle, 3 enveloppes à déclin, séquenceur 8 pas hauteur et vélocité | 91 (Basses 11, Effets 11, Percussions 45, Séquences 24) |
 | <img src="../ui/public/thumbs/microton.webp" width="120" alt=""> | **Micro Tonnerre** | Générateur de rythmes à synthèse universelle : 8 canaux, oscillateur à modulation de hauteur et bruit filtré, égaliseur et distorsion | 64 (Classiques 7, Électro 7, Techno 7, House 7, Hip-hop 7, Minimal 7, Rave 96 8, Dur 7, Expérimental 7) |
-| <img src="../ui/public/thumbs/kickforge.webp" width="120" alt=""> | **Kick Forge** | Constructeur de kicks par couches : morceaux calculés ou samples, fondus à la souris, rack de 9 effets, styles et tirage au hasard | 78 (Rumble 6, Reverse bass 6, Industriel 6, Psy 6, Schranz 6, Rumble propre 6, Newstyle 6, Rawstyle 6, Hard techno 6, Gabber 6, Frenchcore 6, Hardstyle 6, Techno 6) |
+| <img src="../ui/public/thumbs/kickforge.webp" width="120" alt=""> | **Kick Forge** | Constructeur de kicks par couches : morceaux calculés ou samples, fondus à la souris, rack de 9 effets, styles et tirage au hasard | 84 (Rumble 6, Reverse bass 6, Industriel 6, Psy 6, Schranz 6, Rumble propre 6, Newstyle 6, Rawstyle 6, Hard techno 6, Gabber 6, Frenchcore 6, Hardstyle 6, Techno 6, Psy · kick + basse 6) |
 
 ### Basses
 
@@ -53,6 +53,7 @@ sa façade ni ses sons.
 | <img src="../ui/public/thumbs/blo.webp" width="120" alt=""> | **Ondes Bretzel** | Hybride numérique : 3 oscillateurs (formes analogiques ou tables), 2 filtres série / parallèle, 4 enveloppes, 3 LFO, matrice | 90 (Basses 18, Leads 14, Nappes 18, Plucks 12, Claviers 8, Cordes 3, Cuivres 3, Arpèges 6, Effets 8) |
 | <img src="../ui/public/thumbs/ob6.webp" width="120" alt=""> | **État de Grâce** | Polyphonique analogique à 2 oscillateurs à forme continue, filtre d'état 2 pôles passe-bas → réjection → passe-haut, X-Mod | 89 (Basses 20, Leads 16, Nappes 13, Plucks 11, Claviers 9, Cordes 5, Cuivres 5, Arpèges 4, Effets 6) |
 | <img src="../ui/public/thumbs/orbit.webp" width="120" alt=""> | **Orbiteur** | Synthèse vectorielle : 4 coins (générateurs d'harmoniques, mélange, filtre) mélangés par un orbe en orbite | 90 (Basses 18, Leads 14, Nappes 22, Plucks 9, Claviers 10, Cordes 3, Cuivres 3, Arpèges 5, Effets 6) |
+| <img src="../ui/public/thumbs/croc.webp" width="120" alt=""> | **Croc Glacé** | Synthé psy : tables d'ondes porteuse et modulateur, FM et distorsion créative, 8 LFO joués en séquence par 4 couloirs, et l'ORB : quatre sons dans les coins, mélangés par un point en orbite | 44 (Basses 3, Nappes 5, Plucks 1, Arpèges 1, Effets 6, Drones 6, Textures 5, Glitch 7, Métal 6, Séquences 4) |
 
 ### Sampler
 

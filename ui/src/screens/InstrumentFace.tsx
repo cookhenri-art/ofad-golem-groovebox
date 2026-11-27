@@ -58,6 +58,7 @@ const FACES: Record<string, { accent: string; panel: string; cheeks?: boolean; t
   microton: { accent: "oklch(0.88 0.17 95)", panel: "oklch(0.18 0.03 275)", tag: "Générateur de rythmes à synthèse universelle" },
   kickforge: { accent: "oklch(0.78 0.17 55)", panel: "oklch(0.16 0.01 40)", tag: "Constructeur de kicks par couches" },
   gamer:   { accent: "oklch(0.88 0.17 90)",  panel: "oklch(0.18 0.06 285)", tag: "Puces de consoles 8 et 16 bits, batterie de console, sortie d'époque" },
+  croc:    { accent: "oklch(0.82 0.13 210)", panel: "oklch(0.14 0.02 250)", tag: "Synthé psy : tables d'ondes, FM, séquenceur de LFO, ORB à quatre sons" },
   fm6:     { accent: "oklch(0.8 0.12 175)",  panel: "oklch(0.16 0.008 40)",  cheeks: true, tag: "FM à 6 opérateurs" },
   fm4:     { accent: "oklch(0.82 0.15 300)", panel: "oklch(0.17 0.012 290)", tag: "FM à 4 opérateurs" },
   fmx:     { accent: "oklch(0.8 0.16 55)",   panel: "oklch(0.16 0.01 50)",   tag: "FM à 6 opérateurs, matrice libre" },

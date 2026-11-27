@@ -10,6 +10,7 @@
 #include "instruments/WaveMorph.h"
 #include "instruments/Glutamake.h"
 #include "instruments/GamerLover.h"
+#include "instruments/CrocGlace.h"
 #include "instruments/GoodDoctor.h"
 #include "instruments/GoodDoctor2.h"
 #include "instruments/KickForge.h"
@@ -465,6 +466,95 @@ static void testHybridMatrix()
 
 // 1.3 : Gamer Lover — chaque puce, onde, bruit, échantillon et algorithme FM sonne sans exploser ; les 16 sons de
 // la batterie sonnent ; positions des réglages figées ; au moins 90 sons d'usine ; une voix reprise ne claque pas
+// 1.3 : Croc Glacé — tables, Bite, filtres, voix, 8 LFO et 4 couloirs, l'ORB (orbite, physique, morph des 4 coins),
+// table perso d'un WAV ; positions des réglages figées
+static void testCrocGlace()
+{
+    const std::string name = "croc glac\xC3\xA9 : tables, filtres, couloirs, ORB, morph";
+    namespace cg = grv::instruments::croc;
+    const auto& d = cg::desc();
+    CHECK (d.waveShapes.size() == 88, "croc : 11 tables de 8 ondes");
+    CHECK (d.indexOf ("morphy") == cg::numSlots - 1 && d.indexOf ("c1on") == cg::laneBase && d.indexOf ("orbon") == cg::orbOn
+           && d.indexOf ("r1src") == cg::routeBase && d.indexOf ("l8phase") == cg::laneBase - 1, "croc : positions des r\xC3\xA9glages");
+    CHECK (d.indexOf ("ka_on") > d.indexOf ("mx16_amt") && d.indexOf ("kd_rvmix") + 1 == d.indexOf ("dlcomb"), "croc : coins apr\xC3\xA8s la matrice");
+    // 27 nov. : peigne, phaser, stéréo, gel et ordre ajoutés APRÈS les coins (positions et coins inchangés)
+    CHECK (d.indexOf ("fxorder") == (int) d.params.size() - 1 && d.params[(size_t) d.indexOf ("c1dst")].choices.size() == (size_t) cg::numDests, "croc : effets extr\xC3\xAAmes \xC3\xA0 la fin");
+    CHECK (d.params[(size_t) d.indexOf ("mx1_src")].choices.size() == 26 + 16, "croc : 16 sources propres");
+    auto run = [&] (std::initializer_list<std::pair<const char*, float>> set, bool sampleWav = false) {
+        auto inst = createInstrument ("croc");
+        inst->prepare (48000.0, 32);
+        inst->setTempo (145.0);
+        auto p = defaults (d);
+        for (const auto& [id, v] : set) { const auto i = d.indexOf (id); if (i < 0) return false; p[(size_t) i] = v; }
+        grv::engine::SampleBuffer wav;
+        if (sampleWav)
+        {
+            wav.data.resize (4096);
+            for (size_t i = 0; i < wav.data.size(); ++i) wav.data[i] = (float) std::sin (6.283185 * (double) (i % 2048) / 2048.0 * (i < 2048 ? 1.0 : 3.0));
+            wav.runtime = cg::buildRuntime (0, wav);
+            inst->setSample (0, &wav);
+        }
+        std::vector<float> L (32), R (32);
+        inst->noteOn (36, 1.0f); inst->noteOn (48, 0.8f);
+        float peak = 0.0f; bool finite = true;
+        for (int k = 0; k < 1500; ++k)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->setPosition (k * 32 / 48000.0 * 145.0 / 60.0, true);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); }
+        }
+        return finite && peak > 0.001f && peak < 4.0f;
+    };
+    for (int t = 0; t <= cg::userTable; ++t) CHECK (run ({ { "ctab", (float) t }, { "cpos", 60.0f }, { "mtaba", (float) t }, { "fm", 50.0f }, { "cpd", 50.0f }, { "mpd", 50.0f } }), (std::string ("croc : table ") + std::to_string (t)).c_str());
+    CHECK (run ({ { "ctab", (float) cg::userTable }, { "cpos", 100.0f } }, true), "croc : table perso (WAV)");
+    CHECK (run ({ { "noise", 100.0f }, { "noisecol", 70.0f }, { "modfm", 100.0f }, { "modpitch", 48.0f }, { "fm", 30.0f } }), "croc : bruit et enveloppe de modulation");
+    for (int mode = 0; mode < 4; ++mode)
+        CHECK (run ({ { "distmode", (float) mode }, { "distdrive", 100.0f }, { "distmix", 100.0f }, { "flgmix", 100.0f }, { "flgfb", 99.0f }, { "flgtime", 0.05f },
+                     { "dlmix", 100.0f }, { "dlsync", 0.0f }, { "dltime", 0.05f }, { "dlfb", 120.0f }, { "dlglide", 0.0f } }), "croc : effets à l'excès");
+    for (int st = 0; st < 3; ++st)
+        for (int order = 0; order < 2; ++order)
+            CHECK (run ({ { "dlcomb", 1.0f }, { "dlcombst", 12.0f }, { "dlmix", 100.0f }, { "dlfb", 120.0f }, { "phstages", (float) st }, { "phmix", 100.0f }, { "phfb", 95.0f },
+                         { "phdepth", 100.0f }, { "stwidth", 200.0f }, { "sthaas", 30.0f }, { "rvmix", 80.0f }, { "rvfreeze", 1.0f }, { "fxorder", (float) order } }), "croc : peigne, phaser, st\xC3\xA9r\xC3\xA9o, gel");
+    for (int ds = cg::dFlgTime; ds < cg::numDests; ++ds)
+        CHECK (run ({ { "c1on", 1.0f }, { "c1dst", (float) ds }, { "c1amt", 100.0f }, { "dlcomb", 1.0f }, { "dlmix", 60.0f }, { "phmix", 60.0f }, { "flgmix", 50.0f }, { "rvmix", 50.0f } }), "croc : nouvelles destinations");
+    for (int mo = 0; mo <= (int) cg::motifs().size(); ++mo)
+        CHECK (run ({ { "c1on", 1.0f }, { "c1motif", (float) mo }, { "c1dst", (float) cg::dDlyTime }, { "c1amt", 100.0f }, { "dlmix", 50.0f }, { "c2on", 1.0f }, { "c2src", (float) (mo % 9) },
+                     { "c2dst", (float) (mo % cg::numDests) }, { "c2amt", 100.0f }, { "l1shape", (float) (mo % 11) }, { "l1sync", 0.0f }, { "l1rate", 1000.0f } }), "croc : motifs et sources");
+    for (int f = 0; f < 8; ++f) CHECK (run ({ { "ftype", (float) f }, { "reso", 100.0f }, { "fdrive", 100.0f }, { "f2stage", 1.0f } }), (std::string ("croc : filtre ") + std::to_string (f)).c_str());
+    CHECK (run ({ { "fm", 100.0f }, { "fold", 100.0f }, { "crush", 100.0f }, { "soft", 100.0f }, { "mshape", 100.0f }, { "mfold", 100.0f }, { "mcrush", 100.0f }, { "sub", 100.0f } }), "croc : Bite à fond");
+    for (int v = 0; v < 4; ++v) CHECK (run ({ { "vmode", (float) v }, { "glide", 80.0f } }), "croc : mode de jeu");
+    for (int s = 0; s < cg::numOrbShapes; ++s)
+        for (int ph = 0; ph < 3; ++ph)
+            CHECK (run ({ { "orbon", 1.0f }, { "o1shape", (float) s }, { "orbphys", (float) ph }, { "o1sync", 0.0f }, { "o1rate", 80.0f }, { "o2size", 40.0f }, { "o1chaos", 100.0f },
+                         { "r1amt", 100.0f }, { "r2amt", 100.0f }, { "r3amt", 100.0f }, { "r4amt", 100.0f }, { "r5amt", 100.0f }, { "r6amt", 100.0f } }), "croc : orbite et routes");
+    for (int dir = 0; dir < 4; ++dir)
+        CHECK (run ({ { "c1on", 1.0f }, { "c1dir", (float) dir }, { "c1amt", 100.0f }, { "c1swing", 70.0f }, { "c1smooth", 50.0f }, { "c1quant", 4.0f }, { "c1curve", 60.0f },
+                     { "c1fold", 50.0f }, { "c1jit", 50.0f }, { "c2on", 1.0f }, { "c2dst", (float) cg::dMorphX }, { "c2amt", 100.0f }, { "l1shape", 7.0f } }), "croc : couloirs");
+    // morph : quatre coins chargés de sons différents ; le point en orbite ; aucun son ne casse
+    for (const auto& pr : d.presets)
+    {
+        if (pr.name.find ("mute") == std::string::npos && pr.name.find ("fusion") == std::string::npos) continue;
+        auto inst = createInstrument ("croc");
+        inst->prepare (48000.0, 32);
+        auto p = defaults (d);
+        for (const auto& [id, v] : pr.values) { const auto i = d.indexOf (id); CHECK (i >= 0, "croc : r\xC3\xA9glage du son d'usine"); if (i >= 0) p[(size_t) i] = v; }
+        std::vector<float> L (32), R (32), st (48);
+        inst->noteOn (36, 1.0f);
+        float peak = 0.0f; bool finite = true; float wSum = 0.0f;
+        for (int k = 0; k < 3000; ++k)
+        {
+            std::fill (L.begin(), L.end(), 0.0f); std::fill (R.begin(), R.end(), 0.0f);
+            inst->render (L.data(), R.data(), 32, p.data());
+            for (float x : L) { finite = finite && std::isfinite (x); peak = std::max (peak, std::abs (x)); }
+        }
+        CHECK (inst->status (st.data(), 48) >= 28 && st[23] > 0.5f, "croc : morph en marche");
+        for (int c = 0; c < 4; ++c) wSum += st[(size_t) (24 + c)];
+        CHECK (std::abs (wSum - 1.0f) < 0.01f, "croc : poids des coins");
+        CHECK (finite && peak > 0.001f && peak < 4.0f, "croc : son du morph");
+    }
+}
+
 static void testGamerLover()
 {
     const std::string name = "gamer lover : puces, batterie, tables, sortie console";
@@ -4042,6 +4132,7 @@ int main (int argc, char** argv)
     testHybridMatrix();
     testGlutamake();
     testGamerLover();
+    testCrocGlace();
     testGoodDoctor();
     testGoodDoctor2();
     testMicroTonnerre();

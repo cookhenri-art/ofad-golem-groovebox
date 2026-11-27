@@ -90,6 +90,7 @@ export const FACE_SKINS: Record<string, FaceSkin> = {
   sampler:   { tex: "alu-brosse", tint: "oklch(0.28 0.02 60)", knob: "noir", ink: "light" },
   sp:        { tex: "plastique-gris", tint: "oklch(0.3 0.02 150)", knob: "plastique", ink: "light" },
   braise:    { tex: "v3-abs-noir", knob: "plastique", ink: "light" }, // Glutamake (v0.47) : ABS noir, boutons noirs lisses
+  glace:     { tex: "alu-brosse", tint: "oklch(0.15 0.025 245)", knob: "plastique", ink: "light" }, // Croc Glacé (1.3) : métal bleui froid, boutons noirs lisses
   docteur:   { tex: "alu-sombre", tint: "oklch(0.2 0.03 245)", knob: "noir", ink: "light" }, // Good Doctor (v0.47 (maj. 5 nov.)) : bleu nuit
   docteur2:  { tex: "alu-sombre", tint: "oklch(0.22 0.006 250)", knob: "noir", ink: "light" }, // Good Doctor 2 (après la 1.1) : graphite
   tonnerre:  { tex: "alu-brosse", tint: "oklch(0.22 0.03 275)", knob: "echo", ink: "light" }, // Micro Tonnerre (après la 1.1) : indigo d'orage
