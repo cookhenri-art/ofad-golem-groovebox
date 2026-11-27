@@ -534,23 +534,31 @@ bool Engine::applyPresetToPrefix (int channel, const std::string& presetName, co
     const ModuleDesc* d = moduleAt (channel, -1, baseSlot);
     if (d == nullptr) return false;
     for (const auto& pr : d->presets)
-    {
-        if (pr.name != presetName) continue;
-        for (size_t i = 0; i < d->params.size(); ++i)
-        {
-            const auto& p = d->params[i];
-            if (p.id.size() <= prefix.size() || p.id.compare (0, prefix.size(), prefix) != 0) continue;
-            const auto src = p.id.substr (prefix.size());
-            const auto si = d->indexOf (src);
-            if (si < 0) continue;
-            float v = d->params[(size_t) si].def;
-            for (const auto& [id, value] : pr.values) if (id == src) v = value;
-            storeBase (globalSlot (channel, baseSlot + (int) i), p.toNorm (v));
-        }
-        paramVersion[(size_t) channel].fetch_add (1);
-        return true;
-    }
+        if (pr.name == presetName) return applyValuesToPrefix (channel, pr.values, prefix);
     return false;
+}
+
+// 27 nov. 2026 : commun aux sons d'usine et aux préréglages de l'utilisateur. Chaque réglage « <préfixe>id » reçoit
+// la valeur de « id » dans le son (sa valeur par défaut s'il n'y figure pas) : le coin prend le son entier.
+bool Engine::applyValuesToPrefix (int channel, const std::vector<std::pair<std::string, float>>& values, const std::string& prefix)
+{
+    if (channel < 0 || channel >= numTracks || prefix.empty()) return false;
+    int baseSlot = 0;
+    const ModuleDesc* d = moduleAt (channel, -1, baseSlot);
+    if (d == nullptr) return false;
+    for (size_t i = 0; i < d->params.size(); ++i)
+    {
+        const auto& p = d->params[i];
+        if (p.id.size() <= prefix.size() || p.id.compare (0, prefix.size(), prefix) != 0) continue;
+        const auto src = p.id.substr (prefix.size());
+        const auto si = d->indexOf (src);
+        if (si < 0) continue;
+        float v = d->params[(size_t) si].def;
+        for (const auto& [id, value] : values) if (id == src) v = value;
+        storeBase (globalSlot (channel, baseSlot + (int) i), p.toNorm (v));
+    }
+    paramVersion[(size_t) channel].fetch_add (1);
+    return true;
 }
 
 std::vector<std::pair<std::string, float>> Engine::moduleValues (int channel, int slot, const std::string& prefix) const

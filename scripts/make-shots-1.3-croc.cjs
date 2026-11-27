@@ -55,6 +55,7 @@ async function page(p, label) { await p.locator(".face [role=tab], .face button"
 const SHOTS = {
   "pc-croc": { vp: PC, run: async (p) => { await openCroc(p, "Drone en orbite"); } },
   "pc-croc-orb": { vp: PC, run: async (p) => { await openCroc(p, "Glitch mutant"); await page(p, "ORB"); await wait(p, 1500); } },
+  "pc-croc-orbite": { vp: PC, run: async (p) => { await openCroc(p, "Glitch mutant"); await page(p, "ORB"); await p.locator(".cg-tabs button").nth(1).click(); await wait(p, 1500); } },
   "pc-croc-seq": { vp: PC, run: async (p) => { await openCroc(p, "Squelch séquencé"); await page(p, "SEQ"); } },
   "pc-croc-fx": { vp: PC, run: async (p) => { await openCroc(p, "Glitch gelé"); await page(p, "Effets"); } },
   "tel-croc-orb": { vp: TEL, run: async (p) => { await openCroc(p, "Glitch mutant"); await page(p, "ORB"); await wait(p, 1500); } },

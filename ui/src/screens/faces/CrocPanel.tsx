@@ -16,6 +16,10 @@ import { paramAddress } from "../../controls/bindings";
 import { FolderBrowser } from "../../controls/FolderBrowser";
 import { Control, type Ctl } from "./SynthPanel";
 import { CROC_MOTIFS } from "./crocMotifs";
+import { translate } from "../../i18n";
+
+/** Libellés lus par le navigateur hors du texte de la page (attribut label des groupes de liste) : traduits ici. */
+const tr = (t: string) => (document.documentElement.lang === "en" ? translate(t) : t);
 
 const CORNERS = ["A", "B", "C", "D"] as const;
 const CORNER_NAMES = ["Haut gauche", "Haut droite", "Bas gauche", "Bas droite"];
@@ -45,11 +49,14 @@ function morphIds(m: ModuleDesc) {
   return m.params.filter((p) => p.id.startsWith("ka_") && p.id !== "ka_on" && p.id !== "ka_src").map((p) => p.id.slice(3));
 }
 
-function cornerLabel(m: ModuleDesc, get: (id: string) => number, c: number) {
+// 27 nov. 2026 : nom du préréglage perso chargé dans un coin (le réglage « src » ne garde que les sons d'usine ;
+// un son perso y est rangé comme un son capturé : 0)
+const userCornerNames = new Map<string, string>();
+function cornerLabel(m: ModuleDesc, get: (id: string) => number, c: number, channel = -1) {
   const k = `k${"abcd"[c]}_`;
   if (get(`${k}on`) < 0.5) return "Vide : joue le son en cours";
   const src = Math.round(get(`${k}src`));
-  return src > 0 ? m.presets[src - 1] ?? "Son d'usine" : "Son capturé";
+  return src > 0 ? m.presets[src - 1] ?? "Son d'usine" : userCornerNames.get(`${channel}:${k}`) ?? "Son capturé";
 }
 
 /** Le pavé de l'ORB. */
@@ -127,7 +134,7 @@ export function CrocOrb({ channel, module: m, compact = false }: { channel: numb
           title="Tenir et glisser : le point mélange les quatre coins (avec l'orbite en marche, l'orbite tourne autour de lui)" />
         {CORNERS.map((n, i) => (
           <span key={n} className={`cg-orb-corner cg-orb-corner--${i}`} style={{ color: CORNER_COLORS[i] }}>
-            {i + 1} · {CORNER_NAMES[i]}<b>{cornerLabel(m, get, i)}</b><em>{Math.round(w[i] * 100)} %</em>
+            {i + 1} · {CORNER_NAMES[i]}<b>{cornerLabel(m, get, i, channel)}</b><em>{Math.round(w[i] * 100)} %</em>
           </span>
         ))}
       </div>
@@ -136,11 +143,24 @@ export function CrocOrb({ channel, module: m, compact = false }: { channel: numb
   );
 }
 
-/** Les quatre coins : charger un son d'usine, capturer le son en cours, vider. */
+/** Les quatre coins : charger un son d'usine ou un de ses propres sons, capturer le son en cours, vider. */
 export function CrocCorners({ channel, module: m }: { channel: number; module: ModuleDesc }) {
   const { get, set, norm, setNorm } = useInst(channel, m);
   const status = useStore((s) => (s.focus === channel ? s.tick.inst : undefined)) ?? [];
   const ids = morphIds(m);
+  // 27 nov. 2026 : ses propres sons (préréglages de l'utilisateur de Croc Glacé), relus à l'ouverture d'une liste
+  const [mine, setMine] = useState<[string, string][]>([]);
+  const refreshMine = () => { void actions.listPresets("inst", channel, -1, 0).then((l) => setMine(l ? l.user.map(([b, n]) => [b, n] as [string, string]) : [])); };
+  useEffect(refreshMine, [channel]);
+  const loadMine = async (c: number, idx: number) => {
+    const k = `k${"abcd"[c]}_`;
+    const e = mine[idx];
+    if (!e) return;
+    if (!(await actions.userPresetToPrefix(channel, e[0], e[1], k))) return;
+    userCornerNames.set(`${channel}:${k}`, e[1]);
+    set(`${k}src`, 0);
+    set(`${k}on`, 1);
+  };
   const load = async (c: number, presetIndex: number) => {
     const k = `k${"abcd"[c]}_`;
     const name = m.presets[presetIndex];
@@ -151,6 +171,7 @@ export function CrocCorners({ channel, module: m }: { channel: number; module: M
   };
   const capture = (c: number) => {
     const k = `k${"abcd"[c]}_`;
+    userCornerNames.delete(`${channel}:${k}`);
     for (const id of ids) setNorm(k + id, norm(id));
     set(`${k}src`, 0);
     set(`${k}on`, 1);
@@ -164,11 +185,19 @@ export function CrocCorners({ channel, module: m }: { channel: number; module: M
         return (
           <div key={n} className={`cg-corner${on ? " on" : ""}`}>
             <div className="cg-corner-head" style={{ color: CORNER_COLORS[i] }}>{i + 1} · {CORNER_NAMES[i]}</div>
-            <select value={on && src > 0 ? String(src - 1) : on ? "cap" : ""} onChange={(e) => { if (e.target.value !== "" && e.target.value !== "cap") load(i, Number(e.target.value)); }}
+            <select value={on && src > 0 ? String(src - 1) : on ? "cap" : ""} onFocus={refreshMine}
+              onChange={(e) => { const v = e.target.value; if (v.startsWith("u:")) void loadMine(i, Number(v.slice(2))); else if (v !== "" && v !== "cap") void load(i, Number(v)); }}
               aria-label={`Son du coin ${n}`}>
               <option value="">Vide : joue le son en cours</option>
-              {on && src === 0 && <option value="cap">Son capturé</option>}
-              {m.presets.map((p, j) => p === "Init" ? null : <option key={p} value={String(j)}>{(m.presetCats?.[j] ? `${m.presetCats[j]} · ` : "") + p}</option>)}
+              {on && src === 0 && <option value="cap">{userCornerNames.get(`${channel}:${k}`) ? `Mes sons · ${userCornerNames.get(`${channel}:${k}`)}` : "Son capturé"}</option>}
+              {mine.length > 0 && (
+                <optgroup label={tr("Mes sons")}>
+                  {mine.map(([b, nm], j) => <option key={`u${j}`} value={`u:${j}`}>{`${b} · ${nm}`}</option>)}
+                </optgroup>
+              )}
+              <optgroup label={tr("Sons d'usine")}>
+                {m.presets.map((p, j) => p === "Init" ? null : <option key={p} value={String(j)}>{(m.presetCats?.[j] ? `${m.presetCats[j]} · ` : "") + p}</option>)}
+              </optgroup>
             </select>
             <div className="cg-corner-share"><i style={{ width: `${Math.round(share * 100)}%`, background: CORNER_COLORS[i] }} /><span>{Math.round(share * 100)} % du son</span></div>
             <div className="cg-corner-btns">
@@ -192,19 +221,23 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
-const ORBIT: Ctl[] = [
-  { id: "orbon", k: "toggle", label: "Orbite", on: 1, tip: "Le point tourne tout seul autour de la position choisie au doigt" },
-  { id: "o1shape", k: "menu", label: "Forme" }, { id: "o1dir", k: "menu", label: "Sens" },
-  { id: "o1sync", k: "menu", label: "Tempo", tip: "« Libre » : la vitesse se règle en Hz ; sinon un tour par division du tempo" },
-  { id: "o1rate", label: "Vitesse", dimUnless: { id: "o1sync", eq: 0 } }, { id: "o1size", k: "big", label: "Taille", tip: "Taille 0 : le point reste où on le pose" },
-  { id: "o1rot", label: "Rotation" }, { id: "o1chaos", label: "Chaos" },
-];
-const SUB: Ctl[] = [
-  { id: "o2shape", k: "menu", label: "Sous-orbite" }, { id: "o2size", k: "big", label: "Taille" },
-  { id: "o2ratio", label: "Vitesse ×", tip: "Vitesse de la sous-orbite par rapport à l'orbite (sens opposé possible)" },
-  { id: "o2dir", k: "menu", label: "Sens" }, { id: "o2phase", k: "small", label: "Phase" },
-  { id: "o3shape", k: "menu", label: "Orbe 3" }, { id: "o3size", k: "big", label: "Taille" },
-  { id: "o3ratio", label: "Vitesse ×" }, { id: "o3dir", k: "menu", label: "Sens" }, { id: "o3phase", k: "small", label: "Phase" },
+// 27 nov. : onglet Orbite en trois blocs alignés (Orbite, Sous-orbite, Orbe 3) : une ligne de menus puis une
+// ligne de boutons de même taille, sur la même grille de 4 colonnes d'un bloc à l'autre (« _ » = case vide)
+const GAP: Ctl = { id: "_", label: "" };
+const ORBIT_BLOCKS: { title: string; menus: Ctl[]; knobs: Ctl[] }[] = [
+  { title: "Orbite",
+    menus: [{ id: "orbon", k: "toggle", label: "Orbite", on: 1, tip: "Le point tourne tout seul autour de la position choisie au doigt" },
+      { id: "o1shape", k: "menu", label: "Forme" }, { id: "o1dir", k: "menu", label: "Sens" },
+      { id: "o1sync", k: "menu", label: "Tempo", tip: "« Libre » : la vitesse se règle en Hz ; sinon un tour par division du tempo" }],
+    knobs: [{ id: "o1rate", label: "Vitesse", dimUnless: { id: "o1sync", eq: 0 } }, { id: "o1size", label: "Taille", tip: "Taille 0 : le point reste où on le pose" },
+      { id: "o1rot", label: "Rotation" }, { id: "o1chaos", label: "Chaos" }] },
+  { title: "Sous-orbite (sens opposé)",
+    menus: [GAP, { id: "o2shape", k: "menu", label: "Forme" }, { id: "o2dir", k: "menu", label: "Sens" }, GAP],
+    knobs: [{ id: "o2ratio", label: "Vitesse ×", tip: "Vitesse de la sous-orbite par rapport à l'orbite (sens opposé possible)" },
+      { id: "o2size", label: "Taille" }, { id: "o2phase", label: "Phase" }, GAP] },
+  { title: "Orbe 3",
+    menus: [GAP, { id: "o3shape", k: "menu", label: "Forme" }, { id: "o3dir", k: "menu", label: "Sens" }, GAP],
+    knobs: [{ id: "o3ratio", label: "Vitesse ×" }, { id: "o3size", label: "Taille" }, { id: "o3phase", label: "Phase" }, GAP] },
 ];
 const PHYS: Ctl[] = [
   { id: "orbphys", k: "vswitch", label: "Mode", short: ["Rigide", "Élastique", "Gravité"], tip: "Rigide : le point suit l'orbite ; Élastique : il est tiré par un ressort ; Gravité : il tombe et rebondit" },
@@ -212,10 +245,10 @@ const PHYS: Ctl[] = [
   { id: "orbbounce", label: "Rebond" }, { id: "orbretrig", k: "menu", label: "Départ", tip: "Où repart le point à chaque note" },
 ];
 
-function Grid({ channel, module: m, ctls, cols }: { channel: number; module: ModuleDesc; ctls: Ctl[]; cols: number }) {
+function Grid({ channel, module: m, ctls, cols, even }: { channel: number; module: ModuleDesc; ctls: Ctl[]; cols: number; even?: boolean }) {
   return (
-    <div className="fp-grid cg-grid" style={{ "--cols": cols } as React.CSSProperties}>
-      {ctls.map((c) => <Control key={c.id} channel={channel} module={m} ctl={c} />)}
+    <div className={`fp-grid cg-grid${even ? " cg-grid--even" : ""}`} style={{ "--cols": cols } as React.CSSProperties}>
+      {ctls.map((c, i) => c.id === "_" ? <div key={"_" + i} className="cg-gap" aria-hidden /> : <Control key={c.id} channel={channel} module={m} ctl={c} />)}
     </div>
   );
 }
@@ -244,10 +277,13 @@ export function CrocOrbPage({ channel, module: m }: { channel: number; module: M
             ]} />
             <CrocCorners channel={channel} module={m} />
           </>)}
-          {tab === "orbit" && (<>
-            <Grid channel={channel} module={m} cols={4} ctls={ORBIT} />
-            <Grid channel={channel} module={m} cols={5} ctls={SUB} />
-          </>)}
+          {tab === "orbit" && ORBIT_BLOCKS.map((bl) => (
+            <section key={bl.title} className="cg-orbblock">
+              <h4 className="cg-orbblock-title">{bl.title}</h4>
+              <Grid channel={channel} module={m} cols={4} even ctls={bl.menus} />
+              <Grid channel={channel} module={m} cols={4} even ctls={bl.knobs} />
+            </section>
+          ))}
           {tab === "phys" && <Grid channel={channel} module={m} cols={5} ctls={PHYS} />}
           {tab === "routes" && (
             <div className="cg-routes">

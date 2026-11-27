@@ -266,6 +266,8 @@ public:
     /** 1.3 (Croc Glacé) : copie un son d'usine de l'instrument dans les réglages préfixés (« ka_cutoff » ← « cutoff ») ;
         un réglage absent du son prend sa valeur d'origine. Les autres réglages ne bougent pas. */
     bool applyPresetToPrefix (int channel, const std::string& presetName, const std::string& prefix);
+    /** 27 nov. 2026 (Croc Glacé) : réglages d'un son (ex. préréglage de l'utilisateur) copiés dans un bloc « ka_… ». */
+    bool applyValuesToPrefix (int channel, const std::vector<std::pair<std::string, float>>& values, const std::string& prefix);
 
     /** Réglages d'un module (slot -1 : instrument, 0..3 : insert) en valeurs lisibles, rangés par
         identifiant (préréglages de l'utilisateur). prefix non vide : seulement les réglages qui

@@ -671,6 +671,14 @@ export const actions = {
     const c = await callJson<ChannelData>("presetToPrefix", channel, name, prefix);
     if (c) set({ channels: { ...state.channels, [channel]: c } });
   },
+  /** 27 nov. 2026 (Croc Glacé) : un préréglage de l'utilisateur copié dans un coin de l'ORB. */
+  async userPresetToPrefix(channel: number, bank: string, name: string, prefix: string): Promise<boolean> {
+    if (!hasNative("userPresetToPrefix")) return false;
+    const c = await callJson<ChannelData | null>("userPresetToPrefix", channel, bank, name, prefix);
+    if (!c) { showMessage("Préréglage illisible"); return false; }
+    set({ channels: { ...state.channels, [channel]: c } });
+    return true;
+  },
   // Préréglages de l'utilisateur (banques) ------------------------------------------------
   async listPresets(scope: PresetScope, channel: number, slot: number, pad: number): Promise<UserPresetList | null> {
     if (!hasNative("listPresets")) return null;

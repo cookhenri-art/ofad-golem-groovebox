@@ -627,6 +627,29 @@ juce::WebBrowserComponent::Options GrooveboxEditor::createOptions()
         }
         done (json (ok ? bridge::channelJson (eng, t.channel) : "null"));
     });
+    // 27 nov. 2026 (Croc Glacé) : un préréglage de l'utilisateur copié dans un coin de l'ORB (« ka_… » à « kd_… »)
+    fn ("userPresetToPrefix", [&eng, C] (const Args& a, Completion done)
+    {
+        const auto ch = intArg (a, 0, 0, C, -1);
+        const auto prefix = strArg (a, 3, 8).toStdString();
+        const bool okPrefix = prefix.size() == 3 && prefix[0] == 'k' && prefix[1] >= 'a' && prefix[1] <= 'd' && prefix[2] == '_';
+        bool ok = false;
+        if (const auto* d = ch >= 0 && okPrefix ? eng.instrumentDesc (ch) : nullptr)
+        {
+            UserPresets::Values values;
+            juce::String kind;
+            int fileVersion = 1;
+            if (UserPresets::load (juce::String (d->type), strArg (a, 1, 120), UserPresets::cleanName (strArg (a, 2, 120)), values, kind, &fileVersion))
+            {
+                if (fileVersion < 3)
+                    for (auto& [id, val] : values)
+                        for (const auto& pd : d->params)
+                            if (pd.id == id && hasLongDivisions (pd)) { val = (float) widenDivisionIndex (pd, (int) std::lround (val)); break; }
+                ok = eng.applyValuesToPrefix (ch, values, prefix);
+            }
+        }
+        done (json (ok ? bridge::channelJson (eng, ch) : "null"));
+    });
     fn ("deletePreset", [&proc, presetTarget] (const Args& a, Completion done)
     {
         const auto t = presetTarget (a);
