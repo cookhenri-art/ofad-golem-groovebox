@@ -2993,5 +2993,16 @@
  "M6 Prof.": "M6 Depth",
  "M6 Source": "M6 Source",
  "RÉPONSE ET AMP…": "RESPONSE AND A…",
- "RÉPONSE ET AM…": "RESPONSE AND …"
+ "RÉPONSE ET AM…": "RESPONSE AND …",
+ "Accord A": "Tuning A",
+ "Déformations A": "Warps A",
+ "Accord B": "Tuning B",
+ "Déformations B": "Warps B",
+ "Accord C": "Tuning C",
+ "Déformations C": "Warps C",
+ "Déformation 1": "Warp 1",
+ "Déformation 2": "Warp 2",
+ "Hasard hauteur": "Pitch randomness",
+ "Pair / impair": "Even / odd",
+ "Éparpillement": "Spray"
 }

@@ -23,6 +23,7 @@ import unicodedata
 
 import skin_kit as K
 
+from hand_layouts import HAND_TABS
 GEN_UI = None  # module tools/gen_ui.py du kit, chargé par load_gen_ui()
 
 # Version anglaise (build_mpc.py --lang en) : les textes restent écrits en français dans ce fichier et dans
@@ -2025,7 +2026,7 @@ def fpanel_from_generic(pn, kref, theme, fill):
 TXT_COMPACT = [False]   # 27 nov. 2026 : écran trop chargé pour les grands textes → tailles resserrées (repli)
 # 27 nov. 2026 (Henrico) : textes doublés seulement sur les échantillonneurs et Kick Forge (sa demande du
 # 26 nov.) ; les autres greffons gardent les tailles de la 1.1.0, sauf les valeurs sous les boutons (même taille que sur les échantillonneurs).
-BIG_KEYS = ("keys", "sampler", "sp", "octa", "kickforge")
+BIG_KEYS = ("keys", "sampler", "sp", "octa", "kickforge", "gooddoc2")
 TXT_BIG = [True]
 
 
@@ -3132,6 +3133,9 @@ def auto_skin_flow(skin, P_, mod, face, title, accent, console=None):
                 tabs.insert(0, kit_tab)
             else:
                 tabs.append(kit_tab)
+    elif mod["type"] in HAND_TABS:
+        # 27 nov. 2026 : disposition faite à la main (hand_layouts.py) : écrans rangés comme la façade GOLEM
+        tabs = hand_tabs(HAND_TABS[mod["type"]], P_, kref, th, pfill, accent)
     elif fx and not face_fp:
         # effets : touches de leurs sections, tout sur une touche si tout tient en 16 réglages
         names = {}
@@ -3195,6 +3199,7 @@ def auto_skin_flow(skin, P_, mod, face, title, accent, console=None):
     vol = (FItem("fader", P_["__volume__"], "Volume", vinfo["w"] / 2 * 110 / (vinfo["h"] / 2), 110, vinfo) if vinfo
            else FItem("gfader", P_["__volume__"], "Volume", 26, 110))
     placed = bool(kit and kit_tab)   # batteries avec Muet / Solo : le volume est déjà sur l'écran GLOBAL
+    placed = placed or any(it.p is P_.get("__volume__") for _, scrs in tabs for scr in scrs for pn in scr for it in pn.items)
     order_tabs = [] if placed else ([t for t in tabs if t[0] not in ("SAMPLES", "JEU")][:1] if kit else list(reversed(tabs)))
     for t in order_tabs:
         for scr in (t[1] if kit else list(reversed(t[1]))):
@@ -3286,6 +3291,48 @@ def auto_skin_flow(skin, P_, mod, face, title, accent, console=None):
         if i not in seen:
             seen.append(i)
     skin.program = seen[:16]
+
+
+def hand_tabs(plan, P_, kref, th, pfill, accent):
+    """Disposition faite à la main (hand_layouts.py) → [[touche, [écran = [FPanel...]]]]."""
+    tabs = []
+    for name, scrs in plan:
+        out = []
+        for scr in scrs:
+            pns = []
+            for title, tone, specs, rows in scr:
+                ctls, vol = [], []
+                for sp in specs:
+                    sp = (sp,) if isinstance(sp, str) else tuple(sp)
+                    pid, label, form = sp[0], (sp[1] if len(sp) > 1 else None), (sp[2] if len(sp) > 2 else "")
+                    if pid == "__volume__":
+                        vol.append(len(ctls))
+                        ctls.append(None)
+                        continue
+                    if pid not in P_:
+                        print("  disposition : réglage absent %s" % pid)
+                        continue
+                    p = P_[pid]
+                    label = label or p.name
+                    if isinstance(form, (list, tuple)):
+                        ctls.append(make_ctl(p, "", label, short=form))
+                    elif form == "knob":   # liste à crans (synchro, retard) : bouton rotatif, la valeur en clair dessous
+                        ctls.append(Ctl(p, "small", label))
+                    elif form == "menu" and p.choices:   # liste à ouvrir (plus étroit que des boutons)
+                        ctls.append(Ctl(p, "menu", label))
+                    else:
+                        ctls.append(make_ctl(p, form if form in ("big", "fader", "toggle") else "", label))
+                fp = fpanel_from_generic(Panel(title, TONES[tone % len(TONES)], [c for c in ctls if c is not None]), kref, th, pfill)
+                for i in vol:   # le volume du greffon, en tirette, à sa place dans le panneau
+                    vinfo = (th or {}).get("fader")
+                    it = (FItem("fader", P_["__volume__"], "Volume", vinfo["w"] / 2 * 110 / (vinfo["h"] / 2), 110, vinfo) if vinfo
+                          else FItem("gfader", P_["__volume__"], "Volume", 26, 110))
+                    fp.items.insert(i, it)
+                fp.force_rows = rows
+                pns.append(fp)
+            out.append(pns)
+        tabs.append([name, out])
+    return tabs
 
 
 def group_like(order):
