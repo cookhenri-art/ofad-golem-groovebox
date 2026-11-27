@@ -4,10 +4,12 @@
 
 <p align="center"><b>🇬🇧 English speakers: <a href="#english-version">full English version below ↓</a></b></p>
 
+<p align="center"><i>🔄 <b>Mise à jour du 27 novembre 2026</b> : arrivée de <b>Croc Glacé</b> (Frost Fang en anglais), le synthé psy à l'ORB, et d'un style psy « kick + basse » dans Kick Forge ; notices et catalogue mis à jour ; tous les fichiers de la 1.3.0 ont été remplacés (même version). ⚠️ <b>Android : désinstallez une fois l'ancienne version</b> avant d'installer celle-ci (nouvelle clé de signature) — exportez vos projets avant (Réglages › Exporter une copie…). Mise à jour du 25 novembre : interface anglaise corrigée, et Fatsub ne fait plus de petit clic entre deux notes enchaînées. Les greffons MPC / Force existent aussi en anglais.</i></p>
+
 
 <h2 align="center">OFAD GOLEM — Groovebox 1.3.0</h2>
 
-<p align="center"><b>🎮 ❄️ La 1.3, c'est Gamer Lover et Croc Glacé</b> : les puces des consoles de jeu 8 et 16 bits réunies dans un seul instrument, et un synthé psy dont les sons tournent et mutent sans cesse grâce à l'ORB, quatre sons mélangés par un point en orbite. Et en essai sur téléphone, un nouvel écran façon machine à pads.</p>
+<p align="center"><b>🎮 ❄️ La 1.3, c'est Gamer Lover et Frost Fang</b> (Croc Glacé en français) : les puces des consoles de jeu 8 et 16 bits réunies dans un seul instrument, et un synthé psy dont les sons tournent et mutent sans cesse grâce à l'ORB, quatre sons mélangés par un point en orbite. Et en essai sur téléphone, un nouvel écran façon machine à pads.</p>
 
 <p align="center">🔔 <b>Suivez le projet, testez-le et partagez-le un max</b> pour que tout le monde puisse en profiter.</p>
 
@@ -46,7 +48,7 @@ Sur téléphone, Gamer Lover a un **écran à part** : **8 menus** à gauche (Je
 </tr>
 </table>
 
-### ❄️ En vedette aussi : Croc Glacé — le synthé psy qui ne tient pas en place
+### ❄️ En vedette aussi : Frost Fang (Croc Glacé) — le synthé psy qui ne tient pas en place
 
 Des sons qui **tournent, changent de fréquence et mutent** sans arrêt : drones psychés, nappes qui se transforment, textures étranges, glitchs, sons métalliques, balayages, lasers et séquences squelch.
 
@@ -324,6 +326,8 @@ Toutes les nouveautés de la 1.2 : voir la [page de la 1.2.0](https://github.com
 
 <p align="center"><b>🎮 ❄️ OFAD GOLEM 1.3.0 is all about Gamer Lover and Frost Fang</b>: the 8 and 16-bit game console chips in a single instrument, and a psy synth whose sounds keep turning and morphing thanks to the ORB, four sounds mixed by an orbiting point. And as a trial on phones, a new pad-machine style screen.</p>
 
+<p align="center"><i>🔄 <b>Updated on 27 November 2026</b>: <b>Frost Fang</b> arrives, the psy synth with the ORB, plus a psy "kick + bass" style in Kick Forge; manuals and catalogue updated; all the 1.3.0 downloads were replaced (same version). ⚠️ <b>Android: uninstall the old version once</b> before installing this one (new signing key) — export your projects first (Settings › Export a copy…). Updated on 25 November: the English interface was fixed, and Fatsub no longer clicks between two chained notes. The MPC / Force plugins also come in English.</i></p>
+
 <p align="center">🔔 <b>Follow the project, try it and share it as much as you can</b> so everyone can enjoy it.</p>
 
 <p align="center">A complete groovebox in your computer, tablet or phone, made for <b>all electronic music</b>: techno, house, acid, hardtek and tribe, hardcore, drum & bass, electro, ambient, beatmaking, chiptune… 43 instruments, 54 effects, the sequencers we all know (step, parameter locks, acid, conditions), 16 tracks, 16 pads, scenes, song mode and audio editing. Free software (AGPL-3.0).</p>
@@ -386,8 +390,8 @@ GOLEM's instruments and effects also exist as **plugins for the standalone Akai 
 
 <table>
 <tr>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/mpc-gamer-lover.jpg" alt="Gamer Lover on the Force screen"></td>
-<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/mpc-machine-electronique.jpg" alt="Machine électronique on the Force screen"></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/en/mpc-gamer-lover.jpg" alt="Gamer Lover on the Force screen"></td>
+<td align="center"><img src="https://raw.githubusercontent.com/cookhenri-art/ofad-golem-groovebox/main/docs/img/v130/en/mpc-electronic-kit.jpg" alt="Electronic kit on the Force screen"></td>
 </tr>
 </table>
 
