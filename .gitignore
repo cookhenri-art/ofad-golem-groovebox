@@ -18,3 +18,8 @@ __pycache__/
 keystore.properties
 # greffons MPC : constructions locales
 mpc/out/
+
+# documents de travail internes (citent des marques) : jamais publiés (voir scripts/exporter-public.sh)
+docs/CORRESPONDANCES-NOMS.*
+docs/ECARTS-ARCHITECTURES-INSTRUMENTS.md
+docs/COUVERTURE-CAHIER-DES-CHARGES.md
