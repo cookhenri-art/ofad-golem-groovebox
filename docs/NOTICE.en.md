@@ -1060,7 +1060,8 @@ few squelch sequences.
 - **LFO sequencer**: **8 LFOs** played by **4 lanes of 32 steps**; each step plays one of the LFOs or a fixed
   level. **32 classic patterns** to choose from (psy roll, trance gate, Euclidean, squelch, hitech…), per-step
   random, smoothing, fold, swing.
-- **The ORB**: load **four sounds into the corners** (factory sounds or the current sound, captured), and a
+- **The ORB**: load **four sounds into the corners** (factory sounds, **your own sounds** saved in Presets, or the
+  current sound, captured), and a
   **point** mixes them. The point can circle on its own on an **orbit** (circle, figure eight, star, spiral,
   Lorenz, Rössler…), with a **sub-orbit in the opposite direction** and an **orb 3**; three **physics** modes
   (rigid, elastic, gravity) and **6 routes** that send the ORB straight to the sound.

@@ -52,7 +52,7 @@ Sur téléphone, Gamer Lover a un **écran à part** : **8 menus** à gauche (Je
 
 Des sons qui **tournent, changent de fréquence et mutent** sans arrêt : drones psychés, nappes qui se transforment, textures étranges, glitchs, sons métalliques, balayages, lasers et séquences squelch.
 
-- **L'ORB** : on charge **quatre sons dans les coins** (sons d'usine ou le son en cours) et un **point** les mélange. Le point peut **tourner tout seul** sur une orbite (cercle, huit, étoile, spirale, Lorenz, Rössler…), avec une **sous-orbite en sens opposé**, un troisième orbe, et une physique **rigide, élastique ou gravité**.
+- **L'ORB** : on charge **quatre sons dans les coins** (sons d'usine, **vos propres sons** enregistrés, ou le son en cours) et un **point** les mélange : de quoi enchaîner vos quatre sons préférés. Le point peut **tourner tout seul** sur une orbite (cercle, huit, étoile, spirale, Lorenz, Rössler…), avec une **sous-orbite en sens opposé**, un troisième orbe, et une physique **rigide, élastique ou gravité**.
 - **Le séquenceur de LFO** : **8 LFO** joués par **4 couloirs de 32 pas** — chaque pas joue un LFO différent ou un niveau fixe. **32 motifs classiques** (roulement psy, porte de trance, euclidiens, squelch, hitech…).
 - **Deux oscillateurs à tables d'ondes** (porteuse et modulateur), **FM**, distorsion de phase, repli et réduction de bits ; les tables de Glutamake, Good Doctor et Good Doctor 2, et **vos propres tables en WAV**.
 - **Des effets pour les sons extrêmes** : **écho en peigne qui suit la note** (cloches et métal accordés), **phaser** jusqu'à 12 étages, réverbération avec **gel**, flanger, distorsion, **stéréo** (largeur et effet Haas), ordre écho / réverb au choix — et tous pilotables par les couloirs et l'ORB.
@@ -369,7 +369,7 @@ On phones, Gamer Lover has its **own screen**: **8 menus** on the left (Play, Wa
 
 Sounds that **turn, shift frequency and morph** non-stop: psychedelic drones, shape-shifting pads, strange textures, glitches, metallic sounds, sweeps, lasers and squelch sequences.
 
-- **The ORB**: load **four sounds into the corners** (factory sounds or the current sound) and a **point** mixes them. The point can **circle on its own** on an orbit (circle, figure eight, star, spiral, Lorenz, Rössler…), with a **sub-orbit in the opposite direction**, a third orb, and **rigid, elastic or gravity** physics.
+- **The ORB**: load **four sounds into the corners** (factory sounds, **your own saved sounds**, or the current sound) and a **point** mixes them: chain your four favourite sounds. The point can **circle on its own** on an orbit (circle, figure eight, star, spiral, Lorenz, Rössler…), with a **sub-orbit in the opposite direction**, a third orb, and **rigid, elastic or gravity** physics.
 - **The LFO sequencer**: **8 LFOs** played by **4 lanes of 32 steps** — each step plays a different LFO or a fixed level. **32 classic patterns** (psy roll, trance gate, Euclidean, squelch, hitech…).
 - **Two wavetable oscillators** (carrier and modulator), **FM**, phase distortion, fold and bit crushing; the tables from Glutamake, Good Doctor and Good Doctor 2, and **your own WAV tables**.
 - **Effects for extreme sounds**: a **comb echo that follows the note** (tuned bells and metal), a **phaser** up to 12 stages, reverb with **freeze**, flanger, distortion, **stereo** (width and Haas effect), echo / reverb order of your choice — all of them driven by the lanes and the ORB.

@@ -1064,7 +1064,8 @@ lasers et quelques séquences squelch.
 - **Séquenceur de LFO** : **8 LFO** joués par **4 couloirs de 32 pas** ; chaque pas joue l'un des LFO ou un
   niveau fixe. **32 motifs classiques** à choisir (roulement psy, porte de trance, euclidiens, squelch, hitech…),
   hasard par pas, lissage, repli, swing.
-- **L'ORB** : on charge **quatre sons dans les coins** (sons d'usine ou son en cours capturé), et un **point**
+- **L'ORB** : on charge **quatre sons dans les coins** (sons d'usine, **vos propres sons** enregistrés dans
+  Préréglages, ou le son en cours capturé), et un **point**
   les mélange. Le point peut tourner tout seul sur une **orbite** (cercle, huit, étoile, spirale, Lorenz,
   Rössler…), avec une **sous-orbite en sens opposé** et un **orbe 3** ; trois **physiques** (rigide, élastique,
   gravité) et **6 routes** qui envoient l'ORB directement sur le son.

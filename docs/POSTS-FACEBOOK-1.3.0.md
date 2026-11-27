@@ -188,7 +188,7 @@ Free and open source. Tell me which instrument you'd like to see next 👇
 The idea: four sounds in the corners of a pad, and a point that orbits between them. The sound morphs all the time,
 and you can still grab the point with your finger.
 
-🌀 **The ORB**: load factory sounds (or the current sound) into the 4 corners; the point circles on its own —
+🌀 **The ORB**: load factory sounds, your own saved sounds or the current sound into the 4 corners; the point circles on its own —
 circle, figure eight, star, spiral, Lorenz, Rössler, chaos — with a sub-orbit going the other way, a third orb, and
 rigid, elastic or gravity physics. 6 routes send the ORB straight to the sound.
 〰️ **LFO sequencer**: 8 LFOs played by 4 lanes of 32 steps — every step plays a different LFO or a fixed level.
