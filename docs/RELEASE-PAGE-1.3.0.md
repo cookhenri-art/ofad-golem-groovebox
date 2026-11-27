@@ -272,7 +272,7 @@ Façade compacte en métal noir dans le pédalier, **interface complète** par �
 
 > **Windows** : le programme n'est pas encore signé. Si Windows affiche « Windows a protégé votre ordinateur », cliquer sur « Informations complémentaires » puis « Exécuter quand même ».
 
-> **Android** : mise à jour par-dessus la 1.2, la 1.1 ou la 1.0 (vos projets sont gardés). Pour la télécommande par câble, choisir « MIDI » dans la notification USB du téléphone.
+> ⚠️ **Android, une seule fois** : cette APK (27 nov., avec Croc Glacé) est signée avec une **nouvelle clé**. Elle ne s'installe pas par-dessus une version précédente : **exportez d'abord vos projets** (Réglages › **Exporter une copie…**, vers Téléchargements ou Drive), **désinstallez GOLEM**, puis installez cette APK. Les mises à jour suivantes repasseront par-dessus normalement. Pour la télécommande par câble, choisir « MIDI » dans la notification USB du téléphone.
 
 ### 🍎 Version Mac et iPhone / iPad (essai)
 
@@ -525,7 +525,7 @@ A compact black-metal face in the pedalboard, and a **full interface** through "
 
 > **Windows**: the program is not signed yet. If Windows shows "Windows protected your PC", click "More info" then "Run anyway".
 
-> **Android**: installs over 1.2, 1.1 or 1.0 (your projects are kept). For the cable remote, choose "MIDI" in the phone's USB notification.
+> ⚠️ **Android, one time only**: this APK (Nov 27, with Frost Fang) is signed with a **new key**. It does not install over a previous version: **export your projects first** (Settings › **Export a copy…**, to Downloads or Drive), **uninstall GOLEM**, then install this APK. Later updates will install over it normally. For the cable remote, choose "MIDI" in the phone's USB notification.
 
 ### 🍎 Mac and iPhone / iPad (preview)
 

@@ -14,7 +14,7 @@ add_subdirectory (${OBOE_DIR} ./oboe)
 add_library("cpufeatures" STATIC "${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c")
 set_source_files_properties("${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c" PROPERTIES COMPILE_FLAGS "-Wno-sign-conversion -Wno-gnu-statement-expression")
 
-add_definitions([[-DJUCE_ANDROID=1]] [[-DJUCE_ANDROID_API_VERSION=26]] [[-DJUCE_ANDROID_GL_ES_VERSION_3_0=1]] [[-DGROOVEBOX_ANDROID=1]] [[-DJUCER_ANDROIDSTUDIO_7F0E4A25=1]] [[-DJUCE_APP_VERSION=0.9.0]] [[-DJUCE_APP_VERSION_HEX=0x900]])
+add_definitions([[-DJUCE_ANDROID=1]] [[-DJUCE_ANDROID_API_VERSION=26]] [[-DJUCE_ANDROID_GL_ES_VERSION_3_0=1]] [[-DGROOVEBOX_ANDROID=1]] [[-DGROOVEBOX_FM1=1]] [[-DJUCER_ANDROIDSTUDIO_7F0E4A25=1]] [[-DJUCE_APP_VERSION=1.3.0]] [[-DJUCE_APP_VERSION_HEX=0x10300]])
 
 include_directories( AFTER
     "../../../JuceLibraryCode"
@@ -25,16 +25,38 @@ include_directories( AFTER
 enable_language(ASM)
 
 if(JUCE_BUILD_CONFIGURATION MATCHES "DEBUG")
-    add_definitions([[-DJUCE_PROJUCER_VERSION=0x8000c]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_plugin_client=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1]] [[-DJUCE_MODULE_AVAILABLE_juce_core=1]] [[-DJUCE_MODULE_AVAILABLE_juce_data_structures=1]] [[-DJUCE_MODULE_AVAILABLE_juce_dsp=1]] [[-DJUCE_MODULE_AVAILABLE_juce_events=1]] [[-DJUCE_MODULE_AVAILABLE_juce_graphics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1]] [[-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1]] [[-DJUCE_VST3_CAN_REPLACE_VST2=0]] [[-DJUCE_USE_CURL=0]] [[-DJUCE_STRICT_REFCOUNTEDPOINTER=1]] [[-DJUCE_WEB_BROWSER=1]] [[-DJucePlugin_Build_VST=0]] [[-DJucePlugin_Build_VST3=0]] [[-DJucePlugin_Build_AU=0]] [[-DJucePlugin_Build_AUv3=0]] [[-DJucePlugin_Build_AAX=0]] [[-DJucePlugin_Build_Standalone=1]] [[-DJucePlugin_Build_Unity=0]] [[-DJucePlugin_Build_LV2=0]] [[-DJucePlugin_Enable_IAA=0]] [[-DJucePlugin_Enable_ARA=0]] [[-DJucePlugin_Name="Groovebox"]] [[-DJucePlugin_Desc="Groovebox"]] [[-DJucePlugin_Manufacturer="One For All Distribution"]] [[-DJucePlugin_ManufacturerWebsite=""]] [[-DJucePlugin_ManufacturerEmail=""]] [[-DJucePlugin_ManufacturerCode=0x4f666164]] [[-DJucePlugin_PluginCode=0x47727662]] [[-DJucePlugin_IsSynth=1]] [[-DJucePlugin_WantsMidiInput=1]] [[-DJucePlugin_ProducesMidiOutput=0]] [[-DJucePlugin_IsMidiEffect=0]] [[-DJucePlugin_EditorRequiresKeyboardFocus=1]] [[-DJucePlugin_Version=0.9.0]] [[-DJucePlugin_VersionCode=0x900]] [[-DJucePlugin_VersionString="0.9.0"]] [[-DJucePlugin_VSTUniqueID=JucePlugin_PluginCode]] [[-DJucePlugin_VSTCategory=kPlugCategSynth]] [[-DJucePlugin_Vst3Category="Instrument|Synth"]] [[-DJucePlugin_AUMainType='aumu']] [[-DJucePlugin_AUSubType=JucePlugin_PluginCode]] [[-DJucePlugin_AUExportPrefix=GrooveboxAU]] [[-DJucePlugin_AUExportPrefixQuoted="GrooveboxAU"]] [[-DJucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode]] [[-DJucePlugin_CFBundleIdentifier=ofad.groovebox]] [[-DJucePlugin_AAXIdentifier=ofad.groovebox]] [[-DJucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode]] [[-DJucePlugin_AAXProductId=JucePlugin_PluginCode]] [[-DJucePlugin_AAXCategory=2048]] [[-DJucePlugin_AAXDisableBypass=0]] [[-DJucePlugin_AAXDisableMultiMono=0]] [[-DJucePlugin_IAAType=0x61757269]] [[-DJucePlugin_IAASubType=JucePlugin_PluginCode]] [[-DJucePlugin_IAAName="One For All Distribution: Groovebox"]] [[-DJucePlugin_VSTNumMidiInputs=16]] [[-DJucePlugin_VSTNumMidiOutputs=16]] [[-DJucePlugin_ARAContentTypes=0]] [[-DJucePlugin_ARATransformationFlags=0]] [[-DJucePlugin_ARAFactoryID="ofad.groovebox.factory"]] [[-DJucePlugin_ARADocumentArchiveID="ofad.groovebox.archive"]] [[-DJucePlugin_ARACompatibleArchiveIDs=""]] [[-DJUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone]] [[-DGROOVEBOX_ANDROID=1]] [[-DJUCER_ANDROIDSTUDIO_7F0E4A25=1]] [[-DJUCE_APP_VERSION=0.9.0]] [[-DJUCE_APP_VERSION_HEX=0x900]] [[-DDEBUG=1]] [[-D_DEBUG=1]])
-    include_directories( AFTER
-        "../../../generated"
+    link_directories(
+        "../../../../third_party/fm1emu/android/${ANDROID_ABI}"
     )
 
-elseif(JUCE_BUILD_CONFIGURATION MATCHES "RELEASE")
-    add_definitions([[-DJUCE_PROJUCER_VERSION=0x8000c]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_plugin_client=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1]] [[-DJUCE_MODULE_AVAILABLE_juce_core=1]] [[-DJUCE_MODULE_AVAILABLE_juce_data_structures=1]] [[-DJUCE_MODULE_AVAILABLE_juce_dsp=1]] [[-DJUCE_MODULE_AVAILABLE_juce_events=1]] [[-DJUCE_MODULE_AVAILABLE_juce_graphics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1]] [[-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1]] [[-DJUCE_VST3_CAN_REPLACE_VST2=0]] [[-DJUCE_USE_CURL=0]] [[-DJUCE_STRICT_REFCOUNTEDPOINTER=1]] [[-DJUCE_WEB_BROWSER=1]] [[-DJucePlugin_Build_VST=0]] [[-DJucePlugin_Build_VST3=0]] [[-DJucePlugin_Build_AU=0]] [[-DJucePlugin_Build_AUv3=0]] [[-DJucePlugin_Build_AAX=0]] [[-DJucePlugin_Build_Standalone=1]] [[-DJucePlugin_Build_Unity=0]] [[-DJucePlugin_Build_LV2=0]] [[-DJucePlugin_Enable_IAA=0]] [[-DJucePlugin_Enable_ARA=0]] [[-DJucePlugin_Name="Groovebox"]] [[-DJucePlugin_Desc="Groovebox"]] [[-DJucePlugin_Manufacturer="One For All Distribution"]] [[-DJucePlugin_ManufacturerWebsite=""]] [[-DJucePlugin_ManufacturerEmail=""]] [[-DJucePlugin_ManufacturerCode=0x4f666164]] [[-DJucePlugin_PluginCode=0x47727662]] [[-DJucePlugin_IsSynth=1]] [[-DJucePlugin_WantsMidiInput=1]] [[-DJucePlugin_ProducesMidiOutput=0]] [[-DJucePlugin_IsMidiEffect=0]] [[-DJucePlugin_EditorRequiresKeyboardFocus=1]] [[-DJucePlugin_Version=0.9.0]] [[-DJucePlugin_VersionCode=0x900]] [[-DJucePlugin_VersionString="0.9.0"]] [[-DJucePlugin_VSTUniqueID=JucePlugin_PluginCode]] [[-DJucePlugin_VSTCategory=kPlugCategSynth]] [[-DJucePlugin_Vst3Category="Instrument|Synth"]] [[-DJucePlugin_AUMainType='aumu']] [[-DJucePlugin_AUSubType=JucePlugin_PluginCode]] [[-DJucePlugin_AUExportPrefix=GrooveboxAU]] [[-DJucePlugin_AUExportPrefixQuoted="GrooveboxAU"]] [[-DJucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode]] [[-DJucePlugin_CFBundleIdentifier=ofad.groovebox]] [[-DJucePlugin_AAXIdentifier=ofad.groovebox]] [[-DJucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode]] [[-DJucePlugin_AAXProductId=JucePlugin_PluginCode]] [[-DJucePlugin_AAXCategory=2048]] [[-DJucePlugin_AAXDisableBypass=0]] [[-DJucePlugin_AAXDisableMultiMono=0]] [[-DJucePlugin_IAAType=0x61757269]] [[-DJucePlugin_IAASubType=JucePlugin_PluginCode]] [[-DJucePlugin_IAAName="One For All Distribution: Groovebox"]] [[-DJucePlugin_VSTNumMidiInputs=16]] [[-DJucePlugin_VSTNumMidiOutputs=16]] [[-DJucePlugin_ARAContentTypes=0]] [[-DJucePlugin_ARATransformationFlags=0]] [[-DJucePlugin_ARAFactoryID="ofad.groovebox.factory"]] [[-DJucePlugin_ARADocumentArchiveID="ofad.groovebox.archive"]] [[-DJucePlugin_ARACompatibleArchiveIDs=""]] [[-DJUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone]] [[-DGROOVEBOX_ANDROID=1]] [[-DJUCER_ANDROIDSTUDIO_7F0E4A25=1]] [[-DJUCE_APP_VERSION=0.9.0]] [[-DJUCE_APP_VERSION_HEX=0x900]] [[-DNDEBUG=1]])
+    add_definitions([[-DJUCE_PROJUCER_VERSION=0x8000c]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_plugin_client=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1]] [[-DJUCE_MODULE_AVAILABLE_juce_core=1]] [[-DJUCE_MODULE_AVAILABLE_juce_data_structures=1]] [[-DJUCE_MODULE_AVAILABLE_juce_dsp=1]] [[-DJUCE_MODULE_AVAILABLE_juce_events=1]] [[-DJUCE_MODULE_AVAILABLE_juce_graphics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1]] [[-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1]] [[-DJUCE_USE_MP3AUDIOFORMAT=1]] [[-DJUCE_VST3_CAN_REPLACE_VST2=0]] [[-DJUCE_USE_CURL=0]] [[-DJUCE_STRICT_REFCOUNTEDPOINTER=1]] [[-DJUCE_WEB_BROWSER=1]] [[-DJucePlugin_Build_VST=0]] [[-DJucePlugin_Build_VST3=0]] [[-DJucePlugin_Build_AU=0]] [[-DJucePlugin_Build_AUv3=0]] [[-DJucePlugin_Build_AAX=0]] [[-DJucePlugin_Build_Standalone=1]] [[-DJucePlugin_Build_Unity=0]] [[-DJucePlugin_Build_LV2=0]] [[-DJucePlugin_Enable_IAA=0]] [[-DJucePlugin_Enable_ARA=0]] [[-DJucePlugin_Name="Groovebox"]] [[-DJucePlugin_Desc="Groovebox"]] [[-DJucePlugin_Manufacturer="One For All Distribution"]] [[-DJucePlugin_ManufacturerWebsite=""]] [[-DJucePlugin_ManufacturerEmail=""]] [[-DJucePlugin_ManufacturerCode=0x4f666164]] [[-DJucePlugin_PluginCode=0x47727662]] [[-DJucePlugin_IsSynth=1]] [[-DJucePlugin_WantsMidiInput=1]] [[-DJucePlugin_ProducesMidiOutput=0]] [[-DJucePlugin_IsMidiEffect=0]] [[-DJucePlugin_EditorRequiresKeyboardFocus=1]] [[-DJucePlugin_Version=1.3.0]] [[-DJucePlugin_VersionCode=0x10300]] [[-DJucePlugin_VersionString="1.3.0"]] [[-DJucePlugin_VSTUniqueID=JucePlugin_PluginCode]] [[-DJucePlugin_VSTCategory=kPlugCategSynth]] [[-DJucePlugin_Vst3Category="Instrument|Synth"]] [[-DJucePlugin_AUMainType='aumu']] [[-DJucePlugin_AUSubType=JucePlugin_PluginCode]] [[-DJucePlugin_AUExportPrefix=GrooveboxAU]] [[-DJucePlugin_AUExportPrefixQuoted="GrooveboxAU"]] [[-DJucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode]] [[-DJucePlugin_CFBundleIdentifier=ofad.groovebox]] [[-DJucePlugin_AAXIdentifier=ofad.groovebox]] [[-DJucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode]] [[-DJucePlugin_AAXProductId=JucePlugin_PluginCode]] [[-DJucePlugin_AAXCategory=2048]] [[-DJucePlugin_AAXDisableBypass=0]] [[-DJucePlugin_AAXDisableMultiMono=0]] [[-DJucePlugin_IAAType=0x61757269]] [[-DJucePlugin_IAASubType=JucePlugin_PluginCode]] [[-DJucePlugin_IAAName="One For All Distribution: Groovebox"]] [[-DJucePlugin_VSTNumMidiInputs=16]] [[-DJucePlugin_VSTNumMidiOutputs=16]] [[-DJucePlugin_ARAContentTypes=0]] [[-DJucePlugin_ARATransformationFlags=0]] [[-DJucePlugin_ARAFactoryID="ofad.groovebox.factory"]] [[-DJucePlugin_ARADocumentArchiveID="ofad.groovebox.archive"]] [[-DJucePlugin_ARACompatibleArchiveIDs=""]] [[-DJUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone]] [[-DGROOVEBOX_ANDROID=1]] [[-DGROOVEBOX_FM1=1]] [[-DJUCER_ANDROIDSTUDIO_7F0E4A25=1]] [[-DJUCE_APP_VERSION=1.3.0]] [[-DJUCE_APP_VERSION_HEX=0x10300]] [[-DDEBUG=1]] [[-D_DEBUG=1]])
     include_directories( AFTER
         "../../../generated"
+        "../../../../src/third_party/lame/include"
+        "../../../../third_party/fm1emu/include"
     )
+
+    find_library(fm1_bridge "fm1_bridge" PATHS
+        "../../../../third_party/fm1emu/android/${ANDROID_ABI}"
+        NO_CMAKE_FIND_ROOT_PATH)
+
+
+elseif(JUCE_BUILD_CONFIGURATION MATCHES "RELEASE")
+    link_directories(
+        "../../../../third_party/fm1emu/android/${ANDROID_ABI}"
+    )
+
+    add_definitions([[-DJUCE_PROJUCER_VERSION=0x8000c]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_plugin_client=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1]] [[-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1]] [[-DJUCE_MODULE_AVAILABLE_juce_core=1]] [[-DJUCE_MODULE_AVAILABLE_juce_data_structures=1]] [[-DJUCE_MODULE_AVAILABLE_juce_dsp=1]] [[-DJUCE_MODULE_AVAILABLE_juce_events=1]] [[-DJUCE_MODULE_AVAILABLE_juce_graphics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1]] [[-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1]] [[-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1]] [[-DJUCE_USE_MP3AUDIOFORMAT=1]] [[-DJUCE_VST3_CAN_REPLACE_VST2=0]] [[-DJUCE_USE_CURL=0]] [[-DJUCE_STRICT_REFCOUNTEDPOINTER=1]] [[-DJUCE_WEB_BROWSER=1]] [[-DJucePlugin_Build_VST=0]] [[-DJucePlugin_Build_VST3=0]] [[-DJucePlugin_Build_AU=0]] [[-DJucePlugin_Build_AUv3=0]] [[-DJucePlugin_Build_AAX=0]] [[-DJucePlugin_Build_Standalone=1]] [[-DJucePlugin_Build_Unity=0]] [[-DJucePlugin_Build_LV2=0]] [[-DJucePlugin_Enable_IAA=0]] [[-DJucePlugin_Enable_ARA=0]] [[-DJucePlugin_Name="Groovebox"]] [[-DJucePlugin_Desc="Groovebox"]] [[-DJucePlugin_Manufacturer="One For All Distribution"]] [[-DJucePlugin_ManufacturerWebsite=""]] [[-DJucePlugin_ManufacturerEmail=""]] [[-DJucePlugin_ManufacturerCode=0x4f666164]] [[-DJucePlugin_PluginCode=0x47727662]] [[-DJucePlugin_IsSynth=1]] [[-DJucePlugin_WantsMidiInput=1]] [[-DJucePlugin_ProducesMidiOutput=0]] [[-DJucePlugin_IsMidiEffect=0]] [[-DJucePlugin_EditorRequiresKeyboardFocus=1]] [[-DJucePlugin_Version=1.3.0]] [[-DJucePlugin_VersionCode=0x10300]] [[-DJucePlugin_VersionString="1.3.0"]] [[-DJucePlugin_VSTUniqueID=JucePlugin_PluginCode]] [[-DJucePlugin_VSTCategory=kPlugCategSynth]] [[-DJucePlugin_Vst3Category="Instrument|Synth"]] [[-DJucePlugin_AUMainType='aumu']] [[-DJucePlugin_AUSubType=JucePlugin_PluginCode]] [[-DJucePlugin_AUExportPrefix=GrooveboxAU]] [[-DJucePlugin_AUExportPrefixQuoted="GrooveboxAU"]] [[-DJucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode]] [[-DJucePlugin_CFBundleIdentifier=ofad.groovebox]] [[-DJucePlugin_AAXIdentifier=ofad.groovebox]] [[-DJucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode]] [[-DJucePlugin_AAXProductId=JucePlugin_PluginCode]] [[-DJucePlugin_AAXCategory=2048]] [[-DJucePlugin_AAXDisableBypass=0]] [[-DJucePlugin_AAXDisableMultiMono=0]] [[-DJucePlugin_IAAType=0x61757269]] [[-DJucePlugin_IAASubType=JucePlugin_PluginCode]] [[-DJucePlugin_IAAName="One For All Distribution: Groovebox"]] [[-DJucePlugin_VSTNumMidiInputs=16]] [[-DJucePlugin_VSTNumMidiOutputs=16]] [[-DJucePlugin_ARAContentTypes=0]] [[-DJucePlugin_ARATransformationFlags=0]] [[-DJucePlugin_ARAFactoryID="ofad.groovebox.factory"]] [[-DJucePlugin_ARADocumentArchiveID="ofad.groovebox.archive"]] [[-DJucePlugin_ARACompatibleArchiveIDs=""]] [[-DJUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone]] [[-DGROOVEBOX_ANDROID=1]] [[-DGROOVEBOX_FM1=1]] [[-DJUCER_ANDROIDSTUDIO_7F0E4A25=1]] [[-DJUCE_APP_VERSION=1.3.0]] [[-DJUCE_APP_VERSION_HEX=0x10300]] [[-DNDEBUG=1]])
+    include_directories( AFTER
+        "../../../generated"
+        "../../../../src/third_party/lame/include"
+        "../../../../third_party/fm1emu/include"
+    )
+
+    find_library(fm1_bridge "fm1_bridge" PATHS
+        "../../../../third_party/fm1emu/android/${ANDROID_ABI}"
+        NO_CMAKE_FIND_ROOT_PATH)
+
 
 else()
     message( FATAL_ERROR "No matching build-configuration found." )
@@ -51,6 +73,16 @@ add_library( ${BINARY_NAME}
     "../../../../src/PluginProcessor.h"
     "../../../../src/UserPresets.cpp"
     "../../../../src/UserPresets.h"
+    "../../../../src/Folders.cpp"
+    "../../../../src/Folders.h"
+    "../../../../src/PerfStats.cpp"
+    "../../../../src/PerfStats.h"
+    "../../../../src/Recorder.cpp"
+    "../../../../src/Montage.cpp"
+    "../../../../src/Montage.h"
+    "../../../../src/Recorder.h"
+    "../../../../src/StandaloneHook.cpp"
+    "../../../../src/StandaloneInput.h"
     "../../../../src/engine/Bridge.cpp"
     "../../../../src/engine/Bridge.h"
     "../../../../src/engine/Catalog.cpp"
@@ -69,6 +101,25 @@ add_library( ${BINARY_NAME}
     "../../../../src/dsp/KickVoice.h"
     "../../../../src/dsp/Loudness.h"
     "../../../../src/dsp/Oversampler.h"
+    "../../../../src/third_party/lame/unites/lame_VbrTag.c"
+    "../../../../src/third_party/lame/unites/lame_bitstream.c"
+    "../../../../src/third_party/lame/unites/lame_encoder.c"
+    "../../../../src/third_party/lame/unites/lame_fft.c"
+    "../../../../src/third_party/lame/unites/lame_gain_analysis.c"
+    "../../../../src/third_party/lame/unites/lame_id3tag.c"
+    "../../../../src/third_party/lame/unites/lame_lame.c"
+    "../../../../src/third_party/lame/unites/lame_newmdct.c"
+    "../../../../src/third_party/lame/unites/lame_presets.c"
+    "../../../../src/third_party/lame/unites/lame_psymodel.c"
+    "../../../../src/third_party/lame/unites/lame_quantize.c"
+    "../../../../src/third_party/lame/unites/lame_quantize_pvt.c"
+    "../../../../src/third_party/lame/unites/lame_reservoir.c"
+    "../../../../src/third_party/lame/unites/lame_set_get.c"
+    "../../../../src/third_party/lame/unites/lame_tables.c"
+    "../../../../src/third_party/lame/unites/lame_takehiro.c"
+    "../../../../src/third_party/lame/unites/lame_util.c"
+    "../../../../src/third_party/lame/unites/lame_vbrquantize.c"
+    "../../../../src/third_party/lame/unites/lame_version.c"
     "../../../../src/synth/SamplePlayer.h"
     "../../../../src/synth/SynthBase.h"
     "../../../../src/synth/SynthCore.h"
@@ -88,6 +139,11 @@ add_library( ${BINARY_NAME}
     "../../../../src/effects/Gate.h"
     "../../../../src/effects/Eq.h"
     "../../../../src/effects/ModFx.h"
+    "../../../../src/effects/ModFx36.h"
+    "../../../../src/effects/FxMod.h"
+    "../../../../src/effects/Grinder.h"
+    "../../../../src/effects/Sculptor.h"
+    "../../../../src/effects/Fx38.h"
     "../../../../src/effects/Reverb.h"
     "../../../generated/UiData.cpp"
     "../../../generated/UiData.h"
@@ -2763,6 +2819,11 @@ set_source_files_properties(
     "../../../../src/PluginEditor.h"
     "../../../../src/PluginProcessor.h"
     "../../../../src/UserPresets.h"
+    "../../../../src/Folders.h"
+    "../../../../src/PerfStats.h"
+    "../../../../src/Montage.h"
+    "../../../../src/Recorder.h"
+    "../../../../src/StandaloneInput.h"
     "../../../../src/engine/Bridge.h"
     "../../../../src/engine/Catalog.h"
     "../../../../src/engine/Engine.h"
@@ -2797,6 +2858,11 @@ set_source_files_properties(
     "../../../../src/effects/Gate.h"
     "../../../../src/effects/Eq.h"
     "../../../../src/effects/ModFx.h"
+    "../../../../src/effects/ModFx36.h"
+    "../../../../src/effects/FxMod.h"
+    "../../../../src/effects/Grinder.h"
+    "../../../../src/effects/Sculptor.h"
+    "../../../../src/effects/Fx38.h"
     "../../../../src/effects/Reverb.h"
     "../../../generated/UiData.h"
     "../../../../../JUCE/juce-8.0.12-windows/JUCE/modules/juce_audio_basics/audio_play_head/juce_AudioPlayHead.cpp"
@@ -5467,4 +5533,5 @@ target_link_libraries( ${BINARY_NAME}
     ${egl}
     "cpufeatures"
     "oboe"
+    [[fm1_bridge]]
 )

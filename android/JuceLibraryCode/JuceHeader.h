@@ -44,7 +44,7 @@ namespace ProjectInfo
 {
     const char* const  projectName    = "Groovebox";
     const char* const  companyName    = "One For All Distribution";
-    const char* const  versionString  = "0.9.0";
-    const int          versionNumber  = 0x900;
+    const char* const  versionString  = "1.3.0";
+    const int          versionNumber  = 0x10300;
 }
 #endif

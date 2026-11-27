@@ -51,6 +51,10 @@ Node.js, et JUCE 8.0.12 au même endroit que pour Windows.
   (`Projucer --resave android/Groovebox.jucer` après un ajout de fichier source).
 - Installation sur la tablette : copier l'APK et l'ouvrir (autoriser les sources inconnues), ou
   `adb install -r <fichier.apk>` avec le débogage USB activé.
+- **Signature depuis la 1.3.0 (27 nov. 2026)** : l'ancienne clé de débogage (28 oct.) a été perdue avec l'espace de
+  compilation ; les APK sont désormais signées avec la clé « OFAD GOLEM » (empreinte SHA-256 du certificat
+  `AC:23:09:91:6E:C8:D2:A1:00:80:B7:2A:B2:02:99:2C:01:D5:B2:5D:BC:E0:E3:4E:BA:83:33:3D:52:89:A5:9D`), gardée hors du
+  dépôt chez Henrico avec une copie de sauvegarde. Passer de la 1.3.0 du 25 nov. à celle-ci demande une désinstallation.
 - **Signature (v0.46.1)** : la version « release » est signée avec la clé de publication de GOLEM si
   `%USERPROFILE%\.ofad-golem\keystore.properties` existe (créé une fois par `scripts\creer-cle-android.bat`),
   sinon avec la clé de débogage (message « ATTENTION » pendant la compilation). La clé reste hors du projet ;

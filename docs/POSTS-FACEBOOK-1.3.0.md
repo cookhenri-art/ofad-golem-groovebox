@@ -12,7 +12,9 @@ Liens :
 - **Le projet complet** (présentation, captures, tous les instruments et effets, notices) : https://github.com/cookhenri-art/ofad-golem-groovebox
 - **Les greffons MPC / Force** : https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/mpc-1.2.0
 
-Ne publier qu'une fois la page de la 1.3.0 en ligne.
+Ne publier qu'une fois la page de la 1.3.0 en ligne. **Android** : l'APK du 27 nov. a une nouvelle clé de signature
+(désinstallation une fois, projets à exporter avant) : le rappeler en commentaire si quelqu'un n'arrive pas à
+installer.
 
 **Images** : `docs/img/v130/en/` (interface en anglais) pour les posts en anglais, `docs/img/v130/` (interface en
 français) pour le post bilingue, `docs/img/galerie/instruments-6.jpg` et `instruments-7.jpg` (Croc Glacé), et pour la MPC / Force
@@ -107,6 +109,9 @@ In OFAD GOLEM 1.3, Gamer Lover gets its own phone screen:
 ✅ Everything on one screen, no scrolling
 
 It's a trial: if you like it, other instruments can move to this layout. Tell me 👇
+
+⚠️ Android: this APK uses a new signing key, so export your projects (Settings › Export a copy…), uninstall the
+old GOLEM once, then install it. Updates will install normally after that.
 
 👉 https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.3.0
 
