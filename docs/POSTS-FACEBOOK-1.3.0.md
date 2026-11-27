@@ -6,6 +6,7 @@ de plugins VST. Ton simple : deux nouveaux instruments en avant, **Gamer Lover**
 **Frost Fang** (*Croc Glacé* en français : le synthé psy à l'ORB), l'écran du téléphone en essai ; jamais « mieux
 que » un autre logiciel, jamais de nom de marque de console ni de synthé d'origine. Mise à jour du 27 nov. 2026 :
 Frost Fang ajouté (posts 1 à 6, plus le post 7 rien que pour lui, pour les groupes psytrance / sound design).
+Le côté nomade (tout le studio dans le téléphone, un clavier MIDI, on joue n'importe où) est rappelé dans chaque post.
 
 Liens :
 - **La 1.3** (nouveautés et téléchargements) : https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.3.0
@@ -64,12 +65,15 @@ instruments like this.
 Plus everything that was already there: 43 instruments, 54 effects, 2,800+ sounds, 16 tracks, step and lock
 sequencers, scenes, song mode, MIDI track, phone remote. Windows, Mac, Android, iPhone / iPad, VST3 / AU.
 
+🎒 Made for musicians on the move: the whole studio fits in your phone. No account, no subscription, no internet
+needed. Plug in a MIDI keyboard or an external sequencer and play anywhere: on the train, at a friend's, on the road.
+
 👉 What's new in 1.3 + downloads: https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.3.0
 👉 The whole project: https://github.com/cookhenri-art/ofad-golem-groovebox
 
 Free and open source. Try it and tell me what you think 👇
 
-#groovebox #chiptune #8bit #psytrance #synth #electronicmusic #opensource
+#groovebox #chiptune #8bit #psytrance #synth #electronicmusic #mobilemusic #opensource
 
 ---
 
@@ -88,7 +92,8 @@ Free and open source. Try it and tell me what you think 👇
 ✅ The **CRT TV** shows the wave, the FM operator diagram or the drum pads — tap the pads to hear them
 ✅ **95 factory sounds**: basses, leads, pads, keys, arpeggios, drum kits, effects (coin, laser, life lost…)
 
-Then sequence it in GOLEM with steps, locks, scenes and the rest of your track.
+Then sequence it in GOLEM with steps, locks, scenes and the rest of your track. It fits in your pocket too: the
+same instrument on your phone, wherever you go.
 
 👉 https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.3.0
 
@@ -107,6 +112,9 @@ In OFAD GOLEM 1.3, Gamer Lover gets its own phone screen:
 ✅ The **CRT TV** and the chip choices in the middle
 ✅ A row of **8 knobs** that follows the menu you pick
 ✅ Everything on one screen, no scrolling
+
+🎒 Your whole studio in your pocket: plug a MIDI keyboard or a sequencer into the phone and make music anywhere —
+no laptop, no account, no internet.
 
 It's a trial: if you like it, other instruments can move to this layout. Tell me 👇
 
@@ -135,6 +143,9 @@ Free and open source, Android and iPhone / iPad (and Windows / Mac).
 📱 **On phones (trial)**: a pad-machine style screen — 8 menus, the TV, 8 knobs.
 🇫🇷 **Au téléphone (essai)** : un écran façon machine à pads — 8 menus, le téléviseur, 8 boutons.
 
+🎒 Your studio in your pocket: a phone, a MIDI keyboard, and you can play anywhere — no account, no internet.
+🇫🇷 Tout le studio dans la poche : un téléphone, un clavier MIDI, et on joue n'importe où — sans compte ni connexion.
+
 43 instruments · 54 effects / effets · 2,800+ sounds / sons · 16 tracks / pistes · Windows, Mac, Android, iPhone / iPad, VST3 / AU.
 
 👉 1.3 + downloads / téléchargements : https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.3.0
@@ -152,7 +163,7 @@ Free and open source / gratuit et libre. Tell me what you think / dites-moi ce q
 
 **OFAD GOLEM** is my free, open-source groovebox: 43 instruments, 54 effects, 16 tracks, step and lock
 sequencers, scenes, song mode. It runs on Windows, Mac, Android and iPhone / iPad, as an app or as a
-VST3 / AU plugin in your DAW.
+VST3 / AU plugin in your DAW. Take it anywhere: on a phone with a MIDI keyboard, it's a whole studio in your bag.
 
 The same instruments and effects also run **as plugins on the standalone Akai MPC and Force**, with
 touch screens designed for the machine (Q-Links on every page).
@@ -176,7 +187,7 @@ Free and open source. Tell me which instrument you'd like to see next 👇
 
 ## 🇬🇧 6. Short post (comments, follow-ups)
 
-🎮❄️ OFAD GOLEM 1.3: Gamer Lover brings 8 and 16-bit game console chips (square, triangle, noise, 4-bit waves, FM, samples, console drums) with a CRT TV on the panel, and Frost Fang is a psy synth whose ORB morphs four sounds with an orbiting point (8 sequenced LFOs, comb echo, phaser, reverb freeze). Plus a new trial screen on phones. Free, open source, PC / Mac / Android / iOS, VST3 / AU.
+🎮❄️ OFAD GOLEM 1.3: Gamer Lover brings 8 and 16-bit game console chips (square, triangle, noise, 4-bit waves, FM, samples, console drums) with a CRT TV on the panel, and Frost Fang is a psy synth whose ORB morphs four sounds with an orbiting point (8 sequenced LFOs, comb echo, phaser, reverb freeze). Plus a new trial screen on phones. Your whole studio in your pocket, play anywhere. Free, open source, PC / Mac / Android / iOS, VST3 / AU.
 👉 https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.3.0
 
 ---
@@ -201,7 +212,8 @@ stages, flanger down to a few ms (lasers), reverb freeze, stereo width and Haas 
 🎧 44 factory sounds: psychedelic drones, morphing pads, alien textures, glitch, metal, lasers, risers, squelch
 sequences and a few basses.
 
-Then sequence it in GOLEM with steps, locks and scenes, next to 42 other instruments.
+Then sequence it in GOLEM with steps, locks and scenes, next to 42 other instruments — on your computer or on your
+phone, wherever you are.
 
 👉 https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.3.0
 
