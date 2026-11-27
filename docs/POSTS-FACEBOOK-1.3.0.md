@@ -68,12 +68,16 @@ sequencers, scenes, song mode, MIDI track, phone remote. Windows, Mac, Android, 
 🎒 Made for musicians on the move: the whole studio fits in your phone. No account, no subscription, no internet
 needed. Plug in a MIDI keyboard or an external sequencer and play anywhere: on the train, at a friend's, on the road.
 
+🎛️ Got an Akai MPC or Force? The GOLEM instruments and effects also run as plugins on the standalone MPC and Force,
+with touch screens and Q-Links made for the machine (Gamer Lover included).
+
 👉 What's new in 1.3 + downloads: https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.3.0
+👉 Akai MPC / Force plugins: https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/mpc-1.2.0
 👉 The whole project: https://github.com/cookhenri-art/ofad-golem-groovebox
 
 Free and open source. Try it and tell me what you think 👇
 
-#groovebox #chiptune #8bit #psytrance #synth #electronicmusic #mobilemusic #opensource
+#groovebox #chiptune #8bit #psytrance #synth #electronicmusic #mobilemusic #akaimpc #akaiforce #opensource
 
 ---
 
@@ -148,12 +152,16 @@ Free and open source, Android and iPhone / iPad (and Windows / Mac).
 
 43 instruments · 54 effects / effets · 2,800+ sounds / sons · 16 tracks / pistes · Windows, Mac, Android, iPhone / iPad, VST3 / AU.
 
+🎛️ Also as plugins for the standalone Akai MPC and Force (touch screens and Q-Links made for the machine).
+🇫🇷 Aussi en greffons pour les Akai MPC et Force autonomes (écrans tactiles et Q-Links pensés pour la machine).
+
 👉 1.3 + downloads / téléchargements : https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/v1.3.0
+👉 Akai MPC / Force : https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/mpc-1.2.0
 👉 The project / le projet : https://github.com/cookhenri-art/ofad-golem-groovebox
 
 Free and open source / gratuit et libre. Tell me what you think / dites-moi ce que vous en pensez 👇
 
-#groovebox #chiptune #psytrance #musiqueelectronique #MAO #opensource
+#groovebox #chiptune #psytrance #musiqueelectronique #MAO #akaimpc #opensource
 
 ---
 
