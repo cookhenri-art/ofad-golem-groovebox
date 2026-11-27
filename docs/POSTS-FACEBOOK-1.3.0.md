@@ -13,6 +13,10 @@ Liens :
 - **Le projet complet** (présentation, captures, tous les instruments et effets, notices) : https://github.com/cookhenri-art/ofad-golem-groovebox
 - **Les greffons MPC / Force** : https://github.com/cookhenri-art/ofad-golem-groovebox/releases/tag/mpc-1.2.0
 
+**MPC / Force** : dans les posts qui parlent des greffons (1, 4, 5), ajouter le texte d'installation de
+`docs/POST-INSTALLATION-MPC-FORCE.md` (dans le post ou en premier commentaire épinglé) : dossier VST2 Plugins à la
+racine, firmware 3.10.1, Enhancements / External Plugin Support, redémarrage.
+
 Ne publier qu'une fois la page de la 1.3.0 en ligne. **Android** : l'APK du 27 nov. a une nouvelle clé de signature
 (désinstallation une fois, projets à exporter avant) : le rappeler en commentaire si quelqu'un n'arrive pas à
 installer.
